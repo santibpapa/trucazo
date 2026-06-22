@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350" width="250" height="350">
+<rect x="3" y="3" width="244" height="344" rx="20" fill="#D9C58E" stroke="#C9BC9E" stroke-width="2"/>
+<path d="M3,23 A20,20 0 0 1 23,3 L227,3 A20,20 0 0 1 247,23 L247,34 L3,34 Z" fill="#CDB877"/>
+<text x="125.0" y="25" font-family="Inter,Helvetica,Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="2" fill="#C9453B" text-anchor="middle">COPA</text>
+<g transform="translate(30,70) rotate(0)"><text x="0" y="0" font-family="Inter,Helvetica,Arial,sans-serif" font-size="40" font-weight="800" fill="#C9453B" text-anchor="middle">3</text><g transform="translate(-9,8) scale(0.18)"><g fill="none" stroke="#C9453B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22,20 L78,20 Q78,52 50,52 Q22,52 22,20 Z"/>
+    <line x1="50" y1="52" x2="50" y2="76"/><path d="M30,82 Q50,73 70,82"/></g></g></g>
+<g transform="translate(220,298) rotate(180)"><text x="0" y="0" font-family="Inter,Helvetica,Arial,sans-serif" font-size="40" font-weight="800" fill="#C9453B" text-anchor="middle">3</text><g transform="translate(-9,8) scale(0.18)"><g fill="none" stroke="#C9453B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22,20 L78,20 Q78,52 50,52 Q22,52 22,20 Z"/>
+    <line x1="50" y1="52" x2="50" y2="76"/><path d="M30,82 Q50,73 70,82"/></g></g></g>
+<g transform="translate(94.0,73.5) scale(0.62)"><g fill="none" stroke="#C9453B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22,20 L78,20 Q78,52 50,52 Q22,52 22,20 Z"/>
+    <line x1="50" y1="52" x2="50" y2="76"/><path d="M30,82 Q50,73 70,82"/></g></g>
+<g transform="translate(94.0,154.0) scale(0.62)"><g fill="none" stroke="#C9453B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22,20 L78,20 Q78,52 50,52 Q22,52 22,20 Z"/>
+    <line x1="50" y1="52" x2="50" y2="76"/><path d="M30,82 Q50,73 70,82"/></g></g>
+<g transform="translate(94.0,234.5) scale(0.62)"><g fill="none" stroke="#C9453B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22,20 L78,20 Q78,52 50,52 Q22,52 22,20 Z"/>
+    <line x1="50" y1="52" x2="50" y2="76"/><path d="M30,82 Q50,73 70,82"/></g></g>
+</svg>

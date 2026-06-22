@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { Panel, Logo, Input, Button, Alert, CoinIcon } from '@/components/ui'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -76,69 +77,59 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-8">
-      <div className="bg-green-900 border border-green-700 rounded-2xl p-8 w-full max-w-sm flex flex-col gap-5">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-yellow-400">🃏 Trucazo</h1>
-          <p className="text-green-400 mt-1">Crear cuenta</p>
+    <main className="flex flex-col items-center justify-center min-h-screen p-6">
+      <Panel className="w-full max-w-sm p-8 flex flex-col gap-6 animate-fade-up">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <Logo size="md" />
+          <p className="text-sm text-muted">Creá tu cuenta</p>
         </div>
 
-        {error && (
-          <div className="bg-red-900/50 border border-red-500 text-red-300 rounded-lg p-3 text-sm">
-            {error}
-          </div>
-        )}
+        {error && <Alert>{error}</Alert>}
 
         <div className="flex flex-col gap-4">
-          <div>
-            <label className="text-green-300 text-sm mb-1 block">Nombre de usuario</label>
-            <input
-              type="text"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              placeholder="ej: ElTruco99"
-              className="w-full bg-green-800 border border-green-600 rounded-lg px-4 py-2.5 text-white placeholder-green-600 focus:outline-none focus:border-yellow-400"
-            />
-          </div>
-
-          <div>
-            <label className="text-green-300 text-sm mb-1 block">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="tu@email.com"
-              className="w-full bg-green-800 border border-green-600 rounded-lg px-4 py-2.5 text-white placeholder-green-600 focus:outline-none focus:border-yellow-400"
-            />
-          </div>
-
-          <div>
-            <label className="text-green-300 text-sm mb-1 block">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
-              className="w-full bg-green-800 border border-green-600 rounded-lg px-4 py-2.5 text-white placeholder-green-600 focus:outline-none focus:border-yellow-400"
-            />
-          </div>
+          <Input
+            label="Nombre de usuario"
+            name="username"
+            type="text"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            placeholder="ej: ElTruco99"
+          />
+          <Input
+            label="Email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="tu@email.com"
+          />
+          <Input
+            label="Contraseña"
+            name="password"
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="Mínimo 6 caracteres"
+          />
         </div>
 
-        <button
-          onClick={handleRegister}
-          disabled={loading}
-          className="bg-yellow-400 text-green-950 font-bold py-3 rounded-xl hover:bg-yellow-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Creando cuenta...' : 'Registrarse y ganar 1000 🪙'}
-        </button>
+        <Button fullWidth size="lg" onClick={handleRegister} disabled={loading}>
+          {loading ? (
+            'Creando cuenta…'
+          ) : (
+            <span className="inline-flex items-center gap-2">
+              Registrarse y ganar <CoinIcon size={16} /> 1.000
+            </span>
+          )}
+        </Button>
 
-        <p className="text-center text-green-500 text-sm">
+        <p className="text-center text-sm text-muted">
           ¿Ya tenés cuenta?{' '}
-          <Link href="/login" className="text-yellow-400 hover:underline">
+          <Link href="/login" className="text-gold font-semibold hover:underline">
             Iniciá sesión
           </Link>
         </p>
-      </div>
+      </Panel>
     </main>
   )
 }

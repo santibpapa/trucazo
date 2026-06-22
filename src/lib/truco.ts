@@ -61,12 +61,14 @@ export function getEnvidoPoints(cards: Card[]): number {
   let best = 0
   for (const suit in bySuit) {
     const suitCards = bySuit[suit]
-    const points = suitCards.map(c => (c.value <= 7 ? c.value : 0))
+    // Para el envido, las figuras (10, 11, 12) valen 0
+    const points = suitCards.map(c => (c.value <= 7 ? c.value : 0)).sort((a, b) => b - a)
     if (suitCards.length >= 2) {
-      const sum = points.reduce((a, b) => a + b, 0) + 20
+      // Solo cuentan las dos cartas más altas del mismo palo
+      const sum = points[0] + points[1] + 20
       if (sum > best) best = sum
     } else {
-      const max = Math.max(...points)
+      const max = points[0]
       if (max > best) best = max
     }
   }
@@ -86,7 +88,9 @@ export function getCardLabel(card: Card): string {
 }
 
 export function getCardImage(card: Card): string {
-  return `/cartas/${card.value}_${card.suit}.png`
+  // SVGs en public/cartas/ con nombre {palo}_{valor 2 dígitos}.svg (ej: oro_01.svg, basto_12.svg)
+  const value = String(card.value).padStart(2, '0')
+  return `/cartas/${card.suit}_${value}.svg`
 }
 
 export function compareCards(a: Card, b: Card): number {

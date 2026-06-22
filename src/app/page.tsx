@@ -1,29 +1,31 @@
 import Link from 'next/link'
+import { Logo, CoinIcon, buttonClass } from '@/components/ui'
 
 export default function Home() {
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen gap-8 p-8">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold text-yellow-400 mb-2">🃏 Trucazo</h1>
-        <p className="text-green-300 text-xl">Truco argentino 1vs1 con monedas ficticias</p>
+    <main className="flex flex-col items-center justify-center min-h-screen gap-10 p-6 text-center">
+      <div className="flex flex-col items-center gap-5 animate-fade-up">
+        <Logo size="lg" />
+        <p className="text-muted max-w-xs text-balance">
+          Truco argentino 1 contra 1, con monedas ficticias. Sentate a la mesa.
+        </p>
       </div>
 
-      <div className="flex flex-col gap-4 w-full max-w-xs">
-        <Link
-          href="/login"
-          className="bg-yellow-400 text-green-950 font-bold py-3 px-8 rounded-xl text-center text-lg hover:bg-yellow-300 transition"
-        >
+      <div className="flex flex-col gap-3 w-full max-w-xs animate-fade-up">
+        <Link href="/login" className={buttonClass('primary', 'lg', true)}>
           Iniciar sesión
         </Link>
-        <Link
-          href="/register"
-          className="border-2 border-yellow-400 text-yellow-400 font-bold py-3 px-8 rounded-xl text-center text-lg hover:bg-yellow-400 hover:text-green-950 transition"
-        >
-          Registrarse
+        <Link href="/register" className={buttonClass('ghost', 'lg', true)}>
+          Crear cuenta
         </Link>
       </div>
 
-      <p className="text-green-600 text-sm">Cada jugador nuevo recibe 1000 monedas 🪙</p>
+      <p className="inline-flex items-center gap-2 text-sm text-subtle animate-fade-up">
+        Cada jugador nuevo arranca con
+        <span className="inline-flex items-center gap-1.5 text-gold font-semibold">
+          <CoinIcon size={14} /> 1.000
+        </span>
+      </p>
     </main>
   )
 }

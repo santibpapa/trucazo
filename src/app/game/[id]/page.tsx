@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import type { Card } from '@/lib/truco'
+import { Panel } from '@/components/ui'
 import GameClient from './GameClient'
+import CancelTableButton from './CancelTableButton'
+import WaitingRoom from './WaitingRoom'
 
 export default async function GamePage({ params }: { params: { id: string } }) {
   const supabase = await createClient()
@@ -22,89 +26,51 @@ export default async function GamePage({ params }: { params: { id: string } }) {
 
   if (table.status === 'waiting') {
     return (
-      <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-8">
-        <div className="bg-green-900 border border-green-700 rounded-2xl p-8 w-full max-w-sm text-center flex flex-col gap-4">
-          <h2 className="text-2xl font-bold text-yellow-400">⏳ Esperando rival...</h2>
-          <p className="text-green-300">Compartí el código con tu rival para que se una</p>
+      <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-6">
+        <Panel className="w-full max-w-sm p-8 text-center flex flex-col gap-5 animate-fade-up">
+          <div className="flex flex-col items-center gap-3">
+            <span className="flex gap-1.5" aria-hidden="true">
+              <span className="w-2 h-2 rounded-full bg-gold animate-pulse [animation-delay:0ms]" />
+              <span className="w-2 h-2 rounded-full bg-gold animate-pulse [animation-delay:200ms]" />
+              <span className="w-2 h-2 rounded-full bg-gold animate-pulse [animation-delay:400ms]" />
+            </span>
+            <h2 className="font-display text-2xl font-bold text-cream">Esperando rival</h2>
+          </div>
+          <p className="text-sm text-muted">
+            {table.private_code
+              ? 'Pasale este código a tu rival para que se una.'
+              : 'Tu mesa ya está publicada. En cuanto alguien entre, arranca la partida.'}
+          </p>
           {table.private_code && (
-            <div className="bg-green-800 rounded-xl p-4">
-              <p className="text-4xl font-bold text-white tracking-widest">{table.private_code}</p>
+            <div className="rounded-2xl border border-gold/30 bg-base py-5 shadow-gold-ring">
+              <p className="font-display text-4xl font-extrabold tracking-[0.3em] text-gold">
+                {table.private_code}
+              </p>
             </div>
           )}
-          <p className="text-green-500 text-sm">La página se actualizará automáticamente</p>
-          <a href="/lobby" className="text-green-500 hover:text-red-400 transition text-sm underline">
-            Cancelar y volver al lobby
-          </a>
-        </div>
+          <p className="text-xs text-subtle">La pantalla se actualiza sola.</p>
+          <WaitingRoom tableId={params.id} />
+          <CancelTableButton tableId={params.id} />
+        </Panel>
       </main>
     )
   }
 
-  let { data: game } = await supabase
-    .from('games')
-    .select('*')
-    .eq('id', params.id)
-    .single()
-
-  if (!game && table.status === 'playing') {
-    const suits = ['espada', 'basto', 'oro', 'copa']
-    const values = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
-    const deck: any[] = []
-
-    function getRank(value: number, suit: string): number {
-      if (value === 1 && suit === 'espada') return 1
-      if (value === 1 && suit === 'basto') return 2
-      if (value === 7 && suit === 'espada') return 3
-      if (value === 7 && suit === 'oro') return 4
-      if (value === 3) return 5
-      if (value === 2) return 6
-      if (value === 1) return 7
-      if (value === 12) return 8
-      if (value === 11) return 9
-      if (value === 10) return 10
-      if (value === 7) return 11
-      if (value === 6) return 12
-      if (value === 5) return 13
-      if (value === 4) return 14
-      return 15
-    }
-
-    for (const suit of suits) {
-      for (const value of values) {
-        deck.push({ suit, value, rank: getRank(value, suit) })
-      }
-    }
-
-    // Shuffle
-    for (let i = deck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[deck[i], deck[j]] = [deck[j], deck[i]]
-    }
-
-    const p1Cards = deck.slice(0, 3)
-    const p2Cards = deck.slice(3, 6)
-
-    const { data: newGame } = await supabase
-      .from('games')
-      .insert({
-        id: params.id,
-        player1_id: table.creator_id,
-        player2_id: table.opponent_id,
-        player1_username: table.creator_username,
-        player2_username: table.opponent_username,
-        player1_cards: p1Cards,
-        player2_cards: p2Cards,
-        current_turn: table.creator_id,
-        mano_player: table.creator_id,
-        bet: table.bet * 2,
-      })
-      .select()
-      .single()
-
-    game = newGame
-  }
+  // Crea la partida y reparte las manos en el servidor (idempotente y a prueba
+  // de carrera). Las cartas viven en game_hands, no en games, así no se filtran.
+  const { data: game } = await supabase.rpc('start_game', { p_game_id: params.id })
 
   if (!game) redirect('/lobby')
 
-  return <GameClient game={game} currentUserId={user.id} />
+  // Mi mano: la RLS de game_hands solo me deja ver la mía.
+  const { data: handRow } = await supabase
+    .from('game_hands')
+    .select('cards')
+    .eq('game_id', params.id)
+    .eq('player_id', user.id)
+    .single()
+
+  const myHand = (handRow?.cards as Card[]) ?? []
+
+  return <GameClient game={game} currentUserId={user.id} myHand={myHand} />
 }

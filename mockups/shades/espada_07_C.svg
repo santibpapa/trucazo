@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350" width="250" height="350">
+<rect x="3" y="3" width="244" height="344" rx="20" fill="#E2D4AE" stroke="#D8CFBC" stroke-width="2"/>
+<path d="M3,23 A20,20 0 0 1 23,3 L227,3 A20,20 0 0 1 247,23 L247,34 L3,34 Z" fill="#E2EDF8"/>
+<text x="125.0" y="25" font-family="Inter,Helvetica,Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="2" fill="#2F6DB3" text-anchor="middle">ESPADA</text>
+<g transform="translate(30,70) rotate(0)"><text x="0" y="0" font-family="Inter,Helvetica,Arial,sans-serif" font-size="40" font-weight="800" fill="#2F6DB3" text-anchor="middle">7</text><g transform="translate(-9,8) scale(0.18)"><path d="M50,10 L56,21 L56,60 L44,60 L44,21 Z" fill="#2F6DB3"/>
+    <g stroke="#2F6DB3" stroke-width="6" stroke-linecap="round">
+    <line x1="28" y1="62" x2="72" y2="62"/><line x1="50" y1="62" x2="50" y2="82"/></g>
+    <circle cx="50" cy="86" r="5" fill="#2F6DB3"/></g></g>
+<g transform="translate(220,298) rotate(180)"><text x="0" y="0" font-family="Inter,Helvetica,Arial,sans-serif" font-size="40" font-weight="800" fill="#2F6DB3" text-anchor="middle">7</text><g transform="translate(-9,8) scale(0.18)"><path d="M50,10 L56,21 L56,60 L44,60 L44,21 Z" fill="#2F6DB3"/>
+    <g stroke="#2F6DB3" stroke-width="6" stroke-linecap="round">
+    <line x1="28" y1="62" x2="72" y2="62"/><line x1="50" y1="62" x2="50" y2="82"/></g>
+    <circle cx="50" cy="86" r="5" fill="#2F6DB3"/></g></g>
+<g transform="translate(68.4,79.2) scale(0.46)"><path d="M50,10 L56,21 L56,60 L44,60 L44,21 Z" fill="#2F6DB3"/>
+    <g stroke="#2F6DB3" stroke-width="6" stroke-linecap="round">
+    <line x1="28" y1="62" x2="72" y2="62"/><line x1="50" y1="62" x2="50" y2="82"/></g>
+    <circle cx="50" cy="86" r="5" fill="#2F6DB3"/></g>
+<g transform="translate(135.6,79.2) scale(0.46)"><path d="M50,10 L56,21 L56,60 L44,60 L44,21 Z" fill="#2F6DB3"/>
+    <g stroke="#2F6DB3" stroke-width="6" stroke-linecap="round">
+    <line x1="28" y1="62" x2="72" y2="62"/><line x1="50" y1="62" x2="50" y2="82"/></g>
+    <circle cx="50" cy="86" r="5" fill="#2F6DB3"/></g>
+<g transform="translate(102.0,120.6) scale(0.46)"><path d="M50,10 L56,21 L56,60 L44,60 L44,21 Z" fill="#2F6DB3"/>
+    <g stroke="#2F6DB3" stroke-width="6" stroke-linecap="round">
+    <line x1="28" y1="62" x2="72" y2="62"/><line x1="50" y1="62" x2="50" y2="82"/></g>
+    <circle cx="50" cy="86" r="5" fill="#2F6DB3"/></g>
+<g transform="translate(68.4,162.0) scale(0.46)"><path d="M50,10 L56,21 L56,60 L44,60 L44,21 Z" fill="#2F6DB3"/>
+    <g stroke="#2F6DB3" stroke-width="6" stroke-linecap="round">
+    <line x1="28" y1="62" x2="72" y2="62"/><line x1="50" y1="62" x2="50" y2="82"/></g>
+    <circle cx="50" cy="86" r="5" fill="#2F6DB3"/></g>
+<g transform="translate(135.6,162.0) scale(0.46)"><path d="M50,10 L56,21 L56,60 L44,60 L44,21 Z" fill="#2F6DB3"/>
+    <g stroke="#2F6DB3" stroke-width="6" stroke-linecap="round">
+    <line x1="28" y1="62" x2="72" y2="62"/><line x1="50" y1="62" x2="50" y2="82"/></g>
+    <circle cx="50" cy="86" r="5" fill="#2F6DB3"/></g>
+<g transform="translate(68.4,244.8) scale(0.46)"><path d="M50,10 L56,21 L56,60 L44,60 L44,21 Z" fill="#2F6DB3"/>
+    <g stroke="#2F6DB3" stroke-width="6" stroke-linecap="round">
+    <line x1="28" y1="62" x2="72" y2="62"/><line x1="50" y1="62" x2="50" y2="82"/></g>
+    <circle cx="50" cy="86" r="5" fill="#2F6DB3"/></g>
+<g transform="translate(135.6,244.8) scale(0.46)"><path d="M50,10 L56,21 L56,60 L44,60 L44,21 Z" fill="#2F6DB3"/>
+    <g stroke="#2F6DB3" stroke-width="6" stroke-linecap="round">
+    <line x1="28" y1="62" x2="72" y2="62"/><line x1="50" y1="62" x2="50" y2="82"/></g>
+    <circle cx="50" cy="86" r="5" fill="#2F6DB3"/></g>
+</svg>

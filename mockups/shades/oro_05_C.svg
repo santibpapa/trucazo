@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350" width="250" height="350">
+<rect x="3" y="3" width="244" height="344" rx="20" fill="#E2D4AE" stroke="#D8CFBC" stroke-width="2"/>
+<path d="M3,23 A20,20 0 0 1 23,3 L227,3 A20,20 0 0 1 247,23 L247,34 L3,34 Z" fill="#FBF3DF"/>
+<text x="125.0" y="25" font-family="Inter,Helvetica,Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="2" fill="#B07D14" text-anchor="middle">ORO</text>
+<g transform="translate(30,70) rotate(0)"><text x="0" y="0" font-family="Inter,Helvetica,Arial,sans-serif" font-size="40" font-weight="800" fill="#B07D14" text-anchor="middle">5</text><g transform="translate(-9,8) scale(0.18)"><circle cx="50" cy="50" r="40" fill="none" stroke="#B07D14" stroke-width="6"/>
+    <circle cx="50" cy="50" r="27" fill="none" stroke="#B07D14" stroke-width="4"/>
+    <circle cx="50" cy="50" r="9" fill="#B07D14"/>
+    <g stroke="#B07D14" stroke-width="4" stroke-linecap="round">
+    <line x1="50" y1="13" x2="50" y2="22"/><line x1="50" y1="78" x2="50" y2="87"/>
+    <line x1="13" y1="50" x2="22" y2="50"/><line x1="78" y1="50" x2="87" y2="50"/></g></g></g>
+<g transform="translate(220,298) rotate(180)"><text x="0" y="0" font-family="Inter,Helvetica,Arial,sans-serif" font-size="40" font-weight="800" fill="#B07D14" text-anchor="middle">5</text><g transform="translate(-9,8) scale(0.18)"><circle cx="50" cy="50" r="40" fill="none" stroke="#B07D14" stroke-width="6"/>
+    <circle cx="50" cy="50" r="27" fill="none" stroke="#B07D14" stroke-width="4"/>
+    <circle cx="50" cy="50" r="9" fill="#B07D14"/>
+    <g stroke="#B07D14" stroke-width="4" stroke-linecap="round">
+    <line x1="50" y1="13" x2="50" y2="22"/><line x1="50" y1="78" x2="50" y2="87"/>
+    <line x1="13" y1="50" x2="22" y2="50"/><line x1="78" y1="50" x2="87" y2="50"/></g></g></g>
+<g transform="translate(64.4,79.8) scale(0.54)"><circle cx="50" cy="50" r="40" fill="none" stroke="#B07D14" stroke-width="6"/>
+    <circle cx="50" cy="50" r="27" fill="none" stroke="#B07D14" stroke-width="4"/>
+    <circle cx="50" cy="50" r="9" fill="#B07D14"/>
+    <g stroke="#B07D14" stroke-width="4" stroke-linecap="round">
+    <line x1="50" y1="13" x2="50" y2="22"/><line x1="50" y1="78" x2="50" y2="87"/>
+    <line x1="13" y1="50" x2="22" y2="50"/><line x1="78" y1="50" x2="87" y2="50"/></g></g>
+<g transform="translate(131.6,79.8) scale(0.54)"><circle cx="50" cy="50" r="40" fill="none" stroke="#B07D14" stroke-width="6"/>
+    <circle cx="50" cy="50" r="27" fill="none" stroke="#B07D14" stroke-width="4"/>
+    <circle cx="50" cy="50" r="9" fill="#B07D14"/>
+    <g stroke="#B07D14" stroke-width="4" stroke-linecap="round">
+    <line x1="50" y1="13" x2="50" y2="22"/><line x1="50" y1="78" x2="50" y2="87"/>
+    <line x1="13" y1="50" x2="22" y2="50"/><line x1="78" y1="50" x2="87" y2="50"/></g></g>
+<g transform="translate(98.0,158.0) scale(0.54)"><circle cx="50" cy="50" r="40" fill="none" stroke="#B07D14" stroke-width="6"/>
+    <circle cx="50" cy="50" r="27" fill="none" stroke="#B07D14" stroke-width="4"/>
+    <circle cx="50" cy="50" r="9" fill="#B07D14"/>
+    <g stroke="#B07D14" stroke-width="4" stroke-linecap="round">
+    <line x1="50" y1="13" x2="50" y2="22"/><line x1="50" y1="78" x2="50" y2="87"/>
+    <line x1="13" y1="50" x2="22" y2="50"/><line x1="78" y1="50" x2="87" y2="50"/></g></g>
+<g transform="translate(64.4,236.2) scale(0.54)"><circle cx="50" cy="50" r="40" fill="none" stroke="#B07D14" stroke-width="6"/>
+    <circle cx="50" cy="50" r="27" fill="none" stroke="#B07D14" stroke-width="4"/>
+    <circle cx="50" cy="50" r="9" fill="#B07D14"/>
+    <g stroke="#B07D14" stroke-width="4" stroke-linecap="round">
+    <line x1="50" y1="13" x2="50" y2="22"/><line x1="50" y1="78" x2="50" y2="87"/>
+    <line x1="13" y1="50" x2="22" y2="50"/><line x1="78" y1="50" x2="87" y2="50"/></g></g>
+<g transform="translate(131.6,236.2) scale(0.54)"><circle cx="50" cy="50" r="40" fill="none" stroke="#B07D14" stroke-width="6"/>
+    <circle cx="50" cy="50" r="27" fill="none" stroke="#B07D14" stroke-width="4"/>
+    <circle cx="50" cy="50" r="9" fill="#B07D14"/>
+    <g stroke="#B07D14" stroke-width="4" stroke-linecap="round">
+    <line x1="50" y1="13" x2="50" y2="22"/><line x1="50" y1="78" x2="50" y2="87"/>
+    <line x1="13" y1="50" x2="22" y2="50"/><line x1="78" y1="50" x2="87" y2="50"/></g></g>
+</svg>

@@ -3,25 +3,57 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  --background: #1a0f10;
+  --foreground: #efe6da;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
   }
-}
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    color: var(--foreground);
+    background-color: var(--background);
+    /* Terciopelo de casino: un halo dorado cálido arriba, un brillo vino abajo,
+       y una viñeta tenue que cierra los bordes. Retro pero sobrio. */
+    background-image:
+      radial-gradient(1100px 720px at 82% -12%, rgba(201, 162, 75, 0.12), transparent 60%),
+      radial-gradient(900px 640px at -8% 112%, rgba(140, 40, 45, 0.18), transparent 55%),
+      radial-gradient(140% 120% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.45) 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-feature-settings: "ss01", "cv01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Números tabulares para saldos y marcadores (no "bailan" al cambiar) */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Carta dada vuelta: giro 3D suave */
+  .card-3d {
+    transform-style: preserve-3d;
+    perspective: 800px;
+  }
+}
+
+/* Respeta a quien prefiere menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

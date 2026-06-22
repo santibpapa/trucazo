@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Trucazo
 
-## Getting Started
+Truco argentino **1 contra 1** online, a 30 puntos y sin flor, con monedas ficticias.
+Construido con Next.js (App Router), React, TypeScript y Supabase (Auth + Postgres + Realtime).
 
-First, run the development server:
+## Stack
+
+- **Next.js 14** (App Router, Server Components + Client Components)
+- **TypeScript** (modo `strict`)
+- **Tailwind CSS** para los estilos
+- **Supabase**: autenticación, base de datos Postgres, suscripciones Realtime y funciones RPC (`security definer`)
+
+## Requisitos previos
+
+- Node.js 18.18+ (recomendado 20+)
+- Un proyecto de Supabase
+
+## Configuración
+
+1. Instalá las dependencias:
+
+   ```bash
+   npm install
+   ```
+
+2. Creá un archivo `.env.local` en la raíz con las claves de tu proyecto de Supabase:
+
+   ```bash
+   NEXT_PUBLIC_SUPABASE_URL=https://<tu-proyecto>.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<tu-anon-key>
+   ```
+
+   > Solo se usan claves públicas (`anon`). La lógica sensible (mover monedas, cerrar
+   > partidas, crear/unirse a mesas) corre en funciones RPC `security definer` en Supabase.
+
+3. Asegurate de tener configurado en Supabase:
+   - Tablas: `profiles`, `tables`, `games`, `game_history`
+   - Políticas **RLS** en todas las tablas
+   - Funciones RPC: `create_table`, `join_table`, `cancel_table`, `finish_game`
+   - **Realtime habilitado** en las tablas `games` y `tables` (la partida y el lobby
+     dependen de las suscripciones a cambios)
+
+   > ⚠️ El esquema SQL (tablas, RLS y RPCs) todavía **no está versionado en este repo**.
+   > Conviene exportarlo a `supabase/migrations/` para poder reproducir el backend.
+
+## Desarrollo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrí [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev` — servidor de desarrollo
+- `npm run build` — build de producción
+- `npm run start` — sirve el build de producción
+- `npm run lint` — ESLint (config de Next)
 
-## Learn More
+## Estructura
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+  app/                 rutas (home, login, register, lobby, game/[id])
+  components/
+    ui/                primitivas de interfaz (Button, Panel, Modal, …)
+    game/              cartas (PlayingCard, CardBack)
+  lib/
+    truco.ts           mazo, reparto, ranking de cartas y envido
+    types.ts           tipos de dominio (Game, Table, Profile, …)
+    tables.ts          helpers de mesas
+    supabase/          clientes de Supabase (browser / server / middleware)
+public/cartas/         SVGs de las 40 cartas ({palo}_{valor}.svg)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Notas de diseño
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- El reparto y la mayor parte de la lógica de juego se calculan en el cliente y se
+  persisten en la tabla `games`. La liquidación de monedas y el historial pasan por
+  RPCs server-side para respetar las RLS.
+- Cada jugador nuevo arranca con 1.000 monedas.

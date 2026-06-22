@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(curl -s -o /dev/null -w \"home:%{http_code}\\\\n\" http://localhost:3001/)",
+      "Bash(curl -s -o /dev/null -w \"lobby:%{http_code}\\\\n\" http://localhost:3001/lobby)",
+      "Bash(curl -s -o /dev/null -w \"login:%{http_code}\\\\n\" http://localhost:3001/login)",
+      "Read(//tmp/**)"
+    ]
+  }
+}

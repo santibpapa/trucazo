@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Profile, Table } from '@/lib/types'
 import { generatePrivateCode } from '@/lib/tables'
+import { Button, Panel, Input, Modal, Coins, Logo, Alert, Toggle } from '@/components/ui'
 
 interface Props {
   profile: Profile
@@ -19,11 +20,11 @@ export default function LobbyClient({ profile, initialTables }: Props) {
   const [tableName, setTableName] = useState('')
   const [bet, setBet] = useState(10)
   const [isPrivate, setIsPrivate] = useState(false)
-  const [privateCode, setPrivateCode] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [createdCode, setCreatedCode] = useState('')
+  const [createdTableId, setCreatedTableId] = useState('')
 
   const supabase = createClient()
 
@@ -63,7 +64,7 @@ export default function LobbyClient({ profile, initialTables }: Props) {
 
     return () => { supabase.removeChannel(channel) }
   }, [])
-  
+
   useEffect(() => {
     const interval = setInterval(async () => {
       const { data: myTables } = await supabase
@@ -90,16 +91,6 @@ export default function LobbyClient({ profile, initialTables }: Props) {
     return () => clearInterval(interval)
   }, [profile.id])
 
-  async function refreshTables() {
-    const { data } = await supabase
-      .from('tables')
-      .select('*')
-      .eq('status', 'waiting')
-      .eq('is_private', false)
-      .order('created_at', { ascending: false })
-    if (data) setTables(data)
-  }
-
   async function handleCreateTable() {
     if (!tableName.trim()) {
       setError('Ponele un nombre a la mesa')
@@ -119,35 +110,25 @@ export default function LobbyClient({ profile, initialTables }: Props) {
 
     const code = isPrivate ? generatePrivateCode() : null
 
-    const { data: table, error: tableError } = await supabase
-      .from('tables')
-      .insert({
-        name: tableName.trim(),
-        creator_id: profile.id,
-        creator_username: profile.username,
-        bet,
-        is_private: isPrivate,
-        private_code: code,
-      })
-      .select()
-      .single()
+    // create_table (security definer) valida el saldo, descuenta y crea la mesa, atómico
+    const { data: table, error: tableError } = await supabase.rpc('create_table', {
+      p_name: tableName.trim(),
+      p_bet: bet,
+      p_is_private: isPrivate,
+      p_private_code: code,
+    })
 
-    if (tableError) {
-      setError('Error al crear la mesa')
+    if (tableError || !table) {
+      setError(tableError?.message || 'Error al crear la mesa')
       setLoading(false)
       return
     }
 
-    // Descontar monedas
-    await supabase
-      .from('profiles')
-      .update({ coins: profile.coins - bet })
-      .eq('id', profile.id)
-
-    // Actualizar monedas localmente
+    // Reflejar el descuento localmente (el servidor ya lo aplicó)
     profile.coins = profile.coins - bet
 
     if (isPrivate && code) {
+      setCreatedTableId(table.id)
       setCreatedCode(code)
     } else {
       router.push(`/game/${table.id}`)
@@ -164,28 +145,17 @@ export default function LobbyClient({ profile, initialTables }: Props) {
 
     setLoading(true)
 
-    const { data, error: joinError } = await supabase
-      .from('tables')
-      .update({
-        opponent_id: profile.id,
-        opponent_username: profile.username,
-        status: 'playing',
-      })
-      .eq('id', table.id)
-      .select()
+    // join_table (security definer) valida saldo/disponibilidad, descuenta y arranca la partida
+    const { error: joinError } = await supabase.rpc('join_table', { p_table_id: table.id })
 
-    console.log('Join result:', data, joinError)
-
-    if (joinError || !data || data.length === 0) {
-      setError('No se pudo unir a la mesa: ' + (joinError?.message || 'sin datos'))
+    if (joinError) {
+      setError('No se pudo unir a la mesa: ' + joinError.message)
       setLoading(false)
       return
     }
 
-    await supabase
-      .from('profiles')
-      .update({ coins: profile.coins - table.bet })
-      .eq('id', profile.id)
+    // Reflejar el descuento localmente (el servidor ya lo aplicó)
+    profile.coins = profile.coins - table.bet
 
     router.push(`/game/${table.id}`)
     setLoading(false)
@@ -219,210 +189,226 @@ export default function LobbyClient({ profile, initialTables }: Props) {
 
   if (createdCode) {
     return (
-      <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-8">
-        <div className="bg-green-900 border border-green-700 rounded-2xl p-8 w-full max-w-sm text-center flex flex-col gap-4">
-          <h2 className="text-2xl font-bold text-yellow-400">Mesa creada 🎉</h2>
-          <p className="text-green-300">Compartí este código con tu rival:</p>
-          <div className="bg-green-800 rounded-xl p-4">
-            <p className="text-4xl font-bold text-white tracking-widest">{createdCode}</p>
+      <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-6">
+        <Panel className="w-full max-w-sm p-8 text-center flex flex-col gap-5 animate-fade-up">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-semibold uppercase tracking-widest text-gold">
+              Mesa creada
+            </span>
+            <h2 className="font-display text-2xl font-bold text-cream">Compartí el código</h2>
           </div>
-          <p className="text-green-400 text-sm">Esperando que alguien se una...</p>
-          <button
-            onClick={() => router.push(`/game/${createdCode}`)}
-            className="bg-yellow-400 text-green-950 font-bold py-3 rounded-xl hover:bg-yellow-300 transition"
-          >
+          <p className="text-sm text-muted">Pasale este código a tu rival para que se una.</p>
+          <div className="rounded-2xl border border-gold/30 bg-base py-5 shadow-gold-ring">
+            <p className="font-display text-4xl font-extrabold tracking-[0.3em] text-gold">
+              {createdCode}
+            </p>
+          </div>
+          <p className="text-sm text-subtle">Esperando que alguien se una…</p>
+          <Button fullWidth onClick={() => router.push(`/game/${createdTableId}`)}>
             Ir a la sala de espera
-          </button>
-        </div>
+          </Button>
+        </Panel>
       </main>
     )
   }
 
   return (
-    <main className="flex flex-col min-h-screen p-4 gap-4 max-w-2xl mx-auto">
+    <main className="flex flex-col min-h-screen p-4 sm:p-6 gap-5 max-w-2xl mx-auto w-full">
       {/* Header */}
-      <div className="flex items-center justify-between py-2">
-        <h1 className="text-2xl font-bold text-yellow-400">🃏 Trucazo</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-yellow-400 font-bold">🪙 {profile.coins}</span>
-          <span className="text-green-400 text-sm">{profile.username}</span>
+      <header className="flex items-center justify-between gap-3 pt-1">
+        <Logo size="md" />
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Panel className="flex items-center gap-2 px-3 py-1.5 !rounded-full">
+            <Coins amount={profile.coins} size="sm" />
+          </Panel>
+          <div className="hidden sm:flex flex-col items-end leading-tight">
+            <span className="text-sm font-semibold text-cream">{profile.username}</span>
+            <button
+              onClick={handleLogout}
+              className="text-xs text-subtle hover:text-negative transition-colors"
+            >
+              Cerrar sesión
+            </button>
+          </div>
           <button
             onClick={handleLogout}
-            className="text-green-600 hover:text-red-400 transition text-sm"
+            className="sm:hidden text-xs text-subtle hover:text-negative transition-colors"
           >
             Salir
           </button>
         </div>
-      </div>
+      </header>
 
-      {error && (
-        <div className="bg-red-900/50 border border-red-500 text-red-300 rounded-lg p-3 text-sm">
-          {error}
-        </div>
-      )}
+      {error && <Alert>{error}</Alert>}
 
-      {/* Botones principales */}
-      <div className="flex gap-3">
-        <button
+      {/* Acciones principales */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Button
+          size="lg"
+          fullWidth
           onClick={() => { setShowCreateModal(true); setError('') }}
-          className="flex-1 bg-yellow-400 text-green-950 font-bold py-3 rounded-xl hover:bg-yellow-300 transition"
         >
-          + Crear mesa
-        </button>
-        <button
+          <PlusIcon /> Crear mesa
+        </Button>
+        <Button
+          variant="ghost"
+          size="lg"
+          fullWidth
           onClick={() => { setShowJoinPrivate(true); setError('') }}
-          className="flex-1 border-2 border-yellow-400 text-yellow-400 font-bold py-3 rounded-xl hover:bg-yellow-400 hover:text-green-950 transition"
         >
-          🔒 Unirse con código
-        </button>
+          <LockIcon /> Unirse con código
+        </Button>
       </div>
 
       {/* Lista de mesas */}
-      <div className="flex flex-col gap-3">
-        <h2 className="text-green-300 font-bold">Mesas disponibles</h2>
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-base font-bold text-cream">Mesas disponibles</h2>
+          <span className="text-sm text-subtle tabular">{tables.length}</span>
+        </div>
 
         {tables.length === 0 && (
-          <div className="bg-green-900/50 border border-green-800 rounded-xl p-8 text-center">
-            <p className="text-green-500">No hay mesas disponibles</p>
-            <p className="text-green-600 text-sm mt-1">¡Creá una y esperá un rival!</p>
-          </div>
+          <Panel className="p-10 text-center flex flex-col gap-1 border-dashed">
+            <p className="font-medium text-muted">No hay mesas disponibles</p>
+            <p className="text-sm text-subtle">Creá una y esperá a un rival.</p>
+          </Panel>
         )}
 
-        {tables.map(table => (
-          <div
-            key={table.id}
-            className="bg-green-900 border border-green-700 rounded-xl p-4 flex items-center justify-between"
-          >
-            <div>
-              <p className="font-bold text-white">{table.name}</p>
-              <p className="text-green-400 text-sm">por {table.creator_username}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-yellow-400 font-bold">🪙 {table.bet}</span>
-              {table.creator_id !== profile.id ? (
-                <button
-                  onClick={() => handleJoinTable(table)}
-                  disabled={loading || profile.coins < table.bet}
-                  className="bg-yellow-400 text-green-950 font-bold py-2 px-4 rounded-lg hover:bg-yellow-300 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                >
-                  Unirse
-                </button>
-              ) : (
-                <span className="text-green-500 text-sm">Tu mesa</span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+        <div className="flex flex-col gap-3">
+          {tables.map((table, i) => (
+            <Panel
+              key={table.id}
+              className="p-4 flex items-center justify-between gap-3 transition-shadow duration-200 hover:shadow-lift animate-fade-up"
+              style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-cream truncate">{table.name}</p>
+                <p className="text-sm text-subtle truncate">por {table.creator_username}</p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="flex flex-col items-end leading-tight">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-subtle">
+                    Apuesta
+                  </span>
+                  <Coins amount={table.bet} size="sm" />
+                </div>
+                {table.creator_id !== profile.id ? (
+                  <Button
+                    size="sm"
+                    onClick={() => handleJoinTable(table)}
+                    disabled={loading || profile.coins < table.bet}
+                  >
+                    Unirse
+                  </Button>
+                ) : (
+                  <span className="text-xs font-semibold text-gold px-2">Tu mesa</span>
+                )}
+              </div>
+            </Panel>
+          ))}
+        </div>
+      </section>
 
       {/* Modal crear mesa */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-          <div className="bg-green-900 border border-green-700 rounded-2xl p-6 w-full max-w-sm flex flex-col gap-4">
-            <h2 className="text-xl font-bold text-yellow-400">Crear mesa</h2>
+      <Modal
+        open={showCreateModal}
+        onClose={() => { setShowCreateModal(false); setError('') }}
+        title="Crear mesa"
+      >
+        {error && <Alert>{error}</Alert>}
 
-            {error && (
-              <div className="bg-red-900/50 border border-red-500 text-red-300 rounded-lg p-3 text-sm">
-                {error}
-              </div>
-            )}
+        <Input
+          label="Nombre de la mesa"
+          name="tableName"
+          type="text"
+          value={tableName}
+          onChange={e => setTableName(e.target.value)}
+          placeholder="ej: La mesa del campeón"
+        />
 
-            <div>
-              <label className="text-green-300 text-sm mb-1 block">Nombre de la mesa</label>
-              <input
-                type="text"
-                value={tableName}
-                onChange={e => setTableName(e.target.value)}
-                placeholder="ej: La mesa del campeón"
-                className="w-full bg-green-800 border border-green-600 rounded-lg px-4 py-2.5 text-white placeholder-green-600 focus:outline-none focus:border-yellow-400"
-              />
-            </div>
-
-            <div>
-              <label className="text-green-300 text-sm mb-1 block">
-                Apuesta (tenés 🪙 {profile.coins})
-              </label>
-              <input
-                type="number"
-                value={bet}
-                onChange={e => setBet(Number(e.target.value))}
-                min={10}
-                max={profile.coins}
-                className="w-full bg-green-800 border border-green-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-yellow-400"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsPrivate(!isPrivate)}
-                className={`w-12 h-6 rounded-full transition ${isPrivate ? 'bg-yellow-400' : 'bg-green-700'}`}
-              >
-                <div className={`w-5 h-5 bg-white rounded-full transition-transform mx-0.5 ${isPrivate ? 'translate-x-6' : ''}`} />
-              </button>
-              <span className="text-green-300 text-sm">Mesa privada</span>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setShowCreateModal(false); setError('') }}
-                className="flex-1 border border-green-600 text-green-400 font-bold py-2.5 rounded-xl hover:bg-green-800 transition"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCreateTable}
-                disabled={loading}
-                className="flex-1 bg-yellow-400 text-green-950 font-bold py-2.5 rounded-xl hover:bg-yellow-300 transition disabled:opacity-50"
-              >
-                {loading ? 'Creando...' : 'Crear'}
-              </button>
-            </div>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <label htmlFor="bet" className="text-sm font-medium text-muted">Apuesta</label>
+            <span className="text-xs text-subtle">
+              Tenés <Coins amount={profile.coins} size="sm" className="!text-xs align-middle" />
+            </span>
           </div>
+          <Input
+            id="bet"
+            name="bet"
+            type="number"
+            value={bet}
+            onChange={e => setBet(Number(e.target.value))}
+            min={10}
+            max={profile.coins}
+          />
         </div>
-      )}
+
+        <Toggle checked={isPrivate} onChange={setIsPrivate} label="Mesa privada" />
+
+        <div className="flex gap-3 pt-1">
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={() => { setShowCreateModal(false); setError('') }}
+          >
+            Cancelar
+          </Button>
+          <Button fullWidth onClick={handleCreateTable} disabled={loading}>
+            {loading ? 'Creando…' : 'Crear'}
+          </Button>
+        </div>
+      </Modal>
 
       {/* Modal unirse con código */}
-      {showJoinPrivate && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-          <div className="bg-green-900 border border-green-700 rounded-2xl p-6 w-full max-w-sm flex flex-col gap-4">
-            <h2 className="text-xl font-bold text-yellow-400">Unirse con código</h2>
+      <Modal
+        open={showJoinPrivate}
+        onClose={() => { setShowJoinPrivate(false); setError(''); setJoinCode('') }}
+        title="Unirse con código"
+      >
+        {error && <Alert>{error}</Alert>}
 
-            {error && (
-              <div className="bg-red-900/50 border border-red-500 text-red-300 rounded-lg p-3 text-sm">
-                {error}
-              </div>
-            )}
+        <Input
+          label="Código de 6 dígitos"
+          name="joinCode"
+          type="text"
+          value={joinCode}
+          onChange={e => setJoinCode(e.target.value.toUpperCase())}
+          placeholder="ABC123"
+          maxLength={6}
+          className="text-center text-2xl font-display font-bold tracking-[0.3em] uppercase"
+        />
 
-            <div>
-              <label className="text-green-300 text-sm mb-1 block">Código de 6 dígitos</label>
-              <input
-                type="text"
-                value={joinCode}
-                onChange={e => setJoinCode(e.target.value.toUpperCase())}
-                placeholder="ej: ABC123"
-                maxLength={6}
-                className="w-full bg-green-800 border border-green-600 rounded-lg px-4 py-2.5 text-white placeholder-green-600 focus:outline-none focus:border-yellow-400 tracking-widest text-center text-xl font-bold uppercase"
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setShowJoinPrivate(false); setError(''); setJoinCode('') }}
-                className="flex-1 border border-green-600 text-green-400 font-bold py-2.5 rounded-xl hover:bg-green-800 transition"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleJoinPrivate}
-                disabled={loading}
-                className="flex-1 bg-yellow-400 text-green-950 font-bold py-2.5 rounded-xl hover:bg-yellow-300 transition disabled:opacity-50"
-              >
-                {loading ? 'Buscando...' : 'Unirse'}
-              </button>
-            </div>
-          </div>
+        <div className="flex gap-3 pt-1">
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={() => { setShowJoinPrivate(false); setError(''); setJoinCode('') }}
+          >
+            Cancelar
+          </Button>
+          <Button fullWidth onClick={handleJoinPrivate} disabled={loading}>
+            {loading ? 'Buscando…' : 'Unirse'}
+          </Button>
         </div>
-      )}
+      </Modal>
     </main>
+  )
+}
+
+function PlusIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="5" y="11" width="14" height="9" rx="2.2" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   )
 }

@@ -1,0 +1,52 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+*{margin:0;box-sizing:border-box;font-family:Arial}
+body{background:#1A0F10;color:#EFE6DA}
+.app{height:680px;width:390px;display:flex;flex-direction:column;padding:8px;gap:8px;overflow:hidden}
+.panel{background:#241517;border:1px solid #3C2226;border-radius:20px;box-shadow:0 6px 18px -8px rgba(0,0,0,.6)}
+.score{flex:0 0 auto;display:flex;justify-content:space-between;padding:10px}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.col .n{font-size:13px;color:#A78A86}.col .ng{color:#C9A24B}
+.col .s{font-size:26px;font-weight:800;color:#EFE6DA;line-height:1}
+.mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0 12px;border-left:1px solid #3C2226;border-right:1px solid #3C2226}
+.mid .p{color:#C9A24B;font-weight:700;font-size:14px}.mid .l{font-size:9px;letter-spacing:1px;color:#7C6460;text-transform:uppercase}.mid .m{font-size:10px;color:#A78A86}
+.turn{flex:0 0 auto;text-align:center;padding:6px;border-radius:12px;background:#C9A24B;color:#1F1011;font-weight:600;font-size:14px}
+.felt{position:relative;flex:1;min-height:0;border:1px solid #3C2226;border-radius:20px;background:#2E191B;padding:10px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.deck{position:absolute;top:8px;right:8px;width:30px;aspect-ratio:5/7;border-radius:8px;border:1px solid rgba(201,162,75,.3);background:#3A1A1E;background-image:repeating-linear-gradient(45deg,rgba(201,162,75,.16) 0 2px,transparent 2px 9px),repeating-linear-gradient(-45deg,rgba(201,162,75,.16) 0 2px,transparent 2px 9px)}
+.row{display:flex;justify-content:center;gap:8px}
+.back{width:38px;aspect-ratio:5/7;border-radius:8px;border:1px solid rgba(201,162,75,.3);background:#3A1A1E;background-image:repeating-linear-gradient(45deg,rgba(201,162,75,.16) 0 2px,transparent 2px 9px),repeating-linear-gradient(-45deg,rgba(201,162,75,.16) 0 2px,transparent 2px 9px)}
+.hist{display:flex;justify-content:center;gap:14px;align-items:center}
+.slot{position:relative;width:64px;height:96px}
+.pc{position:absolute;width:48px;aspect-ratio:5/7;border-radius:10px;overflow:hidden;background:#D9C58E;outline:1px solid rgba(0,0,0,.12);box-shadow:0 6px 18px -8px rgba(0,0,0,.6)}
+.pc img{width:100%;height:100%;object-fit:contain}
+.lbl{font-size:9px;letter-spacing:1px;color:#7C6460;text-transform:uppercase;text-align:center}
+.hand{display:flex;justify-content:center;gap:8px}
+.hc{width:64px;aspect-ratio:5/7;border-radius:10px;overflow:hidden;background:#D9C58E;outline:1px solid rgba(0,0,0,.12);box-shadow:0 6px 18px -8px rgba(0,0,0,.6)}
+.hc img{width:100%;height:100%;object-fit:contain}
+.actions{flex:0 0 auto;display:flex;flex-direction:column;gap:6px}
+.btn{border-radius:12px;padding:9px;text-align:center;font-weight:600;font-size:14px}
+.gold{background:#C9A24B;color:#1F1011}.ghost{background:transparent;border:1px solid #3C2226;color:#EFE6DA;font-size:13px}
+.aband{text-align:center;font-size:12px;color:#7C6460}
+</style></head><body>
+<div class="app">
+  <div class="panel score">
+    <div class="col"><div class="n">mariano</div><div class="s">12</div></div>
+    <div class="mid"><div class="p">◉ 240</div><div class="l">Pozo</div><div class="m">Mano: Vos</div></div>
+    <div class="col"><div class="n ng">santi (vos)</div><div class="s">9</div></div>
+  </div>
+  <div class="turn">Tu turno</div>
+  <div class="felt">
+    <div class="deck"></div>
+    <div class="row"><div class="back"></div><div class="back"></div></div>
+    <div class="hist">
+      <div><div class="lbl">Ronda 1</div><div class="slot"><div class="pc" style="top:0;left:0;z-index:10"><img src="../public/cartas/espada_01.svg"></div><div class="pc" style="top:12px;left:12px;z-index:0"><img src="../public/cartas/copa_07.svg"></div></div></div>
+      <div><div class="lbl">Ronda 2</div><div class="slot"><div class="pc" style="top:0;left:0;border:1px dashed #3C2226;background:transparent;box-shadow:none"></div><div class="pc" style="top:12px;left:12px;border:1px dashed rgba(201,162,75,.4);background:transparent;box-shadow:none"></div></div></div>
+    </div>
+    <div class="hand"><div class="hc"><img src="../public/cartas/basto_03.svg"></div><div class="hc"><img src="../public/cartas/oro_12.svg"></div><div class="hc"><img src="../public/cartas/espada_07.svg"></div></div>
+  </div>
+  <div class="actions">
+    <div class="btn gold">Truco</div>
+    <div class="btn ghost">Irse al mazo</div>
+    <div class="aband">Abandonar partida</div>
+  </div>
+</div>
+</body></html>

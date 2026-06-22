@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { Panel, Logo, Input, Button, Alert } from '@/components/ui'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -38,60 +39,47 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-8">
-      <div className="bg-green-900 border border-green-700 rounded-2xl p-8 w-full max-w-sm flex flex-col gap-5">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-yellow-400">🃏 Trucazo</h1>
-          <p className="text-green-400 mt-1">Iniciar sesión</p>
+    <main className="flex flex-col items-center justify-center min-h-screen p-6">
+      <Panel className="w-full max-w-sm p-8 flex flex-col gap-6 animate-fade-up">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <Logo size="md" />
+          <p className="text-sm text-muted">Entrá a jugar</p>
         </div>
 
-        {error && (
-          <div className="bg-red-900/50 border border-red-500 text-red-300 rounded-lg p-3 text-sm">
-            {error}
-          </div>
-        )}
+        {error && <Alert>{error}</Alert>}
 
         <div className="flex flex-col gap-4">
-          <div>
-            <label className="text-green-300 text-sm mb-1 block">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="tu@email.com"
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              className="w-full bg-green-800 border border-green-600 rounded-lg px-4 py-2.5 text-white placeholder-green-600 focus:outline-none focus:border-yellow-400"
-            />
-          </div>
-
-          <div>
-            <label className="text-green-300 text-sm mb-1 block">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Tu contraseña"
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              className="w-full bg-green-800 border border-green-600 rounded-lg px-4 py-2.5 text-white placeholder-green-600 focus:outline-none focus:border-yellow-400"
-            />
-          </div>
+          <Input
+            label="Email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="tu@email.com"
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
+          />
+          <Input
+            label="Contraseña"
+            name="password"
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="Tu contraseña"
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
+          />
         </div>
 
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          className="bg-yellow-400 text-green-950 font-bold py-3 rounded-xl hover:bg-yellow-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Entrando...' : 'Iniciar sesión'}
-        </button>
+        <Button fullWidth size="lg" onClick={handleLogin} disabled={loading}>
+          {loading ? 'Entrando…' : 'Iniciar sesión'}
+        </Button>
 
-        <p className="text-center text-green-500 text-sm">
+        <p className="text-center text-sm text-muted">
           ¿No tenés cuenta?{' '}
-          <Link href="/register" className="text-yellow-400 hover:underline">
+          <Link href="/register" className="text-gold font-semibold hover:underline">
             Registrate gratis
           </Link>
         </p>
-      </div>
+      </Panel>
     </main>
   )
 }
