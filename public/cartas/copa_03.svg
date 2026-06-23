@@ -1,20 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350" width="250" height="350">
-<rect x="3" y="3" width="244" height="344" rx="20" fill="#D9C58E" stroke="#C9BC9E" stroke-width="2"/>
-<path d="M3,23 A20,20 0 0 1 23,3 L227,3 A20,20 0 0 1 247,23 L247,34 L3,34 Z" fill="#CDB877"/>
-<text x="125.0" y="25" font-family="Inter,Helvetica,Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="2" fill="#C9453B" text-anchor="middle">COPA</text>
-<g transform="translate(30,70) rotate(0)"><text x="0" y="0" font-family="Inter,Helvetica,Arial,sans-serif" font-size="40" font-weight="800" fill="#C9453B" text-anchor="middle">3</text><g transform="translate(-9,8) scale(0.18)"><g fill="none" stroke="#C9453B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M22,20 L78,20 Q78,52 50,52 Q22,52 22,20 Z"/>
-    <line x1="50" y1="52" x2="50" y2="76"/><path d="M30,82 Q50,73 70,82"/></g></g></g>
-<g transform="translate(220,298) rotate(180)"><text x="0" y="0" font-family="Inter,Helvetica,Arial,sans-serif" font-size="40" font-weight="800" fill="#C9453B" text-anchor="middle">3</text><g transform="translate(-9,8) scale(0.18)"><g fill="none" stroke="#C9453B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M22,20 L78,20 Q78,52 50,52 Q22,52 22,20 Z"/>
-    <line x1="50" y1="52" x2="50" y2="76"/><path d="M30,82 Q50,73 70,82"/></g></g></g>
-<g transform="translate(94.0,73.5) scale(0.62)"><g fill="none" stroke="#C9453B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M22,20 L78,20 Q78,52 50,52 Q22,52 22,20 Z"/>
-    <line x1="50" y1="52" x2="50" y2="76"/><path d="M30,82 Q50,73 70,82"/></g></g>
-<g transform="translate(94.0,154.0) scale(0.62)"><g fill="none" stroke="#C9453B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M22,20 L78,20 Q78,52 50,52 Q22,52 22,20 Z"/>
-    <line x1="50" y1="52" x2="50" y2="76"/><path d="M30,82 Q50,73 70,82"/></g></g>
-<g transform="translate(94.0,234.5) scale(0.62)"><g fill="none" stroke="#C9453B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M22,20 L78,20 Q78,52 50,52 Q22,52 22,20 Z"/>
-    <line x1="50" y1="52" x2="50" y2="76"/><path d="M30,82 Q50,73 70,82"/></g></g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 364" width="260" height="364">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FBF5E9"/><stop offset="100%" stop-color="#EFE1C8"/></linearGradient></defs>
+<rect x="2.5" y="2.5" width="255" height="359" rx="24" fill="url(#bg)"/>
+<rect x="13" y="13" width="234" height="338" rx="17" fill="none" stroke="#C9A24B" stroke-width="1.4"/>
+<rect x="18" y="18" width="224" height="328" rx="13" fill="none" stroke="#C9A24B" stroke-opacity="0.45" stroke-width="0.8"/>
+<rect x="2.5" y="2.5" width="255" height="359" rx="24" fill="none" stroke="#C9A24B" stroke-opacity="0.5" stroke-width="1.2"/>
+<g transform="translate(40,60) rotate(0)"><text x="0" y="0" font-family="'Bodoni Moda','DejaVu Serif',serif" font-size="33" font-weight="600" fill="#2A1410" text-anchor="middle">3</text><g transform="translate(-9,11) scale(0.16)"><g fill="none" stroke="#2A1410" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M22,20 L78,20 Q78,53 50,53 Q22,53 22,20 Z"/><line x1="50" y1="53" x2="50" y2="77"/><path d="M30,83 Q50,74 70,83"/></g></g></g>
+<g transform="translate(220,320) rotate(180)"><text x="0" y="0" font-family="'Bodoni Moda','DejaVu Serif',serif" font-size="33" font-weight="600" fill="#2A1410" text-anchor="middle">3</text><g transform="translate(-9,11) scale(0.16)"><g fill="none" stroke="#2A1410" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M22,20 L78,20 Q78,53 50,53 Q22,53 22,20 Z"/><line x1="50" y1="53" x2="50" y2="77"/><path d="M30,83 Q50,74 70,83"/></g></g></g>
+<g transform="translate(97.0,80.0) scale(0.66)"><g fill="none" stroke="#2A1410" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M22,20 L78,20 Q78,53 50,53 Q22,53 22,20 Z"/><line x1="50" y1="53" x2="50" y2="77"/><path d="M30,83 Q50,74 70,83"/></g></g>
+<g transform="translate(97.0,157.0) scale(0.66)"><g fill="none" stroke="#2A1410" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M22,20 L78,20 Q78,53 50,53 Q22,53 22,20 Z"/><line x1="50" y1="53" x2="50" y2="77"/><path d="M30,83 Q50,74 70,83"/></g></g>
+<g transform="translate(97.0,234.0) scale(0.66)"><g fill="none" stroke="#2A1410" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M22,20 L78,20 Q78,53 50,53 Q22,53 22,20 Z"/><line x1="50" y1="53" x2="50" y2="77"/><path d="M30,83 Q50,74 70,83"/></g></g>
 </svg>

@@ -64,6 +64,12 @@ const config: Config = {
           from: { opacity: "0", transform: "scale(0.96)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
+        // Cartel de anuncio: entra desde el lado del que actuó (--enterY < 0 desde
+        // arriba / rival, > 0 desde abajo / yo).
+        "announce-in": {
+          "0%": { opacity: "0", transform: "translateY(var(--enterY, 14px)) scale(0.96)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
         // Reparto desde el mazo: la carta sale chica y rotada desde la posición
         // del mazo (--dx/--dy/--rot por carta) y se acomoda en la mano.
         "deal-in": {
@@ -105,6 +111,7 @@ const config: Config = {
         "fade-in": "fade-in 0.25s ease-out both",
         "fade-up": "fade-up 0.3s cubic-bezier(0.22,1,0.36,1) both",
         "scale-in": "scale-in 0.22s cubic-bezier(0.22,1,0.36,1) both",
+        "announce-in": "announce-in 0.3s cubic-bezier(0.22,1,0.36,1) both",
         // backwards (no forwards): mantiene el estado inicial durante el delay del
         // reparto escalonado, pero al terminar libera el transform para que el hover funcione.
         "deal-in": "deal-in 0.35s cubic-bezier(0.22,1,0.36,1) backwards",

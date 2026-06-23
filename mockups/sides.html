@@ -1,0 +1,41 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&display=swap">
+<style>
+*{margin:0;box-sizing:border-box;font-family:Arial}
+body{background:#1A0F10;padding:16px;display:flex;gap:14px}
+.col{width:250px}
+.cap{color:#A78A86;font-size:12px;text-align:center;margin-bottom:8px}
+.felt{position:relative;height:420px;border:1px solid #3C2226;border-radius:18px;background:#2E191B;overflow:hidden;
+  padding:12px;display:flex;flex-direction:column;justify-content:space-between;
+  background-image:radial-gradient(120% 90% at 50% 0%,rgba(201,162,75,.08),transparent 60%)}
+.row{display:flex;justify-content:center;gap:8px}
+.back{width:40px;aspect-ratio:5/7;border-radius:8px;border:1px solid rgba(201,162,75,.3);background:#3A1A1E;
+  background-image:repeating-linear-gradient(45deg,rgba(201,162,75,.16) 0 2px,transparent 2px 9px),repeating-linear-gradient(-45deg,rgba(201,162,75,.16) 0 2px,transparent 2px 9px)}
+.hist{display:flex;justify-content:center;gap:10px}
+.pc{width:46px;aspect-ratio:5/7;border-radius:9px;background:#D9C58E;outline:1px solid rgba(0,0,0,.12)}
+.hand{display:flex;justify-content:center;gap:8px}
+.hc{width:58px;aspect-ratio:5/7;border-radius:9px;background:#D9C58E;outline:1px solid rgba(0,0,0,.12)}
+.ann{position:absolute;left:0;right:0;padding:0 12px;transform:translateY(-50%)}
+.ann.top{top:30%}.ann.bottom{top:70%}
+.card{margin:0 auto;max-width:210px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.7);
+  backdrop-filter:blur(8px);border-radius:14px;padding:11px 16px;text-align:center;box-shadow:0 18px 38px -12px rgba(0,0,0,.7)}
+.ey{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.3em;color:#C9A24B}
+.big{font-family:'Sora';font-size:19px;font-weight:800;margin-top:3px}
+.sub{font-size:13px;margin-top:4px;color:rgba(239,230,218,.85)}
+</style></head><body>
+<div class="col"><div class="cap">Rival canta truco → arriba</div>
+<div class="felt">
+  <div class="row"><div class="back"></div><div class="back"></div></div>
+  <div class="hist"><div class="pc"></div><div class="pc"></div></div>
+  <div class="hand"><div class="hc"></div><div class="hc"></div><div class="hc"></div></div>
+  <div class="ann top"><div class="card"><div class="big" style="color:#C9A24B;text-transform:uppercase">Truco</div><div class="sub">lo cantó santib</div></div></div>
+</div></div>
+
+<div class="col"><div class="cap">Yo canto envido → abajo</div>
+<div class="felt">
+  <div class="row"><div class="back"></div><div class="back"></div></div>
+  <div class="hist"><div class="pc"></div><div class="pc"></div></div>
+  <div class="hand"><div class="hc"></div><div class="hc"></div><div class="hc"></div></div>
+  <div class="ann bottom"><div class="card"><div class="big" style="color:#C9A24B;text-transform:uppercase">Envido</div><div class="sub">lo cantó vos</div></div></div>
+</div></div>
+</body></html>

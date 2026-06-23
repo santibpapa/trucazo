@@ -1,20 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350" width="250" height="350">
-<rect x="3" y="3" width="244" height="344" rx="20" fill="#D9C58E" stroke="#C9BC9E" stroke-width="2"/>
-<path d="M3,23 A20,20 0 0 1 23,3 L227,3 A20,20 0 0 1 247,23 L247,34 L3,34 Z" fill="#CDB877"/>
-<text x="125.0" y="25" font-family="Inter,Helvetica,Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="2" fill="#4E9367" text-anchor="middle">BASTO</text>
-<g transform="translate(30,70) rotate(0)"><text x="0" y="0" font-family="Inter,Helvetica,Arial,sans-serif" font-size="40" font-weight="800" fill="#4E9367" text-anchor="middle">1</text><g transform="translate(-9,8) scale(0.18)"><path d="M41,84 L39,44 Q39,20 50,15 Q61,20 61,44 L59,84 Z"
-    fill="#4E9367" stroke="#4E9367" stroke-width="2" stroke-linejoin="round"/>
-    <g stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" opacity="0.9">
-    <line x1="45" y1="32" x2="55" y2="30"/><line x1="44" y1="50" x2="56" y2="48"/>
-    <line x1="44" y1="68" x2="56" y2="66"/></g></g></g>
-<g transform="translate(220,298) rotate(180)"><text x="0" y="0" font-family="Inter,Helvetica,Arial,sans-serif" font-size="40" font-weight="800" fill="#4E9367" text-anchor="middle">1</text><g transform="translate(-9,8) scale(0.18)"><path d="M41,84 L39,44 Q39,20 50,15 Q61,20 61,44 L59,84 Z"
-    fill="#4E9367" stroke="#4E9367" stroke-width="2" stroke-linejoin="round"/>
-    <g stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" opacity="0.9">
-    <line x1="45" y1="32" x2="55" y2="30"/><line x1="44" y1="50" x2="56" y2="48"/>
-    <line x1="44" y1="68" x2="56" y2="66"/></g></g></g>
-<g transform="translate(77.5,137.5) scale(0.95)"><path d="M41,84 L39,44 Q39,20 50,15 Q61,20 61,44 L59,84 Z"
-    fill="#4E9367" stroke="#4E9367" stroke-width="2" stroke-linejoin="round"/>
-    <g stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" opacity="0.9">
-    <line x1="45" y1="32" x2="55" y2="30"/><line x1="44" y1="50" x2="56" y2="48"/>
-    <line x1="44" y1="68" x2="56" y2="66"/></g></g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 364" width="260" height="364">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FBF5E9"/><stop offset="100%" stop-color="#EFE1C8"/></linearGradient></defs>
+<rect x="2.5" y="2.5" width="255" height="359" rx="24" fill="url(#bg)"/>
+<rect x="13" y="13" width="234" height="338" rx="17" fill="none" stroke="#C9A24B" stroke-width="1.4"/>
+<rect x="18" y="18" width="224" height="328" rx="13" fill="none" stroke="#C9A24B" stroke-opacity="0.45" stroke-width="0.8"/>
+<rect x="2.5" y="2.5" width="255" height="359" rx="24" fill="none" stroke="#C9A24B" stroke-opacity="0.5" stroke-width="1.2"/>
+<g transform="translate(40,60) rotate(0)"><text x="0" y="0" font-family="'Bodoni Moda','DejaVu Serif',serif" font-size="33" font-weight="600" fill="#2A1410" text-anchor="middle">1</text><g transform="translate(-9,11) scale(0.16)"><path d="M41,85 L39,44 Q39,19 50,14 Q61,19 61,44 L59,85 Z" fill="#2A1410" stroke="#2A1410" stroke-width="2" stroke-linejoin="round"/><g stroke="#FBF5E9" stroke-width="3.5" stroke-linecap="round" opacity="0.9"><line x1="45" y1="31" x2="55" y2="29"/><line x1="44" y1="50" x2="56" y2="48"/><line x1="44" y1="69" x2="56" y2="67"/></g></g></g>
+<g transform="translate(220,320) rotate(180)"><text x="0" y="0" font-family="'Bodoni Moda','DejaVu Serif',serif" font-size="33" font-weight="600" fill="#2A1410" text-anchor="middle">1</text><g transform="translate(-9,11) scale(0.16)"><path d="M41,85 L39,44 Q39,19 50,14 Q61,19 61,44 L59,85 Z" fill="#2A1410" stroke="#2A1410" stroke-width="2" stroke-linejoin="round"/><g stroke="#FBF5E9" stroke-width="3.5" stroke-linecap="round" opacity="0.9"><line x1="45" y1="31" x2="55" y2="29"/><line x1="44" y1="50" x2="56" y2="48"/><line x1="44" y1="69" x2="56" y2="67"/></g></g></g>
+<g transform="translate(77.5,137.5) scale(1.05)"><path d="M41,85 L39,44 Q39,19 50,14 Q61,19 61,44 L59,85 Z" fill="#2A1410" stroke="#2A1410" stroke-width="2" stroke-linejoin="round"/><g stroke="#FBF5E9" stroke-width="3.5" stroke-linecap="round" opacity="0.9"><line x1="45" y1="31" x2="55" y2="29"/><line x1="44" y1="50" x2="56" y2="48"/><line x1="44" y1="69" x2="56" y2="67"/></g></g>
 </svg>

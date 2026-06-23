@@ -25,6 +25,17 @@ const TRUCO_LABEL: Record<string, string> = {
   truco: 'truco', retruco: 'retruco', vale_cuatro: 'vale cuatro',
 }
 
+// Cartel central de anuncios (cantos / resultados). side define de qué lado sale:
+// 'top' = lo hizo el rival (entre sus cartas y el centro), 'bottom' = lo hice yo.
+type Announce = {
+  side: 'top' | 'bottom'
+  eyebrow?: string
+  title: string
+  titleClass: string
+  subtitle?: string
+  subtitleClass?: string
+}
+
 // Punto de partida de cada carta al repartir, apuntando al mazo (arriba-derecha).
 // La de la izquierda (i=0) viaja más lejos para que las tres converjan en el mazo.
 const DEAL_ORIGINS: Array<Record<string, string>> = [
@@ -42,6 +53,11 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   const [opponentOnline, setOpponentOnline] = useState(true)
   const [canClaim, setCanClaim] = useState(false)
   const [actionError, setActionError] = useState('')
+  // Cartel central de anuncios (cantos y resultados), sale del lado del que actuó
+  const [announce, setAnnounce] = useState<Announce | null>(null)
+  const announceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Snapshot del truco_state previo, para detectar el "no quiero" (canto pendiente → mano nueva)
+  const prevTrucoRef = useRef<{ status: string; singer: string | null; value: number; hand: number } | null>(null)
   // Momento de la última acción local; el polling de respaldo se pausa un toque
   // después de jugar para no pisar la actualización optimista con datos viejos.
   const lastActionRef = useRef(0)
@@ -179,6 +195,110 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     return () => clearTimeout(t)
   }, [actionError])
 
+  // Anuncio del envido: canto (envido/real/falta, lado del que canta) y resultado
+  // (quiero/no quiero, lado del que responde). Depende de status/last_singer/winner.
+  useEffect(() => {
+    const es = game.envido_state
+    const st = es.status
+    const chain = es.chain ?? []
+    const tier = chain[chain.length - 1] ?? 'envido'
+
+    // Canto
+    if (st === 'envido' || st === 'real_envido' || st === 'falta_envido') {
+      const mine = es.last_singer === currentUserId
+      showAnnounce({
+        side: mine ? 'bottom' : 'top',
+        title: ENVIDO_LABEL[tier] ?? 'envido',
+        titleClass: 'text-gold uppercase tracking-wide',
+        subtitle: `lo cantó ${mine ? myUsername : opponentUsername}`,
+      })
+      return
+    }
+
+    // Resultado
+    if ((st === 'accepted' || st === 'rejected') && es.winner_id != null) {
+      const responderIsMe = es.last_singer !== currentUserId
+      const side: 'top' | 'bottom' = responderIsMe ? 'bottom' : 'top'
+      const won = es.winner_id === currentUserId
+      const awarded = es.awarded ?? 0
+      const eyebrow = ENVIDO_LABEL[tier] ?? 'envido'
+
+      if (st === 'rejected') {
+        showAnnounce({ side, eyebrow, title: 'No quiere', titleClass: 'text-cream',
+          subtitle: `+${awarded} para ${won ? 'vos' : opponentUsername}`,
+          subtitleClass: won ? 'text-positive' : 'text-negative' })
+        return
+      }
+
+      // Ganó la mano → el pie no revela su puntaje ("son buenas"); el empate lo gana la mano.
+      const sonBuenas = es.winner_id === game.mano_player
+      const theirs = isPlayer1 ? es.player2_points : es.player1_points
+      const mineP = isPlayer1 ? es.player1_points : es.player2_points
+
+      if (sonBuenas) {
+        if (won) {
+          showAnnounce({ side, eyebrow, title: 'Son buenas', titleClass: 'text-positive',
+            subtitle: `+${awarded}`, subtitleClass: 'text-positive/90 font-semibold' })
+        } else {
+          showAnnounce({ side, eyebrow, title: 'Perdiste', titleClass: 'text-negative',
+            subtitle: `${opponentUsername} tiene ${theirs}` })
+        }
+      } else {
+        showAnnounce({ side, eyebrow,
+          title: won ? `¡Ganaste! +${awarded}` : `Ganó ${opponentUsername} +${awarded}`,
+          titleClass: won ? 'text-positive' : 'text-negative',
+          subtitle: (mineP != null && theirs != null) ? `vos ${mineP} — ${theirs} ${opponentUsername}` : undefined,
+          subtitleClass: 'text-cream/85 tabular' })
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.envido_state.status, game.envido_state.last_singer, game.envido_state.winner_id])
+
+  // Anuncio central del truco: canto, "quiero" y "no quiero".
+  // El "no quiero" se infiere: un canto pendiente solo puede terminar en mano
+  // nueva si lo rechazaron (no se puede ir al mazo ni ganar la mano con un canto
+  // sin responder), así que "antes pendiente + hand_number subió" = no quiero.
+  useEffect(() => {
+    const ts = game.truco_state
+    const st = ts.status
+    const prev = prevTrucoRef.current
+
+    if (st === 'truco' || st === 'retruco' || st === 'vale_cuatro') {
+      // Canto: lado del que canta
+      const byMe = ts.last_singer === currentUserId
+      showAnnounce({ side: byMe ? 'bottom' : 'top',
+        title: TRUCO_LABEL[st] ?? 'truco', titleClass: 'text-gold uppercase tracking-wide',
+        subtitle: `lo cantó ${byMe ? 'vos' : opponentUsername}` })
+    } else if (st === 'accepted' && prev?.status !== 'accepted') {
+      // Quiero: lado del que responde (no es el que cantó)
+      const responderIsMe = ts.last_singer !== currentUserId
+      showAnnounce({ side: responderIsMe ? 'bottom' : 'top',
+        eyebrow: 'Truco', title: 'Quiero', titleClass: 'text-cream',
+        subtitle: `vale ${ts.value ?? 1}`, subtitleClass: 'text-gold font-semibold' })
+    } else if (
+      prev && ['truco', 'retruco', 'vale_cuatro'].includes(prev.status) &&
+      st === 'none' && game.hand_number > prev.hand
+    ) {
+      // No quiero: lado del que rechaza; el que cantó gana el valor anterior
+      const winnerIsMe = prev.singer === currentUserId
+      const val = Math.max(1, prev.value - 1)
+      showAnnounce({ side: winnerIsMe ? 'top' : 'bottom',
+        eyebrow: TRUCO_LABEL[prev.status] ?? 'truco', title: 'No quiero', titleClass: 'text-cream',
+        subtitle: `+${val} para ${winnerIsMe ? 'vos' : opponentUsername}`,
+        subtitleClass: winnerIsMe ? 'text-positive' : 'text-negative' })
+    }
+
+    prevTrucoRef.current = { status: st, singer: ts.last_singer ?? null, value: ts.value ?? 1, hand: game.hand_number }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.truco_state.status, game.truco_state.last_singer, game.hand_number])
+
+
+  // Muestra un cartel de anuncio y lo autodescarta (cancelando el anterior).
+  function showAnnounce(a: Announce, ms = 3600) {
+    if (announceTimer.current) clearTimeout(announceTimer.current)
+    setAnnounce(a)
+    announceTimer.current = setTimeout(() => setAnnounce(null), ms)
+  }
 
   // Loguea y muestra el error de una RPC; devuelve true si hubo error.
   function rpcFailed(label: string, error: { message?: string } | null): boolean {
@@ -400,25 +520,29 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         </div>
       )}
 
-      {/* Resultado del envido */}
-      {game.envido_state.status === 'accepted' && game.envido_state.winner_id != null && (
-        <div className="shrink-0 rounded-xl border border-info/35 bg-info/12 p-2 text-center text-xs text-[#B6D3E6]">
-          Envido — Vos: {isPlayer1 ? game.envido_state.player1_points : game.envido_state.player2_points}
-          {' · '}{opponentUsername}: {isPlayer1 ? game.envido_state.player2_points : game.envido_state.player1_points}
-          {' · '}ganó {game.envido_state.winner_id === currentUserId ? 'vos' : opponentUsername} (+{game.envido_state.awarded})
-        </div>
-      )}
-      {game.envido_state.status === 'rejected' && (
-        <div className="shrink-0 rounded-xl border border-info/35 bg-info/12 p-2 text-center text-xs text-[#B6D3E6]">
-          No quisieron el envido · +{game.envido_state.awarded} para {game.envido_state.winner_id === currentUserId ? 'vos' : opponentUsername}
-        </div>
-      )}
-
       {/* Mesa de juego (paño) */}
       <div
         className="relative flex-1 min-h-0 rounded-2xl border border-line bg-surface2 shadow-card p-2 sm:p-3 flex flex-col justify-between overflow-hidden"
         style={{ backgroundImage: 'radial-gradient(120% 90% at 50% 0%, rgba(201,162,75,0.08), transparent 60%)' }}
       >
+        {/* Cartel de anuncio (cantos / resultados): sale del lado del que actuó */}
+        {announce && (
+          <div className={`absolute inset-x-0 z-30 px-3 -translate-y-1/2 pointer-events-none ${announce.side === 'top' ? 'top-[30%]' : 'top-[70%]'}`}>
+            <div
+              className="mx-auto max-w-[16rem] rounded-2xl border border-white/10 bg-black/65 backdrop-blur-md px-5 py-3 text-center shadow-lift animate-announce-in"
+              style={{ '--enterY': announce.side === 'top' ? '-22px' : '22px' } as React.CSSProperties}
+            >
+              {announce.eyebrow && (
+                <div className="text-[10px] font-semibold uppercase tracking-[0.35em] text-gold">{announce.eyebrow}</div>
+              )}
+              <div className={`font-display text-xl font-extrabold mt-1 ${announce.titleClass}`}>{announce.title}</div>
+              {announce.subtitle && (
+                <div className={`text-sm mt-1 ${announce.subtitleClass ?? 'text-cream/85'}`}>{announce.subtitle}</div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Mazo: pila de dorsos de la que "salen" las cartas al repartir */}
         <div className="pointer-events-none absolute top-2 right-2 z-20" aria-hidden="true">
           <div className="relative w-7 sm:w-9 aspect-[5/7] drop-shadow-md">

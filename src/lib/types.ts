@@ -39,8 +39,9 @@ export interface EnvidoState {
   chain: string[]
   // Resultado, para mostrarlo a ambos jugadores una vez resuelto el envido
   winner_id?: string | null
-  player1_points?: number
-  player2_points?: number
+  // null cuando el jugador "dijo son buenas" y no reveló su tanto
+  player1_points?: number | null
+  player2_points?: number | null
   awarded?: number
 }
 
