@@ -36,7 +36,7 @@ export default function PlayingCard({
     <img
       src={getCardImage(card)}
       alt={getCardLabel(card)}
-      className="w-full h-full object-contain select-none pointer-events-none"
+      className="w-full h-full object-contain select-none pointer-events-none [-webkit-user-drag:none] [-webkit-touch-callout:none]"
       draggable={false}
     />
   )
@@ -52,10 +52,15 @@ export default function PlayingCard({
         style={style}
         className={cn(
           surface,
+          // En táctil: tratar el toque como tap (no arrastre/zoom/long-press),
+          // y no permitir arrastrar la imagen ni seleccionar.
+          'touch-manipulation select-none [-webkit-touch-callout:none] [-webkit-user-drag:none]',
           'transition-all duration-200 ease-out',
-          'hover:-translate-y-2 hover:shadow-lift hover:ring-gold',
+          // El "levantar" solo en dispositivos con hover real (no se pega en táctil)
+          '[@media(hover:hover)]:enabled:hover:-translate-y-2 [@media(hover:hover)]:enabled:hover:shadow-lift [@media(hover:hover)]:enabled:hover:ring-gold',
+          'enabled:active:-translate-y-1',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
-          'disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-card disabled:hover:ring-black/10',
+          'disabled:opacity-60 disabled:cursor-not-allowed',
           deal && 'animate-deal-in',
           flip && 'animate-play-in',
           className,

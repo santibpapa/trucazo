@@ -29,6 +29,7 @@ export interface Table {
   is_private: boolean
   private_code: string | null
   status: 'waiting' | 'playing' | 'finished'
+  target_score: number
   created_at: string
 }
 
@@ -81,6 +82,7 @@ export interface Game {
   status: 'playing' | 'finished'
   winner_id: string | null
   bet: number
+  target_score: number
   created_at: string
   updated_at: string
 }

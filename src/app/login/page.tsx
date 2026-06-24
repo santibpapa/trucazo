@@ -8,13 +8,13 @@ import { Panel, Logo, Input, Button, Alert } from '@/components/ui'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleLogin() {
-    if (!email || !password) {
+    if (!identifier || !password) {
       setError('Completá todos los campos')
       return
     }
@@ -23,13 +23,28 @@ export default function LoginPage() {
     setError('')
 
     const supabase = createClient()
+
+    // Si no es un email, lo tratamos como nombre de usuario y resolvemos su email.
+    let email = identifier.trim()
+    if (!email.includes('@')) {
+      const { data, error: lookupError } = await supabase.rpc('get_login_email', {
+        p_username: email,
+      })
+      if (lookupError || !data) {
+        setError('Usuario o contraseña incorrectos')
+        setLoading(false)
+        return
+      }
+      email = data as string
+    }
+
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     if (signInError) {
-      setError('Email o contraseña incorrectos')
+      setError('Email/usuario o contraseña incorrectos')
       setLoading(false)
       return
     }
@@ -50,12 +65,12 @@ export default function LoginPage() {
 
         <div className="flex flex-col gap-4">
           <Input
-            label="Email"
-            name="email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="tu@email.com"
+            label="Email o usuario"
+            name="identifier"
+            type="text"
+            value={identifier}
+            onChange={e => setIdentifier(e.target.value)}
+            placeholder="tu@email.com o tu usuario"
             onKeyDown={e => e.key === 'Enter' && handleLogin()}
           />
           <Input

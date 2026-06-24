@@ -33,11 +33,13 @@ export default function RegisterPage() {
 
     const supabase = createClient()
 
+    // Chequeo case-insensitive (ilike sin comodines matchea la cadena completa).
+    // El índice único sobre lower(username) es la garantía real ante carreras.
     const { data: existing } = await supabase
       .from('profiles')
       .select('username')
-      .eq('username', username)
-      .single()
+      .ilike('username', username)
+      .maybeSingle()
 
     if (existing) {
       setError('Ese nombre de usuario ya está en uso')
@@ -67,7 +69,10 @@ export default function RegisterPage() {
       })
 
       if (profileError) {
-        setError('Error al crear el perfil: ' + profileError.message)
+        // 23505 = violación de unicidad (el username se tomó entre el chequeo y el insert)
+        setError(profileError.code === '23505'
+          ? 'Ese nombre de usuario ya está en uso'
+          : 'Error al crear el perfil: ' + profileError.message)
         setLoading(false)
         return
       }

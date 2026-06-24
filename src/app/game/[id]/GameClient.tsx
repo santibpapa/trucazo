@@ -99,6 +99,35 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     ['truco', 'retruco', 'vale_cuatro'].includes(game.truco_state.status) &&
     game.truco_state.last_singer !== currentUserId
 
+  // Pantalla del juego fija: bloquea el scroll/rebote del body mientras estás
+  // en la partida (sobre todo en iOS). Se restaura al salir al lobby.
+  useEffect(() => {
+    const html = document.documentElement
+    const body = document.body
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      overscroll: body.style.overscrollBehavior,
+      position: body.style.position,
+      width: body.style.width,
+      height: body.style.height,
+    }
+    html.style.overflow = 'hidden'
+    body.style.overflow = 'hidden'
+    body.style.overscrollBehavior = 'none'
+    body.style.position = 'fixed'
+    body.style.width = '100%'
+    body.style.height = '100%'
+    return () => {
+      html.style.overflow = prev.htmlOverflow
+      body.style.overflow = prev.bodyOverflow
+      body.style.overscrollBehavior = prev.overscroll
+      body.style.position = prev.position
+      body.style.width = prev.width
+      body.style.height = prev.height
+    }
+  }, [])
+
   // Tiempo real: suscripción a cambios de la partida
   // (Requiere que la tabla `games` tenga la replicación realtime habilitada en Supabase)
   useEffect(() => {
@@ -268,7 +297,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       const byMe = ts.last_singer === currentUserId
       showAnnounce({ side: byMe ? 'bottom' : 'top',
         title: TRUCO_LABEL[st] ?? 'truco', titleClass: 'text-gold uppercase tracking-wide',
-        subtitle: `lo cantó ${byMe ? 'vos' : opponentUsername}` })
+        subtitle: `lo cantó ${byMe ? myUsername : opponentUsername}` })
     } else if (st === 'accepted' && prev?.status !== 'accepted') {
       // Quiero: lado del que responde (no es el que cantó)
       const responderIsMe = ts.last_singer !== currentUserId
@@ -471,7 +500,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
           <span className="inline-flex items-center gap-1 font-display font-bold text-gold tabular text-sm">
             <CoinIcon size={13} />{game.bet}
           </span>
-          <span className="text-[9px] uppercase tracking-widest text-subtle">Pozo</span>
+          <span className="text-[9px] uppercase tracking-widest text-subtle">Pozo · a {game.target_score}</span>
           <span className="text-[10px] text-muted">
             Mano: <b className="text-cream font-semibold">{isMano ? 'Vos' : opponentUsername}</b>
           </span>
@@ -668,6 +697,10 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             </div>
             {/* Escalar el envido */}
             <div className="flex gap-2">
+              {game.envido_state.status === 'envido' &&
+                (game.envido_state.chain?.filter(c => c === 'envido').length ?? 0) < 2 && (
+                <Button variant="info" size="sm" fullWidth onClick={() => singEnvido('envido')} disabled={loading}>Envido</Button>
+              )}
               {game.envido_state.status === 'envido' && (
                 <Button variant="info" size="sm" fullWidth onClick={() => singEnvido('real_envido')} disabled={loading}>Real Envido</Button>
               )}

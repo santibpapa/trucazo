@@ -18,7 +18,8 @@ export default function LobbyClient({ profile, initialTables }: Props) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showJoinPrivate, setShowJoinPrivate] = useState(false)
   const [tableName, setTableName] = useState('')
-  const [bet, setBet] = useState(10)
+  const [bet, setBet] = useState('10')
+  const [targetScore, setTargetScore] = useState(30)
   const [isPrivate, setIsPrivate] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -96,11 +97,12 @@ export default function LobbyClient({ profile, initialTables }: Props) {
       setError('Ponele un nombre a la mesa')
       return
     }
-    if (bet < 10) {
+    const betNum = Number(bet)
+    if (!bet.trim() || Number.isNaN(betNum) || betNum < 10) {
       setError('La apuesta mínima es 10 monedas')
       return
     }
-    if (bet > profile.coins) {
+    if (betNum > profile.coins) {
       setError('No tenés suficientes monedas')
       return
     }
@@ -113,9 +115,10 @@ export default function LobbyClient({ profile, initialTables }: Props) {
     // create_table (security definer) valida el saldo, descuenta y crea la mesa, atómico
     const { data: table, error: tableError } = await supabase.rpc('create_table', {
       p_name: tableName.trim(),
-      p_bet: bet,
+      p_bet: betNum,
       p_is_private: isPrivate,
       p_private_code: code,
+      p_target_score: targetScore,
     })
 
     if (tableError || !table) {
@@ -125,7 +128,7 @@ export default function LobbyClient({ profile, initialTables }: Props) {
     }
 
     // Reflejar el descuento localmente (el servidor ya lo aplicó)
-    profile.coins = profile.coins - bet
+    profile.coins = profile.coins - betNum
 
     if (isPrivate && code) {
       setCreatedTableId(table.id)
@@ -282,7 +285,12 @@ export default function LobbyClient({ profile, initialTables }: Props) {
               style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
             >
               <div className="min-w-0">
-                <p className="font-semibold text-cream truncate">{table.name}</p>
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="font-semibold text-cream truncate">{table.name}</p>
+                  <span className="shrink-0 rounded-full border border-line bg-surface2 px-2 py-0.5 text-[10px] font-bold text-muted">
+                    a {table.target_score}
+                  </span>
+                </div>
                 <p className="text-sm text-subtle truncate">por {table.creator_username}</p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
@@ -337,11 +345,33 @@ export default function LobbyClient({ profile, initialTables }: Props) {
             id="bet"
             name="bet"
             type="number"
+            inputMode="numeric"
             value={bet}
-            onChange={e => setBet(Number(e.target.value))}
+            onChange={e => setBet(e.target.value.replace(/[^0-9]/g, ''))}
             min={10}
             max={profile.coins}
           />
+        </div>
+
+        {/* Puntaje objetivo de la partida */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-muted">Puntos</label>
+          <div className="grid grid-cols-2 gap-2">
+            {[15, 30].map(pts => (
+              <button
+                key={pts}
+                type="button"
+                onClick={() => setTargetScore(pts)}
+                className={`rounded-xl border py-2.5 font-display font-bold transition-colors ${
+                  targetScore === pts
+                    ? 'border-gold bg-gold/15 text-gold'
+                    : 'border-line bg-surface2 text-muted hover:text-cream'
+                }`}
+              >
+                A {pts}
+              </button>
+            ))}
+          </div>
         </div>
 
         <Toggle checked={isPrivate} onChange={setIsPrivate} label="Mesa privada" />
