@@ -63,3 +63,45 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+---
+
+# Trucazo — reglas de la casa (específico de este proyecto)
+
+Truco argentino 1v1 online, a 15 o 30 puntos, sin flor, con monedas ficticias.
+Stack: Next.js 14 (App Router) + React + TypeScript + Tailwind + Supabase
+(Auth + Postgres + Realtime + RPC `security definer`).
+
+## El dueño no programa
+El dueño del proyecto **no escribe código**: define el qué y el por qué, no el cómo.
+- Explicá en criollo, sin jerga. Si usás un término técnico, definilo o usá una analogía.
+- Para cualquier cosa que él tenga que ejecutar (correr SQL, exportar, clicks en un
+  panel): instrucciones paso a paso, "copiá y pegá esto acá". No asumas que sabe usar
+  una terminal, git, o qué es una "migración" sin explicación.
+- Confirmaciones simples y tranquilizadoras; no lo abrumes con detalle innecesario.
+
+## El servidor es la única autoridad (la lógica vive en SQL, NO en el cliente)
+- Toda la lógica del juego (jugar carta, envido, truco, repartir, puntajes, monedas)
+  corre en funciones `security definer` de Postgres. El cliente
+  (`src/app/game/[id]/GameClient.tsx`) es un "reflejo": llama RPCs y muestra lo que
+  devuelven. No metas reglas de juego en el cliente.
+- Las manos viven en `game_hands` (RLS por jugador, **fuera de Realtime**) para que no
+  se filtren las cartas del rival. Nunca las pongas en la fila de `games`.
+- `src/lib/truco.ts` solo tiene utilidades de presentación (ranking, imágenes). Su
+  lógica está **espejada en SQL** (`_truco_deck`, `_envido_points`, etc.): si cambiás
+  una, cambiá la otra.
+
+## Backend: cómo se trabajan los cambios
+- **No hay CI/CD ni deploy automático del backend.** El dueño corre cada migración a
+  mano en el SQL Editor de Supabase.
+- Para cambiar una función ya aplicada: **creá una migración NUEVA** en
+  `supabase/migrations/` (con fecha posterior). **Nunca edites una migración ya
+  aplicada** — Supabase las corre por orden alfabético de nombre, así que el orden
+  importa (ojo con dos migraciones del mismo día que redefinen la misma función).
+- `supabase/schema/` es la **foto** del estado actual del backend (tablas, funciones,
+  RLS) para reconstruir de cero. `supabase/migrations/` es el historial incremental.
+- Configuración que NO es SQL y se setea a mano en el panel: Realtime en `games`/
+  `tables`, el trigger `handle_new_user`, y el cron de `sweep_stale_games`.
+
+## Diseño y estética
+Prioridad alta: todo pulido y simple de entender. UI limpia, sin texto denso.
