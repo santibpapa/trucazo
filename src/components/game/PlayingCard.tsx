@@ -18,9 +18,9 @@ interface PlayingCardProps {
 }
 
 /**
- * Carta SVG (blanca) tratada como protagonista sobre el fondo oscuro:
- * superficie blanca, borde fino, sombra difusa y, si es interactiva,
- * elevación al pasar el dedo/mouse.
+ * Carta (PNG completa) como protagonista sobre el fondo oscuro. La imagen define
+ * su propio alto (h-auto) para que el marco calce exacto con la carta y no asome
+ * fondo. Si es interactiva, se eleva al pasar el dedo/mouse.
  */
 export default function PlayingCard({
   card,
@@ -36,13 +36,14 @@ export default function PlayingCard({
     <img
       src={getCardImage(card)}
       alt={getCardLabel(card)}
-      className="w-full h-full object-contain select-none pointer-events-none [-webkit-user-drag:none] [-webkit-touch-callout:none]"
+      className="block w-full h-auto select-none pointer-events-none [-webkit-user-drag:none] [-webkit-touch-callout:none]"
       draggable={false}
     />
   )
 
-  const surface =
-    'aspect-[5/7] rounded-xl overflow-hidden bg-[#D9C58E] ring-1 ring-black/10 shadow-card'
+  // La carta PNG ya es completa (fondo blanco). El alto lo define la imagen
+  // (h-auto), y el redondeo de esquinas lo da el overflow-hidden.
+  const surface = 'rounded-xl overflow-hidden shadow-card'
 
   if (interactive) {
     return (

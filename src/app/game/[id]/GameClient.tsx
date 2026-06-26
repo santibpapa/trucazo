@@ -25,6 +25,10 @@ const TRUCO_LABEL: Record<string, string> = {
   truco: 'truco', retruco: 'retruco', vale_cuatro: 'vale cuatro',
 }
 
+// Emotes / chat rápido (efímeros, por broadcast)
+const EMOTES = ['👏', '😂', '😎', '🔥', '🃏', '¡Mentiroso!', '¡Andá!', '¡Achicate!', '¡Quiero!', '¡Buena!']
+const EMOTE_COOLDOWN_MS = 3000
+
 // Cartel central de anuncios (cantos / resultados). side define de qué lado sale:
 // 'top' = lo hizo el rival (entre sus cartas y el centro), 'bottom' = lo hice yo.
 type Announce = {
@@ -61,6 +65,12 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   // Momento de la última acción local; el polling de respaldo se pausa un toque
   // después de jugar para no pisar la actualización optimista con datos viejos.
   const lastActionRef = useRef(0)
+  // Emotes / chat rápido
+  const [emoteTray, setEmoteTray] = useState(false)
+  const [emoteCooldown, setEmoteCooldown] = useState(false)
+  const [myEmote, setMyEmote] = useState<string | null>(null)
+  const [oppEmote, setOppEmote] = useState<string | null>(null)
+  const chatChannelRef = useRef<ReturnType<ReturnType<typeof createClient>['channel']> | null>(null)
   const supabase = createClient()
 
   const isPlayer1 = currentUserId === game.player1_id
@@ -70,7 +80,9 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   const opponentScore = isPlayer1 ? game.player2_score : game.player1_score
   const myUsername = isPlayer1 ? game.player1_username : game.player2_username
   const opponentUsername = isPlayer1 ? game.player2_username : game.player1_username
-  const isMyTurn = game.current_turn === currentUserId
+  // awaiting_deal = la mano terminó y se está mostrando antes de repartir la próxima:
+  // congelamos las acciones para que se vea la última carta.
+  const isMyTurn = !game.awaiting_deal && game.current_turn === currentUserId
   const isMano = game.mano_player === currentUserId
 
   const currentRoundCards = game.played_cards.filter(pc => pc.round === game.round_number)
@@ -196,6 +208,58 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     return () => clearInterval(iv)
   }, [game.id, game.status])
 
+  // Chat rápido: canal de broadcast efímero (no toca la DB). Recibimos solo los
+  // emotes del rival (broadcast no devuelve los propios); el mío lo muestro local.
+  useEffect(() => {
+    if (game.status === 'finished') return
+    const channel = supabase.channel(`chat-${game.id}`)
+    channel
+      .on('broadcast', { event: 'emote' }, ({ payload }) => {
+        setOppEmote((payload as { text?: string })?.text ?? null)
+      })
+      .subscribe()
+    chatChannelRef.current = channel
+    return () => { supabase.removeChannel(channel); chatChannelRef.current = null }
+  }, [game.id, game.status])
+
+  // Las burbujas de emote se autodescartan
+  useEffect(() => {
+    if (!myEmote) return
+    const t = setTimeout(() => setMyEmote(null), 2800)
+    return () => clearTimeout(t)
+  }, [myEmote])
+  useEffect(() => {
+    if (!oppEmote) return
+    const t = setTimeout(() => setOppEmote(null), 2800)
+    return () => clearTimeout(t)
+  }, [oppEmote])
+
+  function sendEmote(text: string) {
+    if (emoteCooldown) return
+    chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text } })
+    setMyEmote(text)
+    setEmoteTray(false)
+    setEmoteCooldown(true)
+    setTimeout(() => setEmoteCooldown(false), EMOTE_COOLDOWN_MS)
+  }
+
+  // Reparte la próxima mano (server-side, idempotente). Lo dispara el delay.
+  async function advanceHand() {
+    const { data, error } = await supabase.rpc('advance_hand', { p_game_id: game.id })
+    if (!rpcFailed('advance_hand RPC:', error) && data) setGame(data as Game)
+    await refetchMyHand()
+  }
+
+  // Delay para apreciar el cierre de la mano: cuando queda awaiting_deal, se
+  // muestra la mesa resuelta y, tras un momento, se reparte la próxima. Ambos
+  // clientes lo agendan; advance_hand es idempotente, así que no duplica.
+  useEffect(() => {
+    if (game.status !== 'playing' || !game.awaiting_deal) return
+    const t = setTimeout(() => { advanceHand() }, 1800)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.awaiting_deal, game.status, game.id])
+
   // Si el rival se desconecta y no vuelve en 25s, se habilita reclamar la victoria
   const CLAIM_TIMEOUT_MS = 25000
   useEffect(() => {
@@ -207,15 +271,31 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     return () => clearTimeout(t)
   }, [opponentOnline, game.status])
 
+  // Partida terminada: seguimos escuchando para la revancha (votos y nueva partida).
   useEffect(() => {
-    if (game.status === 'finished') {
-      const t = setTimeout(() => {
-        router.push(`/lobby`)
-        router.refresh()
-      }, 3000)
-      return () => clearTimeout(t)
+    if (game.status !== 'finished') return
+    const channel = supabase
+      .channel(`rematch-${game.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${game.id}` },
+        (payload) => setGame(payload.new as Game),
+      )
+      .subscribe()
+    const iv = setInterval(async () => {
+      const { data } = await supabase.from('games').select('*').eq('id', game.id).single()
+      if (data) setGame(data as Game)
+    }, 2500)
+    return () => { supabase.removeChannel(channel); clearInterval(iv) }
+  }, [game.id, game.status])
+
+  // Cuando se concreta la revancha, ambos van a la nueva partida.
+  useEffect(() => {
+    if (game.rematch_game_id) {
+      router.push(`/game/${game.rematch_game_id}`)
+      router.refresh()
     }
-  }, [game.status])
+  }, [game.rematch_game_id])
 
   // El banner de error de una acción se autodescarta a los 4s
   useEffect(() => {
@@ -421,9 +501,12 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     if (loading) return
     setLoading(true)
     lastActionRef.current = Date.now()
+    // Cartelito de la acción (como un emote), del lado del que se va al mazo
+    chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text: 'Me voy al mazo' } })
+    setMyEmote('Me voy al mazo')
     const { data, error } = await supabase.rpc('irse_al_mazo', { p_game_id: game.id })
     if (!rpcFailed('irse_al_mazo RPC:', error) && data) setGame(data as Game)
-    await refetchMyHand() // repartió una mano nueva
+    // La próxima mano la reparte el delay (advance_hand) al ver awaiting_deal
     setLoading(false)
   }
 
@@ -447,11 +530,29 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     setLoading(false)
   }
 
+  // Pedir revancha: cuando ambos lo piden, el server crea la nueva partida.
+  async function requestRematch() {
+    if (loading) return
+    setLoading(true)
+    const { data, error } = await supabase.rpc('request_rematch', { p_game_id: game.id })
+    if (!rpcFailed('request_rematch RPC:', error) && data) setGame(data as Game)
+    setLoading(false)
+  }
+
+  function goToLobby() {
+    router.push('/lobby')
+    router.refresh()
+  }
+
   if (game.status === 'finished') {
     // Partida anulada (abandonada por ambos): sin ganador, se reembolsa la apuesta.
     const voided = game.winner_id == null
     const won = game.winner_id === currentUserId
     const net = game.bet / 2
+    const myVote = isPlayer1 ? game.rematch_p1 : game.rematch_p2
+    const oppVote = isPlayer1 ? game.rematch_p2 : game.rematch_p1
+    const rematchCount = (game.rematch_p1 ? 1 : 0) + (game.rematch_p2 ? 1 : 0)
+    const someoneWantsRematch = rematchCount > 0
     return (
       <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-6">
         <Panel className="w-full max-w-sm p-8 text-center flex flex-col items-center gap-5 animate-scale-in">
@@ -482,7 +583,32 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               {won ? '+' : '−'}{net.toLocaleString('es-AR')}
             </div>
           )}
-          <p className="text-sm text-subtle">Volviendo al lobby…</p>
+
+          {actionError && <p className="text-sm text-negative">{actionError}</p>}
+
+          {/* Cuadro de revancha: se ilumina si alguno la pidió y muestra el conteo */}
+          <div
+            className={`w-full rounded-2xl border p-3 flex flex-col gap-3 transition-colors ${
+              someoneWantsRematch ? 'border-gold bg-gold/10 shadow-gold-ring' : 'border-line bg-surface2'
+            }`}
+          >
+            {someoneWantsRematch && (
+              <p className="text-sm font-semibold text-gold flex items-center justify-center gap-2">
+                {myVote && !oppVote ? 'Esperando a tu rival…'
+                  : oppVote && !myVote ? `${opponentUsername} quiere revancha`
+                  : '¡Revancha!'}
+                <span className="rounded-full bg-gold/20 px-2 py-0.5 text-xs tabular">{rematchCount}/2</span>
+              </p>
+            )}
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" fullWidth onClick={goToLobby} disabled={loading}>
+                Volver al lobby
+              </Button>
+              <Button variant="primary" size="sm" fullWidth onClick={requestRematch} disabled={loading || myVote}>
+                {myVote ? 'Revancha pedida' : 'Revancha'}
+              </Button>
+            </div>
+          </div>
         </Panel>
       </main>
     )
@@ -517,7 +643,8 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
           ? 'bg-gold text-ink shadow-gold'
           : 'bg-surface2 text-muted border border-line'
       }`}>
-        {hasPendingEnvido ? `Te cantaron ${ENVIDO_LABEL[game.envido_state.status] ?? 'envido'} — respondé` :
+        {game.awaiting_deal ? 'Fin de la mano…' :
+         hasPendingEnvido ? `Te cantaron ${ENVIDO_LABEL[game.envido_state.status] ?? 'envido'} — respondé` :
          hasPendingTruco ? `Te cantaron ${TRUCO_LABEL[game.truco_state.status] ?? 'truco'} — respondé` :
          isMyTurn ? 'Tu turno' : `Turno de ${opponentUsername}`}
       </div>
@@ -554,6 +681,46 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         className="relative flex-1 min-h-0 rounded-2xl border border-line bg-surface2 shadow-card p-2 sm:p-3 flex flex-col justify-between overflow-hidden"
         style={{ backgroundImage: 'radial-gradient(120% 90% at 50% 0%, rgba(201,162,75,0.08), transparent 60%)' }}
       >
+        {/* Chat rápido: botón + bandeja de emotes */}
+        <button
+          onClick={() => setEmoteTray(v => !v)}
+          aria-label="Emotes"
+          className="absolute top-2 right-2 z-30 w-9 h-9 rounded-full border border-line bg-base/80 backdrop-blur flex items-center justify-center text-base hover:border-gold transition-colors"
+        >
+          💬
+        </button>
+        {emoteTray && (
+          <div className="absolute top-12 right-2 z-30 flex flex-wrap justify-end gap-1.5 max-w-[15rem] rounded-2xl border border-line bg-base/95 backdrop-blur p-2 shadow-lift animate-scale-in">
+            {EMOTES.map(e => {
+              const isText = /[a-zA-ZÁÉÍÓÚáéíóú]/.test(e)
+              return (
+                <button
+                  key={e}
+                  onClick={() => sendEmote(e)}
+                  disabled={emoteCooldown}
+                  className={`h-9 px-2.5 rounded-xl bg-surface2 hover:bg-surface border border-line hover:border-gold flex items-center justify-center transition-colors disabled:opacity-40 disabled:hover:border-line ${
+                    isText ? 'text-sm font-semibold text-cream whitespace-nowrap' : 'text-xl'
+                  }`}
+                >
+                  {e}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Burbujas de emote (efímeras) */}
+        {oppEmote && (
+          <div className="absolute top-2 left-2 z-20 rounded-2xl rounded-tl-sm border border-line bg-base/90 backdrop-blur px-3 py-1.5 text-lg shadow-card animate-scale-in">
+            {oppEmote}
+          </div>
+        )}
+        {myEmote && (
+          <div className="absolute bottom-2 left-2 z-20 rounded-2xl rounded-bl-sm border border-gold/40 bg-gold/15 backdrop-blur px-3 py-1.5 text-lg shadow-card animate-scale-in">
+            {myEmote}
+          </div>
+        )}
+
         {/* Cartel de anuncio (cantos / resultados): sale del lado del que actuó */}
         {announce && (
           <div className={`absolute inset-x-0 z-30 px-3 -translate-y-1/2 pointer-events-none ${announce.side === 'top' ? 'top-[30%]' : 'top-[70%]'}`}>
@@ -574,7 +741,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
 
         {/* Mazo: pila de dorsos de la que "salen" las cartas al repartir */}
         <div className="pointer-events-none absolute top-2 right-2 z-20" aria-hidden="true">
-          <div className="relative w-7 sm:w-9 aspect-[5/7] drop-shadow-md">
+          <div className="relative w-7 sm:w-9 aspect-[11/17] drop-shadow-md">
             <CardBack className="absolute inset-0 translate-x-[3px] -translate-y-[3px] opacity-60" />
             <CardBack className="absolute inset-0 translate-x-[1.5px] -translate-y-[1.5px] opacity-80" />
             <CardBack className="absolute inset-0" />
@@ -585,7 +752,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             le quedan: 3 menos las que ya jugó en esta mano) */}
         <div className="flex justify-center gap-2">
           {[...Array(Math.max(0, 3 - game.played_cards.filter(pc => pc.player_id === opponentId).length))].map((_, i) => (
-            <CardBack key={i} className="w-9 sm:w-12 aspect-[5/7]" />
+            <CardBack key={i} className="w-9 sm:w-12 aspect-[11/17]" />
           ))}
         </div>
 
@@ -644,10 +811,10 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
                   )}
                   {/* Placeholders ronda actual */}
                   {iCurrent && !opponentRoundCard && (
-                    <div className="absolute top-0 left-0 w-12 sm:w-20 aspect-[5/7] border border-dashed border-line rounded-xl" />
+                    <div className="absolute top-0 left-0 w-12 sm:w-20 aspect-[11/17] border border-dashed border-line rounded-xl" />
                   )}
                   {iCurrent && !myRoundCard && (
-                    <div className="absolute top-3 left-3 sm:top-5 sm:left-4 w-12 sm:w-20 aspect-[5/7] border border-dashed border-gold/40 rounded-xl" />
+                    <div className="absolute top-3 left-3 sm:top-5 sm:left-4 w-12 sm:w-20 aspect-[11/17] border border-dashed border-gold/40 rounded-xl" />
                   )}
                 </div>
               </div>
@@ -677,7 +844,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               } as React.CSSProperties}
               onClick={() => playCard(card)}
               disabled={!isMyTurn || loading || !!myPlayedCard || hasPendingEnvido || hasPendingTruco}
-              className="w-16 sm:w-20"
+              className="w-20 sm:w-28"
             />
           ))}
         </div>

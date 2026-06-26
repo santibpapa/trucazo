@@ -1,12 +1,20 @@
 -- ============================================================
--- Limpieza de los usuarios de prueba del e2e (e2e_A_*, e2e_B_*)
+-- Limpieza de los usuarios de prueba de los scripts e2e
+-- (prefijos: e2e_, t15_, rm_, bn_, st_)
 -- Correr en Supabase → SQL Editor (corre como admin).
 -- Borra en orden de dependencias y, por último, los usuarios de auth.
+--
+-- Opcional: para borrar también los invitados, descomentá la línea de 'Invitado'.
 -- ============================================================
 do $$
 declare ids uuid[];
 begin
-  select array_agg(id) into ids from public.profiles where username like 'e2e\_%';
+  select array_agg(id) into ids
+  from public.profiles
+  where username ~ '^(e2e|t15|rm|bn|st|rc)_'
+    -- or username ~ '^Invitado'   -- descomentar para limpiar invitados también
+  ;
+
   if ids is null then
     raise notice 'No hay usuarios de prueba para borrar.';
     return;

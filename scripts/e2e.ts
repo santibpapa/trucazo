@@ -174,10 +174,19 @@ async function main() {
   console.log('\n• Se juega una mano completa vía play_card (resolución server-side)')
   const startHand = (await getGame(A, gid)).hand_number
   let safety = 0
+  let sawAwaiting = false
   while (true) {
     if (++safety > 12) throw new Error('la mano no se resuelve')
     const gg = await getGame(A, gid)
     if (gg.status === 'finished' || gg.hand_number > startHand) { game = gg; break }
+    if (gg.awaiting_deal) {
+      // fin de la mano: la mesa queda resuelta (carta final visible) y luego se reparte
+      assert((gg.played_cards as any[]).length > 0, 'al terminar la mano queda la carta en la mesa (awaiting_deal)')
+      sawAwaiting = true
+      const { data } = await A.rpc('advance_hand', { p_game_id: gid })
+      game = data as any
+      break
+    }
     const cur = gg.current_turn
     const client = cur === a.uid ? A : B
     const hand = await getMyHand(client, gid, cur)
@@ -186,10 +195,12 @@ async function main() {
     if (error) throw new Error('play_card: ' + error.message)
     game = data as any
   }
-  assert(game.hand_number === startHand + 1 || game.status === 'finished', 'la mano la resolvió el servidor')
+  assert(sawAwaiting, 'hubo fase de cierre de mano (awaiting_deal) antes de repartir')
+  assert(game.hand_number === startHand + 1 || game.status === 'finished', 'advance_hand repartió la próxima mano')
+  assert(!game.awaiting_deal, 'awaiting_deal se limpió tras repartir')
   const newAHand = await getMyHand(A, gid, a.uid)
   assert(game.status === 'finished' || newAHand.length === 3, 'se repartió mano nueva (A tiene 3)')
-  ok('mano jugada y resuelta por el servidor (play_card)')
+  ok('mano jugada, cierre visible y repartida por el servidor')
 
   console.log('\n• Presencia + reclamar victoria (server-side)')
   await A.rpc('touch_presence', { p_game_id: gid })

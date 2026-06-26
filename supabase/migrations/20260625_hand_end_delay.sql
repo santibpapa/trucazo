@@ -1,0 +1,173 @@
+-- ============================================================
+-- TRUCAZO — Delay al terminar la mano (ver la última carta)
+-- Fecha: 2026-06-25
+--
+-- Antes play_card resolvía la mano y repartía la siguiente en un solo paso, así
+-- que la última carta no se llegaba a ver. Ahora, cuando una mano termina por
+-- jugarse una carta, play_card deja la mano resuelta en la mesa (carta final +
+-- puntaje actualizado) y marca awaiting_deal. Tras un pequeño delay, el cliente
+-- llama a advance_hand, que reparte la mano nueva (o termina la partida).
+-- Idempotente. (El "no quiero" del truco y el mazo siguen igual: no hay carta
+-- final que apreciar.)
+-- ============================================================
+
+begin;
+
+alter table public.games add column if not exists awaiting_deal boolean not null default false;
+
+-- play_card: rama de fin de mano → deja la mesa resuelta y marca awaiting_deal
+create or replace function public.play_card(p_game_id uuid, p_card jsonb)
+ returns games language plpgsql security definer set search_path to 'public'
+as $function$
+declare
+  g games%rowtype; uid uuid := auth.uid(); oppid uuid;
+  myhand jsonb; newhand jsonb := '[]'::jsonb; matched jsonb; found_card boolean := false; elem jsonb;
+  played jsonb; rcount int;
+  results jsonb := '[]'::jsonb; r int; c1 jsonb; c2 jsonb; w uuid;
+  w1 int := 0; w2 int := 0; ties int := 0; num_results int := 0; last_round_winner uuid;
+  hand_done boolean := false; hand_winner uuid; truco_val int; s1 int; s2 int;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+  select * into g from games where id = p_game_id for update;
+  if not found then raise exception 'game not found'; end if;
+  if g.status <> 'playing' then raise exception 'la partida no esta en juego'; end if;
+  if g.awaiting_deal then raise exception 'esperando la proxima mano'; end if;
+  if uid <> g.player1_id and uid <> g.player2_id then raise exception 'not a player of this game'; end if;
+  if g.current_turn <> uid then raise exception 'no es tu turno'; end if;
+
+  if g.envido_state->>'status' in ('envido','real_envido','falta_envido')
+     and (g.envido_state->>'last_singer') is distinct from uid::text then
+    raise exception 'hay un envido pendiente';
+  end if;
+  if g.truco_state->>'status' in ('truco','retruco','vale_cuatro')
+     and (g.truco_state->>'last_singer') is distinct from uid::text then
+    raise exception 'hay un truco pendiente';
+  end if;
+
+  oppid := case when uid = g.player1_id then g.player2_id else g.player1_id end;
+
+  if exists (select 1 from jsonb_array_elements(g.played_cards) e
+             where e.value->>'player_id' = uid::text and (e.value->>'round')::int = g.round_number) then
+    raise exception 'ya jugaste esta ronda';
+  end if;
+
+  select cards into myhand from game_hands where game_id = p_game_id and player_id = uid for update;
+  for elem in select e.value from jsonb_array_elements(coalesce(myhand,'[]'::jsonb)) e loop
+    if not found_card and elem->>'suit' = p_card->>'suit' and (elem->>'value')::int = (p_card->>'value')::int then
+      found_card := true; matched := elem;
+    else
+      newhand := newhand || jsonb_build_array(elem);
+    end if;
+  end loop;
+  if not found_card then raise exception 'no tenes esa carta'; end if;
+
+  update game_hands set cards = newhand where game_id = p_game_id and player_id = uid;
+  played := g.played_cards || jsonb_build_array(jsonb_build_object('player_id', uid, 'card', matched, 'round', g.round_number));
+
+  select count(*) into rcount from jsonb_array_elements(played) e where (e.value->>'round')::int = g.round_number;
+
+  if rcount < 2 then
+    update games set played_cards = played, current_turn = oppid, updated_at = now()
+    where id = p_game_id returning * into g;
+    return g;
+  end if;
+
+  for r in 1..3 loop
+    c1 := null; c2 := null;
+    select e.value->'card' into c1 from jsonb_array_elements(played) e
+      where (e.value->>'round')::int = r and e.value->>'player_id' = g.player1_id::text limit 1;
+    select e.value->'card' into c2 from jsonb_array_elements(played) e
+      where (e.value->>'round')::int = r and e.value->>'player_id' = g.player2_id::text limit 1;
+    exit when c1 is null or c2 is null;
+    if    (c1->>'rank')::int < (c2->>'rank')::int then w := g.player1_id;
+    elsif (c2->>'rank')::int < (c1->>'rank')::int then w := g.player2_id;
+    else  w := null; end if;
+    results := results || jsonb_build_array(jsonb_build_object('round', r, 'winner_id', w));
+    num_results := num_results + 1; last_round_winner := w;
+    if    w = g.player1_id then w1 := w1 + 1;
+    elsif w = g.player2_id then w2 := w2 + 1;
+    else  ties := ties + 1; end if;
+  end loop;
+
+  if w1 >= 2 then hand_winner := g.player1_id; hand_done := true;
+  elsif w2 >= 2 then hand_winner := g.player2_id; hand_done := true;
+  elsif num_results = 3 then
+    if    w1 > w2 then hand_winner := g.player1_id;
+    elsif w2 > w1 then hand_winner := g.player2_id;
+    else  hand_winner := g.mano_player; end if;
+    hand_done := true;
+  elsif ties = 1 and num_results = 2 then
+    select (e.value->>'winner_id')::uuid into hand_winner
+    from jsonb_array_elements(results) e where e.value->>'winner_id' is not null limit 1;
+    if hand_winner is not null then hand_done := true; end if;
+  end if;
+
+  if not hand_done then
+    update games set played_cards = played, round_number = g.round_number + 1, round_results = results,
+      current_turn = coalesce(last_round_winner, g.mano_player), updated_at = now()
+    where id = p_game_id returning * into g;
+    return g;
+  end if;
+
+  -- Mano terminada: otorgar truco y dejar la mesa resuelta (sin repartir todavía)
+  truco_val := case when g.truco_state->>'status' = 'accepted' then (g.truco_state->>'value')::int else 1 end;
+  s1 := g.player1_score; s2 := g.player2_score;
+  if    hand_winner = g.player1_id then s1 := s1 + truco_val;
+  elsif hand_winner = g.player2_id then s2 := s2 + truco_val; end if;
+
+  update games set
+    played_cards = played, round_results = results,
+    player1_score = s1, player2_score = s2,
+    awaiting_deal = true, updated_at = now()
+  where id = p_game_id returning * into g;
+  return g;
+end;
+$function$;
+
+-- advance_hand: tras el delay, reparte la mano nueva (o termina la partida).
+-- Idempotente: solo actúa si awaiting_deal está activo.
+create or replace function public.advance_hand(p_game_id uuid)
+ returns games language plpgsql security definer set search_path to 'public'
+as $function$
+declare g games%rowtype; new_mano uuid; h1 jsonb; h2 jsonb;
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  select * into g from games where id = p_game_id for update;
+  if not found then raise exception 'game not found'; end if;
+  if auth.uid() <> g.player1_id and auth.uid() <> g.player2_id then raise exception 'not a player of this game'; end if;
+  if not g.awaiting_deal then return g; end if;  -- ya se avanzó
+
+  -- ¿alguien llegó al objetivo? terminar
+  if g.player1_score >= g.target_score or g.player2_score >= g.target_score then
+    update games set awaiting_deal = false where id = p_game_id;
+    perform public.finish_game(p_game_id,
+      case when g.player1_score >= g.target_score then g.player1_id else g.player2_id end,
+      g.player1_score, g.player2_score);
+    select * into g from games where id = p_game_id;
+    return g;
+  end if;
+
+  new_mano := case when g.mano_player = g.player1_id then g.player2_id else g.player1_id end;
+  select d.h1, d.h2 into h1, h2 from public._deal_hands() d;
+  update game_hands set cards = h1 where game_id = p_game_id and player_id = g.player1_id;
+  update game_hands set cards = h2 where game_id = p_game_id and player_id = g.player2_id;
+
+  update games set
+    played_cards  = '[]'::jsonb,
+    current_turn  = new_mano,
+    mano_player   = new_mano,
+    hand_number   = g.hand_number + 1,
+    round_number  = 1,
+    round_results = '[]'::jsonb,
+    envido_state  = '{"value":0,"status":"none","last_singer":null,"chain":[]}'::jsonb,
+    truco_state   = '{"value":1,"status":"none","last_singer":null}'::jsonb,
+    awaiting_deal = false,
+    updated_at    = now()
+  where id = p_game_id returning * into g;
+  return g;
+end;
+$function$;
+
+grant execute on function public.advance_hand(uuid) to anon, authenticated;
+
+commit;

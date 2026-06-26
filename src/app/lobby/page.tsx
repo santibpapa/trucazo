@@ -21,10 +21,20 @@ export default async function LobbyPage() {
     .eq('is_private', false)
     .order('created_at', { ascending: false })
 
+  // Partida en curso del usuario (la RLS de games ya limita a las suyas)
+  const { data: activeGame } = await supabase
+    .from('games')
+    .select('id')
+    .eq('status', 'playing')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
   return (
     <LobbyClient
       profile={profile}
       initialTables={tables || []}
+      activeGameId={activeGame?.id ?? null}
     />
   )
 }

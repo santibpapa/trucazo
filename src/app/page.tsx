@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Logo, CoinIcon, buttonClass } from '@/components/ui'
+import GuestButton from '@/components/GuestButton'
 
 export default function Home() {
   return (
@@ -18,6 +19,12 @@ export default function Home() {
         <Link href="/register" className={buttonClass('ghost', 'lg', true)}>
           Crear cuenta
         </Link>
+
+        <div className="flex items-center gap-3 py-1 text-xs text-subtle">
+          <span className="h-px flex-1 bg-line" />o<span className="h-px flex-1 bg-line" />
+        </div>
+
+        <GuestButton variant="secondary" size="lg" />
       </div>
 
       <p className="inline-flex items-center gap-2 text-sm text-subtle animate-fade-up">

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Panel, Logo, Input, Button, Alert } from '@/components/ui'
+import GuestButton from '@/components/GuestButton'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -87,6 +88,12 @@ export default function LoginPage() {
         <Button fullWidth size="lg" onClick={handleLogin} disabled={loading}>
           {loading ? 'Entrando…' : 'Iniciar sesión'}
         </Button>
+
+        <div className="flex items-center gap-3 text-xs text-subtle">
+          <span className="h-px flex-1 bg-line" />o<span className="h-px flex-1 bg-line" />
+        </div>
+
+        <GuestButton variant="secondary" size="lg" />
 
         <p className="text-center text-sm text-muted">
           ¿No tenés cuenta?{' '}

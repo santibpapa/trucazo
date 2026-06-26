@@ -83,6 +83,10 @@ export interface Game {
   winner_id: string | null
   bet: number
   target_score: number
+  awaiting_deal: boolean
+  rematch_p1: boolean
+  rematch_p2: boolean
+  rematch_game_id: string | null
   created_at: string
   updated_at: string
 }

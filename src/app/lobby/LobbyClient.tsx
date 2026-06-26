@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Profile, Table } from '@/lib/types'
 import { generatePrivateCode } from '@/lib/tables'
@@ -10,9 +11,10 @@ import { Button, Panel, Input, Modal, Coins, Logo, Alert, Toggle } from '@/compo
 interface Props {
   profile: Profile
   initialTables: Table[]
+  activeGameId: string | null
 }
 
-export default function LobbyClient({ profile, initialTables }: Props) {
+export default function LobbyClient({ profile, initialTables, activeGameId }: Props) {
   const router = useRouter()
   const [tables, setTables] = useState<Table[]>(initialTables)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -26,6 +28,7 @@ export default function LobbyClient({ profile, initialTables }: Props) {
   const [error, setError] = useState('')
   const [createdCode, setCreatedCode] = useState('')
   const [createdTableId, setCreatedTableId] = useState('')
+  const [coins, setCoins] = useState(profile.coins)
 
   const supabase = createClient()
 
@@ -102,7 +105,7 @@ export default function LobbyClient({ profile, initialTables }: Props) {
       setError('La apuesta mínima es 10 monedas')
       return
     }
-    if (betNum > profile.coins) {
+    if (betNum > coins) {
       setError('No tenés suficientes monedas')
       return
     }
@@ -128,7 +131,7 @@ export default function LobbyClient({ profile, initialTables }: Props) {
     }
 
     // Reflejar el descuento localmente (el servidor ya lo aplicó)
-    profile.coins = profile.coins - betNum
+    setCoins(c => c - betNum)
 
     if (isPrivate && code) {
       setCreatedTableId(table.id)
@@ -141,7 +144,7 @@ export default function LobbyClient({ profile, initialTables }: Props) {
   }
 
   async function handleJoinTable(table: Table) {
-    if (profile.coins < table.bet) {
+    if (coins < table.bet) {
       setError('No tenés suficientes monedas para unirte a esta mesa')
       return
     }
@@ -158,7 +161,7 @@ export default function LobbyClient({ profile, initialTables }: Props) {
     }
 
     // Reflejar el descuento localmente (el servidor ya lo aplicó)
-    profile.coins = profile.coins - table.bet
+    setCoins(c => c - table.bet)
 
     router.push(`/game/${table.id}`)
     setLoading(false)
@@ -188,6 +191,20 @@ export default function LobbyClient({ profile, initialTables }: Props) {
   async function handleLogout() {
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  // Bonus anti-quiebra: solo se puede reclamar si te quedaste sin monedas para jugar.
+  async function handleClaimBonus() {
+    setLoading(true)
+    setError('')
+    const { data, error: bonusError } = await supabase.rpc('claim_bonus')
+    if (bonusError || data == null) {
+      setError(bonusError?.message || 'No se pudo reclamar el bonus')
+      setLoading(false)
+      return
+    }
+    setCoins(data as number)
+    setLoading(false)
   }
 
   if (createdCode) {
@@ -221,11 +238,15 @@ export default function LobbyClient({ profile, initialTables }: Props) {
       <header className="flex items-center justify-between gap-3 pt-1">
         <Logo size="md" />
         <div className="flex items-center gap-3 sm:gap-4">
-          <Panel className="flex items-center gap-2 px-3 py-1.5 !rounded-full">
-            <Coins amount={profile.coins} size="sm" />
-          </Panel>
+          <Link href="/profile" aria-label="Ver perfil">
+            <Panel className="flex items-center gap-2 px-3 py-1.5 !rounded-full transition-shadow hover:shadow-lift">
+              <Coins amount={coins} size="sm" />
+            </Panel>
+          </Link>
           <div className="hidden sm:flex flex-col items-end leading-tight">
-            <span className="text-sm font-semibold text-cream">{profile.username}</span>
+            <Link href="/profile" className="text-sm font-semibold text-cream hover:text-gold transition-colors">
+              {profile.username}
+            </Link>
             <button
               onClick={handleLogout}
               className="text-xs text-subtle hover:text-negative transition-colors"
@@ -233,6 +254,9 @@ export default function LobbyClient({ profile, initialTables }: Props) {
               Cerrar sesión
             </button>
           </div>
+          <Link href="/profile" className="sm:hidden text-xs text-gold font-semibold">
+            Perfil
+          </Link>
           <button
             onClick={handleLogout}
             className="sm:hidden text-xs text-subtle hover:text-negative transition-colors"
@@ -243,6 +267,32 @@ export default function LobbyClient({ profile, initialTables }: Props) {
       </header>
 
       {error && <Alert>{error}</Alert>}
+
+      {/* Volver a la partida en curso */}
+      {activeGameId && (
+        <Panel className="p-4 flex items-center justify-between gap-3 border-gold/50 bg-gold/10 shadow-gold-ring">
+          <div className="min-w-0">
+            <p className="font-semibold text-cream">Tenés una partida en curso</p>
+            <p className="text-sm text-subtle">Volvé para seguir jugando.</p>
+          </div>
+          <Button size="sm" onClick={() => router.push(`/game/${activeGameId}`)} className="shrink-0">
+            Volver a la partida
+          </Button>
+        </Panel>
+      )}
+
+      {/* Anti-quiebra: si te quedaste sin monedas para jugar, reclamá el bonus */}
+      {coins < 10 && (
+        <Panel className="p-4 flex items-center justify-between gap-3 border-gold/40 bg-gold/5">
+          <div className="min-w-0">
+            <p className="font-semibold text-cream">Te quedaste sin monedas</p>
+            <p className="text-sm text-subtle">Reclamá un bonus para seguir jugando.</p>
+          </div>
+          <Button size="sm" onClick={handleClaimBonus} disabled={loading} className="shrink-0">
+            Reclamar 100
+          </Button>
+        </Panel>
+      )}
 
       {/* Acciones principales */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -304,7 +354,7 @@ export default function LobbyClient({ profile, initialTables }: Props) {
                   <Button
                     size="sm"
                     onClick={() => handleJoinTable(table)}
-                    disabled={loading || profile.coins < table.bet}
+                    disabled={loading || coins < table.bet}
                   >
                     Unirse
                   </Button>
@@ -338,7 +388,7 @@ export default function LobbyClient({ profile, initialTables }: Props) {
           <div className="flex items-center justify-between">
             <label htmlFor="bet" className="text-sm font-medium text-muted">Apuesta</label>
             <span className="text-xs text-subtle">
-              Tenés <Coins amount={profile.coins} size="sm" className="!text-xs align-middle" />
+              Tenés <Coins amount={coins} size="sm" className="!text-xs align-middle" />
             </span>
           </div>
           <Input
@@ -349,7 +399,7 @@ export default function LobbyClient({ profile, initialTables }: Props) {
             value={bet}
             onChange={e => setBet(e.target.value.replace(/[^0-9]/g, ''))}
             min={10}
-            max={profile.coins}
+            max={coins}
           />
         </div>
 

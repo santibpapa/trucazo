@@ -88,9 +88,9 @@ export function getCardLabel(card: Card): string {
 }
 
 export function getCardImage(card: Card): string {
-  // SVGs en public/cartas/ con nombre {palo}_{valor 2 dígitos}.svg (ej: oro_01.svg, basto_12.svg)
+  // PNG en public/cartas/ con nombre {palo}_{valor 2 dígitos}.png (ej: oro_01.png, basto_12.png)
   const value = String(card.value).padStart(2, '0')
-  return `/cartas/${card.suit}_${value}.svg`
+  return `/cartas/${card.suit}_${value}.png`
 }
 
 export function compareCards(a: Card, b: Card): number {
