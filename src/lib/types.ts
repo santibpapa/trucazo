@@ -35,10 +35,14 @@ export interface Table {
 }
 
 export interface EnvidoState {
-  status: 'none' | 'envido' | 'real_envido' | 'falta_envido' | 'accepted' | 'rejected'
+  status: 'none' | 'envido' | 'real_envido' | 'falta_envido' | 'declaring' | 'accepted' | 'rejected' | 'mazo'
   last_singer: string | null
   value: number
   chain: string[]
+  // Diálogo de tantos (fase 'declaring'): a quién le toca declarar y el tanto que
+  // ya declaró la mano (null = todavía no declaró).
+  declare_turn?: string | null
+  mano_declared?: number | null
   // Resultado, para mostrarlo a ambos jugadores una vez resuelto el envido
   winner_id?: string | null
   // null cuando el jugador "dijo son buenas" y no reveló su tanto

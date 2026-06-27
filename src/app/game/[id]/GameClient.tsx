@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Game } from '@/lib/types'
-import { createDeck, getCardImage, type Card } from '@/lib/truco'
+import { createDeck, getCardImage, getEnvidoPoints, type Card } from '@/lib/truco'
 import { Panel, Button, CoinIcon } from '@/components/ui'
 import PlayingCard from '@/components/game/PlayingCard'
 import CardBack from '@/components/game/CardBack'
@@ -38,6 +38,12 @@ type Announce = {
   titleClass: string
   subtitle?: string
   subtitleClass?: string
+  // Tablero de 2 columnas (vos / rival) para el resultado del envido. El ganador
+  // va en verde y el perdedor en rojo; points null = tanto oculto ("son buenas").
+  score?: {
+    left: { label: string; points: number | null; won: boolean }
+    right: { label: string; points: number | null; won: boolean }
+  }
 }
 
 // Punto de partida de cada carta al repartir, apuntando al mazo (arriba-derecha).
@@ -91,6 +97,17 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
 
   const currentRoundCards = game.played_cards.filter(pc => pc.round === game.round_number)
   const myPlayedCard = currentRoundCards.find(pc => pc.player_id === currentUserId)
+
+  // Diálogo de tantos del envido (después del "quiero").
+  const isDeclaring = game.envido_state.status === 'declaring'
+  const manoDeclared = game.envido_state.mano_declared
+  // Me toca declarar/responder en el diálogo
+  const myDeclareTurn = isDeclaring && !game.awaiting_deal && game.envido_state.declare_turn === currentUserId
+  // Mi tanto real (de mis 3 cartas: las que tengo + las que ya jugué esta mano)
+  const myEnvido = getEnvidoPoints([
+    ...myHand,
+    ...game.played_cards.filter(pc => pc.player_id === currentUserId).map(pc => pc.card),
+  ])
 
   // El envido se puede cantar en la 1ª ronda mientras no hayas jugado tu carta.
   // Así también lo puede cantar el "pie" después de que la mano jugó la suya.
@@ -366,6 +383,22 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       return
     }
 
+    // Diálogo de tantos (después del "quiero")
+    if (st === 'declaring') {
+      if (manoDeclared == null) {
+        // Recién aceptado: "Quiero" (lo dijo el que respondió, no el cantor)
+        const responderIsMe = es.last_singer !== currentUserId
+        showAnnounce({ side: responderIsMe ? 'bottom' : 'top',
+          eyebrow: ENVIDO_LABEL[tier] ?? 'envido', title: 'Quiero', titleClass: 'text-cream' })
+      } else {
+        // La mano declaró su tanto
+        const manoIsMe = game.mano_player === currentUserId
+        showAnnounce({ side: manoIsMe ? 'bottom' : 'top',
+          title: `Tengo ${manoDeclared}`, titleClass: 'text-gold uppercase tracking-wide' })
+      }
+      return
+    }
+
     // Resultado
     if ((st === 'accepted' || st === 'rejected') && es.winner_id != null) {
       const responderIsMe = es.last_singer !== currentUserId
@@ -375,35 +408,37 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       const eyebrow = ENVIDO_LABEL[tier] ?? 'envido'
 
       if (st === 'rejected') {
-        showAnnounce({ side, eyebrow, title: 'No quiere', titleClass: 'text-cream',
+        showAnnounce({ side, eyebrow, title: 'No quiero', titleClass: 'text-cream',
           subtitle: `+${awarded} para ${won ? 'vos' : opponentUsername}`,
           subtitleClass: won ? 'text-positive' : 'text-negative' })
         return
       }
 
-      // Ganó la mano → el pie no revela su puntaje ("son buenas"); el empate lo gana la mano.
-      const sonBuenas = es.winner_id === game.mano_player
       const theirs = isPlayer1 ? es.player2_points : es.player1_points
       const mineP = isPlayer1 ? es.player1_points : es.player2_points
+      // "Son buenas": alguien no reveló su tanto (queda null). Si están los dos, tablero.
+      const hidden = mineP == null || theirs == null
 
-      if (sonBuenas) {
-        if (won) {
-          showAnnounce({ side, eyebrow, title: 'Son buenas', titleClass: 'text-positive',
-            subtitle: `+${awarded}`, subtitleClass: 'text-positive/90 font-semibold' })
-        } else {
-          showAnnounce({ side, eyebrow, title: 'Perdiste', titleClass: 'text-negative',
-            subtitle: `${opponentUsername} tiene ${theirs}` })
-        }
-      } else {
+      if (hidden) {
+        // El tanto del pie queda oculto; solo mostramos el resultado, sin puntos.
         showAnnounce({ side, eyebrow,
-          title: won ? `¡Ganaste! +${awarded}` : `Ganó ${opponentUsername} +${awarded}`,
-          titleClass: won ? 'text-positive' : 'text-negative',
-          subtitle: (mineP != null && theirs != null) ? `vos ${mineP} — ${theirs} ${opponentUsername}` : undefined,
-          subtitleClass: 'text-cream/85 tabular' })
+          title: won ? 'Son buenas' : 'Perdiste',
+          titleClass: won ? 'text-positive' : 'text-negative' })
+      } else {
+        // Ambos tantos visibles → tablero de 2 columnas (vos / rival).
+        showAnnounce({
+          side,
+          title: (ENVIDO_LABEL[tier] ?? 'envido').toUpperCase(),
+          titleClass: 'text-gold',
+          score: {
+            left: { label: 'Vos', points: mineP ?? null, won },
+            right: { label: opponentUsername, points: theirs ?? null, won: !won },
+          },
+        })
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.envido_state.status, game.envido_state.last_singer, game.envido_state.winner_id])
+  }, [game.envido_state.status, game.envido_state.last_singer, game.envido_state.winner_id, game.envido_state.mano_declared])
 
   // Anuncio central del truco: canto, "quiero" y "no quiero".
   // El "no quiero" se infiere: un canto pendiente solo puede terminar en mano
@@ -424,8 +459,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       // Quiero: lado del que responde (no es el que cantó)
       const responderIsMe = ts.last_singer !== currentUserId
       showAnnounce({ side: responderIsMe ? 'bottom' : 'top',
-        eyebrow: 'Truco', title: 'Quiero', titleClass: 'text-cream',
-        subtitle: `vale ${ts.value ?? 1}`, subtitleClass: 'text-gold font-semibold' })
+        eyebrow: 'Truco', title: 'Quiero', titleClass: 'text-cream' })
     } else if (
       prev && ['truco', 'retruco', 'vale_cuatro'].includes(prev.status) &&
       st === 'none' && game.hand_number > prev.hand
@@ -475,7 +509,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   // otorga el truco y reparte/termina. El cliente solo refleja lo que devuelve.
   async function playCard(card: Card) {
     if (!isMyTurn || loading) return
-    if (hasPendingEnvido || hasPendingTruco || myPlayedCard) return
+    if (hasPendingEnvido || hasPendingTruco || myPlayedCard || isDeclaring) return
 
     setLoading(true)
     lastActionRef.current = Date.now()
@@ -512,10 +546,30 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     if (loading) return
     setLoading(true)
     lastActionRef.current = Date.now()
-    // El servidor calcula los puntos (lee las dos manos), reparte, decide el
-    // turno siguiente y termina la partida si alguien llega a 30.
+    // Burbuja del que responde (como en el chat rápido)
+    const bubble = accept ? '¡Quiero!' : '¡No quiero!'
+    chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text: bubble } })
+    setMyEmote(bubble)
+    // Si acepta, el servidor abre el diálogo de tantos (la mano declara primero).
+    // Si no, resuelve el "no quiero" como antes.
     const { data, error } = await supabase.rpc('respond_envido', { p_game_id: game.id, p_accept: accept })
     if (!rpcFailed('respond_envido RPC:', error) && data) setGame(data as Game)
+    setLoading(false)
+  }
+
+  // Diálogo de tantos (después del "quiero"): 'tengo' revela tu tanto (lo calcula
+  // el server de tus cartas), 'son_buenas' cede sin revelar, 'mazo' abandona la mano.
+  async function envidoSay(action: 'tengo' | 'son_buenas' | 'mazo') {
+    if (loading) return
+    setLoading(true)
+    lastActionRef.current = Date.now()
+    const bubble = action === 'tengo' ? `Tengo ${myEnvido}`
+      : action === 'son_buenas' ? 'Son buenas' : 'Me voy al mazo'
+    chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text: bubble } })
+    setMyEmote(bubble)
+    const { data, error } = await supabase.rpc('envido_say', { p_game_id: game.id, p_action: action })
+    if (!rpcFailed('envido_say RPC:', error) && data) setGame(data as Game)
+    await refetchMyHand()
     setLoading(false)
   }
 
@@ -671,13 +725,14 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
 
       {/* Indicador de turno */}
       <div className={`shrink-0 text-center py-1.5 rounded-xl text-sm font-semibold transition-colors ${
-        isMyTurn || hasPendingEnvido || hasPendingTruco
+        isMyTurn || hasPendingEnvido || hasPendingTruco || myDeclareTurn
           ? 'bg-gold text-ink shadow-gold'
           : 'bg-surface2 text-muted border border-line'
       }`}>
         {game.awaiting_deal ? 'Fin de la mano…' :
          hasPendingEnvido ? `Te cantaron ${ENVIDO_LABEL[game.envido_state.status] ?? 'envido'} — respondé` :
          hasPendingTruco ? `Te cantaron ${TRUCO_LABEL[game.truco_state.status] ?? 'truco'} — respondé` :
+         isDeclaring ? (myDeclareTurn ? 'Tu turno — decí tu tanto' : `Turno de ${opponentUsername}`) :
          isMyTurn ? 'Tu turno' : `Turno de ${opponentUsername}`}
         {!game.awaiting_deal && secondsLeft != null && (
           <span className={`ml-2 tabular ${secondsLeft <= 5 ? 'text-negative font-bold' : 'opacity-80'}`}>
@@ -749,12 +804,36 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               className="mx-auto max-w-[16rem] rounded-2xl border border-white/10 bg-black/65 backdrop-blur-md px-5 py-3 text-center shadow-lift animate-announce-in"
               style={{ '--enterY': announce.side === 'top' ? '-22px' : '22px' } as React.CSSProperties}
             >
-              {announce.eyebrow && (
-                <div className="text-[10px] font-semibold uppercase tracking-[0.35em] text-gold">{announce.eyebrow}</div>
-              )}
-              <div className={`font-display text-xl font-extrabold mt-1 ${announce.titleClass}`}>{announce.title}</div>
-              {announce.subtitle && (
-                <div className={`text-sm mt-1 ${announce.subtitleClass ?? 'text-cream/85'}`}>{announce.subtitle}</div>
+              {announce.score ? (
+                <>
+                  {/* Título centrado arriba (ENVIDO / REAL ENVIDO / …) */}
+                  <div className={`font-display text-lg font-extrabold uppercase tracking-[0.2em] ${announce.titleClass}`}>
+                    {announce.title}
+                  </div>
+                  {/* Dos columnas: vos / rival, con su tanto. Ganador verde, perdedor rojo. */}
+                  <div className="mt-2.5 grid grid-cols-2 divide-x divide-white/15">
+                    {[announce.score.left, announce.score.right].map((c, i) => (
+                      <div key={i} className="flex flex-col items-center gap-0.5 px-2 min-w-0">
+                        <span className={`text-[11px] font-semibold uppercase tracking-wide truncate max-w-[6.5rem] ${c.won ? 'text-positive' : 'text-negative'}`}>
+                          {c.label}
+                        </span>
+                        <span className={`font-display text-3xl font-extrabold tabular leading-none ${c.won ? 'text-positive' : 'text-negative'}`}>
+                          {c.points}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {announce.eyebrow && (
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.35em] text-gold">{announce.eyebrow}</div>
+                  )}
+                  <div className={`font-display text-xl font-extrabold mt-1 ${announce.titleClass}`}>{announce.title}</div>
+                  {announce.subtitle && (
+                    <div className={`text-sm mt-1 ${announce.subtitleClass ?? 'text-cream/85'}`}>{announce.subtitle}</div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -842,7 +921,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             )
           })}
 
-          {game.played_cards.length === 0 && (
+          {game.played_cards.length === 0 && isMano && isMyTurn && !hasPendingEnvido && !hasPendingTruco && !isDeclaring && (
             <p className="text-sm text-subtle">Jugá una carta para empezar</p>
           )}
         </div>
@@ -864,7 +943,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
                 ...DEAL_ORIGINS[Math.min(i, DEAL_ORIGINS.length - 1)],
               } as React.CSSProperties}
               onClick={() => playCard(card)}
-              disabled={!isMyTurn || loading || !!myPlayedCard || hasPendingEnvido || hasPendingTruco}
+              disabled={!isMyTurn || loading || !!myPlayedCard || hasPendingEnvido || hasPendingTruco || isDeclaring}
               className="w-20 sm:w-[5.25rem]"
             />
           ))}
@@ -876,9 +955,6 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         {/* Responder envido */}
         {hasPendingEnvido && (
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-center text-muted">
-              Se juegan {game.envido_state.value} pts — los gana quien tenga más envido
-            </p>
             <div className="flex gap-2">
               <Button variant="positive" size="sm" fullWidth onClick={() => respondEnvido(true)} disabled={loading}>Quiero</Button>
               <Button variant="danger" size="sm" fullWidth onClick={() => respondEnvido(false)} disabled={loading}>No quiero</Button>
@@ -899,7 +975,18 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
           </div>
         )}
 
-        {isMyTurn && !hasPendingEnvido && !hasPendingTruco && canSingEnvido && (
+        {/* Diálogo de tantos: la mano (Tengo/Mazo) o el pie (Son buenas/Tengo/Mazo) */}
+        {myDeclareTurn && (
+          <div className="flex gap-2">
+            {manoDeclared != null && (
+              <Button variant="positive" size="sm" fullWidth onClick={() => envidoSay('son_buenas')} disabled={loading}>Son buenas</Button>
+            )}
+            <Button variant="info" size="sm" fullWidth onClick={() => envidoSay('tengo')} disabled={loading}>Tengo {myEnvido}</Button>
+            <Button variant="danger" size="sm" fullWidth onClick={() => envidoSay('mazo')} disabled={loading}>Ir al mazo</Button>
+          </div>
+        )}
+
+        {isMyTurn && !isDeclaring && !hasPendingEnvido && !hasPendingTruco && canSingEnvido && (
           <div className="flex gap-2">
             <Button variant="info" size="sm" fullWidth onClick={() => singEnvido('envido')} disabled={loading}>Envido</Button>
             <Button variant="info" size="sm" fullWidth onClick={() => singEnvido('real_envido')} disabled={loading}>Real Envido</Button>
@@ -933,7 +1020,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
           </div>
         )}
 
-        {isMyTurn && !hasPendingTruco && !hasPendingEnvido && canSingTruco && (
+        {isMyTurn && !isDeclaring && !hasPendingTruco && !hasPendingEnvido && canSingTruco && (
           <Button onClick={() => singTruco(
             game.truco_state.status === 'none' ? 'truco' :
             game.truco_state.value === 2 ? 'retruco' : 'vale_cuatro'
@@ -944,7 +1031,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         )}
 
         {/* Irse al mazo */}
-        {isMyTurn && !hasPendingEnvido && !hasPendingTruco && (
+        {isMyTurn && !isDeclaring && !hasPendingEnvido && !hasPendingTruco && (
           <Button variant="ghost" size="sm" onClick={irseAlMazo} disabled={loading}>
             Irse al mazo
           </Button>
