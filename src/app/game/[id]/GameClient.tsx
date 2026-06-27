@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Game } from '@/lib/types'
-import type { Card } from '@/lib/truco'
+import { createDeck, getCardImage, type Card } from '@/lib/truco'
 import { Panel, Button, CoinIcon } from '@/components/ui'
 import PlayingCard from '@/components/game/PlayingCard'
 import CardBack from '@/components/game/CardBack'
@@ -54,14 +54,18 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   const [game, setGame] = useState<Game>(initialGame)
   const [myHand, setMyHand] = useState<Card[]>(initialMyHand)
   const [loading, setLoading] = useState(false)
-  const [opponentOnline, setOpponentOnline] = useState(true)
-  const [canClaim, setCanClaim] = useState(false)
+  // Segundos que le quedan al jugador de turno (reloj por jugada)
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const [actionError, setActionError] = useState('')
   // Cartel central de anuncios (cantos y resultados), sale del lado del que actuó
   const [announce, setAnnounce] = useState<Announce | null>(null)
   const announceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Snapshot del truco_state previo, para detectar el "no quiero" (canto pendiente → mano nueva)
   const prevTrucoRef = useRef<{ status: string; singer: string | null; value: number; hand: number } | null>(null)
+  // El timeout por jugada se dispara una sola vez por turno (clave = turn_started_at)
+  const timeoutFiredRef = useRef<string | null>(null)
+  // Para detectar cuándo sube el contador de mazos por tiempo y mostrar el cartel
+  const prevMazoRef = useRef<{ p1: number; p2: number } | null>(null)
   // Momento de la última acción local; el polling de respaldo se pausa un toque
   // después de jugar para no pisar la actualización optimista con datos viejos.
   const lastActionRef = useRef(0)
@@ -140,6 +144,16 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     }
   }, [])
 
+  // Precarga las 40 cartas una sola vez: cuando se reparte una mano nueva las
+  // imágenes ya están en caché del navegador y aparecen al instante, sin
+  // "pintarse a medias" mientras el PNG termina de bajar.
+  useEffect(() => {
+    for (const card of createDeck()) {
+      const img = new Image()
+      img.src = getCardImage(card)
+    }
+  }, [])
+
   // Tiempo real: suscripción a cambios de la partida
   // (Requiere que la tabla `games` tenga la replicación realtime habilitada en Supabase)
   useEffect(() => {
@@ -176,30 +190,69 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     return () => clearInterval(interval)
   }, [game.id, game.status])
 
-  // Presencia: detectar si el rival sigue conectado a la partida
+  // Reloj por jugada. Lo medimos con el PROPIO reloj de este equipo: anclamos al
+  // momento en que ve el turno nuevo y contamos los segundos transcurridos. Así no
+  // importa si el reloj del equipo está desfasado respecto al servidor (antes
+  // mezclábamos la hora del server con la del cliente y un reloj atrasado mostraba
+  // de más). Al agotarse, cualquiera de los dos dispara timeout_mazo y el server
+  // valida el plazo real (turn_started_at + time_limit), así no se hace trampa.
   useEffect(() => {
-    if (game.status === 'finished') return
+    if (game.status !== 'playing' || game.awaiting_deal || !game.turn_started_at) {
+      setSecondsLeft(null)
+      return
+    }
+    const anchor = Date.now()       // momento en que este cliente ve el turno
+    const limit = game.time_limit
+    const tick = () => {
+      const elapsed = (Date.now() - anchor) / 1000
+      const left = Math.max(0, Math.ceil(limit - elapsed))
+      setSecondsLeft(left)
+      if (left <= 0 && timeoutFiredRef.current !== game.turn_started_at) {
+        timeoutFiredRef.current = game.turn_started_at
+        supabase.rpc('timeout_mazo', { p_game_id: game.id }).then(({ data, error }) => {
+          if (data) setGame(data as Game)
+          // El server rechaza si todavía no venció: liberamos el guard para reintentar.
+          else if (error) timeoutFiredRef.current = null
+        })
+      }
+    }
+    tick()
+    const iv = setInterval(tick, 500)
+    return () => clearInterval(iv)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.status, game.awaiting_deal, game.turn_started_at, game.time_limit, game.id])
 
-    const channel = supabase.channel(`presence-game-${game.id}`, {
-      config: { presence: { key: currentUserId } },
-    })
+  // Cartel en el centro cuando alguien se va al mazo por tiempo (sube su contador).
+  useEffect(() => {
+    const c1 = game.mazo_count_p1 ?? 0
+    const c2 = game.mazo_count_p2 ?? 0
+    const prev = prevMazoRef.current
+    if (prev) {
+      const loser: 'p1' | 'p2' | null = c1 > prev.p1 ? 'p1' : c2 > prev.p2 ? 'p2' : null
+      if (loser) {
+        const loserIsMe = (loser === 'p1') === isPlayer1
+        const count = loser === 'p1' ? c1 : c2
+        const remaining = Math.max(0, 3 - count)
+        showAnnounce({
+          side: loserIsMe ? 'bottom' : 'top',
+          eyebrow: 'Sin tiempo',
+          title: loserIsMe ? 'Te fuiste al mazo' : `${opponentUsername} se fue al mazo`,
+          titleClass: 'text-negative',
+          subtitle: remaining > 0
+            ? (loserIsMe
+                ? `Te ${remaining === 1 ? 'queda 1 oportunidad' : `quedan ${remaining} oportunidades`}`
+                : `${remaining === 1 ? 'Queda 1 oportunidad' : `Quedan ${remaining} oportunidades`} hasta darte la victoria`)
+            : (loserIsMe ? 'Perdiste la partida' : '¡Ganaste la partida!'),
+          subtitleClass: 'text-cream/85',
+        }, 4200)
+      }
+    }
+    prevMazoRef.current = { p1: c1, p2: c2 }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.mazo_count_p1, game.mazo_count_p2])
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const online = Object.keys(channel.presenceState())
-        setOpponentOnline(online.includes(opponentId))
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({ user_id: currentUserId, online_at: new Date().toISOString() })
-        }
-      })
-
-    return () => { supabase.removeChannel(channel) }
-  }, [game.id, game.status, currentUserId, opponentId])
-
-  // Heartbeat de presencia en la DB: lo usa claim_victory para verificar
-  // server-side que el rival realmente se fue (no alcanza la presencia del cliente).
+  // Heartbeat de presencia en la DB: lo usa el barrido de respaldo (sweep_stale_games)
+  // para reembolsar partidas donde ambos jugadores desaparecieron hace rato.
   useEffect(() => {
     if (game.status === 'finished') return
     const touch = () => { supabase.rpc('touch_presence', { p_game_id: game.id }) }
@@ -259,17 +312,6 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.awaiting_deal, game.status, game.id])
-
-  // Si el rival se desconecta y no vuelve en 25s, se habilita reclamar la victoria
-  const CLAIM_TIMEOUT_MS = 25000
-  useEffect(() => {
-    if (game.status !== 'playing' || opponentOnline) {
-      setCanClaim(false)
-      return
-    }
-    const t = setTimeout(() => setCanClaim(true), CLAIM_TIMEOUT_MS)
-    return () => clearTimeout(t)
-  }, [opponentOnline, game.status])
 
   // Partida terminada: seguimos escuchando para la revancha (votos y nueva partida).
   useEffect(() => {
@@ -520,16 +562,6 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     setLoading(false)
   }
 
-  // Reclamar la victoria: el servidor solo la concede si el rival no dio señales
-  // de vida hace más de 30s (heartbeat en game_presence).
-  async function claimVictory() {
-    if (loading) return
-    setLoading(true)
-    const { data, error } = await supabase.rpc('claim_victory', { p_game_id: game.id })
-    if (!rpcFailed('claim_victory RPC:', error) && data) setGame(data as Game)
-    setLoading(false)
-  }
-
   // Pedir revancha: cuando ambos lo piden, el server crea la nueva partida.
   async function requestRematch() {
     if (loading) return
@@ -647,6 +679,11 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
          hasPendingEnvido ? `Te cantaron ${ENVIDO_LABEL[game.envido_state.status] ?? 'envido'} — respondé` :
          hasPendingTruco ? `Te cantaron ${TRUCO_LABEL[game.truco_state.status] ?? 'truco'} — respondé` :
          isMyTurn ? 'Tu turno' : `Turno de ${opponentUsername}`}
+        {!game.awaiting_deal && secondsLeft != null && (
+          <span className={`ml-2 tabular ${secondsLeft <= 5 ? 'text-negative font-bold' : 'opacity-80'}`}>
+            ⏱ {secondsLeft}s
+          </span>
+        )}
       </div>
 
       {/* Error de la última acción (se autodescarta) */}
@@ -657,22 +694,6 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
           className="shrink-0 rounded-xl border border-negative/40 bg-negative/12 p-2 text-center text-sm font-medium text-[#F0B3A4] cursor-pointer animate-fade-up"
         >
           {actionError}
-        </div>
-      )}
-
-      {/* Rival desconectado */}
-      {!opponentOnline && (
-        <div className="shrink-0 rounded-xl border border-negative/40 bg-negative/12 p-2 text-center flex flex-col gap-1.5">
-          <p className="text-sm font-semibold text-[#F0B3A4]">
-            {opponentUsername} parece desconectado…
-          </p>
-          {canClaim ? (
-            <Button size="sm" onClick={claimVictory} disabled={loading}>
-              Reclamar victoria
-            </Button>
-          ) : (
-            <p className="text-xs text-[#F0B3A4]/80">Esperando a que vuelva…</p>
-          )}
         </div>
       )}
 
@@ -791,13 +812,13 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             return (
               <div key={roundNum} className="flex flex-col items-center gap-1">
                 <span className="text-[9px] uppercase tracking-wider text-subtle">Ronda {roundNum}</span>
-                <div className="relative w-16 h-24 sm:w-24 sm:h-36">
+                <div className="relative w-20 h-28 sm:w-28 sm:h-44">
                   {opponentRoundCard && (
                     <PlayingCard
                       card={opponentRoundCard.card}
                       flip
                       style={{ '--fromY': '-50px' } as React.CSSProperties}
-                      className={`absolute w-12 sm:w-20 ${oppCardCls}`}
+                      className={`absolute w-14 sm:w-24 ${oppCardCls}`}
                     />
                   )}
                   {/* Mi carta entra desde la dirección de mi mano (abajo), en su lugar real. */}
@@ -806,15 +827,15 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
                       card={myRoundCard.card}
                       flip
                       style={{ '--fromY': '70px' } as React.CSSProperties}
-                      className={`absolute w-12 sm:w-20 ${myCardCls}`}
+                      className={`absolute w-14 sm:w-24 ${myCardCls}`}
                     />
                   )}
                   {/* Placeholders ronda actual */}
                   {iCurrent && !opponentRoundCard && (
-                    <div className="absolute top-0 left-0 w-12 sm:w-20 aspect-[11/17] border border-dashed border-line rounded-xl" />
+                    <div className="absolute top-0 left-0 w-14 sm:w-24 aspect-[11/17] border border-dashed border-line rounded-xl" />
                   )}
                   {iCurrent && !myRoundCard && (
-                    <div className="absolute top-3 left-3 sm:top-5 sm:left-4 w-12 sm:w-20 aspect-[11/17] border border-dashed border-gold/40 rounded-xl" />
+                    <div className="absolute top-3 left-3 sm:top-5 sm:left-4 w-14 sm:w-24 aspect-[11/17] border border-dashed border-gold/40 rounded-xl" />
                   )}
                 </div>
               </div>
@@ -844,7 +865,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               } as React.CSSProperties}
               onClick={() => playCard(card)}
               disabled={!isMyTurn || loading || !!myPlayedCard || hasPendingEnvido || hasPendingTruco}
-              className="w-20 sm:w-28"
+              className="w-20 sm:w-[5.25rem]"
             />
           ))}
         </div>

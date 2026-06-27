@@ -22,6 +22,7 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
   const [tableName, setTableName] = useState('')
   const [bet, setBet] = useState('10')
   const [targetScore, setTargetScore] = useState(30)
+  const [timeLimit, setTimeLimit] = useState(30)
   const [isPrivate, setIsPrivate] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -122,6 +123,7 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
       p_is_private: isPrivate,
       p_private_code: code,
       p_target_score: targetScore,
+      p_time_limit: timeLimit,
     })
 
     if (tableError || !table) {
@@ -419,6 +421,27 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
                 }`}
               >
                 A {pts}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tiempo por jugada (se va al mazo si se agota; al 3er mazo por tiempo, pierde) */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-muted">Tiempo por jugada</label>
+          <div className="grid grid-cols-2 gap-2">
+            {[15, 30].map(secs => (
+              <button
+                key={secs}
+                type="button"
+                onClick={() => setTimeLimit(secs)}
+                className={`rounded-xl border py-2.5 font-display font-bold transition-colors ${
+                  timeLimit === secs
+                    ? 'border-gold bg-gold/15 text-gold'
+                    : 'border-line bg-surface2 text-muted hover:text-cream'
+                }`}
+              >
+                {secs}s
               </button>
             ))}
           </div>

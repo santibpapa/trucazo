@@ -30,6 +30,7 @@ export interface Table {
   private_code: string | null
   status: 'waiting' | 'playing' | 'finished'
   target_score: number
+  time_limit: number
   created_at: string
 }
 
@@ -83,6 +84,10 @@ export interface Game {
   winner_id: string | null
   bet: number
   target_score: number
+  time_limit: number
+  turn_started_at: string
+  mazo_count_p1: number
+  mazo_count_p2: number
   awaiting_deal: boolean
   rematch_p1: boolean
   rematch_p2: boolean

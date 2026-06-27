@@ -28,6 +28,9 @@ yarn-error.log*
 # local env files
 .env*.local
 
+# config local de MCP (contiene el token de Supabase — NO subir)
+.mcp.json
+
 # vercel
 .vercel
 
