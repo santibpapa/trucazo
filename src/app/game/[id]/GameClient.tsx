@@ -63,6 +63,8 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   // Segundos que le quedan al jugador de turno (reloj por jugada)
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const [actionError, setActionError] = useState('')
+  // Saludo de gracias al volver de dejar una reseña
+  const [showThanks, setShowThanks] = useState(false)
   // Cartel central de anuncios (cantos y resultados), sale del lado del que actuó
   const [announce, setAnnounce] = useState<Announce | null>(null)
   const announceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -168,6 +170,14 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     for (const card of createDeck()) {
       const img = new Image()
       img.src = getCardImage(card)
+    }
+  }, [])
+
+  // Al volver de dejar una reseña (?gracias=1), mostramos un saludo y limpiamos la URL.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('gracias') === '1') {
+      setShowThanks(true)
+      window.history.replaceState(null, '', window.location.pathname)
     }
   }, [])
 
@@ -325,7 +335,8 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   // clientes lo agendan; advance_hand es idempotente, así que no duplica.
   useEffect(() => {
     if (game.status !== 'playing' || !game.awaiting_deal) return
-    const t = setTimeout(() => { advanceHand() }, 1800)
+    // Si hay cartas de envido para mostrar, damos un poco más de tiempo para verlas.
+    const t = setTimeout(() => { advanceHand() }, game.envido_reveal ? 2200 : 1800)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.awaiting_deal, game.status, game.id])
@@ -404,13 +415,10 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       const responderIsMe = es.last_singer !== currentUserId
       const side: 'top' | 'bottom' = responderIsMe ? 'bottom' : 'top'
       const won = es.winner_id === currentUserId
-      const awarded = es.awarded ?? 0
       const eyebrow = ENVIDO_LABEL[tier] ?? 'envido'
 
       if (st === 'rejected') {
-        showAnnounce({ side, eyebrow, title: 'No quiero', titleClass: 'text-cream',
-          subtitle: `+${awarded} para ${won ? 'vos' : opponentUsername}`,
-          subtitleClass: won ? 'text-positive' : 'text-negative' })
+        showAnnounce({ side, eyebrow, title: 'No quiero', titleClass: 'text-cream' })
         return
       }
 
@@ -466,11 +474,8 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     ) {
       // No quiero: lado del que rechaza; el que cantó gana el valor anterior
       const winnerIsMe = prev.singer === currentUserId
-      const val = Math.max(1, prev.value - 1)
       showAnnounce({ side: winnerIsMe ? 'top' : 'bottom',
-        eyebrow: TRUCO_LABEL[prev.status] ?? 'truco', title: 'No quiero', titleClass: 'text-cream',
-        subtitle: `+${val} para ${winnerIsMe ? 'vos' : opponentUsername}`,
-        subtitleClass: winnerIsMe ? 'text-positive' : 'text-negative' })
+        eyebrow: TRUCO_LABEL[prev.status] ?? 'truco', title: 'No quiero', titleClass: 'text-cream' })
     }
 
     prevTrucoRef.current = { status: st, singer: ts.last_singer ?? null, value: ts.value ?? 1, hand: game.hand_number }
@@ -678,6 +683,9 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               someoneWantsRematch ? 'border-gold bg-gold/10 shadow-gold-ring' : 'border-line bg-surface2'
             }`}
           >
+            {showThanks && (
+              <p className="text-xs font-semibold text-gold text-center">¡Gracias por tu reseña! 🌟</p>
+            )}
             {someoneWantsRematch && (
               <p className="text-sm font-semibold text-gold flex items-center justify-center gap-2">
                 {myVote && !oppVote ? 'Esperando a tu rival…'
@@ -692,6 +700,14 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               </Button>
               <Button variant="primary" size="sm" fullWidth onClick={requestRematch} disabled={loading || myVote}>
                 {myVote ? 'Revancha pedida' : 'Revancha'}
+              </Button>
+            </div>
+
+            {/* Pedido de reseña */}
+            <div className="flex flex-col items-center gap-2 border-t border-line/60 pt-3">
+              <p className="text-xs text-muted text-center">¿Nos podrás ayudar con una breve reseña del juego?</p>
+              <Button variant="secondary" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
+                Dejar reseña
               </Button>
             </div>
           </div>
@@ -835,6 +851,27 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
                   )}
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Cartas del envido reveladas: el ganador se fue al mazo sin mostrarlas.
+            Se deslizan a la mesa unos segundos antes de repartir la próxima mano. */}
+        {game.awaiting_deal && game.envido_reveal && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2.5 bg-black/55 backdrop-blur-sm animate-fade-in">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gold">
+              Envido {game.envido_reveal.player_id === currentUserId ? '(vos)' : `de ${opponentUsername}`}
+            </span>
+            <div className="flex gap-2 sm:gap-3">
+              {game.envido_reveal.cards.map((c, i) => (
+                <PlayingCard
+                  key={`${c.suit}-${c.value}`}
+                  card={c}
+                  flip
+                  style={{ '--fromY': '60px', animationDelay: `${i * 140}ms` } as React.CSSProperties}
+                  className="w-20 sm:w-28"
+                />
+              ))}
             </div>
           </div>
         )}

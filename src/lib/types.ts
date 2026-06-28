@@ -92,6 +92,8 @@ export interface Game {
   turn_started_at: string
   mazo_count_p1: number
   mazo_count_p2: number
+  // Cartas del envido a revelar en la mesa (cuando el ganador se va al mazo sin mostrarlas)
+  envido_reveal: { player_id: string; cards: import('./truco').Card[] } | null
   awaiting_deal: boolean
   rematch_p1: boolean
   rematch_p2: boolean
