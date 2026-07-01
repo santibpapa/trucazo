@@ -72,5 +72,23 @@ export default async function GamePage({ params }: { params: { id: string } }) {
 
   const myHand = (handRow?.cards as Card[]) ?? []
 
-  return <GameClient game={game} currentUserId={user.id} myHand={myHand} />
+  // Modo historia: traemos el "slug" del rival para mostrar su ilustración.
+  let campaignRivalSlug: string | null = null
+  if (game.campaign_rival_id) {
+    const { data: rival } = await supabase
+      .from('campaign_rivals')
+      .select('slug')
+      .eq('id', game.campaign_rival_id)
+      .single()
+    campaignRivalSlug = rival?.slug ?? null
+  }
+
+  return (
+    <GameClient
+      game={game}
+      currentUserId={user.id}
+      myHand={myHand}
+      campaignRivalSlug={campaignRivalSlug}
+    />
+  )
 }

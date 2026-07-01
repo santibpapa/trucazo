@@ -13,6 +13,8 @@ interface Props {
   game: Game
   currentUserId: string
   myHand: Card[]
+  // Modo historia: slug del rival, para mostrar su ilustración en la mesa.
+  campaignRivalSlug?: string | null
 }
 
 type EnvidoType = 'envido' | 'real_envido' | 'falta_envido'
@@ -44,6 +46,9 @@ type Announce = {
     left: { label: string; points: number | null; won: boolean }
     right: { label: string; points: number | null; won: boolean }
   }
+  // Mano en la que se mostró el cartel: al empezar una mano nueva descartamos los
+  // carteles de manos anteriores para que no tapen la mesa nueva.
+  hand?: number
 }
 
 // Punto de partida de cada carta al repartir, apuntando al mazo (arriba-derecha).
@@ -55,7 +60,30 @@ const DEAL_ORIGINS: Array<Record<string, string>> = [
 ]
 
 
-export default function GameClient({ game: initialGame, currentUserId, myHand: initialMyHand }: Props) {
+// Cara del rival de campaña en la mesa: usa /personajes/{slug}.png; si falta,
+// cae en la inicial del nombre.
+function MesaRivalFace({ slug, name, className }: { slug: string; name: string; className?: string }) {
+  const [imgFailed, setImgFailed] = useState(false)
+  return (
+    <div
+      className={`shrink-0 rounded-lg overflow-hidden flex items-center justify-center bg-surface2 border border-line font-display font-bold text-cream ${className ?? 'w-7 h-7 text-xs'}`}
+    >
+      {imgFailed ? (
+        name.charAt(0)
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={`/personajes/${slug}.png`}
+          alt={name}
+          onError={() => setImgFailed(true)}
+          className="w-full h-full object-cover"
+        />
+      )}
+    </div>
+  )
+}
+
+export default function GameClient({ game: initialGame, currentUserId, myHand: initialMyHand, campaignRivalSlug }: Props) {
   const router = useRouter()
   const [game, setGame] = useState<Game>(initialGame)
   const [myHand, setMyHand] = useState<Card[]>(initialMyHand)
@@ -87,7 +115,15 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
 
   const isPlayer1 = currentUserId === game.player1_id
   const opponentId = isPlayer1 ? game.player2_id : game.player1_id
-  const myCards = myHand
+  // Lo que muestro en la mano nunca incluye una carta que ya jugué (está en la
+  // mesa). game.played_cards es autoridad del servidor, así que aunque una
+  // relectura tardía de game_hands reviva la carta un instante, no se ve el
+  // "fantasma": la filtramos contra lo ya jugado en esta mano.
+  const myCards = myHand.filter(
+    c => !game.played_cards.some(
+      pc => pc.player_id === currentUserId && pc.card.suit === c.suit && pc.card.value === c.value,
+    ),
+  )
   const myScore = isPlayer1 ? game.player1_score : game.player2_score
   const opponentScore = isPlayer1 ? game.player2_score : game.player1_score
   const myUsername = isPlayer1 ? game.player1_username : game.player2_username
@@ -133,6 +169,19 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   const hasPendingTruco =
     ['truco', 'retruco', 'vale_cuatro'].includes(game.truco_state.status) &&
     game.truco_state.last_singer !== currentUserId
+
+  // Modo historia: el rival es un bot. Cuando no me toca a mí hacer nada, le doy
+  // pie al bot (el servidor decide y juega por él). botTurnKey identifica el
+  // estado concreto en que el bot debe actuar, para disparar bot_step una sola
+  // vez por turno (y no en cada re-render del reloj).
+  const isCampaign = game.campaign_rival_id != null
+  const humanCanAct =
+    (isMyTurn && !isDeclaring) || hasPendingEnvido || hasPendingTruco || myDeclareTurn
+  const botShouldAct =
+    isCampaign && game.status === 'playing' && !game.awaiting_deal && !humanCanAct
+  const botTurnKey = botShouldAct
+    ? `${game.hand_number}-${game.round_number}-${game.current_turn}-${game.envido_state.status}-${game.truco_state.status}-${game.envido_state.declare_turn ?? ''}`
+    : null
 
   // Pantalla del juego fija: bloquea el scroll/rebote del body mientras estás
   // en la partida (sobre todo en iOS). Se restaura al salir al lobby.
@@ -191,7 +240,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${game.id}` },
-        (payload) => { setGame(payload.new as Game); refetchMyHand() }
+        (payload) => { applyServerGame(payload.new as Game); refetchMyHand() }
       )
       .subscribe()
 
@@ -210,7 +259,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         .select('*')
         .eq('id', game.id)
         .single()
-      if (data) setGame(data as Game)
+      if (data) applyServerGame(data as Game)
       await refetchMyHand()
     }, 2500)
 
@@ -349,12 +398,12 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${game.id}` },
-        (payload) => setGame(payload.new as Game),
+        (payload) => applyServerGame(payload.new as Game),
       )
       .subscribe()
     const iv = setInterval(async () => {
       const { data } = await supabase.from('games').select('*').eq('id', game.id).single()
-      if (data) setGame(data as Game)
+      if (data) applyServerGame(data as Game)
     }, 2500)
     return () => { supabase.removeChannel(channel); clearInterval(iv) }
   }, [game.id, game.status])
@@ -366,6 +415,24 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       router.refresh()
     }
   }, [game.rematch_game_id])
+
+  // Modo historia: le doy pie al bot cuando le toca. bot_step hace UNA sola
+  // acción por llamada; esperamos >=2s antes de cada una para que "piense" y se
+  // entiendan los tiempos de la mesa. La dependencia es botTurnKey (estable entre
+  // los re-renders del reloj y distinto en cada acción del bot), así cada
+  // canto/jugada del bot se dispara por separado y espaciado.
+  useEffect(() => {
+    if (!botTurnKey) return
+    const t = setTimeout(async () => {
+      const { data, error } = await supabase.rpc('bot_step', { p_game_id: game.id })
+      if (!rpcFailed('bot_step RPC:', error) && data) {
+        lastActionRef.current = Date.now()
+        setGame(data as Game)
+      }
+    }, 2000)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [botTurnKey, game.id])
 
   // El banner de error de una acción se autodescarta a los 4s
   useEffect(() => {
@@ -468,25 +535,36 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       const responderIsMe = ts.last_singer !== currentUserId
       showAnnounce({ side: responderIsMe ? 'bottom' : 'top',
         eyebrow: 'Truco', title: 'Quiero', titleClass: 'text-cream' })
-    } else if (
-      prev && ['truco', 'retruco', 'vale_cuatro'].includes(prev.status) &&
-      st === 'none' && game.hand_number > prev.hand
-    ) {
-      // No quiero: lado del que rechaza; el que cantó gana el valor anterior
-      const winnerIsMe = prev.singer === currentUserId
+    } else if (st === 'rejected' && prev?.status !== 'rejected') {
+      // No quiero: el que cantó (last_singer) gana el valor anterior. El cartel
+      // sale del lado del que rechazó (el que NO es el cantor).
+      const winnerIsMe = ts.last_singer === currentUserId
+      const canto =
+        prev && ['truco', 'retruco', 'vale_cuatro'].includes(prev.status)
+          ? (TRUCO_LABEL[prev.status] ?? 'truco')
+          : ts.value === 4 ? 'vale cuatro' : ts.value === 3 ? 'retruco' : 'truco'
       showAnnounce({ side: winnerIsMe ? 'top' : 'bottom',
-        eyebrow: TRUCO_LABEL[prev.status] ?? 'truco', title: 'No quiero', titleClass: 'text-cream' })
+        eyebrow: canto, title: 'No quiero', titleClass: 'text-cream' })
     }
 
     prevTrucoRef.current = { status: st, singer: ts.last_singer ?? null, value: ts.value ?? 1, hand: game.hand_number }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.truco_state.status, game.truco_state.last_singer, game.hand_number])
 
+  // Al empezar una mano nueva, descartamos cualquier cartel que haya quedado de
+  // una mano anterior (p. ej. el "No quiero" del truco), para no tapar la mesa
+  // nueva. El cartel que nace junto con la mano nueva queda etiquetado con ella,
+  // así que no se descarta.
+  useEffect(() => {
+    setAnnounce(prev => (prev && prev.hand != null && prev.hand < game.hand_number ? null : prev))
+  }, [game.hand_number])
+
 
   // Muestra un cartel de anuncio y lo autodescarta (cancelando el anterior).
+  // Lo etiquetamos con la mano actual para poder descartarlo al empezar otra.
   function showAnnounce(a: Announce, ms = 3600) {
     if (announceTimer.current) clearTimeout(announceTimer.current)
-    setAnnounce(a)
+    setAnnounce({ ...a, hand: game.hand_number })
     announceTimer.current = setTimeout(() => setAnnounce(null), ms)
   }
 
@@ -508,6 +586,13 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       .eq('player_id', currentUserId)
       .single()
     if (data) setMyHand((data.cards as Card[]) ?? [])
+  }
+
+  // Aplica un estado que llega del server por realtime/polling. Si la partida ya
+  // terminó, ignora cualquier aviso atrasado que la quiera volver a "en juego"
+  // (evita que el tablero reaparezca un instante después del cartel de fin).
+  function applyServerGame(next: Game) {
+    setGame(prev => (prev.status === 'finished' && next.status !== 'finished' ? prev : next))
   }
 
   // Jugar una carta: el servidor valida turno/carta, resuelve la ronda y la mano,
@@ -635,6 +720,66 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     router.refresh()
   }
 
+  async function playAgainCampaign() {
+    if (!game.campaign_rival_id) return
+    setLoading(true)
+    const { data, error } = await supabase.rpc('start_campaign_duel', { p_rival_id: game.campaign_rival_id })
+    if (!rpcFailed('start_campaign_duel RPC:', error) && data) {
+      router.push(`/game/${(data as Game).id}`)
+      router.refresh()
+    } else {
+      setActionError('No se pudo empezar el duelo de nuevo.')
+      setLoading(false)
+    }
+  }
+
+  // Modo historia: fin del duelo. El bot no pide revancha ni se mueven monedas
+  // del pozo; ofrecemos jugar de nuevo o volver a la galería.
+  if (game.status === 'finished' && isCampaign) {
+    const won = game.winner_id === currentUserId
+    return (
+      <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-6">
+        <Panel className="w-full max-w-sm p-8 text-center flex flex-col items-center gap-5 animate-scale-in">
+          <div
+            className={`w-16 h-16 rounded-full flex items-center justify-center ${
+              won ? 'bg-gold/15 text-gold shadow-gold-ring' : 'bg-negative/15 text-negative'
+            }`}
+          >
+            {won ? <TrophyIcon /> : <FlagIcon />}
+          </div>
+          <h2 className="font-display text-3xl font-extrabold text-cream">
+            {won ? '¡Ganaste!' : 'Perdiste'}
+          </h2>
+
+          {/* Premio: solo la primera vez que vencés a este rival */}
+          {won && game.campaign_reward > 0 && (
+            <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 font-display font-bold text-gold shadow-gold-ring animate-scale-in">
+              <CoinIcon size={18} />
+              +{game.campaign_reward.toLocaleString('es-AR')}
+            </div>
+          )}
+
+          <p className="text-sm text-muted">
+            {won
+              ? `Le ganaste a ${opponentUsername}. ¡Se desbloqueó el próximo rival!`
+              : `${opponentUsername} te ganó esta vez. Volvé a intentarlo, le vas a encontrar la vuelta.`}
+          </p>
+
+          {actionError && <p className="text-sm text-negative">{actionError}</p>}
+
+          <div className="w-full flex flex-col gap-2">
+            <Button variant="primary" size="md" fullWidth onClick={playAgainCampaign} disabled={loading}>
+              {won ? 'Jugar de nuevo' : 'Revancha'}
+            </Button>
+            <Button variant="ghost" size="md" fullWidth onClick={() => router.push('/historia')} disabled={loading}>
+              Volver al modo historia
+            </Button>
+          </div>
+        </Panel>
+      </main>
+    )
+  }
+
   if (game.status === 'finished') {
     // Partida anulada (abandonada por ambos): sin ganador, se reembolsa la apuesta.
     const voided = game.winner_id == null
@@ -720,9 +865,14 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     <main className="h-[100dvh] overflow-hidden flex flex-col p-2 sm:p-3 gap-2 max-w-lg md:max-w-2xl mx-auto w-full">
       {/* Marcador */}
       <Panel className="shrink-0 flex items-stretch justify-between gap-2 p-2.5">
-        <div className="flex-1 flex flex-col items-center justify-center gap-0.5 text-center">
-          <span className="text-xs text-muted truncate max-w-[7rem]">{opponentUsername}</span>
-          <span className="font-display text-2xl font-extrabold text-cream tabular leading-none">{opponentScore}</span>
+        <div className={`flex-1 flex items-center gap-2 ${isCampaign && campaignRivalSlug ? 'pl-1' : ''}`}>
+          {isCampaign && campaignRivalSlug && (
+            <MesaRivalFace slug={campaignRivalSlug} name={opponentUsername} className="w-14 h-14 text-lg" />
+          )}
+          <div className="flex-1 flex flex-col items-center justify-center gap-0.5 text-center min-w-0">
+            <span className="text-xs text-muted truncate max-w-[6.5rem]">{opponentUsername}</span>
+            <span className="font-display text-2xl font-extrabold text-cream tabular leading-none">{opponentScore}</span>
+          </div>
         </div>
         <div className="flex flex-col items-center justify-center gap-0.5 px-3 border-x border-line">
           <span className="inline-flex items-center gap-1 font-display font-bold text-gold tabular text-sm">
@@ -777,9 +927,9 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         <button
           onClick={() => setEmoteTray(v => !v)}
           aria-label="Emotes"
-          className="absolute top-2 right-2 z-30 w-9 h-9 rounded-full border border-line bg-base/80 backdrop-blur flex items-center justify-center text-base hover:border-gold transition-colors"
+          className="absolute top-2 right-2 z-30 w-11 h-11 rounded-full border border-line bg-base/80 backdrop-blur flex items-center justify-center text-muted hover:text-gold hover:border-gold transition-colors"
         >
-          💬
+          <ChatIcon />
         </button>
         {emoteTray && (
           <div className="absolute top-12 right-2 z-30 flex flex-wrap justify-end gap-1.5 max-w-[15rem] rounded-2xl border border-line bg-base/95 backdrop-blur p-2 shadow-lift animate-scale-in">
@@ -813,8 +963,11 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
           </div>
         )}
 
-        {/* Cartel de anuncio (cantos / resultados): sale del lado del que actuó */}
-        {announce && (
+        {/* Cartel de anuncio (cantos / resultados): sale del lado del que actuó.
+            Solo se muestra si pertenece a la mano actual: apenas empieza una mano
+            nueva, ningún cartel de una mano anterior sigue en pantalla (aunque una
+            actualización tardía del servidor intente revivirlo). */}
+        {announce && announce.hand === game.hand_number && (
           <div className={`absolute inset-x-0 z-30 px-3 -translate-y-1/2 pointer-events-none ${announce.side === 'top' ? 'top-[30%]' : 'top-[70%]'}`}>
             <div
               className="mx-auto max-w-[16rem] rounded-2xl border border-white/10 bg-black/65 backdrop-blur-md px-5 py-3 text-center shadow-lift animate-announce-in"
@@ -900,7 +1053,6 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             const myRoundCard = roundCards.find(pc => pc.player_id === currentUserId)
             const opponentRoundCard = roundCards.find(pc => pc.player_id !== currentUserId)
             const roundResult = game.round_results.find(r => r.round === roundNum)
-            const iCurrent = roundNum === game.round_number
 
             if (roundNum > game.round_number && roundCards.length === 0) return null
 
@@ -919,10 +1071,10 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               myCardCls = 'top-1 left-3 sm:top-2 sm:left-4 z-0'
             } else if (myCardOnTop) {
               oppCardCls = 'top-0 left-0 z-0'
-              myCardCls = 'top-3 left-3 sm:top-5 sm:left-4 z-10'
+              myCardCls = 'top-6 left-3 sm:top-7 sm:left-4 z-10'
             } else {
               oppCardCls = 'top-0 left-0 z-10'
-              myCardCls = 'top-3 left-3 sm:top-5 sm:left-4 z-0'
+              myCardCls = 'top-6 left-3 sm:top-7 sm:left-4 z-0'
             }
 
             return (
@@ -945,13 +1097,6 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
                       style={{ '--fromY': '70px' } as React.CSSProperties}
                       className={`absolute w-14 sm:w-24 ${myCardCls}`}
                     />
-                  )}
-                  {/* Placeholders ronda actual */}
-                  {iCurrent && !opponentRoundCard && (
-                    <div className="absolute top-0 left-0 w-14 sm:w-24 aspect-[11/17] border border-dashed border-line rounded-xl" />
-                  )}
-                  {iCurrent && !myRoundCard && (
-                    <div className="absolute top-3 left-3 sm:top-5 sm:left-4 w-14 sm:w-24 aspect-[11/17] border border-dashed border-gold/40 rounded-xl" />
                   )}
                 </div>
               </div>
@@ -1076,11 +1221,20 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
 
         {/* Abandonar la partida (derrota) */}
         <button onClick={forfeit} disabled={loading}
-          className="text-xs text-subtle hover:text-negative transition-colors disabled:opacity-50">
+          className="self-center -my-1 py-2 px-3 inline-flex items-center text-xs text-subtle hover:text-negative transition-colors disabled:opacity-50">
           Abandonar partida
         </button>
       </div>
     </main>
+  )
+}
+
+function ChatIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 12a7 7 0 0 1 7-7h2a7 7 0 0 1 0 14H8l-3.5 2.5.5-3.7A7 7 0 0 1 4 12Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M9 11h6M9 14h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   )
 }
 

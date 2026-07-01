@@ -8,7 +8,7 @@ export default function Home() {
       <div className="flex flex-col items-center gap-5 animate-fade-up">
         <Logo size="lg" />
         <p className="text-muted max-w-xs text-balance">
-          Truco argentino 1 contra 1, con monedas ficticias. Sentate a la mesa.
+          Truco argentino. El de siempre, como siempre. Sentate a la mesa.
         </p>
       </div>
 

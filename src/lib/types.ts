@@ -98,6 +98,10 @@ export interface Game {
   rematch_p1: boolean
   rematch_p2: boolean
   rematch_game_id: string | null
+  // Modo historia: si tiene valor, es un duelo contra un bot (rival de la campaña)
+  campaign_rival_id: string | null
+  // Monedas de premio otorgadas en este duelo (>0 solo la 1ª vez que lo ganás)
+  campaign_reward: number
   created_at: string
   updated_at: string
 }

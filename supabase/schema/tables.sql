@@ -1,12 +1,42 @@
 -- ============================================================
 -- TRUCAZO — FOTO de la base: estructura de las tablas (snapshot)
--- Generado: 2026-06-26
+-- Generado: 2026-06-29
 --
 -- Solo columnas. Las llaves (primary/foreign key), restricciones (check/unique),
 -- el Row Level Security y las políticas van en policies.sql.
 -- Orden de restauración desde cero: extensiones → tables.sql → functions.sql →
 -- policies.sql.
 -- ============================================================
+
+create table if not exists public.campaign_progress (
+  user_id uuid not null,
+  rival_id uuid not null,
+  beaten_at timestamptz not null default now()
+);
+
+create table if not exists public.campaign_rivals (
+  id uuid not null default gen_random_uuid(),
+  order_index integer not null,
+  slug text not null,
+  display_name text not null,
+  tagline text not null,
+  difficulty integer not null,
+  target_score integer not null,
+  reward_coins integer not null,
+  bot_id uuid not null
+);
+
+create table if not exists public.feedback (
+  id uuid not null default gen_random_uuid(),
+  user_id uuid,
+  rating_general integer,
+  rating_aesthetics integer,
+  understood boolean,
+  had_problem boolean,
+  comment text,
+  image_paths text[] not null default '{}'::text[],
+  created_at timestamptz not null default now()
+);
 
 create table if not exists public.game_hands (
   game_id uuid not null,
@@ -55,7 +85,14 @@ create table if not exists public.games (
   rematch_p1 boolean not null default false,
   rematch_p2 boolean not null default false,
   rematch_game_id uuid,
-  awaiting_deal boolean not null default false
+  awaiting_deal boolean not null default false,
+  time_limit integer not null default 30,
+  turn_started_at timestamptz not null default now(),
+  mazo_count_p1 integer not null default 0,
+  mazo_count_p2 integer not null default 0,
+  envido_reveal jsonb,
+  campaign_rival_id uuid,
+  campaign_reward integer not null default 0
 );
 
 create table if not exists public.profiles (
@@ -65,7 +102,8 @@ create table if not exists public.profiles (
   games_played integer not null default 0,
   games_won integer not null default 0,
   games_lost integer not null default 0,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  is_bot boolean not null default false
 );
 
 create table if not exists public.tables (
@@ -80,5 +118,6 @@ create table if not exists public.tables (
   private_code text,
   status text not null default 'waiting'::text,
   created_at timestamptz not null default now(),
-  target_score integer not null default 30
+  target_score integer not null default 30,
+  time_limit integer not null default 30
 );

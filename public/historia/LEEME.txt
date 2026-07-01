@@ -1,0 +1,15 @@
+FONDO DEL MODO HISTORIA (el mapa)
+==================================
+
+Guardá acá la imagen del mapa con estos nombres exactos:
+
+  fondo.png        -> versión para computadora (la ancha, 16:9)
+  fondo-movil.png  -> versión para celular (la más estirada/alta)
+
+Por ahora el código usa fondo.png para todo. Cuando pongas fondo-movil.png,
+avisame y hago que en el celular use esa (con las posiciones de los medallones
+ajustadas a esa imagen).
+
+Los rivales se calzan encima de los medallones por posición (en %). Si alguno
+queda un poco corrido, se ajusta en el código (archivo HistoriaClient.tsx,
+constante NODOS).

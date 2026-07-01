@@ -93,6 +93,28 @@ const config: Config = {
             transform: "translate(var(--tx), var(--ty)) rotateY(0deg) scale(var(--sc))",
           },
         },
+        // Modo historia: un rival se "revela" al desbloquearse (aparece con un pop).
+        "unlock-pop": {
+          "0%": { opacity: "0", transform: "scale(0.4) rotate(-8deg)" },
+          "55%": { opacity: "1", transform: "scale(1.12) rotate(2deg)" },
+          "100%": { opacity: "1", transform: "scale(1) rotate(0deg)" },
+        },
+        // Nubes que se abren al entrar al modo historia (revelan el mapa).
+        "clouds-left": {
+          "0%": { transform: "translateX(0)", opacity: "1" },
+          "70%": { opacity: "1" },
+          "100%": { transform: "translateX(-82%)", opacity: "0" },
+        },
+        "clouds-right": {
+          "0%": { transform: "translateX(0)", opacity: "1" },
+          "70%": { opacity: "1" },
+          "100%": { transform: "translateX(82%)", opacity: "0" },
+        },
+        // Latido dorado del rival que te toca (el "próximo desafío").
+        "pulse-glow": {
+          "0%,100%": { boxShadow: "0 0 0 0 rgba(201,162,75,0), 0 0 12px 2px rgba(201,162,75,0.25)" },
+          "50%": { boxShadow: "0 0 0 5px rgba(201,162,75,0.16), 0 0 22px 6px rgba(201,162,75,0.55)" },
+        },
         // Giro 3D al jugar: entra de canto desde la mano (--fromY) y se da vuelta en la mesa
         "play-in": {
           "0%": {
@@ -116,6 +138,10 @@ const config: Config = {
         // reparto escalonado, pero al terminar libera el transform para que el hover funcione.
         "deal-in": "deal-in 0.35s cubic-bezier(0.22,1,0.36,1) backwards",
         "play-in": "play-in 0.42s cubic-bezier(0.22,1,0.36,1) backwards",
+        "unlock-pop": "unlock-pop 0.6s cubic-bezier(0.22,1,0.36,1) both",
+        "pulse-glow": "pulse-glow 1.9s ease-in-out infinite",
+        "clouds-left": "clouds-left 3s cubic-bezier(0.45,0,0.25,1) 0.4s forwards",
+        "clouds-right": "clouds-right 3s cubic-bezier(0.45,0,0.25,1) 0.4s forwards",
         fly: "fly 0.46s cubic-bezier(0.22,1,0.36,1) forwards",
       },
     },

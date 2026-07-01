@@ -1,0 +1,20 @@
+ILUSTRACIONES DE LOS RIVALES DEL MODO HISTORIA
+================================================
+
+Guardá acá la imagen de cada personaje, en PNG, cuadrada (ideal 256x256 o más),
+con EXACTAMENTE estos nombres (todo en minúscula):
+
+  novato.png       -> Tobías, el Novato
+  vecina.png       -> Doña Rosa, la Vecina
+  carnicero.png    -> Aldo, el Carnicero
+  tana.png         -> Carmela, la Tana
+  tahur.png        -> Ramón, el Tahúr
+  patrona.png      -> Doña Elvira, la Patrona
+  maestro.png      -> Don Genaro, el Maestro
+  campeon.png      -> Lucho, el Campeón
+  coneja.png       -> Sofía, la Coneja
+  mudo.png         -> Don Salvador, el Mudo
+
+El que tenga imagen la muestra (en la galería y en la mesa); el que no, muestra
+la inicial del nombre como respaldo. No hay que tocar nada más: con poner el
+archivo con el nombre correcto alcanza.

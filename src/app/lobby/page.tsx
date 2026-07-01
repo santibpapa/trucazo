@@ -21,11 +21,14 @@ export default async function LobbyPage() {
     .eq('is_private', false)
     .order('created_at', { ascending: false })
 
-  // Partida en curso del usuario (la RLS de games ya limita a las suyas)
+  // Partida en curso del usuario (la RLS de games ya limita a las suyas).
+  // Los duelos del modo historia no cuentan acá: son práctica, no una partida
+  // apostada para retomar, y no deben quedar colgados como "partida en curso".
   const { data: activeGame } = await supabase
     .from('games')
     .select('id')
     .eq('status', 'playing')
+    .is('campaign_rival_id', null)
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
