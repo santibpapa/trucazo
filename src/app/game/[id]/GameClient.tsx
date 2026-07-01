@@ -390,6 +390,18 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.awaiting_deal, game.status, game.id])
 
+  // La pantalla de fin ("Ganaste/Perdiste") se muestra con un pequeño delay tras
+  // terminar la partida, para alcanzar a ver la última jugada resuelta en la mesa
+  // (p. ej. el tanto que cantó el bot en el envido) y no saltar de golpe. Si la
+  // partida ya venía terminada al abrir, se muestra al instante.
+  const [showFinish, setShowFinish] = useState(game.status === 'finished')
+  useEffect(() => {
+    if (game.status !== 'finished') { setShowFinish(false); return }
+    if (showFinish) return
+    const t = setTimeout(() => setShowFinish(true), 2000)
+    return () => clearTimeout(t)
+  }, [game.status, showFinish])
+
   // Partida terminada: seguimos escuchando para la revancha (votos y nueva partida).
   useEffect(() => {
     if (game.status !== 'finished') return
@@ -735,7 +747,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
 
   // Modo historia: fin del duelo. El bot no pide revancha ni se mueven monedas
   // del pozo; ofrecemos jugar de nuevo o volver a la galería.
-  if (game.status === 'finished' && isCampaign) {
+  if (game.status === 'finished' && isCampaign && showFinish) {
     const won = game.winner_id === currentUserId
     return (
       <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-6">
@@ -775,12 +787,23 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               Volver al modo historia
             </Button>
           </div>
+
+          {/* Pedido de reseña (temporal: por ahora aparece apenas termina cada partida) */}
+          <div className="w-full flex flex-col items-center gap-2 border-t border-line/60 pt-4">
+            {showThanks && (
+              <p className="text-xs font-semibold text-gold text-center">¡Gracias por tu reseña! 🌟</p>
+            )}
+            <p className="text-xs text-muted text-center">¿Nos podrás ayudar con una breve reseña del juego?</p>
+            <Button variant="secondary" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
+              Dejar reseña
+            </Button>
+          </div>
         </Panel>
       </main>
     )
   }
 
-  if (game.status === 'finished') {
+  if (game.status === 'finished' && showFinish) {
     // Partida anulada (abandonada por ambos): sin ganador, se reembolsa la apuesta.
     const voided = game.winner_id == null
     const won = game.winner_id === currentUserId

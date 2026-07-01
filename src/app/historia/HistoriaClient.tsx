@@ -35,6 +35,9 @@ const MAP_W = 711
 const MAP_H = 2212
 // Cuántas "pantallas" de alto mide el mapa en compu (a más, más viaje al bajar).
 const SCROLL_SCREENS = 3
+// Duración del deslizamiento de la cámara al desbloquear un rival (ms). A más,
+// más lento. Es la perilla para regular la velocidad del auto-scroll.
+const GLIDE_MS = 2600
 // Ancho del escenario: en compu es una tira centrada (según el alto de pantalla);
 // en celular ocupa todo el ancho. El min() elige solo el que corresponda.
 const STAGE_WIDTH = `min(100vw, calc(100dvh * ${((MAP_W / MAP_H) * SCROLL_SCREENS).toFixed(4)}))`
@@ -74,6 +77,9 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
   const stageRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLElement>(null)
   const nodeRefs = useRef<(HTMLDivElement | null)[]>([])
+  // Deslizamiento pendiente (índice de rival), que arranca recién cuando las
+  // nubes terminan. null = no hay que deslizar.
+  const glideTo = useRef<number | null>(null)
 
   const rivals = [...initialRivals].sort((a, b) => a.order_index - b.order_index)
   const vencidos = rivals.filter(r => r.beaten).length
@@ -91,20 +97,33 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
     setEditing(new URLSearchParams(window.location.search).get('ajustar') === '1')
   }, [])
 
-  // Centra en pantalla el medallón i (dentro del contenedor que scrollea).
-  function scrollToIndex(i: number, behavior: ScrollBehavior) {
+  // Centra en pantalla el medallón i (dentro del contenedor que scrollea). Con
+  // duration=0 salta al instante; con duration>0 anima a mano (velocidad propia,
+  // que el navegador no deja regular con 'smooth').
+  function scrollToIndex(i: number, duration = 0) {
     const c = scrollRef.current
     const el = nodeRefs.current[i]
     if (!c || !el) return
     const cRect = c.getBoundingClientRect()
     const eRect = el.getBoundingClientRect()
     const delta = eRect.top + eRect.height / 2 - (cRect.top + cRect.height / 2)
-    c.scrollTo({ top: c.scrollTop + delta, behavior })
+    const to = c.scrollTop + delta
+    if (duration <= 0) { c.scrollTop = to; return }
+    const from = c.scrollTop
+    const t0 = performance.now()
+    // easeInOutCubic: arranca y frena suave.
+    const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+    const step = (now: number) => {
+      const p = Math.min(1, (now - t0) / duration)
+      c.scrollTop = from + (to - from) * ease(p)
+      if (p < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
   }
 
   // Animaciones de desbloqueo (comparadas contra lo que el jugador ya vio) +
-  // auto-scroll: al entrar la vista se para en el rival que te toca; si venís de
-  // ganar, arranca en el vencido y se DESLIZA hacia abajo hasta el nuevo desafío.
+  // auto-scroll: al abrirse las nubes, la "cámara" baja sola hasta el rival que
+  // te toca (deslizamiento visible en compu y celu, ya no tapado por las nubes).
   const [reveal, setReveal] = useState<{ u: Set<string>; b: Set<string> }>({ u: new Set(), b: new Set() })
   const didInit = useRef(false)
   useEffect(() => {
@@ -131,21 +150,29 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
     }
     try { localStorage.setItem(SEEN_KEY, snapshot()) } catch {}
 
-    // Adónde parar la vista (el rival que te toca, o el último si ya ganaste todo).
+    // Auto-scroll SOLO cuando se desbloqueó un rival (venís de ganar): la cámara
+    // arranca en el rival recién vencido y baja hasta el nuevo. Si no hay nada
+    // nuevo, solo se posiciona en tu rival, sin deslizar.
     const target = currentIndex >= 0 ? currentIndex : rivals.length - 1
-    let start = target
-    for (let i = 0; i < rivals.length; i++) {
-      if (nb.has(rivals[i].id) && i < target) start = i
-    }
-    // Lo posiciono al instante (todavía tapado por las nubes)...
-    requestAnimationFrame(() => scrollToIndex(start, 'auto'))
-    // ...y si vengo de ganar, deslizo hasta el nuevo desafío cuando las nubes ya se abrieron.
-    if (start !== target) {
-      const t = setTimeout(() => scrollToIndex(target, 'smooth'), 3900)
-      return () => clearTimeout(t)
-    }
+    const hayDesbloqueo = nu.size > 0
+    const start = hayDesbloqueo ? Math.max(0, target - 1) : target
+    // Posiciono al instante (todavía tapado por las nubes).
+    requestAnimationFrame(() => scrollToIndex(start))
+    // Si hay que deslizar, lo dejo pendiente: arranca recién cuando terminan las nubes.
+    if (start !== target) glideTo.current = target
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // El deslizamiento pendiente arranca solo cuando las nubes ya terminaron
+  // (intro pasa a false), así nunca queda tapado por ellas.
+  useEffect(() => {
+    if (intro || glideTo.current == null) return
+    const target = glideTo.current
+    glideTo.current = null
+    const t = setTimeout(() => scrollToIndex(target, GLIDE_MS), 200)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intro])
 
   async function play(rivalId: string) {
     setLoadingId(rivalId)
