@@ -27,41 +27,33 @@ type Pos = { x: number; y: number }
 
 const SEEN_KEY = 'trucazo:campaign:seen'
 
-// Posiciones de los medallones para la imagen APAISADA (compu), en % del ancho/
-// alto de la imagen, en orden de rival (1 = Tobías arriba/norte ... 10 = Don
-// Salvador abajo/sur). Estimadas a ojo; se afinan con el "modo ajuste".
+// Medida real del mapa (una sola tira vertical para compu y celular). El
+// escenario usa esta proporción fija, así tiene alto conocido desde el arranque
+// (no espera a que cargue la imagen) y los medallones caen en su lugar al
+// instante. Si cambiás la imagen por otra de distinta medida, actualizá esto.
+const MAP_W = 711
+const MAP_H = 2212
+// Cuántas "pantallas" de alto mide el mapa en compu (a más, más viaje al bajar).
+const SCROLL_SCREENS = 3
+// Ancho del escenario: en compu es una tira centrada (según el alto de pantalla);
+// en celular ocupa todo el ancho. El min() elige solo el que corresponda.
+const STAGE_WIDTH = `min(100vw, calc(100dvh * ${((MAP_W / MAP_H) * SCROLL_SCREENS).toFixed(4)}))`
+
+// Posiciones de los 10 medallones sobre el camino (en % del mapa), en orden de
+// rival (1 = Tobías, arriba/norte ... 10 = Don Salvador, abajo/sur). Estimadas a
+// ojo sobre el zigzag; se afinan con el "modo ajuste" (?ajustar=1).
 const NODOS: Pos[] = [
-  { x: 43.3, y: 8.4 },
-  { x: 45.6, y: 16.5 },
-  { x: 43.5, y: 25.0 },
-  { x: 46.3, y: 32.8 },
-  { x: 45.6, y: 41.2 },
-  { x: 43.2, y: 49.4 },
-  { x: 45.8, y: 57.4 },
-  { x: 42.5, y: 65.5 },
-  { x: 39.7, y: 73.2 },
-  { x: 42.1, y: 81.2 },
+  { x: 38.7, y: 7.5 },
+  { x: 49.8, y: 14.9 },
+  { x: 47.2, y: 23.8 },
+  { x: 38.4, y: 33.5 },
+  { x: 55, y: 41.9 },
+  { x: 49.3, y: 52.1 },
+  { x: 64.5, y: 62.3 },
+  { x: 40.3, y: 69.7 },
+  { x: 59.3, y: 81 },
+  { x: 48.5, y: 92.2 },
 ]
-
-// Posiciones para la imagen VERTICAL (celular).
-const NODOS_MOVIL: Pos[] = [
-  { x: 45.0, y: 16.8 },
-  { x: 50.5, y: 24.0 },
-  { x: 48.1, y: 31.7 },
-  { x: 43.5, y: 39.4 },
-  { x: 40.4, y: 46.4 },
-  { x: 39.8, y: 53.6 },
-  { x: 40.4, y: 60.8 },
-  { x: 37.4, y: 67.6 },
-  { x: 36.9, y: 74.8 },
-  { x: 40.9, y: 82.5 },
-]
-
-// Proporción (ancho/alto) real de cada imagen del mapa. Fija, así el escenario
-// se arma igual siempre (no depende de cuándo "carga" la imagen). Si cambiás las
-// imágenes por otras de distinta medida, actualizá estos números.
-const DESKTOP_RATIO = 1672 / 941
-const MOBILE_RATIO = 941 / 1672
 
 export default function HistoriaClient({ initialRivals, coins }: Props) {
   const router = useRouter()
@@ -69,7 +61,6 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<Rival | null>(null)
-  const [isPortrait, setIsPortrait] = useState(false)
   const [editing, setEditing] = useState(false)
   const [copied, setCopied] = useState(false)
   // Efecto de entrada: las nubes se abren y se quitan al terminar la animación.
@@ -78,30 +69,42 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
     const t = setTimeout(() => setIntro(false), 3600)
     return () => clearTimeout(t)
   }, [])
-  // Posiciones editables (para el modo ajuste). Empiezan en las constantes.
-  const [posL, setPosL] = useState<Pos[]>(NODOS)
-  const [posP, setPosP] = useState<Pos[]>(NODOS_MOVIL)
+  // Posiciones editables (para el modo ajuste). Empiezan en la constante.
+  const [nodos, setNodos] = useState<Pos[]>(NODOS)
   const stageRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLElement>(null)
+  const nodeRefs = useRef<(HTMLDivElement | null)[]>([])
 
   const rivals = [...initialRivals].sort((a, b) => a.order_index - b.order_index)
   const vencidos = rivals.filter(r => r.beaten).length
-  const currentId = rivals.find(r => r.unlocked && !r.beaten)?.id ?? null
-
-  const nodos = isPortrait ? posP : posL
-  const setNodos = isPortrait ? setPosP : setPosL
-  const fondoSrc = isPortrait ? '/historia/fondo-movil.png' : '/historia/fondo.png'
-  const ratio = isPortrait ? MOBILE_RATIO : DESKTOP_RATIO
+  const currentIndex = rivals.findIndex(r => r.unlocked && !r.beaten)
+  const currentId = currentIndex >= 0 ? rivals[currentIndex].id : null
+  // "Niebla de guerra": el tramo del mapa todavía no descubierto (los rivales
+  // bloqueados, después del que te toca) queda oscurecido. Arranca a mitad de
+  // camino entre el rival actual y el siguiente. null = ya ganaste todo → sin niebla.
+  const fogStart =
+    currentIndex >= 0 && currentIndex < rivals.length - 1
+      ? (nodos[currentIndex].y + nodos[currentIndex + 1].y) / 2
+      : null
 
   useEffect(() => {
-    const mq = window.matchMedia('(orientation: portrait)')
-    const update = () => setIsPortrait(mq.matches)
-    update()
-    mq.addEventListener('change', update)
     setEditing(new URLSearchParams(window.location.search).get('ajustar') === '1')
-    return () => mq.removeEventListener('change', update)
   }, [])
 
-  // Animaciones de desbloqueo (comparadas contra lo que el jugador ya vio).
+  // Centra en pantalla el medallón i (dentro del contenedor que scrollea).
+  function scrollToIndex(i: number, behavior: ScrollBehavior) {
+    const c = scrollRef.current
+    const el = nodeRefs.current[i]
+    if (!c || !el) return
+    const cRect = c.getBoundingClientRect()
+    const eRect = el.getBoundingClientRect()
+    const delta = eRect.top + eRect.height / 2 - (cRect.top + cRect.height / 2)
+    c.scrollTo({ top: c.scrollTop + delta, behavior })
+  }
+
+  // Animaciones de desbloqueo (comparadas contra lo que el jugador ya vio) +
+  // auto-scroll: al entrar la vista se para en el rival que te toca; si venís de
+  // ganar, arranca en el vencido y se DESLIZA hacia abajo hasta el nuevo desafío.
   const [reveal, setReveal] = useState<{ u: Set<string>; b: Set<string> }>({ u: new Set(), b: new Set() })
   const didInit = useRef(false)
   useEffect(() => {
@@ -111,24 +114,36 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
       unlocked: rivals.filter(r => r.unlocked).map(r => r.id),
       beaten: rivals.filter(r => r.beaten).map(r => r.id),
     })
-    let raw: string | null = null
-    try { raw = localStorage.getItem(SEEN_KEY) } catch {}
-    if (raw == null) {
-      try { localStorage.setItem(SEEN_KEY, snapshot()) } catch {}
-      return
-    }
-    let seen: { unlocked?: string[]; beaten?: string[] } = {}
-    try { seen = JSON.parse(raw) } catch {}
-    const su = new Set(seen.unlocked ?? [])
-    const sb = new Set(seen.beaten ?? [])
     const nu = new Set<string>()
     const nb = new Set<string>()
-    for (const r of rivals) {
-      if (r.unlocked && !su.has(r.id)) nu.add(r.id)
-      if (r.beaten && !sb.has(r.id)) nb.add(r.id)
+    let raw: string | null = null
+    try { raw = localStorage.getItem(SEEN_KEY) } catch {}
+    if (raw != null) {
+      let seen: { unlocked?: string[]; beaten?: string[] } = {}
+      try { seen = JSON.parse(raw) } catch {}
+      const su = new Set(seen.unlocked ?? [])
+      const sb = new Set(seen.beaten ?? [])
+      for (const r of rivals) {
+        if (r.unlocked && !su.has(r.id)) nu.add(r.id)
+        if (r.beaten && !sb.has(r.id)) nb.add(r.id)
+      }
+      setReveal({ u: nu, b: nb })
     }
-    setReveal({ u: nu, b: nb })
     try { localStorage.setItem(SEEN_KEY, snapshot()) } catch {}
+
+    // Adónde parar la vista (el rival que te toca, o el último si ya ganaste todo).
+    const target = currentIndex >= 0 ? currentIndex : rivals.length - 1
+    let start = target
+    for (let i = 0; i < rivals.length; i++) {
+      if (nb.has(rivals[i].id) && i < target) start = i
+    }
+    // Lo posiciono al instante (todavía tapado por las nubes)...
+    requestAnimationFrame(() => scrollToIndex(start, 'auto'))
+    // ...y si vengo de ganar, deslizo hasta el nuevo desafío cuando las nubes ya se abrieron.
+    if (start !== target) {
+      const t = setTimeout(() => scrollToIndex(target, 'smooth'), 3900)
+      return () => clearTimeout(t)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -163,18 +178,19 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
   }
 
   return (
-    <main className="fixed inset-0 overflow-hidden bg-base">
-      {/* Escenario: el mapa entra completo en el ALTO de la pantalla (no se corta
-          verticalmente por la barra del navegador ni la de Windows). Si sobra a
-          los costados, queda el fondo oscuro de base (combina con el marco). */}
+    <main ref={scrollRef} className="fixed inset-0 overflow-y-auto overflow-x-hidden bg-base">
+      {/* Escenario: el mapa es una TIRA ALTA (varias pantallas). Se scrollea hacia
+          abajo. En compu queda una columna centrada (a los costados, el fondo
+          oscuro de base); en celular ocupa todo el ancho. La proporción fija le da
+          alto conocido desde el vamos, así los medallones caen exactos al instante. */}
       <div
         ref={stageRef}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{ height: '100dvh', width: `calc(100dvh * ${ratio})` }}
+        className="relative mx-auto"
+        style={{ width: STAGE_WIDTH, aspectRatio: `${MAP_W} / ${MAP_H}` }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={fondoSrc}
+          src="/historia/fondo.png"
           alt="Mapa del modo historia"
           className="block w-full h-full object-cover select-none"
           draggable={false}
@@ -188,14 +204,27 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
             newlyUnlocked={reveal.u.has(r.id)}
             newlyBeaten={reveal.b.has(r.id)}
             editing={editing}
+            nodeRef={(el) => { nodeRefs.current[i] = el }}
             onSelect={() => setSelected(r)}
             onDragTo={(cx, cy) => dragTo(i, cx, cy)}
           />
         ))}
+
+        {/* Niebla de guerra: oscurece el tramo no descubierto (de fogStart% hacia
+            abajo), difuminada arriba para que el borde de "lo revelado" sea suave.
+            En modo ajuste no va, así se ven todos los medallones para acomodarlos. */}
+        {!editing && fogStart != null && (
+          <div
+            className="pointer-events-none absolute inset-0 z-[15]"
+            style={{
+              background: `linear-gradient(to bottom, transparent ${fogStart}%, rgba(12,7,8,0.55) ${Math.min(fogStart + 7, 100)}%, rgba(6,3,4,0.9) 100%)`,
+            }}
+          />
+        )}
       </div>
 
-      {/* HUD: barra superior flotante sobre el mapa. */}
-      <div className="absolute top-0 inset-x-0 z-20 flex items-start justify-between gap-3 p-3 sm:p-4 bg-gradient-to-b from-black/75 via-black/35 to-transparent pointer-events-none">
+      {/* HUD: barra superior fija sobre el mapa (no se va con el scroll). */}
+      <div className="fixed top-0 inset-x-0 z-20 flex items-start justify-between gap-3 p-3 sm:p-4 bg-gradient-to-b from-black/75 via-black/35 to-transparent pointer-events-none">
         <div className="flex items-center gap-2.5 pointer-events-auto">
           <Link
             href="/lobby"
@@ -220,7 +249,7 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
       </div>
 
       {error && (
-        <div className="absolute top-20 inset-x-0 z-30 flex justify-center px-4">
+        <div className="fixed top-20 inset-x-0 z-30 flex justify-center px-4">
           <Alert>{error}</Alert>
         </div>
       )}
@@ -229,8 +258,8 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
           contenedor (así se puede arrastrar un medallón que quede "debajo"); solo
           el botón Copiar queda activo. */}
       {editing && (
-        <div className="absolute bottom-3 left-3 z-40 flex items-center gap-2 rounded-xl border border-gold/50 bg-black/70 backdrop-blur px-3 py-2 shadow-card pointer-events-none">
-          <span className="text-[11px] font-bold text-gold">{isPortrait ? 'CELU' : 'COMPU'}</span>
+        <div className="fixed bottom-3 left-3 z-40 flex items-center gap-2 rounded-xl border border-gold/50 bg-black/70 backdrop-blur px-3 py-2 shadow-card pointer-events-none">
+          <span className="text-[11px] font-bold text-gold">AJUSTE</span>
           <Button size="sm" className="pointer-events-auto" onClick={copyPositions}>
             {copied ? '¡Copiado!' : 'Copiar'}
           </Button>
@@ -240,7 +269,7 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
       {/* Efecto de entrada: las nubes (textura de ruido fractal) se abren y
           revelan el mapa. */}
       {intro && (
-        <div className="pointer-events-none absolute inset-0 z-[45] overflow-hidden">
+        <div className="pointer-events-none fixed inset-0 z-[45] overflow-hidden">
           <div className="absolute inset-y-0 left-0 w-[88%] animate-clouds-left"><CloudLayer side="left" /></div>
           <div className="absolute inset-y-0 right-0 w-[88%] animate-clouds-right"><CloudLayer side="right" /></div>
         </div>
@@ -283,10 +312,11 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
 // Un medallón del mapa (posicionado en %). Bloqueado = candado (misterio).
 // En modo ajuste se puede arrastrar y muestra su número + coordenadas.
 function MapNode({
-  r, pos, isCurrent, newlyUnlocked, newlyBeaten, editing, onSelect, onDragTo,
+  r, pos, isCurrent, newlyUnlocked, newlyBeaten, editing, nodeRef, onSelect, onDragTo,
 }: {
   r: Rival; pos: Pos; isCurrent: boolean; newlyUnlocked: boolean; newlyBeaten: boolean
-  editing: boolean; onSelect: () => void; onDragTo: (clientX: number, clientY: number) => void
+  editing: boolean; nodeRef: (el: HTMLDivElement | null) => void
+  onSelect: () => void; onDragTo: (clientX: number, clientY: number) => void
 }) {
   const [imgFailed, setImgFailed] = useState(false)
   const dragging = useRef(false)
@@ -294,12 +324,13 @@ function MapNode({
 
   return (
     <div
+      ref={nodeRef}
       className="absolute z-10"
       style={{
         left: `${pos.x}%`,
         top: `${pos.y}%`,
-        width: 'clamp(28px, 4.6dvh, 49px)',
-        height: 'clamp(28px, 4.6dvh, 49px)',
+        width: 'clamp(36px, 6dvh, 64px)',
+        height: 'clamp(36px, 6dvh, 64px)',
         transform: 'translate(-50%, -50%)',
       }}
     >
