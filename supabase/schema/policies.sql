@@ -67,7 +67,6 @@ alter table public.tables add constraint tables_time_limit_chk CHECK ((time_limi
 create policy "El creador puede eliminar su mesa" on public.tables for DELETE to public using ((auth.uid() = creator_id));
 create policy "rivales visibles para todos" on public.campaign_rivals for SELECT to anon, authenticated using (true);
 create policy "ver mi progreso" on public.campaign_progress for SELECT to authenticated using ((auth.uid() = user_id));
-create policy "El sistema puede insertar historial" on public.game_history for INSERT to public with check ((auth.uid() = player_id));
 create policy "Las mesas son visibles para todos" on public.tables for SELECT to public using (true);
 create policy "Los jugadores pueden ver su partida" on public.games for SELECT to public using (((auth.uid() = player1_id) OR (auth.uid() = player2_id)));
 create policy "Los perfiles son visibles para todos" on public.profiles for SELECT to public using (true);

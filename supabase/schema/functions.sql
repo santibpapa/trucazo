@@ -518,41 +518,6 @@ begin
 end;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.claim_victory(p_game_id uuid)
- RETURNS games
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare
-  g      games%rowtype;
-  oppid  uuid;
-  v_last timestamptz;
-begin
-  if auth.uid() is null then raise exception 'no autenticado'; end if;
-  select * into g from games where id = p_game_id for update;
-  if not found then raise exception 'game not found'; end if;
-  if g.status <> 'playing' then raise exception 'la partida no esta en juego'; end if;
-  if auth.uid() <> g.player1_id and auth.uid() <> g.player2_id then
-    raise exception 'not a player of this game';
-  end if;
-
-  oppid := case when auth.uid() = g.player1_id then g.player2_id else g.player1_id end;
-
-  -- Última señal de vida del rival; si nunca marcó, usamos la creación de la partida.
-  select last_seen_at into v_last from game_presence where game_id = p_game_id and player_id = oppid;
-  v_last := coalesce(v_last, g.created_at);
-
-  if now() - v_last <= interval '30 seconds' then
-    raise exception 'el rival sigue conectado';
-  end if;
-
-  perform public.finish_game(p_game_id, auth.uid(), g.player1_score, g.player2_score);
-  select * into g from games where id = p_game_id;
-  return g;
-end;
-$function$;
-
 CREATE OR REPLACE FUNCTION public.create_table(p_name text, p_bet integer, p_is_private boolean, p_private_code text DEFAULT NULL::text, p_target_score integer DEFAULT 30, p_time_limit integer DEFAULT 30)
  RETURNS tables
  LANGUAGE plpgsql
