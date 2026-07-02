@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, Sora } from 'next/font/google'
+import GuestSessionGuard from '@/components/GuestSessionGuard'
 import './globals.css'
 
 const inter = Inter({
@@ -28,6 +29,8 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${inter.variable} ${sora.variable}`}>
       <body className="min-h-screen bg-base font-sans text-cream antialiased">
+        {/* Cierra sesiones de invitado heredadas de una visita anterior */}
+        <GuestSessionGuard />
         {children}
       </body>
     </html>

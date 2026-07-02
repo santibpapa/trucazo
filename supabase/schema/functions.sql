@@ -496,6 +496,31 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.cancel_game_invite(p_invite_id uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  inv game_invites%rowtype;
+  t   tables%rowtype;
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  select * into inv from game_invites where id = p_invite_id for update;
+  if not found then return; end if;
+  if inv.from_id <> auth.uid() then raise exception 'no es tu invitación'; end if;
+
+  select * into t from tables where id = inv.table_id for update;
+  if found and t.status = 'waiting' then
+    update profiles set coins = coins + t.bet where id = t.creator_id;
+    delete from tables where id = t.id;  -- borra también la invitación (cascade)
+  else
+    delete from game_invites where id = inv.id;
+  end if;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.claim_bonus()
  RETURNS integer
  LANGUAGE plpgsql
@@ -839,6 +864,85 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.get_community()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  me           uuid := auth.uid();
+  v_friends    jsonb;
+  v_incoming   jsonb;
+  v_outgoing   jsonb;
+  v_invites_in jsonb;
+  v_invite_out jsonb;
+begin
+  if me is null then raise exception 'no autenticado'; end if;
+
+  -- Amigos aceptados, con estado: conectado (latido < 75s) y/o jugando.
+  select coalesce(jsonb_agg(x.item order by (x.item->>'online') desc, lower(x.item->>'username')), '[]'::jsonb)
+    into v_friends
+    from (
+      select jsonb_build_object(
+        'friendship_id', f.id,
+        'user_id', p.id,
+        'username', p.username,
+        'online', coalesce(up.last_seen_at > now() - interval '75 seconds', false),
+        'playing', exists (
+          select 1 from games g
+           where g.status = 'playing' and (g.player1_id = p.id or g.player2_id = p.id)
+        )
+      ) as item
+      from friendships f
+      join profiles p
+        on p.id = case when f.requester_id = me then f.addressee_id else f.requester_id end
+      left join user_presence up on up.user_id = p.id
+     where f.status = 'accepted' and (f.requester_id = me or f.addressee_id = me)
+    ) x;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'friendship_id', f.id, 'user_id', p.id, 'username', p.username
+         ) order by f.created_at desc), '[]'::jsonb)
+    into v_incoming
+    from friendships f join profiles p on p.id = f.requester_id
+   where f.status = 'pending' and f.addressee_id = me;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'friendship_id', f.id, 'user_id', p.id, 'username', p.username
+         ) order by f.created_at desc), '[]'::jsonb)
+    into v_outgoing
+    from friendships f join profiles p on p.id = f.addressee_id
+   where f.status = 'pending' and f.requester_id = me;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'invite_id', gi.id, 'from_id', gi.from_id, 'from_username', gi.from_username,
+           'table_id', gi.table_id, 'bet', gi.bet, 'target_score', gi.target_score
+         ) order by gi.created_at desc), '[]'::jsonb)
+    into v_invites_in
+    from game_invites gi
+   where gi.to_id = me;
+
+  select jsonb_build_object(
+           'invite_id', gi.id, 'to_id', gi.to_id, 'to_username', p.username,
+           'table_id', gi.table_id, 'table_status', t.status
+         )
+    into v_invite_out
+    from game_invites gi
+    join profiles p on p.id = gi.to_id
+    left join tables t on t.id = gi.table_id
+   where gi.from_id = me;
+
+  return jsonb_build_object(
+    'friends', v_friends,
+    'incoming', v_incoming,
+    'outgoing', v_outgoing,
+    'invites_in', v_invites_in,
+    'invite_out', v_invite_out
+  );
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.get_login_email(p_username text)
  RETURNS text
  LANGUAGE plpgsql
@@ -869,6 +973,56 @@ BEGIN
   );
   RETURN NEW;
 END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.invite_friend(p_friend_id uuid, p_bet integer DEFAULT 10, p_target_score integer DEFAULT 30, p_time_limit integer DEFAULT 30)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  me         uuid := auth.uid();
+  v_coins    int;
+  v_username text;
+  v_table    tables%rowtype;
+  v_old      game_invites%rowtype;
+  v_invite   game_invites%rowtype;
+begin
+  if me is null then raise exception 'no autenticado'; end if;
+  if p_bet < 10 then raise exception 'la apuesta minima es 10'; end if;
+  if p_target_score not in (15, 30) then raise exception 'puntaje objetivo invalido'; end if;
+  if p_time_limit not in (15, 30) then raise exception 'tiempo invalido'; end if;
+
+  if not exists (
+    select 1 from friendships
+     where status = 'accepted'
+       and ((requester_id = me and addressee_id = p_friend_id)
+         or (requester_id = p_friend_id and addressee_id = me))
+  ) then
+    raise exception 'solo podés invitar a tus amigos';
+  end if;
+
+  -- Una invitación activa por jugador: si había otra, se cancela (con reembolso).
+  select * into v_old from game_invites where from_id = me for update;
+  if found then perform public.cancel_game_invite(v_old.id); end if;
+
+  select coins, username into v_coins, v_username from profiles where id = me for update;
+  if v_coins < p_bet then raise exception 'monedas insuficientes'; end if;
+  update profiles set coins = coins - p_bet where id = me;
+
+  insert into tables (name, creator_id, creator_username, bet, is_private, private_code,
+                      status, target_score, time_limit)
+  values ('Duelo de ' || v_username, me, v_username, p_bet, true,
+          upper(substr(md5(random()::text), 1, 6)), 'waiting', p_target_score, p_time_limit)
+  returning * into v_table;
+
+  insert into game_invites (from_id, to_id, from_username, table_id, bet, target_score)
+  values (me, p_friend_id, v_username, v_table.id, p_bet, p_target_score)
+  returning * into v_invite;
+
+  return jsonb_build_object('invite_id', v_invite.id, 'table_id', v_table.id);
+end;
 $function$;
 
 CREATE OR REPLACE FUNCTION public.irse_al_mazo(p_game_id uuid)
@@ -1071,6 +1225,20 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.remove_friend(p_friendship_id uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  delete from friendships
+   where id = p_friendship_id
+     and (requester_id = auth.uid() or addressee_id = auth.uid());
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.request_rematch(p_game_id uuid)
  RETURNS games
  LANGUAGE plpgsql
@@ -1194,6 +1362,71 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.respond_friend_request(p_friendship_id uuid, p_accept boolean)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare f friendships%rowtype;
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  select * into f from friendships where id = p_friendship_id for update;
+  if not found then return; end if;  -- idempotente
+  if f.addressee_id <> auth.uid() then raise exception 'esta solicitud no es para vos'; end if;
+  if f.status <> 'pending' then return; end if;
+
+  if p_accept then
+    update friendships set status = 'accepted', responded_at = now() where id = f.id;
+  else
+    delete from friendships where id = f.id;
+  end if;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.respond_game_invite(p_invite_id uuid, p_accept boolean)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  inv        game_invites%rowtype;
+  t          tables%rowtype;
+  v_coins    int;
+  v_username text;
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  select * into inv from game_invites where id = p_invite_id for update;
+  if not found then raise exception 'la invitación ya no está disponible'; end if;
+  if inv.to_id <> auth.uid() then raise exception 'esta invitación no es para vos'; end if;
+
+  select * into t from tables where id = inv.table_id for update;
+  if not found or t.status <> 'waiting' or t.opponent_id is not null then
+    delete from game_invites where id = inv.id;
+    raise exception 'la invitación ya no está disponible';
+  end if;
+
+  if not p_accept then
+    -- Rechazo: reembolso al que invitó y se borra todo (mesa + invitación).
+    update profiles set coins = coins + t.bet where id = t.creator_id;
+    delete from tables where id = t.id;
+    return null;
+  end if;
+
+  select coins, username into v_coins, v_username from profiles where id = auth.uid() for update;
+  if v_coins < t.bet then raise exception 'monedas insuficientes'; end if;
+  update profiles set coins = coins - t.bet where id = auth.uid();
+
+  update tables
+     set opponent_id = auth.uid(), opponent_username = v_username, status = 'playing'
+   where id = t.id;
+
+  delete from game_invites where id = inv.id;
+  return t.id;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.respond_truco(p_game_id uuid, p_accept boolean)
  RETURNS games
  LANGUAGE plpgsql
@@ -1237,6 +1470,42 @@ begin
 
   select * into g from games where id = p_game_id;
   return g;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.send_friend_request(p_username text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  me    uuid := auth.uid();
+  other profiles%rowtype;
+  f     friendships%rowtype;
+begin
+  if me is null then raise exception 'no autenticado'; end if;
+
+  select * into other from profiles
+   where lower(username) = lower(trim(p_username)) and not is_bot;
+  if not found then raise exception 'no hay ningún jugador con ese nombre'; end if;
+  if other.id = me then raise exception 'no te podés agregar a vos mismo'; end if;
+
+  select * into f from friendships
+   where (requester_id = me and addressee_id = other.id)
+      or (requester_id = other.id and addressee_id = me)
+   for update;
+
+  if found then
+    if f.status = 'accepted' then raise exception 'ya son amigos'; end if;
+    if f.requester_id = me then raise exception 'ya le mandaste una solicitud'; end if;
+    -- El otro ya me había invitado: se acepta directo.
+    update friendships set status = 'accepted', responded_at = now() where id = f.id;
+    return jsonb_build_object('status', 'accepted', 'username', other.username);
+  end if;
+
+  insert into friendships (requester_id, addressee_id) values (me, other.id);
+  return jsonb_build_object('status', 'pending', 'username', other.username);
 end;
 $function$;
 
@@ -1579,6 +1848,20 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.touch_online()
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  if auth.uid() is null then return; end if;
+  insert into user_presence (user_id, last_seen_at)
+  values (auth.uid(), now())
+  on conflict (user_id) do update set last_seen_at = now();
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.touch_presence(p_game_id uuid)
  RETURNS void
  LANGUAGE plpgsql
@@ -1597,6 +1880,11 @@ begin
   insert into game_presence (game_id, player_id, last_seen_at)
   values (p_game_id, auth.uid(), now())
   on conflict (game_id, player_id) do update set last_seen_at = now();
+
+  -- También marca presencia global (los amigos te ven "en línea" mientras jugás).
+  insert into user_presence (user_id, last_seen_at)
+  values (auth.uid(), now())
+  on conflict (user_id) do update set last_seen_at = now();
 end;
 $function$;
 

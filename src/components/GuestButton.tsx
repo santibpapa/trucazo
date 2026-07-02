@@ -51,6 +51,10 @@ export default function GuestButton({ variant = 'ghost', size = 'lg' }: Props) {
       return
     }
 
+    // Latido fresco para el GuestSessionGuard (así no lo confunde con un
+    // invitado viejo y no le cierra la sesión recién creada).
+    try { localStorage.setItem('trucazo:guest-alive', String(Date.now())) } catch {}
+
     router.push('/lobby')
     router.refresh()
   }

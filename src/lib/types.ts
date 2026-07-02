@@ -8,6 +8,47 @@ export interface Profile {
   created_at: string
 }
 
+// Comunidad: lo que devuelve la RPC get_community (amigos, solicitudes e
+// invitaciones a jugar), en una sola llamada.
+export interface CommunityFriend {
+  friendship_id: string
+  user_id: string
+  username: string
+  online: boolean
+  playing: boolean
+}
+
+export interface CommunityRequest {
+  friendship_id: string
+  user_id: string
+  username: string
+}
+
+export interface CommunityInviteIn {
+  invite_id: string
+  from_id: string
+  from_username: string
+  table_id: string
+  bet: number
+  target_score: number
+}
+
+export interface CommunityInviteOut {
+  invite_id: string
+  to_id: string
+  to_username: string
+  table_id: string
+  table_status: string | null
+}
+
+export interface CommunityData {
+  friends: CommunityFriend[]
+  incoming: CommunityRequest[]
+  outgoing: CommunityRequest[]
+  invites_in: CommunityInviteIn[]
+  invite_out: CommunityInviteOut | null
+}
+
 export interface GameHistory {
   id: string
   player_id: string

@@ -18,12 +18,15 @@
 alter table public.campaign_progress enable row level security;
 alter table public.campaign_rivals enable row level security;
 alter table public.feedback enable row level security;
+alter table public.friendships enable row level security;
 alter table public.game_hands enable row level security;
 alter table public.game_history enable row level security;
+alter table public.game_invites enable row level security;
 alter table public.game_presence enable row level security;
 alter table public.games enable row level security;
 alter table public.profiles enable row level security;
 alter table public.tables enable row level security;
+alter table public.user_presence enable row level security;
 
 alter table public.campaign_progress add constraint campaign_progress_pkey PRIMARY KEY (user_id, rival_id);
 alter table public.campaign_progress add constraint campaign_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
@@ -37,12 +40,22 @@ alter table public.feedback add constraint feedback_pkey PRIMARY KEY (id);
 alter table public.feedback add constraint feedback_rating_aesthetics_check CHECK (((rating_aesthetics >= 1) AND (rating_aesthetics <= 5)));
 alter table public.feedback add constraint feedback_rating_general_check CHECK (((rating_general >= 1) AND (rating_general <= 5)));
 alter table public.feedback add constraint feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE SET NULL;
+alter table public.friendships add constraint friendships_pkey PRIMARY KEY (id);
+alter table public.friendships add constraint friendships_requester_id_fkey FOREIGN KEY (requester_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.friendships add constraint friendships_addressee_id_fkey FOREIGN KEY (addressee_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.friendships add constraint friendships_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text])));
+alter table public.friendships add constraint friendships_not_self CHECK ((requester_id <> addressee_id));
 alter table public.game_hands add constraint game_hands_game_id_fkey FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE;
 alter table public.game_hands add constraint game_hands_pkey PRIMARY KEY (game_id, player_id);
 alter table public.game_history add constraint game_history_opponent_id_fkey FOREIGN KEY (opponent_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.game_history add constraint game_history_pkey PRIMARY KEY (id);
 alter table public.game_history add constraint game_history_player_id_fkey FOREIGN KEY (player_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.game_history add constraint game_history_result_check CHECK ((result = ANY (ARRAY['win'::text, 'loss'::text])));
+alter table public.game_invites add constraint game_invites_pkey PRIMARY KEY (id);
+alter table public.game_invites add constraint game_invites_from_id_fkey FOREIGN KEY (from_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.game_invites add constraint game_invites_to_id_fkey FOREIGN KEY (to_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.game_invites add constraint game_invites_table_id_fkey FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE CASCADE;
+alter table public.game_invites add constraint game_invites_not_self CHECK ((from_id <> to_id));
 alter table public.game_presence add constraint game_presence_game_id_fkey FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE;
 alter table public.game_presence add constraint game_presence_pkey PRIMARY KEY (game_id, player_id);
 alter table public.games add constraint games_campaign_rival_id_fkey FOREIGN KEY (campaign_rival_id) REFERENCES campaign_rivals(id);
@@ -57,6 +70,8 @@ alter table public.games add constraint games_winner_id_fkey FOREIGN KEY (winner
 alter table public.profiles add constraint profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
 alter table public.profiles add constraint profiles_pkey PRIMARY KEY (id);
 alter table public.profiles add constraint profiles_username_key UNIQUE (username);
+alter table public.user_presence add constraint user_presence_pkey PRIMARY KEY (user_id);
+alter table public.user_presence add constraint user_presence_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.tables add constraint tables_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.tables add constraint tables_opponent_id_fkey FOREIGN KEY (opponent_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.tables add constraint tables_pkey PRIMARY KEY (id);
@@ -74,8 +89,21 @@ create policy "Los usuarios autenticados pueden crear mesas" on public.tables fo
 create policy "Los usuarios pueden crear su propio perfil" on public.profiles for INSERT to public with check ((auth.uid() = id));
 create policy "Los usuarios ven su propio historial" on public.game_history for SELECT to public using ((auth.uid() = player_id));
 create policy "ver mi mano" on public.game_hands for SELECT to public using ((auth.uid() = player_id));
+-- Comunidad: el cliente SOLO lee; todas las escrituras pasan por RPCs definer.
+create policy "presencia visible para logueados" on public.user_presence for SELECT to authenticated using (true);
+create policy "ver mis amistades" on public.friendships for SELECT to authenticated using (((auth.uid() = requester_id) OR (auth.uid() = addressee_id)));
+create policy "ver mis invitaciones" on public.game_invites for SELECT to authenticated using (((auth.uid() = from_id) OR (auth.uid() = to_id)));
 
 CREATE UNIQUE INDEX profiles_username_lower_key ON public.profiles USING btree (lower(username));
+-- Una sola fila por par de jugadores (en cualquier dirección)
+CREATE UNIQUE INDEX friendships_pair_key ON public.friendships USING btree (LEAST(requester_id, addressee_id), GREATEST(requester_id, addressee_id));
+-- Una invitación a jugar activa por jugador
+CREATE UNIQUE INDEX game_invites_one_per_inviter ON public.game_invites USING btree (from_id);
+
+-- Realtime: game_invites publica cambios (para el aviso instantáneo de
+-- invitación; respeta la RLS de SELECT). games y tables se configuran a mano
+-- en el panel; esta se agregó por SQL.
+alter publication supabase_realtime add table public.game_invites;
 
 -- ------------------------------------------------------------
 -- Storage (depósito de imágenes de las reseñas). El depósito debe existir antes

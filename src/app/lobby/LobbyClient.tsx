@@ -6,7 +6,9 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Profile, Table } from '@/lib/types'
 import { generatePrivateCode } from '@/lib/tables'
-import { Button, Panel, Input, Modal, Coins, Logo, Alert, Toggle } from '@/components/ui'
+import { Button, Panel, Input, Modal, Coins, Logo, Alert, Toggle, cn } from '@/components/ui'
+import { useCommunity } from '@/lib/useCommunity'
+import FriendsPanel from '@/components/FriendsPanel'
 
 interface Props {
   profile: Profile
@@ -30,6 +32,11 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
   const [createdCode, setCreatedCode] = useState('')
   const [createdTableId, setCreatedTableId] = useState('')
   const [coins, setCoins] = useState(profile.coins)
+  // Amigos: presencia, solicitudes e invitaciones (para el panel rápido flotante)
+  const community = useCommunity(profile.id)
+  const [friendsOpen, setFriendsOpen] = useState(false)
+  const friendsBadge =
+    (community.data?.incoming.length ?? 0) + (community.data?.invites_in.length ?? 0)
 
   const supabase = createClient()
 
@@ -296,6 +303,19 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
         </Panel>
       </Link>
 
+      {/* Comunidad: chat global, amigos y grupos */}
+      <Link href="/comunidad" className="block">
+        <Panel className="p-4 flex items-center justify-between gap-3 transition-shadow hover:shadow-lift">
+          <div className="min-w-0">
+            <p className="font-semibold text-cream flex items-center gap-2">
+              <UsersIcon className="text-gold" /> Comunidad
+            </p>
+            <p className="text-sm text-subtle">Chat global, amigos y grupos.</p>
+          </div>
+          <ChevronRightIcon />
+        </Panel>
+      </Link>
+
       {/* Anti-quiebra: si te quedaste sin monedas para jugar, reclamá el bonus */}
       {coins < 10 && (
         <Panel className="p-4 flex items-center justify-between gap-3 border-gold/40 bg-gold/5">
@@ -508,6 +528,40 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
           </Button>
         </div>
       </Modal>
+
+      {/* Amigos: botón flotante + panel rápido. El fondo invisible cierra el
+          panel al tocar afuera. */}
+      {friendsOpen && (
+        <div className="fixed inset-0 z-30" onClick={() => setFriendsOpen(false)} />
+      )}
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
+        {friendsOpen && (
+          <Panel className="w-[min(92vw,360px)] max-h-[70dvh] overflow-y-auto p-4 shadow-lift animate-fade-up">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display font-bold text-cream">Amigos</h3>
+              <Link href="/comunidad" className="text-xs font-semibold text-gold hover:text-gold-600 transition-colors">
+                Abrir Comunidad →
+              </Link>
+            </div>
+            <FriendsPanel c={community} compact />
+          </Panel>
+        )}
+        <button
+          onClick={() => setFriendsOpen(o => !o)}
+          aria-label={friendsOpen ? 'Cerrar amigos' : 'Abrir amigos'}
+          className={cn(
+            'relative w-14 h-14 rounded-full bg-surface2 border border-gold/50 text-gold shadow-lift flex items-center justify-center transition-transform hover:scale-105',
+            friendsBadge > 0 && !friendsOpen && 'animate-pulse-glow',
+          )}
+        >
+          <UsersIcon size={24} />
+          {friendsBadge > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-gold text-ink text-[11px] font-bold flex items-center justify-center">
+              {friendsBadge}
+            </span>
+          )}
+        </button>
+      </div>
     </main>
   )
 }
@@ -536,6 +590,17 @@ function SwordsIcon() {
       <path d="m13 19 6-6M16 16l4 4M19 21l2-2" />
       <path d="M14.5 6.5 18 3h3v3l-3.5 3.5" />
       <path d="m5 14 6 6M8 17l-4 4M5 19l-2-2" />
+    </svg>
+  )
+}
+
+function UsersIcon({ size = 18, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   )
 }

@@ -38,6 +38,15 @@ create table if not exists public.feedback (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.friendships (
+  id           uuid not null default gen_random_uuid(),
+  requester_id uuid not null,
+  addressee_id uuid not null,
+  status       text not null default 'pending'::text,
+  created_at   timestamptz not null default now(),
+  responded_at timestamptz
+);
+
 create table if not exists public.game_hands (
   game_id uuid not null,
   player_id uuid not null,
@@ -52,6 +61,17 @@ create table if not exists public.game_history (
   result text not null,
   coins_change integer not null,
   created_at timestamptz not null default now()
+);
+
+create table if not exists public.game_invites (
+  id            uuid not null default gen_random_uuid(),
+  from_id       uuid not null,
+  to_id         uuid not null,
+  from_username text not null,
+  table_id      uuid not null,
+  bet           integer not null,
+  target_score  integer not null,
+  created_at    timestamptz not null default now()
 );
 
 create table if not exists public.game_presence (
@@ -104,6 +124,11 @@ create table if not exists public.profiles (
   games_lost integer not null default 0,
   created_at timestamptz not null default now(),
   is_bot boolean not null default false
+);
+
+create table if not exists public.user_presence (
+  user_id      uuid not null,
+  last_seen_at timestamptz not null default now()
 );
 
 create table if not exists public.tables (
