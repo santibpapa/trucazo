@@ -93,10 +93,13 @@ create policy "Los usuarios pueden crear su propio perfil" on public.profiles fo
 create policy "Los usuarios ven su propio historial" on public.game_history for SELECT to public using ((auth.uid() = player_id));
 create policy "ver mi mano" on public.game_hands for SELECT to public using ((auth.uid() = player_id));
 -- Comunidad: el cliente SOLO lee; todas las escrituras pasan por RPCs definer.
-create policy "chat visible para logueados" on public.chat_messages for SELECT to authenticated using (true);
+-- Nota: chat_messages y game_invites usan rol `public` (no `authenticated`)
+-- porque Realtime en este proyecto NO entrega con `authenticated` (el filtro por
+-- auth.uid() sigue restringiendo las invitaciones a sus participantes).
+create policy "chat visible para todos" on public.chat_messages for SELECT to public using (true);
 create policy "presencia visible para logueados" on public.user_presence for SELECT to authenticated using (true);
 create policy "ver mis amistades" on public.friendships for SELECT to authenticated using (((auth.uid() = requester_id) OR (auth.uid() = addressee_id)));
-create policy "ver mis invitaciones" on public.game_invites for SELECT to authenticated using (((auth.uid() = from_id) OR (auth.uid() = to_id)));
+create policy "ver mis invitaciones" on public.game_invites for SELECT to public using (((auth.uid() = from_id) OR (auth.uid() = to_id)));
 
 CREATE UNIQUE INDEX profiles_username_lower_key ON public.profiles USING btree (lower(username));
 -- Una sola fila por par de jugadores (en cualquier dirección)
