@@ -17,6 +17,14 @@ export interface ChatMessage {
   created_at: string
 }
 
+export interface NewsItem {
+  id: string
+  title: string
+  body: string
+  author_username: string
+  created_at: string
+}
+
 // Comunidad: lo que devuelve la RPC get_community (amigos, solicitudes e
 // invitaciones a jugar), en una sola llamada.
 export interface CommunityFriend {

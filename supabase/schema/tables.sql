@@ -145,6 +145,14 @@ create table if not exists public.games (
   campaign_reward integer not null default 0
 );
 
+create table if not exists public.news (
+  id              uuid not null default gen_random_uuid(),
+  title           text not null,
+  body            text not null,
+  author_username text not null,
+  created_at      timestamptz not null default now()
+);
+
 create table if not exists public.profiles (
   id uuid not null,
   username text not null,

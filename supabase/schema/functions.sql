@@ -782,6 +782,21 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.delete_news(p_id uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  if not coalesce((select is_admin from profiles where id = auth.uid()), false) then
+    raise exception 'solo un administrador puede borrar novedades';
+  end if;
+  delete from news where id = p_id;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.delete_group()
  RETURNS void
  LANGUAGE plpgsql
@@ -1411,6 +1426,33 @@ begin
     awaiting_deal = true, envido_reveal = v_reveal, updated_at = now()
   where id = p_game_id returning * into g;
   return g;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.publish_news(p_title text, p_body text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  me    uuid := auth.uid();
+  v_un  text;
+  v_ad  boolean;
+  v_t   text := btrim(coalesce(p_title, ''));
+  v_b   text := btrim(coalesce(p_body, ''));
+  v_id  uuid;
+begin
+  if me is null then raise exception 'no autenticado'; end if;
+  select username, is_admin into v_un, v_ad from profiles where id = me;
+  if not coalesce(v_ad, false) then raise exception 'solo un administrador puede publicar'; end if;
+  if length(v_t) = 0 then raise exception 'ponele un título'; end if;
+  if length(v_b) = 0 then raise exception 'escribí el contenido'; end if;
+
+  insert into news (title, body, author_username)
+  values (left(v_t, 120), left(v_b, 4000), v_un)
+  returning id into v_id;
+  return v_id;
 end;
 $function$;
 

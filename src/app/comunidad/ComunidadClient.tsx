@@ -7,6 +7,7 @@ import { Profile, CommunityData } from '@/lib/types'
 import { useCommunity } from '@/lib/useCommunity'
 import FriendsPanel from '@/components/FriendsPanel'
 import GroupPanel from '@/components/GroupPanel'
+import NewsPanel from '@/components/NewsPanel'
 import ChatGlobal from '@/components/ChatGlobal'
 
 interface Props {
@@ -71,13 +72,7 @@ export default function ComunidadClient({ profile, initialCommunity }: Props) {
         <Panel className={cn('p-5', tab !== 'chat' ? 'block' : 'hidden lg:block')}>
           {rightTab === 'amigos' && <FriendsPanel c={c} />}
           {rightTab === 'grupo' && <GroupPanel c={c} myId={profile.id} />}
-          {rightTab === 'novedades' && (
-            <Placeholder
-              icon={<MegaphoneIcon />}
-              title="Novedades"
-              text="Acá se van a publicar las novedades y actualizaciones del juego."
-            />
-          )}
+          {rightTab === 'novedades' && <NewsPanel isAdmin={!!profile.is_admin} />}
         </Panel>
       </div>
     </main>
@@ -108,24 +103,6 @@ function TabButton({
   )
 }
 
-// Sección que todavía no llegó (se construye por etapas).
-function Placeholder({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
-  return (
-    <div className="flex flex-col items-center gap-3 py-10 text-center">
-      <span className="w-12 h-12 rounded-full bg-surface2 border border-line flex items-center justify-center text-gold">
-        {icon}
-      </span>
-      <div>
-        <h2 className="font-display text-lg font-bold text-cream">{title}</h2>
-        <p className="text-sm text-subtle mt-1 max-w-xs mx-auto">{text}</p>
-      </div>
-      <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-gold">
-        Próximamente
-      </span>
-    </div>
-  )
-}
-
 function BackIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -134,11 +111,3 @@ function BackIcon() {
   )
 }
 
-function MegaphoneIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m3 11 18-5v12L3 14v-3z" />
-      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
-    </svg>
-  )
-}

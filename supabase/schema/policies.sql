@@ -28,6 +28,7 @@ alter table public.group_members enable row level security;
 alter table public.group_invites enable row level security;
 alter table public.game_presence enable row level security;
 alter table public.games enable row level security;
+alter table public.news enable row level security;
 alter table public.profiles enable row level security;
 alter table public.tables enable row level security;
 alter table public.user_presence enable row level security;
@@ -72,6 +73,7 @@ alter table public.group_invites add constraint group_invites_unique UNIQUE (gro
 alter table public.group_invites add constraint group_invites_group_id_fkey FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
 alter table public.group_invites add constraint group_invites_from_id_fkey FOREIGN KEY (from_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.group_invites add constraint group_invites_to_id_fkey FOREIGN KEY (to_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.news add constraint news_pkey PRIMARY KEY (id);
 alter table public.game_presence add constraint game_presence_game_id_fkey FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE;
 alter table public.game_presence add constraint game_presence_pkey PRIMARY KEY (game_id, player_id);
 alter table public.games add constraint games_campaign_rival_id_fkey FOREIGN KEY (campaign_rival_id) REFERENCES campaign_rivals(id);
@@ -116,6 +118,7 @@ create policy "ver mis invitaciones" on public.game_invites for SELECT to public
 create policy "ver mi grupo" on public.groups for SELECT to public using ((id IN (SELECT group_id FROM group_members WHERE user_id = auth.uid())));
 create policy "ver co-miembros" on public.group_members for SELECT to public using ((group_id IN (SELECT group_id FROM group_members WHERE user_id = auth.uid())));
 create policy "ver mis invitaciones de grupo" on public.group_invites for SELECT to public using (((auth.uid() = to_id) OR (auth.uid() = from_id)));
+create policy "novedades visibles para todos" on public.news for SELECT to public using (true);
 
 CREATE UNIQUE INDEX profiles_username_lower_key ON public.profiles USING btree (lower(username));
 -- Una sola fila por par de jugadores (en cualquier dirección)
@@ -124,6 +127,7 @@ CREATE UNIQUE INDEX friendships_pair_key ON public.friendships USING btree (LEAS
 CREATE UNIQUE INDEX game_invites_one_per_inviter ON public.game_invites USING btree (from_id);
 CREATE INDEX chat_messages_created_idx ON public.chat_messages USING btree (created_at);
 CREATE INDEX group_members_group_idx ON public.group_members USING btree (group_id);
+CREATE INDEX news_created_idx ON public.news USING btree (created_at DESC);
 
 -- Realtime: game_invites, chat_messages y group_invites publican cambios (avisos
 -- en vivo; respetan la RLS de SELECT, que debe ser `to public`). games y tables
