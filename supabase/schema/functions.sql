@@ -558,6 +558,33 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.create_group(p_name text, p_description text DEFAULT ''::text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  me    uuid := auth.uid();
+  v_nm  text := btrim(coalesce(p_name, ''));
+  v_id  uuid;
+begin
+  if me is null then raise exception 'no autenticado'; end if;
+  if length(v_nm) = 0 then raise exception 'ponele un nombre al grupo'; end if;
+  if length(v_nm) > 40 then raise exception 'el nombre es muy largo (máximo 40)'; end if;
+  if exists (select 1 from group_members where user_id = me) then
+    raise exception 'ya estás en un grupo';
+  end if;
+
+  insert into groups (name, description, leader_id)
+  values (v_nm, left(btrim(coalesce(p_description, '')), 200), me)
+  returning id into v_id;
+
+  insert into group_members (user_id, group_id) values (me, v_id);
+  return v_id;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.create_table(p_name text, p_bet integer, p_is_private boolean, p_private_code text DEFAULT NULL::text, p_target_score integer DEFAULT 30, p_time_limit integer DEFAULT 30)
  RETURNS tables
  LANGUAGE plpgsql
@@ -755,6 +782,18 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.delete_group()
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  delete from groups where leader_id = auth.uid();
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.finish_game(p_game_id uuid, p_winner_id uuid, p_p1_score integer, p_p2_score integer)
  RETURNS void
  LANGUAGE plpgsql
@@ -913,6 +952,8 @@ declare
   v_outgoing   jsonb;
   v_invites_in jsonb;
   v_invite_out jsonb;
+  v_group      jsonb;
+  v_group_inv  jsonb;
 begin
   if me is null then raise exception 'no autenticado'; end if;
 
@@ -969,12 +1010,40 @@ begin
     left join tables t on t.id = gi.table_id
    where gi.from_id = me;
 
+  -- Mi grupo (con miembros y su estado conectado/jugando).
+  select jsonb_build_object(
+           'id', g.id, 'name', g.name, 'description', g.description,
+           'leader_id', g.leader_id, 'is_leader', (g.leader_id = me),
+           'members', (
+             select coalesce(jsonb_agg(jsonb_build_object(
+                 'user_id', p.id, 'username', p.username,
+                 'is_leader', (p.id = g.leader_id),
+                 'online', coalesce(up.last_seen_at > now() - interval '75 seconds', false),
+                 'playing', exists (select 1 from games gg where gg.status = 'playing' and (gg.player1_id = p.id or gg.player2_id = p.id))
+               ) order by (p.id = g.leader_id) desc, lower(p.username)), '[]'::jsonb)
+             from group_members m join profiles p on p.id = m.user_id
+             left join user_presence up on up.user_id = p.id
+             where m.group_id = g.id)
+         )
+    into v_group
+    from group_members gm join groups g on g.id = gm.group_id
+   where gm.user_id = me;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'invite_id', gi.id, 'group_id', gi.group_id, 'group_name', g.name, 'from_username', p.username
+         ) order by gi.created_at desc), '[]'::jsonb)
+    into v_group_inv
+    from group_invites gi join groups g on g.id = gi.group_id join profiles p on p.id = gi.from_id
+   where gi.to_id = me;
+
   return jsonb_build_object(
     'friends', v_friends,
     'incoming', v_incoming,
     'outgoing', v_outgoing,
     'invites_in', v_invites_in,
-    'invite_out', v_invite_out
+    'invite_out', v_invite_out,
+    'group', v_group,
+    'group_invites_in', v_group_inv
   );
 end;
 $function$;
@@ -1061,6 +1130,43 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.invite_to_group(p_friend_id uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  me   uuid := auth.uid();
+  v_gid uuid;
+  v_count int;
+begin
+  if me is null then raise exception 'no autenticado'; end if;
+  select group_id into v_gid from group_members where user_id = me;
+  if v_gid is null then raise exception 'no estás en ningún grupo'; end if;
+
+  if not exists (
+    select 1 from friendships
+     where status = 'accepted'
+       and ((requester_id = me and addressee_id = p_friend_id)
+         or (requester_id = p_friend_id and addressee_id = me))
+  ) then
+    raise exception 'solo podés invitar a tus amigos';
+  end if;
+
+  if exists (select 1 from group_members where user_id = p_friend_id and group_id = v_gid) then
+    raise exception 'ya está en el grupo';
+  end if;
+
+  select count(*) into v_count from group_members where group_id = v_gid;
+  if v_count >= 20 then raise exception 'el grupo está lleno'; end if;
+
+  insert into group_invites (group_id, from_id, to_id)
+  values (v_gid, me, p_friend_id)
+  on conflict (group_id, to_id) do nothing;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.irse_al_mazo(p_game_id uuid)
  RETURNS games
  LANGUAGE plpgsql
@@ -1133,6 +1239,53 @@ begin
    returning * into t;
 
   return t;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.kick_group_member(p_user_id uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_gid uuid;
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  select id into v_gid from groups where leader_id = auth.uid();
+  if v_gid is null then raise exception 'no sos el líder de ningún grupo'; end if;
+  if p_user_id = auth.uid() then raise exception 'no te podés expulsar a vos mismo'; end if;
+  delete from group_members where user_id = p_user_id and group_id = v_gid;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.leave_group()
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  me      uuid := auth.uid();
+  v_gid   uuid;
+  v_leader uuid;
+  v_next  uuid;
+begin
+  if me is null then raise exception 'no autenticado'; end if;
+  select group_id into v_gid from group_members where user_id = me;
+  if v_gid is null then return; end if;
+
+  delete from group_members where user_id = me;
+
+  select leader_id into v_leader from groups where id = v_gid;
+  if v_leader = me then
+    select user_id into v_next from group_members
+     where group_id = v_gid order by joined_at asc limit 1;
+    if v_next is null then
+      delete from groups where id = v_gid;
+    else
+      update groups set leader_id = v_next where id = v_gid;
+    end if;
+  end if;
 end;
 $function$;
 
@@ -1460,6 +1613,40 @@ begin
 
   delete from game_invites where id = inv.id;
   return t.id;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.respond_group_invite(p_invite_id uuid, p_accept boolean)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare inv group_invites%rowtype;
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  select * into inv from group_invites where id = p_invite_id for update;
+  if not found then return; end if;
+  if inv.to_id <> auth.uid() then raise exception 'esta invitación no es para vos'; end if;
+
+  if not p_accept then
+    delete from group_invites where id = inv.id;
+    return;
+  end if;
+
+  if exists (select 1 from group_members where user_id = auth.uid()) then
+    raise exception 'ya estás en un grupo';
+  end if;
+  if not exists (select 1 from groups where id = inv.group_id) then
+    delete from group_invites where id = inv.id;
+    raise exception 'el grupo ya no existe';
+  end if;
+  if (select count(*) from group_members where group_id = inv.group_id) >= 20 then
+    raise exception 'el grupo está lleno';
+  end if;
+
+  insert into group_members (user_id, group_id) values (auth.uid(), inv.group_id);
+  delete from group_invites where to_id = auth.uid();
 end;
 $function$;
 

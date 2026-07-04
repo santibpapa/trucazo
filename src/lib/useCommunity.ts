@@ -37,13 +37,18 @@ export function useCommunity(myId: string, initial: CommunityData | null = null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Invitación nueva para mí → refrescar al toque.
+  // Invitación nueva para mí (a jugar o a un grupo) → refrescar al toque.
   useEffect(() => {
     const channel = supabase
       .channel(`invites-${myId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'game_invites', filter: `to_id=eq.${myId}` },
+        () => { refresh() },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'group_invites', filter: `to_id=eq.${myId}` },
         () => { refresh() },
       )
       .subscribe()
@@ -156,9 +161,66 @@ export function useCommunity(myId: string, initial: CommunityData | null = null)
     }
   }
 
+  // --- Grupos ---
+  async function createGroup(name: string, description: string): Promise<boolean> {
+    if (!name.trim()) return false
+    setBusy(true); setError('')
+    const { error: e } = await supabase.rpc('create_group', {
+      p_name: name.trim(), p_description: description.trim(),
+    })
+    setBusy(false)
+    if (e) { setError(e.message); return false }
+    await refresh()
+    return true
+  }
+
+  async function inviteToGroup(friendId: string) {
+    setBusy(true); setError('')
+    const { error: e } = await supabase.rpc('invite_to_group', { p_friend_id: friendId })
+    setBusy(false)
+    if (e) setError(e.message)
+    else setNotice('Invitación al grupo enviada.')
+    refresh()
+  }
+
+  async function respondGroupInvite(inviteId: string, accept: boolean) {
+    setBusy(true); setError('')
+    const { error: e } = await supabase.rpc('respond_group_invite', {
+      p_invite_id: inviteId, p_accept: accept,
+    })
+    setBusy(false)
+    if (e) setError(e.message)
+    refresh()
+  }
+
+  async function leaveGroup() {
+    setBusy(true); setError('')
+    const { error: e } = await supabase.rpc('leave_group')
+    setBusy(false)
+    if (e) setError(e.message)
+    refresh()
+  }
+
+  async function kickMember(userId: string) {
+    setBusy(true); setError('')
+    const { error: e } = await supabase.rpc('kick_group_member', { p_user_id: userId })
+    setBusy(false)
+    if (e) setError(e.message)
+    refresh()
+  }
+
+  async function deleteGroup() {
+    setBusy(true); setError('')
+    const { error: e } = await supabase.rpc('delete_group')
+    setBusy(false)
+    if (e) setError(e.message)
+    refresh()
+  }
+
   return {
     data, notice, error, busy,
     refresh, sendRequest, respondRequest, removeFriend,
     invite, cancelInvite, respondInvite,
+    createGroup, inviteToGroup, respondGroupInvite, leaveGroup, kickMember, deleteGroup,
   }
 }

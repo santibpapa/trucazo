@@ -23,6 +23,9 @@ alter table public.friendships enable row level security;
 alter table public.game_hands enable row level security;
 alter table public.game_history enable row level security;
 alter table public.game_invites enable row level security;
+alter table public.groups enable row level security;
+alter table public.group_members enable row level security;
+alter table public.group_invites enable row level security;
 alter table public.game_presence enable row level security;
 alter table public.games enable row level security;
 alter table public.profiles enable row level security;
@@ -59,6 +62,16 @@ alter table public.game_invites add constraint game_invites_from_id_fkey FOREIGN
 alter table public.game_invites add constraint game_invites_to_id_fkey FOREIGN KEY (to_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.game_invites add constraint game_invites_table_id_fkey FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE CASCADE;
 alter table public.game_invites add constraint game_invites_not_self CHECK ((from_id <> to_id));
+alter table public.groups add constraint groups_pkey PRIMARY KEY (id);
+alter table public.groups add constraint groups_leader_id_fkey FOREIGN KEY (leader_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.group_members add constraint group_members_pkey PRIMARY KEY (user_id);
+alter table public.group_members add constraint group_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.group_members add constraint group_members_group_id_fkey FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
+alter table public.group_invites add constraint group_invites_pkey PRIMARY KEY (id);
+alter table public.group_invites add constraint group_invites_unique UNIQUE (group_id, to_id);
+alter table public.group_invites add constraint group_invites_group_id_fkey FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
+alter table public.group_invites add constraint group_invites_from_id_fkey FOREIGN KEY (from_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.group_invites add constraint group_invites_to_id_fkey FOREIGN KEY (to_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.game_presence add constraint game_presence_game_id_fkey FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE;
 alter table public.game_presence add constraint game_presence_pkey PRIMARY KEY (game_id, player_id);
 alter table public.games add constraint games_campaign_rival_id_fkey FOREIGN KEY (campaign_rival_id) REFERENCES campaign_rivals(id);
@@ -100,6 +113,9 @@ create policy "chat visible para todos" on public.chat_messages for SELECT to pu
 create policy "presencia visible para logueados" on public.user_presence for SELECT to authenticated using (true);
 create policy "ver mis amistades" on public.friendships for SELECT to authenticated using (((auth.uid() = requester_id) OR (auth.uid() = addressee_id)));
 create policy "ver mis invitaciones" on public.game_invites for SELECT to public using (((auth.uid() = from_id) OR (auth.uid() = to_id)));
+create policy "ver mi grupo" on public.groups for SELECT to public using ((id IN (SELECT group_id FROM group_members WHERE user_id = auth.uid())));
+create policy "ver co-miembros" on public.group_members for SELECT to public using ((group_id IN (SELECT group_id FROM group_members WHERE user_id = auth.uid())));
+create policy "ver mis invitaciones de grupo" on public.group_invites for SELECT to public using (((auth.uid() = to_id) OR (auth.uid() = from_id)));
 
 CREATE UNIQUE INDEX profiles_username_lower_key ON public.profiles USING btree (lower(username));
 -- Una sola fila por par de jugadores (en cualquier dirección)
@@ -107,12 +123,14 @@ CREATE UNIQUE INDEX friendships_pair_key ON public.friendships USING btree (LEAS
 -- Una invitación a jugar activa por jugador
 CREATE UNIQUE INDEX game_invites_one_per_inviter ON public.game_invites USING btree (from_id);
 CREATE INDEX chat_messages_created_idx ON public.chat_messages USING btree (created_at);
+CREATE INDEX group_members_group_idx ON public.group_members USING btree (group_id);
 
--- Realtime: game_invites y chat_messages publican cambios (aviso instantáneo de
--- invitación y mensajes del chat; respetan la RLS de SELECT). games y tables se
--- configuran a mano en el panel; estas se agregaron por SQL.
+-- Realtime: game_invites, chat_messages y group_invites publican cambios (avisos
+-- en vivo; respetan la RLS de SELECT, que debe ser `to public`). games y tables
+-- se configuran a mano en el panel; estas se agregaron por SQL.
 alter publication supabase_realtime add table public.game_invites;
 alter publication supabase_realtime add table public.chat_messages;
+alter publication supabase_realtime add table public.group_invites;
 
 -- ------------------------------------------------------------
 -- Storage (depósito de imágenes de las reseñas). El depósito debe existir antes

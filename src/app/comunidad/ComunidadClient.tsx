@@ -6,6 +6,7 @@ import { Panel, Coins, cn } from '@/components/ui'
 import { Profile, CommunityData } from '@/lib/types'
 import { useCommunity } from '@/lib/useCommunity'
 import FriendsPanel from '@/components/FriendsPanel'
+import GroupPanel from '@/components/GroupPanel'
 import ChatGlobal from '@/components/ChatGlobal'
 
 interface Props {
@@ -23,6 +24,7 @@ export default function ComunidadClient({ profile, initialCommunity }: Props) {
   const rightTab: Exclude<Tab, 'chat'> = tab === 'chat' ? 'amigos' : tab
 
   const pendientes = (c.data?.incoming.length ?? 0) + (c.data?.invites_in.length ?? 0)
+  const grupoPend = c.data?.group_invites_in.length ?? 0
 
   return (
     <main className="flex flex-col min-h-screen p-4 sm:p-6 gap-4 max-w-5xl mx-auto w-full">
@@ -51,7 +53,7 @@ export default function ComunidadClient({ profile, initialCommunity }: Props) {
         <TabButton active={rightTab === 'amigos'} onClick={() => setTab('amigos')} badge={pendientes}>
           Amigos
         </TabButton>
-        <TabButton active={rightTab === 'grupo'} onClick={() => setTab('grupo')}>
+        <TabButton active={rightTab === 'grupo'} onClick={() => setTab('grupo')} badge={grupoPend}>
           Grupo
         </TabButton>
         <TabButton active={rightTab === 'novedades'} onClick={() => setTab('novedades')}>
@@ -68,13 +70,7 @@ export default function ComunidadClient({ profile, initialCommunity }: Props) {
         {/* Columna derecha: pestaña activa */}
         <Panel className={cn('p-5', tab !== 'chat' ? 'block' : 'hidden lg:block')}>
           {rightTab === 'amigos' && <FriendsPanel c={c} />}
-          {rightTab === 'grupo' && (
-            <Placeholder
-              icon={<ShieldIcon />}
-              title="Grupos"
-              text="Armá tu grupo con amigos y, más adelante, compitan juntos 2x2 y 3x3 contra otros grupos."
-            />
-          )}
+          {rightTab === 'grupo' && <GroupPanel c={c} myId={profile.id} />}
           {rightTab === 'novedades' && (
             <Placeholder
               icon={<MegaphoneIcon />}
@@ -134,14 +130,6 @@ function BackIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M15 18l-6-6 6-6" />
-    </svg>
-  )
-}
-
-function ShieldIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
   )
 }

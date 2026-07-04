@@ -55,6 +55,28 @@ create table if not exists public.friendships (
   responded_at timestamptz
 );
 
+create table if not exists public.groups (
+  id          uuid not null default gen_random_uuid(),
+  name        text not null,
+  description text not null default '',
+  leader_id   uuid not null,
+  created_at  timestamptz not null default now()
+);
+
+create table if not exists public.group_members (
+  user_id   uuid not null,
+  group_id  uuid not null,
+  joined_at timestamptz not null default now()
+);
+
+create table if not exists public.group_invites (
+  id         uuid not null default gen_random_uuid(),
+  group_id   uuid not null,
+  from_id    uuid not null,
+  to_id      uuid not null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.game_hands (
   game_id uuid not null,
   player_id uuid not null,

@@ -50,12 +50,38 @@ export interface CommunityInviteOut {
   table_status: string | null
 }
 
+export interface CommunityGroupMember {
+  user_id: string
+  username: string
+  is_leader: boolean
+  online: boolean
+  playing: boolean
+}
+
+export interface CommunityGroup {
+  id: string
+  name: string
+  description: string
+  leader_id: string
+  is_leader: boolean
+  members: CommunityGroupMember[]
+}
+
+export interface CommunityGroupInvite {
+  invite_id: string
+  group_id: string
+  group_name: string
+  from_username: string
+}
+
 export interface CommunityData {
   friends: CommunityFriend[]
   incoming: CommunityRequest[]
   outgoing: CommunityRequest[]
   invites_in: CommunityInviteIn[]
   invite_out: CommunityInviteOut | null
+  group: CommunityGroup | null
+  group_invites_in: CommunityGroupInvite[]
 }
 
 export interface GameHistory {
