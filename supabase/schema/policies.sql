@@ -17,6 +17,7 @@
 
 alter table public.campaign_progress enable row level security;
 alter table public.campaign_rivals enable row level security;
+alter table public.chat_messages enable row level security;
 alter table public.feedback enable row level security;
 alter table public.friendships enable row level security;
 alter table public.game_hands enable row level security;
@@ -40,6 +41,8 @@ alter table public.feedback add constraint feedback_pkey PRIMARY KEY (id);
 alter table public.feedback add constraint feedback_rating_aesthetics_check CHECK (((rating_aesthetics >= 1) AND (rating_aesthetics <= 5)));
 alter table public.feedback add constraint feedback_rating_general_check CHECK (((rating_general >= 1) AND (rating_general <= 5)));
 alter table public.feedback add constraint feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE SET NULL;
+alter table public.chat_messages add constraint chat_messages_pkey PRIMARY KEY (id);
+alter table public.chat_messages add constraint chat_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.friendships add constraint friendships_pkey PRIMARY KEY (id);
 alter table public.friendships add constraint friendships_requester_id_fkey FOREIGN KEY (requester_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.friendships add constraint friendships_addressee_id_fkey FOREIGN KEY (addressee_id) REFERENCES profiles(id) ON DELETE CASCADE;
@@ -90,6 +93,7 @@ create policy "Los usuarios pueden crear su propio perfil" on public.profiles fo
 create policy "Los usuarios ven su propio historial" on public.game_history for SELECT to public using ((auth.uid() = player_id));
 create policy "ver mi mano" on public.game_hands for SELECT to public using ((auth.uid() = player_id));
 -- Comunidad: el cliente SOLO lee; todas las escrituras pasan por RPCs definer.
+create policy "chat visible para logueados" on public.chat_messages for SELECT to authenticated using (true);
 create policy "presencia visible para logueados" on public.user_presence for SELECT to authenticated using (true);
 create policy "ver mis amistades" on public.friendships for SELECT to authenticated using (((auth.uid() = requester_id) OR (auth.uid() = addressee_id)));
 create policy "ver mis invitaciones" on public.game_invites for SELECT to authenticated using (((auth.uid() = from_id) OR (auth.uid() = to_id)));
@@ -99,11 +103,13 @@ CREATE UNIQUE INDEX profiles_username_lower_key ON public.profiles USING btree (
 CREATE UNIQUE INDEX friendships_pair_key ON public.friendships USING btree (LEAST(requester_id, addressee_id), GREATEST(requester_id, addressee_id));
 -- Una invitación a jugar activa por jugador
 CREATE UNIQUE INDEX game_invites_one_per_inviter ON public.game_invites USING btree (from_id);
+CREATE INDEX chat_messages_created_idx ON public.chat_messages USING btree (created_at);
 
--- Realtime: game_invites publica cambios (para el aviso instantáneo de
--- invitación; respeta la RLS de SELECT). games y tables se configuran a mano
--- en el panel; esta se agregó por SQL.
+-- Realtime: game_invites y chat_messages publican cambios (aviso instantáneo de
+-- invitación y mensajes del chat; respetan la RLS de SELECT). games y tables se
+-- configuran a mano en el panel; estas se agregaron por SQL.
 alter publication supabase_realtime add table public.game_invites;
+alter publication supabase_realtime add table public.chat_messages;
 
 -- ------------------------------------------------------------
 -- Storage (depósito de imágenes de las reseñas). El depósito debe existir antes

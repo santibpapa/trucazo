@@ -6,6 +6,15 @@ export interface Profile {
   games_won: number
   games_lost: number
   created_at: string
+  is_admin?: boolean
+}
+
+export interface ChatMessage {
+  id: string
+  user_id: string
+  username: string
+  body: string
+  created_at: string
 }
 
 // Comunidad: lo que devuelve la RPC get_community (amigos, solicitudes e

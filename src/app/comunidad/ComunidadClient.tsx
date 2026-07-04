@@ -6,6 +6,7 @@ import { Panel, Coins, cn } from '@/components/ui'
 import { Profile, CommunityData } from '@/lib/types'
 import { useCommunity } from '@/lib/useCommunity'
 import FriendsPanel from '@/components/FriendsPanel'
+import ChatGlobal from '@/components/ChatGlobal'
 
 interface Props {
   profile: Profile
@@ -59,13 +60,9 @@ export default function ComunidadClient({ profile, initialCommunity }: Props) {
       </div>
 
       <div className="flex-1 grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] items-start">
-        {/* Chat global (llega en la etapa 2) */}
-        <Panel className={cn('p-5', tab === 'chat' ? 'block' : 'hidden lg:block')}>
-          <Placeholder
-            icon={<ChatIcon />}
-            title="Chat global"
-            text="Muy pronto vas a poder charlar acá con todos los jugadores de Trucazo."
-          />
+        {/* Chat global */}
+        <Panel className={cn('p-4 sm:p-5', tab === 'chat' ? 'block' : 'hidden lg:block')}>
+          <ChatGlobal myId={profile.id} isAdmin={!!profile.is_admin} />
         </Panel>
 
         {/* Columna derecha: pestaña activa */}
@@ -137,14 +134,6 @@ function BackIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M15 18l-6-6 6-6" />
-    </svg>
-  )
-}
-
-function ChatIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
   )
 }

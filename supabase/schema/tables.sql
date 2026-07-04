@@ -26,6 +26,14 @@ create table if not exists public.campaign_rivals (
   bot_id uuid not null
 );
 
+create table if not exists public.chat_messages (
+  id         uuid not null default gen_random_uuid(),
+  user_id    uuid not null,
+  username   text not null,
+  body       text not null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.feedback (
   id uuid not null default gen_random_uuid(),
   user_id uuid,
@@ -123,7 +131,8 @@ create table if not exists public.profiles (
   games_won integer not null default 0,
   games_lost integer not null default 0,
   created_at timestamptz not null default now(),
-  is_bot boolean not null default false
+  is_bot boolean not null default false,
+  is_admin boolean not null default false
 );
 
 create table if not exists public.user_presence (

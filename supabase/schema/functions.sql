@@ -521,6 +521,21 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.clear_chat()
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  if not coalesce((select is_admin from profiles where id = auth.uid()), false) then
+    raise exception 'solo un administrador puede limpiar el chat';
+  end if;
+  delete from chat_messages;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.claim_bonus()
  RETURNS integer
  LANGUAGE plpgsql
@@ -716,6 +731,27 @@ begin
     select * into g from games where id = p_game_id;
   end if;
   return g;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.delete_chat_message(p_id uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  msg      chat_messages%rowtype;
+  v_admin  boolean;
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  select * into msg from chat_messages where id = p_id;
+  if not found then return; end if;  -- idempotente
+  select is_admin into v_admin from profiles where id = auth.uid();
+  if not coalesce(v_admin, false) and msg.user_id <> auth.uid() then
+    raise exception 'no podés borrar este mensaje';
+  end if;
+  delete from chat_messages where id = p_id;
 end;
 $function$;
 
@@ -1470,6 +1506,40 @@ begin
 
   select * into g from games where id = p_game_id;
   return g;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.send_chat_message(p_body text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  me   uuid := auth.uid();
+  v_un text;
+  v_body text := btrim(coalesce(p_body, ''));
+begin
+  if me is null then raise exception 'no autenticado'; end if;
+  if length(v_body) = 0 then raise exception 'escribí algo'; end if;
+  v_body := left(v_body, 300);  -- tope de largo
+
+  if exists (
+    select 1 from chat_messages
+     where user_id = me and created_at > now() - interval '1.5 seconds'
+  ) then
+    raise exception 'esperá un momento antes de mandar otro mensaje';
+  end if;
+
+  select username into v_un from profiles where id = me;
+  if not found then raise exception 'perfil no encontrado'; end if;
+
+  insert into chat_messages (user_id, username, body) values (me, v_un, v_body);
+
+  -- Limpieza oportunista de mensajes viejos (de vez en cuando, para no recargar).
+  if random() < 0.05 then
+    delete from chat_messages where created_at < now() - interval '3 days';
+  end if;
 end;
 $function$;
 
