@@ -1,0 +1,35 @@
+{
+  "projectId": "0a8dd6ed-804f-4c7c-93cd-266acf91f222",
+  "shape": "package",
+  "readmeHeader": ".design-sync/conventions.md",
+  "pkg": "trucazo",
+  "entry": ".design-sync/ds-entry.ts",
+  "globalName": "Trucazo",
+  "srcDir": "src/components",
+  "tsconfig": "tsconfig.json",
+  "buildCmd": "npx tailwindcss -c .design-sync/tailwind-ds.config.js -i .design-sync/tailwind-input.css -o .design-sync/.cache/ds.css",
+  "cssEntry": ".design-sync/.cache/ds.css",
+  "overrides": {
+    "Modal": { "cardMode": "single", "primaryStory": "Confirmacion", "viewport": "720x560" },
+    "Alert": { "cardMode": "column" }
+  },
+  "componentSrcMap": {
+    "Button": "src/components/ui/Button.tsx",
+    "Panel": "src/components/ui/Panel.tsx",
+    "Input": "src/components/ui/Input.tsx",
+    "Modal": "src/components/ui/Modal.tsx",
+    "Coins": "src/components/ui/Coins.tsx",
+    "CoinIcon": "src/components/ui/Coins.tsx",
+    "Logo": "src/components/ui/Logo.tsx",
+    "Alert": "src/components/ui/Alert.tsx",
+    "Toggle": "src/components/ui/Toggle.tsx",
+    "PlayingCard": "src/components/game/PlayingCard.tsx",
+    "CardBack": "src/components/game/CardBack.tsx",
+    "FriendsPanel": null,
+    "GuestSessionGuard": null,
+    "GuestButton": null,
+    "GroupPanel": null,
+    "NewsPanel": null,
+    "ChatGlobal": null
+  }
+}

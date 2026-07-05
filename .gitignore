@@ -40,3 +40,12 @@ next-env.d.ts
 
 # skills/herramientas locales de Claude (no son parte del juego)
 /.claude/
+
+# design-sync (sincronización con claude.ai/design): scripts staged, build
+# regenerable y estado de máquina. Lo durable (.design-sync/ config, notas,
+# previews) SÍ se commitea.
+/.ds-sync/
+/ds-bundle/
+/.design-sync/.cache/
+/.design-sync/learnings/
+/.design-sync/node_modules/

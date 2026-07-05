@@ -1,0 +1,11 @@
+/* Entrada de Tailwind para design-sync: los estilos reales del juego
+   (src/app/globals.css) + las fuentes que en la app carga next/font. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Sora:wght@100..800&display=swap');
+@import '../src/app/globals.css';
+
+/* En la app, next/font define estas variables en runtime. Acá las fijamos
+   a las familias de Google Fonts para que font-sans/font-display resuelvan. */
+:root {
+  --font-inter: 'Inter', system-ui, sans-serif;
+  --font-sora: 'Sora', 'Inter', sans-serif;
+}
