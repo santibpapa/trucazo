@@ -186,6 +186,8 @@ export interface Game {
   campaign_rival_id: string | null
   // Monedas de premio otorgadas en este duelo (>0 solo la 1ª vez que lo ganás)
   campaign_reward: number
+  // Puntos de ranking ganados en este duelo (1ª victoria o miguita de revancha)
+  campaign_points_earned: number
   created_at: string
   updated_at: string
 }

@@ -11,7 +11,17 @@
 create table if not exists public.campaign_progress (
   user_id uuid not null,
   rival_id uuid not null,
-  beaten_at timestamptz not null default now()
+  beaten_at timestamptz not null default now(),
+  wins integer not null default 1,
+  rematch_points integer not null default 0
+);
+
+create table if not exists public.campaign_provinces (
+  id uuid not null,
+  order_index integer not null,
+  slug text not null,
+  name text not null,
+  points_required integer not null default 0
 );
 
 create table if not exists public.campaign_rivals (
@@ -23,7 +33,13 @@ create table if not exists public.campaign_rivals (
   difficulty integer not null,
   target_score integer not null,
   reward_coins integer not null,
-  bot_id uuid not null
+  bot_id uuid not null,
+  province_id uuid,
+  points_required integer not null default 0,
+  ranking_points integer not null default 0,
+  points_reward integer not null default 0,
+  trait_liar smallint not null default 5,
+  trait_aggressive smallint not null default 5
 );
 
 create table if not exists public.chat_messages (
@@ -142,7 +158,8 @@ create table if not exists public.games (
   mazo_count_p2 integer not null default 0,
   envido_reveal jsonb,
   campaign_rival_id uuid,
-  campaign_reward integer not null default 0
+  campaign_reward integer not null default 0,
+  campaign_points_earned integer not null default 0
 );
 
 create table if not exists public.news (
@@ -162,7 +179,8 @@ create table if not exists public.profiles (
   games_lost integer not null default 0,
   created_at timestamptz not null default now(),
   is_bot boolean not null default false,
-  is_admin boolean not null default false
+  is_admin boolean not null default false,
+  campaign_points integer not null default 0
 );
 
 create table if not exists public.user_presence (

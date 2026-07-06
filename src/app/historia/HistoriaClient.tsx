@@ -13,166 +13,189 @@ interface Rival {
   display_name: string
   tagline: string
   difficulty: number
+  trait_liar: number
+  trait_aggressive: number
   target_score: number
   reward_coins: number
+  points_required: number
+  ranking_points: number
+  points_reward: number
   beaten: boolean
   unlocked: boolean
 }
 
+interface Province {
+  id: string
+  order_index: number
+  slug: string
+  name: string
+  points_required: number
+  unlocked: boolean
+  rivals: Rival[]
+}
+
+interface RankingRow {
+  position: number
+  name: string
+  slug: string | null
+  points: number
+  is_user: boolean
+  beaten: boolean | null
+  province: string | null
+}
+
 interface Props {
-  initialRivals: Rival[]
+  points: number
+  provinces: Province[]
   coins: number
 }
+
 type Pos = { x: number; y: number }
 
-const SEEN_KEY = 'trucazo:campaign:seen'
+const SEEN_KEY = 'trucazo:campania:seen'
+const TUTORIAL_KEY = 'trucazo:campania:tutorial'
 
-// Medida real del mapa (una sola tira vertical para compu y celular). El
-// escenario usa esta proporción fija, así tiene alto conocido desde el arranque
-// (no espera a que cargue la imagen) y los medallones caen en su lugar al
-// instante. Si cambiás la imagen por otra de distinta medida, actualizá esto.
-const MAP_W = 711
-const MAP_H = 2212
-// Cuántas "pantallas" de alto mide el mapa en compu (a más, más viaje al bajar).
-const SCROLL_SCREENS = 3
-// Duración del deslizamiento de la cámara al desbloquear un rival (ms). A más,
-// más lento. Es la perilla para regular la velocidad del auto-scroll.
-const GLIDE_MS = 2600
-// Ancho del escenario: en compu es una tira centrada (según el alto de pantalla);
-// en celular ocupa todo el ancho. El min() elige solo el que corresponda.
-const STAGE_WIDTH = `min(100vw, calc(100dvh * ${((MAP_W / MAP_H) * SCROLL_SCREENS).toFixed(4)}))`
-
-// Posiciones de los 10 medallones sobre el camino (en % del mapa), en orden de
-// rival (1 = Tobías, arriba/norte ... 10 = Don Salvador, abajo/sur). Estimadas a
-// ojo sobre el zigzag; se afinan con el "modo ajuste" (?ajustar=1).
-const NODOS: Pos[] = [
-  { x: 38.7, y: 7.5 },
-  { x: 49.8, y: 14.9 },
-  { x: 47.2, y: 23.8 },
-  { x: 38.4, y: 33.5 },
-  { x: 55, y: 41.9 },
-  { x: 49.3, y: 52.1 },
-  { x: 64.5, y: 62.3 },
-  { x: 40.3, y: 69.7 },
-  { x: 59.3, y: 81 },
-  { x: 48.5, y: 92.2 },
+// Pasos del tutorial de bienvenida (se muestra una sola vez por dispositivo).
+// Editar acá para cambiar el contenido.
+const TUTORIAL_PASOS: { titulo: string; texto: string }[] = [
+  { titulo: 'Recorré Argentina', texto: 'Cada provincia tiene sus propios rivales, con su estilo y su nivel de juego.' },
+  { titulo: 'Sumá puntos', texto: 'Ganá duelos para sumar puntos y desbloquear rivales y provincias nuevas.' },
+  { titulo: 'Llegá a la cima', texto: 'Subí en el Ranking de Argentina hasta destronar al número 1.' },
 ]
 
-export default function HistoriaClient({ initialRivals, coins }: Props) {
+// Medida real del mapa político (public/historia/mapa-argentina.png). El
+// escenario usa esta proporción fija así entra completo en pantalla (en compu
+// manda el alto, en celular el ancho). Si cambiás la imagen, actualizá esto.
+const MAP_W = 976
+const MAP_H = 1611
+
+// Posición de cada provincia sobre el mapa (en % del escenario). Estimadas a
+// ojo; se afinan arrastrando con el "modo ajuste" (?ajustar=1).
+const MARCADORES: Record<string, Pos> = {
+  'santiago-del-estero': { x: 44.3, y: 20.1 },
+  'santa-fe':            { x: 52.3, y: 29.6 },
+  'cordoba':             { x: 41.6, y: 31.5 },
+  'mendoza':             { x: 23.3, y: 38.9 },
+  'buenos-aires':        { x: 55, y: 43.4 },
+}
+
+// Lugares de los rivales DENTRO de cada provincia (en % del cuadro flotante).
+// Hay 6 lugares por provincia (hoy se usan menos; los nuevos rivales de la
+// etapa 3 van cayendo en los que siguen). También se afinan con ?ajustar=1
+// abriendo la provincia.
+const LUGARES: Record<string, Pos[]> = {
+  'buenos-aires':        [{ x: 31, y: 37 }, { x: 69.5, y: 23 }, { x: 30.2, y: 71.8 }, { x: 82.9, y: 54 }, { x: 35, y: 74 }, { x: 55, y: 84 }],
+  'santa-fe':            [{ x: 48, y: 25 }, { x: 55, y: 48 }, { x: 45, y: 68 }, { x: 58, y: 82 }, { x: 35, y: 40 }, { x: 60, y: 15 }],
+  'cordoba':             [{ x: 50, y: 40 }, { x: 40, y: 62 }, { x: 62, y: 58 }, { x: 45, y: 20 }, { x: 60, y: 25 }, { x: 50, y: 80 }],
+  'mendoza':             [{ x: 42, y: 30 }, { x: 58, y: 52 }, { x: 40, y: 68 }, { x: 60, y: 20 }, { x: 30, y: 50 }, { x: 55, y: 80 }],
+  'santiago-del-estero': [{ x: 50, y: 42 }, { x: 40, y: 62 }, { x: 62, y: 30 }, { x: 55, y: 70 }, { x: 35, y: 30 }, { x: 65, y: 55 }],
+}
+
+export default function HistoriaClient({ points, provinces: initialProvinces, coins }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [openProv, setOpenProv] = useState<string | null>(null)
+  // Cierre suave: primero corre la animación de salida y recién ahí se desmonta.
+  const [closing, setClosing] = useState(false)
   const [selected, setSelected] = useState<Rival | null>(null)
+  const [showRanking, setShowRanking] = useState(false)
   const [editing, setEditing] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  function closeProv() {
+    if (closing) return
+    setClosing(true)
+    setTimeout(() => { setOpenProv(null); setClosing(false) }, 230)
+  }
+
   // Efecto de entrada: las nubes se abren y se quitan al terminar la animación.
   const [intro, setIntro] = useState(true)
   useEffect(() => {
     const t = setTimeout(() => setIntro(false), 3600)
     return () => clearTimeout(t)
   }, [])
-  // Posiciones editables (para el modo ajuste). Empiezan en la constante.
-  const [nodos, setNodos] = useState<Pos[]>(NODOS)
-  const stageRef = useRef<HTMLDivElement>(null)
-  const scrollRef = useRef<HTMLElement>(null)
-  const nodeRefs = useRef<(HTMLDivElement | null)[]>([])
-  // Deslizamiento pendiente (índice de rival), que arranca recién cuando las
-  // nubes terminan. null = no hay que deslizar.
-  const glideTo = useRef<number | null>(null)
 
-  const rivals = [...initialRivals].sort((a, b) => a.order_index - b.order_index)
-  const vencidos = rivals.filter(r => r.beaten).length
-  const currentIndex = rivals.findIndex(r => r.unlocked && !r.beaten)
-  const currentId = currentIndex >= 0 ? rivals[currentIndex].id : null
-  // "Niebla de guerra": el tramo del mapa todavía no descubierto (los rivales
-  // bloqueados, después del que te toca) queda oscurecido. Arranca a mitad de
-  // camino entre el rival actual y el siguiente. null = ya ganaste todo → sin niebla.
-  const fogStart =
-    currentIndex >= 0 && currentIndex < rivals.length - 1
-      ? (nodos[currentIndex].y + nodos[currentIndex + 1].y) / 2
-      : null
+  // Posiciones editables (modo ajuste). Empiezan en las constantes.
+  const [marcadores, setMarcadores] = useState(MARCADORES)
+  const [lugares, setLugares] = useState(LUGARES)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const squareRef = useRef<HTMLDivElement>(null)
+
+  const provinces = [...initialProvinces].sort((a, b) => a.order_index - b.order_index)
+  const allRivals = provinces.flatMap(p => p.rivals.map(r => ({ r, prov: p.slug })))
+
 
   useEffect(() => {
-    setEditing(new URLSearchParams(window.location.search).get('ajustar') === '1')
+    // Acepta ?ajustar=1 y también ?ajuste=1 (para no pelearse con el dedo).
+    const q = new URLSearchParams(window.location.search)
+    setEditing(q.get('ajustar') === '1' || q.get('ajuste') === '1')
   }, [])
 
-  // Centra en pantalla el medallón i (dentro del contenedor que scrollea). Con
-  // duration=0 salta al instante; con duration>0 anima a mano (velocidad propia,
-  // que el navegador no deja regular con 'smooth').
-  function scrollToIndex(i: number, duration = 0) {
-    const c = scrollRef.current
-    const el = nodeRefs.current[i]
-    if (!c || !el) return
-    const cRect = c.getBoundingClientRect()
-    const eRect = el.getBoundingClientRect()
-    const delta = eRect.top + eRect.height / 2 - (cRect.top + cRect.height / 2)
-    const to = c.scrollTop + delta
-    if (duration <= 0) { c.scrollTop = to; return }
-    const from = c.scrollTop
-    const t0 = performance.now()
-    // easeInOutCubic: arranca y frena suave.
-    const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
-    const step = (now: number) => {
-      const p = Math.min(1, (now - t0) / duration)
-      c.scrollTop = from + (to - from) * ease(p)
-      if (p < 1) requestAnimationFrame(step)
-    }
-    requestAnimationFrame(step)
-  }
-
-  // Animaciones de desbloqueo (comparadas contra lo que el jugador ya vio) +
-  // auto-scroll: al abrirse las nubes, la "cámara" baja sola hasta el rival que
-  // te toca (deslizamiento visible en compu y celu, ya no tapado por las nubes).
-  const [reveal, setReveal] = useState<{ u: Set<string>; b: Set<string> }>({ u: new Set(), b: new Set() })
+  // Animaciones de novedad (comparadas contra lo que el jugador ya vio en este
+  // dispositivo) + auto-abrir la provincia donde acaba de ganar.
+  const [reveal, setReveal] = useState<{ ru: Set<string>; rb: Set<string>; pu: Set<string> }>({
+    ru: new Set(), rb: new Set(), pu: new Set(),
+  })
+  const [showTutorial, setShowTutorial] = useState(false)
+  const tutorialPending = useRef(false)
+  const autoOpen = useRef<string | null>(null)
   const didInit = useRef(false)
   useEffect(() => {
     if (didInit.current) return
     didInit.current = true
     const snapshot = () => JSON.stringify({
-      unlocked: rivals.filter(r => r.unlocked).map(r => r.id),
-      beaten: rivals.filter(r => r.beaten).map(r => r.id),
+      rivals_unlocked: allRivals.filter(x => x.r.unlocked).map(x => x.r.id),
+      rivals_beaten: allRivals.filter(x => x.r.beaten).map(x => x.r.id),
+      provinces_unlocked: provinces.filter(p => p.unlocked).map(p => p.slug),
     })
-    const nu = new Set<string>()
-    const nb = new Set<string>()
     let raw: string | null = null
     try { raw = localStorage.getItem(SEEN_KEY) } catch {}
     if (raw != null) {
-      let seen: { unlocked?: string[]; beaten?: string[] } = {}
+      let seen: { rivals_unlocked?: string[]; rivals_beaten?: string[]; provinces_unlocked?: string[] } = {}
       try { seen = JSON.parse(raw) } catch {}
-      const su = new Set(seen.unlocked ?? [])
-      const sb = new Set(seen.beaten ?? [])
-      for (const r of rivals) {
-        if (r.unlocked && !su.has(r.id)) nu.add(r.id)
-        if (r.beaten && !sb.has(r.id)) nb.add(r.id)
+      const su = new Set(seen.rivals_unlocked ?? [])
+      const sb = new Set(seen.rivals_beaten ?? [])
+      const sp = new Set(seen.provinces_unlocked ?? [])
+      const ru = new Set<string>(); const rb = new Set<string>(); const pu = new Set<string>()
+      for (const { r } of allRivals) {
+        if (r.unlocked && !su.has(r.id)) ru.add(r.id)
+        if (r.beaten && !sb.has(r.id)) rb.add(r.id)
       }
-      setReveal({ u: nu, b: nb })
+      for (const p of provinces) if (p.unlocked && !sp.has(p.slug)) pu.add(p.slug)
+      setReveal({ ru, rb, pu })
+      // Si venís de ganar, la cámara te lleva de vuelta a esa provincia.
+      const beatenNow = allRivals.find(x => rb.has(x.r.id))
+      if (beatenNow) autoOpen.current = beatenNow.prov
     }
     try { localStorage.setItem(SEEN_KEY, snapshot()) } catch {}
 
-    // Auto-scroll SOLO cuando se desbloqueó un rival (venís de ganar): la cámara
-    // arranca en el rival recién vencido y baja hasta el nuevo. Si no hay nada
-    // nuevo, solo se posiciona en tu rival, sin deslizar.
-    const target = currentIndex >= 0 ? currentIndex : rivals.length - 1
-    const hayDesbloqueo = nu.size > 0
-    const start = hayDesbloqueo ? Math.max(0, target - 1) : target
-    // Posiciono al instante (todavía tapado por las nubes).
-    requestAnimationFrame(() => scrollToIndex(start))
-    // Si hay que deslizar, lo dejo pendiente: arranca recién cuando terminan las nubes.
-    if (start !== target) glideTo.current = target
+    // Primera visita en este dispositivo: se agenda el tutorial de bienvenida.
+    try { tutorialPending.current = localStorage.getItem(TUTORIAL_KEY) == null } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // El deslizamiento pendiente arranca solo cuando las nubes ya terminaron
-  // (intro pasa a false), así nunca queda tapado por ellas.
+  // Al terminar las nubes: primero el tutorial (si nunca lo vio); si no, la
+  // provincia recién ganada se abre sola.
   useEffect(() => {
-    if (intro || glideTo.current == null) return
-    const target = glideTo.current
-    glideTo.current = null
-    const t = setTimeout(() => scrollToIndex(target, GLIDE_MS), 200)
+    if (intro) return
+    if (tutorialPending.current) {
+      tutorialPending.current = false
+      const t = setTimeout(() => setShowTutorial(true), 250)
+      return () => clearTimeout(t)
+    }
+    if (!autoOpen.current) return
+    const slug = autoOpen.current
+    autoOpen.current = null
+    const t = setTimeout(() => setOpenProv(slug), 250)
     return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [intro])
+
+  function closeTutorial() {
+    setShowTutorial(false)
+    try { localStorage.setItem(TUTORIAL_KEY, '1') } catch {}
+  }
 
   async function play(rivalId: string) {
     setLoadingId(rivalId)
@@ -187,92 +210,107 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
     router.refresh()
   }
 
-  // Modo ajuste: arrastrar un medallón actualiza su posición en %.
-  function dragTo(i: number, clientX: number, clientY: number) {
+  // Modo ajuste: arrastrar actualiza la posición en % (marcador del mapa o
+  // rival dentro de la provincia abierta, según corresponda).
+  function dragMarker(slug: string, clientX: number, clientY: number) {
     const rect = stageRef.current?.getBoundingClientRect()
     if (!rect) return
-    const x = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100))
-    const y = Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100))
-    const r1 = (n: number) => Math.round(n * 10) / 10
-    setNodos(prev => prev.map((p, idx) => (idx === i ? { x: r1(x), y: r1(y) } : p)))
+    setMarcadores(prev => ({ ...prev, [slug]: toPct(rect, clientX, clientY) }))
+  }
+  function dragLugar(prov: string, i: number, clientX: number, clientY: number) {
+    const rect = squareRef.current?.getBoundingClientRect()
+    if (!rect) return
+    setLugares(prev => ({
+      ...prev,
+      [prov]: (prev[prov] ?? []).map((p, idx) => (idx === i ? toPct(rect, clientX, clientY) : p)),
+    }))
   }
 
   async function copyPositions() {
-    const text = nodos.map(p => `  { x: ${p.x}, y: ${p.y} },`).join('\n')
+    const m = Object.entries(marcadores)
+      .map(([s, p]) => `  '${s}': { x: ${p.x}, y: ${p.y} },`).join('\n')
+    const l = Object.entries(lugares)
+      .map(([s, arr]) => `  '${s}': [${arr.map(p => `{ x: ${p.x}, y: ${p.y} }`).join(', ')}],`).join('\n')
+    const text = `const MARCADORES: Record<string, Pos> = {\n${m}\n}\n\nconst LUGARES: Record<string, Pos[]> = {\n${l}\n}`
     try { await navigator.clipboard.writeText(text) } catch {}
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
 
+  const provAbierta = provinces.find(p => p.slug === openProv) ?? null
+
   return (
-    <main ref={scrollRef} className="fixed inset-0 overflow-y-auto overflow-x-hidden bg-base">
-      {/* Escenario: el mapa es una TIRA ALTA (varias pantallas). Se scrollea hacia
-          abajo. En compu queda una columna centrada (a los costados, el fondo
-          oscuro de base); en celular ocupa todo el ancho. La proporción fija le da
-          alto conocido desde el vamos, así los medallones caen exactos al instante. */}
+    // En celular el HUD flota arriba: el pt-14 corre el mapa hacia abajo para
+    // que no tape el norte (Jujuy, Salta). En compu sobra lugar y no hace falta.
+    <main className="fixed inset-0 overflow-hidden bg-base flex items-center justify-center pt-14 sm:pt-0">
+      {/* Escenario: el mapa político entra completo a lo alto en compu; en celular
+          se agranda un poco más allá del ancho (118vw) para no dejar tanto aire
+          arriba/abajo — lo que sobra de océano a los costados se recorta parejo.
+          Los marcadores van en % del escenario, así que no se desalinean. */}
       <div
         ref={stageRef}
-        className="relative mx-auto"
-        style={{ width: STAGE_WIDTH, aspectRatio: `${MAP_W} / ${MAP_H}` }}
+        className="relative shrink-0"
+        style={{
+          width: `min(118vw, calc(100dvh * ${(MAP_W / MAP_H).toFixed(4)}))`,
+          aspectRatio: `${MAP_W} / ${MAP_H}`,
+        }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/historia/fondo.png"
-          alt="Mapa del modo historia"
-          className="block w-full h-full object-cover select-none"
+          src="/historia/mapa-argentina.png"
+          alt="Mapa de Argentina del modo historia"
+          className="block w-full h-full object-contain select-none"
           draggable={false}
         />
-        {rivals.map((r, i) => (
-          <MapNode
-            key={r.id}
-            r={r}
-            pos={nodos[i] ?? { x: 50, y: 50 }}
-            isCurrent={r.id === currentId}
-            newlyUnlocked={reveal.u.has(r.id)}
-            newlyBeaten={reveal.b.has(r.id)}
+        {/* Niebla: el país entero queda en penumbra (bloqueado) salvo un halo de
+            luz alrededor de cada provincia jugable desbloqueada. En modo ajuste
+            no va, para ver todo. */}
+        {!editing && (
+          <Fog spots={provinces.filter(p => p.unlocked).map(p => marcadores[p.slug] ?? { x: 50, y: 50 })} />
+        )}
+        {provinces.map(p => (
+          <ProvinceMarker
+            key={p.slug}
+            p={p}
+            pos={marcadores[p.slug] ?? { x: 50, y: 50 }}
+            newlyUnlocked={reveal.pu.has(p.slug)}
             editing={editing}
-            nodeRef={(el) => { nodeRefs.current[i] = el }}
-            onSelect={() => setSelected(r)}
-            onDragTo={(cx, cy) => dragTo(i, cx, cy)}
+            onOpen={() => (p.unlocked || editing) && setOpenProv(p.slug)}
+            onDragTo={(cx, cy) => dragMarker(p.slug, cx, cy)}
           />
         ))}
-
-        {/* Niebla de guerra: oscurece el tramo no descubierto (de fogStart% hacia
-            abajo), difuminada arriba para que el borde de "lo revelado" sea suave.
-            En modo ajuste no va, así se ven todos los medallones para acomodarlos. */}
-        {!editing && fogStart != null && (
-          <div
-            className="pointer-events-none absolute inset-0 z-[15]"
-            style={{
-              background: `linear-gradient(to bottom, transparent ${fogStart}%, rgba(12,7,8,0.55) ${Math.min(fogStart + 7, 100)}%, rgba(6,3,4,0.9) 100%)`,
-            }}
-          />
-        )}
       </div>
 
-      {/* HUD: barra superior fija sobre el mapa (no se va con el scroll). */}
-      <div className="fixed top-0 inset-x-0 z-20 flex items-start justify-between gap-3 p-3 sm:p-4 bg-gradient-to-b from-black/75 via-black/35 to-transparent pointer-events-none">
-        <div className="flex items-center gap-2.5 pointer-events-auto">
+      {/* HUD: barra superior fija, con chips sólidos como los del lobby. */}
+      <div className="fixed top-0 inset-x-0 z-20 flex items-center justify-between gap-3 p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+        {/* Chip principal: volver + título + puntos, todo junto. */}
+        <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface2/95 pl-1.5 pr-4 py-1.5 shadow-card pointer-events-auto min-w-0">
           <Link
             href="/lobby"
             aria-label="Volver al lobby"
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-surface2/80 border border-line text-cream hover:text-gold hover:border-gold/60 transition-colors shadow-card"
+            className="w-9 h-9 rounded-full bg-base border border-gold/40 flex items-center justify-center text-cream hover:text-gold transition-colors shrink-0"
           >
             <BackIcon />
           </Link>
-          <div className="min-w-0">
-            <h1 className="font-display text-lg sm:text-xl font-extrabold text-cream leading-none drop-shadow">Modo Historia</h1>
-            <div className="mt-1 flex items-center gap-1.5">
-              <div className="h-1.5 w-20 sm:w-28 rounded-full bg-black/40 overflow-hidden">
-                <div className="h-full bg-gold transition-[width] duration-700 ease-out" style={{ width: `${(vencidos / rivals.length) * 100}%` }} />
-              </div>
-              <span className="text-[11px] font-semibold text-gold tabular">{vencidos}/{rivals.length}</span>
-            </div>
+          <div className="flex flex-col leading-tight min-w-0">
+            <h1 className="font-display text-sm sm:text-base font-extrabold text-cream truncate">Modo Historia</h1>
+            <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-gold tabular">
+              <StarIcon />{points.toLocaleString('es-AR')} pts
+            </span>
           </div>
         </div>
-        <Panel className="flex items-center gap-2 px-3 py-1.5 !rounded-full pointer-events-auto shrink-0">
-          <Coins amount={coins} size="sm" />
-        </Panel>
+        <div className="flex items-center gap-2 pointer-events-auto shrink-0">
+          <button
+            onClick={() => setShowRanking(true)}
+            className="flex items-center gap-1.5 rounded-full border border-gold/50 bg-surface2/95 px-3 py-2.5 text-xs font-bold text-gold hover:bg-gold/10 transition-colors shadow-card"
+          >
+            <PodiumIcon />
+            Ranking
+          </button>
+          <Panel className="flex items-center gap-2 px-3 py-2 !rounded-full">
+            <Coins amount={coins} size="sm" />
+          </Panel>
+        </div>
       </div>
 
       {error && (
@@ -281,20 +319,81 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
         </div>
       )}
 
-      {/* Modo ajuste: cartel compacto abajo-izquierda. pointer-events-none en el
-          contenedor (así se puede arrastrar un medallón que quede "debajo"); solo
-          el botón Copiar queda activo. */}
+      {/* Modo ajuste: cartel compacto abajo-izquierda. */}
       {editing && (
-        <div className="fixed bottom-3 left-3 z-40 flex items-center gap-2 rounded-xl border border-gold/50 bg-black/70 backdrop-blur px-3 py-2 shadow-card pointer-events-none">
+        <div className="fixed bottom-3 left-3 z-[60] flex items-center gap-2 rounded-xl border border-gold/50 bg-black/70 backdrop-blur px-3 py-2 shadow-card">
           <span className="text-[11px] font-bold text-gold">AJUSTE</span>
-          <Button size="sm" className="pointer-events-auto" onClick={copyPositions}>
-            {copied ? '¡Copiado!' : 'Copiar'}
-          </Button>
+          <Button size="sm" onClick={copyPositions}>{copied ? '¡Copiado!' : 'Copiar'}</Button>
         </div>
       )}
 
-      {/* Efecto de entrada: las nubes (textura de ruido fractal) se abren y
-          revelan el mapa. */}
+      {/* Provincia abierta: aparece flotando sobre el mapa oscurecido, y al
+          cerrarse se despide con el mismo efecto (suave, en espejo). */}
+      {provAbierta && (
+        <div className={cn('fixed inset-0 z-30 flex flex-col items-center justify-center p-4', closing ? 'animate-fade-out' : 'animate-fade-in')}>
+          <button
+            aria-label="Cerrar provincia"
+            className="absolute inset-0 bg-black/75 backdrop-blur-[2px] cursor-default"
+            onClick={closeProv}
+          />
+          <div className="relative flex flex-col items-center gap-2 max-w-full">
+            <div className="flex items-center gap-3">
+              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-cream drop-shadow text-center">
+                {provAbierta.name}
+              </h2>
+              <button
+                onClick={closeProv}
+                aria-label="Cerrar"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-surface2/90 border border-line text-cream hover:text-gold hover:border-gold/60 transition-colors shadow-card"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            <p className="text-xs text-cream/70 -mt-1">
+              {provAbierta.rivals.filter(r => r.beaten).length}/{provAbierta.rivals.length} vencidos
+            </p>
+
+            {/* El cuadro flotante: entra con zoom suave y queda levitando. */}
+            <div className={closing ? 'animate-float-out' : 'animate-float-in'}>
+              <div
+                ref={squareRef}
+                className="relative animate-levitate"
+                style={{ width: 'min(92vw, 68dvh)', height: 'min(92vw, 68dvh)' }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/historia/provincia-${provAbierta.slug}.png`}
+                  alt={`Provincia de ${provAbierta.name}`}
+                  className="block w-full h-full object-contain select-none [filter:drop-shadow(0_34px_38px_rgba(0,0,0,0.65))]"
+                  draggable={false}
+                />
+                {/* Penumbra leve sobre la provincia: se ve bien solo alrededor
+                    de los rivales. En modo ajuste no va. */}
+                {!editing && (
+                  <ProvinceShade
+                    slug={provAbierta.slug}
+                    spots={provAbierta.rivals.map((_, i) => (lugares[provAbierta.slug] ?? [])[i] ?? { x: 50, y: 50 })}
+                  />
+                )}
+                {provAbierta.rivals.map((r, i) => (
+                  <RivalNode
+                    key={r.id}
+                    r={r}
+                    pos={(lugares[provAbierta.slug] ?? [])[i] ?? { x: 50, y: 50 }}
+                    newlyUnlocked={reveal.ru.has(r.id)}
+                    newlyBeaten={reveal.rb.has(r.id)}
+                    editing={editing}
+                    onSelect={() => setSelected(r)}
+                    onDragTo={(cx, cy) => dragLugar(provAbierta.slug, i, cx, cy)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Efecto de entrada: las nubes se abren y revelan el mapa. */}
       {intro && (
         <div className="pointer-events-none fixed inset-0 z-[45] overflow-hidden">
           <div className="absolute inset-y-0 left-0 w-[88%] animate-clouds-left"><CloudLayer side="left" /></div>
@@ -314,17 +413,25 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
                 selected.beaten ? 'border-gold shadow-gold-ring' : 'border-line',
               )}
             />
-            {selected.id === currentId && (
-              <span className="text-[10px] font-bold uppercase tracking-wide text-gold">Tu próximo desafío</span>
-            )}
             <h2 className="font-display text-2xl font-extrabold text-cream leading-tight">{selected.display_name}</h2>
             <p className="text-sm text-muted">{selected.tagline}</p>
+            {/* Cómo juega: dificultad + rasgos de personalidad. */}
+            <div className="w-full max-w-[230px] flex flex-col gap-1.5">
+              <StatRow label="Dificultad" value={selected.difficulty} />
+              <StatRow label="Mentiroso" value={selected.trait_liar} />
+              <StatRow label="Agresivo" value={selected.trait_aggressive} />
+            </div>
+            <span className="text-[11px] uppercase tracking-wide text-subtle">Partida a {selected.target_score} puntos</span>
+            {/* Los puntos que otorga se descubren al final de la partida; acá
+                solo se ve el premio en monedas (si todavía no lo cobró). */}
             <div className="flex items-center gap-3">
-              <DifficultyBar value={selected.difficulty} />
-              <span className="text-[11px] uppercase tracking-wide text-subtle">a {selected.target_score}</span>
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-gold">
-                <CoinIcon size={12} />{selected.reward_coins.toLocaleString('es-AR')}
-              </span>
+              {!selected.beaten ? (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-gold">
+                  <CoinIcon size={12} />{selected.reward_coins.toLocaleString('es-AR')}
+                </span>
+              ) : (
+                <span className="text-[11px] text-subtle">Ya lo venciste — la revancha suma menos</span>
+              )}
             </div>
             <Button variant="primary" size="md" fullWidth onClick={() => play(selected.id)} disabled={loadingId != null} className="mt-1">
               {loadingId === selected.id ? 'Empezando…' : selected.beaten ? 'Revancha' : 'Jugar'}
@@ -332,18 +439,224 @@ export default function HistoriaClient({ initialRivals, coins }: Props) {
           </div>
         )}
       </Modal>
+
+      {/* Tutorial de bienvenida (una sola vez por dispositivo) */}
+      <Modal open={showTutorial} onClose={closeTutorial}>
+        <div className="flex flex-col items-center gap-4 text-center">
+          <span className="w-12 h-12 rounded-full bg-gold/15 text-gold flex items-center justify-center shadow-gold-ring">
+            <StarIcon size={20} />
+          </span>
+          <h2 className="font-display text-2xl font-extrabold text-cream leading-tight">Modo Historia</h2>
+          <div className="flex flex-col gap-3 w-full text-left">
+            {TUTORIAL_PASOS.map((paso, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-surface2 border border-gold/40 text-gold font-display text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                  {i + 1}
+                </span>
+                <div>
+                  <p className="text-sm font-bold text-cream leading-tight">{paso.titulo}</p>
+                  <p className="text-xs text-muted mt-0.5">{paso.texto}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Button variant="primary" size="md" fullWidth onClick={closeTutorial}>
+            ¡A jugar!
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Ranking de Argentina */}
+      {showRanking && (
+        <RankingOverlay
+          onClose={() => setShowRanking(false)}
+          supabase={supabase}
+        />
+      )}
     </main>
   )
 }
 
-// Un medallón del mapa (posicionado en %). Bloqueado = candado (misterio).
-// En modo ajuste se puede arrastrar y muestra su número + coordenadas.
-function MapNode({
-  r, pos, isCurrent, newlyUnlocked, newlyBeaten, editing, nodeRef, onSelect, onDragTo,
+// Penumbra dentro de la provincia abierta: una copia oscurecida de la MISMA
+// silueta (así el velo respeta la forma y no dibuja un cuadrado), con agujeros
+// de luz difusos donde están los rivales. Todo en SVG para que ande igual en
+// cualquier navegador.
+function ProvinceShade({ slug, spots }: { slug: string; spots: Pos[] }) {
+  const S = 1000
+  return (
+    <svg
+      className="absolute inset-0 z-[5] w-full h-full pointer-events-none"
+      viewBox={`0 0 ${S} ${S}`}
+      aria-hidden="true"
+    >
+      <defs>
+        <filter id="prov-dim">
+          <feColorMatrix type="matrix" values="0.4 0 0 0 0  0 0.4 0 0 0  0 0 0.4 0 0  0 0 0 1 0" />
+        </filter>
+        <filter id="prov-blur" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="50" />
+        </filter>
+        <mask id={`prov-holes-${slug}`}>
+          <rect width={S} height={S} fill="#fff" />
+          <g filter="url(#prov-blur)">
+            {spots.map((s, i) => (
+              <circle key={i} cx={(s.x / 100) * S} cy={(s.y / 100) * S} r={140} fill="#000" />
+            ))}
+          </g>
+        </mask>
+      </defs>
+      <image
+        href={`/historia/provincia-${slug}.png`}
+        width={S}
+        height={S}
+        preserveAspectRatio="xMidYMid meet"
+        filter="url(#prov-dim)"
+        mask={`url(#prov-holes-${slug})`}
+        opacity="0.6"
+      />
+    </svg>
+  )
+}
+
+// La niebla del mapa: un velo oscuro sobre todo el escenario con "faroles" de
+// luz (agujeros difusos) en las provincias desbloqueadas.
+function Fog({ spots }: { spots: Pos[] }) {
+  return (
+    <svg
+      className="absolute inset-0 z-[5] w-full h-full pointer-events-none"
+      viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <defs>
+        <filter id="fog-blur" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="55" />
+        </filter>
+        <mask id="fog-mask">
+          <rect width={MAP_W} height={MAP_H} fill="#fff" />
+          <g filter="url(#fog-blur)">
+            {spots.map((s, i) => (
+              <circle key={i} cx={(s.x / 100) * MAP_W} cy={(s.y / 100) * MAP_H} r={165} fill="#000" />
+            ))}
+          </g>
+        </mask>
+      </defs>
+      <rect width={MAP_W} height={MAP_H} fill="#0C0708" opacity="0.55" mask="url(#fog-mask)" />
+    </svg>
+  )
+}
+
+function toPct(rect: DOMRect, clientX: number, clientY: number): Pos {
+  const r1 = (n: number) => Math.round(n * 10) / 10
+  return {
+    x: r1(Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100))),
+    y: r1(Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100))),
+  }
+}
+
+// Marcador de una provincia sobre el mapa. Desbloqueada = medallón dorado con
+// el avance; bloqueada = candado con los puntos que pide.
+function ProvinceMarker({
+  p, pos, newlyUnlocked, editing, onOpen, onDragTo,
 }: {
-  r: Rival; pos: Pos; isCurrent: boolean; newlyUnlocked: boolean; newlyBeaten: boolean
-  editing: boolean; nodeRef: (el: HTMLDivElement | null) => void
-  onSelect: () => void; onDragTo: (clientX: number, clientY: number) => void
+  p: Province; pos: Pos; newlyUnlocked: boolean; editing: boolean
+  onOpen: () => void; onDragTo: (clientX: number, clientY: number) => void
+}) {
+  const dragging = useRef(false)
+  // En modo ajuste, un toque sin arrastre ABRE la provincia (para acomodar los
+  // rivales de adentro) y un arrastre la mueve. moved distingue una cosa de la
+  // otra, con un umbral de 6px para que el temblor del dedo no cuente.
+  const moved = useRef(false)
+  const start = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
+  const beaten = p.rivals.filter(r => r.beaten).length
+  const complete = p.rivals.length > 0 && beaten === p.rivals.length
+
+  return (
+    <div
+      className="absolute z-10"
+      style={{
+        left: `${pos.x}%`,
+        top: `${pos.y}%`,
+        width: 'clamp(32px, 5.5dvh, 50px)',
+        height: 'clamp(32px, 5.5dvh, 50px)',
+        transform: 'translate(-50%, -50%)',
+      }}
+    >
+      <div className={cn('relative w-full h-full', !editing && newlyUnlocked && 'animate-unlock-pop')}>
+        {!editing && newlyUnlocked && (
+          <span className="absolute left-1/2 -translate-x-1/2 -top-4 z-20 rounded-full bg-gold px-1.5 py-0.5 text-[9px] font-bold text-ink shadow-gold animate-scale-in whitespace-nowrap">
+            ¡Nueva!
+          </span>
+        )}
+        <button
+          onClick={editing ? undefined : onOpen}
+          disabled={!editing && !p.unlocked}
+          onPointerDown={editing ? (e) => { e.currentTarget.setPointerCapture(e.pointerId); dragging.current = true; moved.current = false; start.current = { x: e.clientX, y: e.clientY } } : undefined}
+          onPointerMove={editing ? (e) => {
+            if (!dragging.current) return
+            if (Math.abs(e.clientX - start.current.x) + Math.abs(e.clientY - start.current.y) > 6) moved.current = true
+            if (moved.current) onDragTo(e.clientX, e.clientY)
+          } : undefined}
+          onPointerUp={editing ? () => { dragging.current = false; if (!moved.current) onOpen() } : undefined}
+          aria-label={p.unlocked ? `Entrar a ${p.name}` : `${p.name} bloqueada`}
+          className={cn(
+            'relative w-full h-full rounded-full flex items-center justify-center border-2 bg-surface2/90 shadow-card transition touch-none',
+            editing ? 'cursor-move ring-2 ring-gold/70' : p.unlocked && 'cursor-pointer [@media(hover:hover)]:hover:scale-105',
+            complete ? 'border-gold shadow-gold-ring' : p.unlocked ? 'border-gold/70' : 'border-ink/70',
+          )}
+        >
+          {p.unlocked || editing ? (
+            complete ? (
+              <span className="text-gold"><CheckIcon /></span>
+            ) : (
+              <span className="font-display text-[13px] font-extrabold text-cream tabular leading-none">
+                {beaten}/{p.rivals.length}
+              </span>
+            )
+          ) : (
+            <span className="text-subtle scale-90"><LockIcon /></span>
+          )}
+        </button>
+
+        {/* Nombre (y puntos que pide, si está bloqueada) debajo del marcador. En
+            modo ajuste el nombre es la puerta de entrada (el medallón se arrastra). */}
+        <div className={cn('absolute left-1/2 -translate-x-1/2 top-full mt-1 z-20 flex flex-col items-center gap-0.5', !editing && 'pointer-events-none')}>
+          {/* En modo ajuste, tocar el nombre abre la provincia (el medallón se
+              arrastra); en modo normal es solo una etiqueta. */}
+          {editing ? (
+            <button
+              onClick={onOpen}
+              className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-gold whitespace-nowrap shadow-card"
+            >
+              {p.name}
+            </button>
+          ) : (
+            <span className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-cream whitespace-nowrap shadow-card">
+              {p.name}
+            </span>
+          )}
+          {!p.unlocked && !editing && (
+            <span className="rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-gold whitespace-nowrap inline-flex items-center gap-0.5">
+              <StarIcon size={8} />{p.points_required.toLocaleString('es-AR')} pts
+            </span>
+          )}
+          {editing && (
+            <span className="rounded bg-black/80 px-1 text-[9px] font-bold text-gold whitespace-nowrap">
+              {pos.x},{pos.y}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Un rival dentro de la provincia abierta. Bloqueado = candado + puntos que pide.
+function RivalNode({
+  r, pos, newlyUnlocked, newlyBeaten, editing, onSelect, onDragTo,
+}: {
+  r: Rival; pos: Pos; newlyUnlocked: boolean; newlyBeaten: boolean
+  editing: boolean; onSelect: () => void; onDragTo: (clientX: number, clientY: number) => void
 }) {
   const [imgFailed, setImgFailed] = useState(false)
   const dragging = useRef(false)
@@ -351,19 +664,15 @@ function MapNode({
 
   return (
     <div
-      ref={nodeRef}
       className="absolute z-10"
       style={{
         left: `${pos.x}%`,
         top: `${pos.y}%`,
-        width: 'clamp(36px, 6dvh, 64px)',
-        height: 'clamp(36px, 6dvh, 64px)',
+        width: 'clamp(40px, 7dvh, 64px)',
+        height: 'clamp(40px, 7dvh, 64px)',
         transform: 'translate(-50%, -50%)',
       }}
     >
-      {/* El contenedor de afuera tiene TAMAÑO FIJO y hace el centrado (translate),
-          así el avatar cae exacto sobre su punto. La animación de "pop" va en el
-          contenedor de adentro para no pisar ese centrado. */}
       <div className={cn('relative w-full h-full', !editing && newlyUnlocked && 'animate-unlock-pop')}>
         {!editing && newlyUnlocked && (
           <span className="absolute left-1/2 -translate-x-1/2 -top-4 z-20 rounded-full bg-gold px-1.5 py-0.5 text-[9px] font-bold text-ink shadow-gold animate-scale-in whitespace-nowrap">
@@ -378,10 +687,9 @@ function MapNode({
           onPointerUp={editing ? () => { dragging.current = false } : undefined}
           aria-label={r.unlocked ? `Ver a ${r.display_name}` : 'Rival bloqueado'}
           className={cn(
-            'relative w-full h-full rounded-full overflow-hidden border-2 flex items-center justify-center bg-surface2/85 font-display text-base font-bold text-cream shadow-card transition touch-none',
+            'relative w-full h-full rounded-full overflow-hidden border-2 flex items-center justify-center bg-surface2/90 font-display text-base font-bold text-cream shadow-card transition touch-none',
             editing ? 'cursor-move ring-2 ring-gold/70' : r.unlocked && 'cursor-pointer [@media(hover:hover)]:hover:scale-105',
-            r.beaten ? 'border-gold shadow-gold-ring' : isCurrent ? 'border-gold' : 'border-ink/70',
-            !editing && isCurrent && 'animate-pulse-glow',
+            r.beaten ? 'border-gold shadow-gold-ring' : 'border-ink/70',
           )}
         >
           {showFace ? (
@@ -400,9 +708,25 @@ function MapNode({
           )}
         </button>
 
+        {/* Debajo de la cara: el nombre. Un bloqueado no revela quién es, pero
+            muestra cuántos puntos pide (la zanahoria). */}
+        {!editing && (
+          <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-20 flex flex-col items-center gap-0.5 pointer-events-none">
+            {r.unlocked ? (
+              <span className="rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-bold text-cream whitespace-nowrap shadow-card max-w-[16ch] truncate">
+                {r.display_name.split(',')[0]}
+              </span>
+            ) : (
+              <span className="rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-gold whitespace-nowrap inline-flex items-center gap-0.5">
+                <StarIcon size={8} />{r.points_required.toLocaleString('es-AR')} pts
+              </span>
+            )}
+          </div>
+        )}
+
         {editing && (
           <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-20 rounded bg-black/80 px-1 text-[9px] font-bold text-gold whitespace-nowrap">
-            {r.order_index}· {pos.x},{pos.y}
+            {pos.x},{pos.y}
           </span>
         )}
 
@@ -423,12 +747,89 @@ function MapNode({
   )
 }
 
+// El Ranking de Argentina: todos los rivales + vos, por puntos.
+function RankingOverlay({ onClose, supabase }: {
+  onClose: () => void
+  supabase: ReturnType<typeof createClient>
+}) {
+  const [rows, setRows] = useState<RankingRow[] | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    supabase.rpc('get_campaign_ranking').then(({ data, error }) => {
+      if (cancelled) return
+      if (error || !data) setFailed(true)
+      else setRows(data as RankingRow[])
+    })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-base/95 backdrop-blur-sm animate-fade-in">
+      <div className="flex items-center justify-between gap-3 p-4 max-w-md w-full mx-auto">
+        <h2 className="font-display text-xl font-extrabold text-cream">Ranking de Argentina</h2>
+        <button
+          onClick={onClose}
+          aria-label="Cerrar ranking"
+          className="w-9 h-9 rounded-full flex items-center justify-center bg-surface2/80 border border-line text-cream hover:text-gold hover:border-gold/60 transition-colors shadow-card"
+        >
+          <CloseIcon />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 pb-6">
+        <div className="max-w-md mx-auto flex flex-col gap-1.5">
+          {failed && <Alert>No se pudo cargar el ranking. Probá de nuevo.</Alert>}
+          {!rows && !failed && <p className="text-sm text-muted text-center py-8">Cargando…</p>}
+          {rows?.map(row => (
+            <div
+              key={`${row.position}-${row.name}`}
+              className={cn(
+                'flex items-center gap-3 rounded-xl border px-3 py-2',
+                row.is_user
+                  ? 'border-gold bg-gold/10 shadow-gold-ring'
+                  : 'border-line bg-surface/80',
+              )}
+            >
+              <span
+                className={cn(
+                  'w-7 text-center font-display font-extrabold tabular shrink-0',
+                  row.position === 1 ? 'text-gold text-lg' : row.position <= 3 ? 'text-gold-600' : 'text-subtle',
+                )}
+              >
+                {row.position}
+              </span>
+              <Face
+                slug={row.slug ?? ''}
+                name={row.name}
+                className="w-9 h-9 rounded-full overflow-hidden border border-line shrink-0 text-sm"
+              />
+              <div className="min-w-0 flex-1">
+                <p className={cn('text-sm font-semibold truncate', row.is_user ? 'text-gold' : 'text-cream')}>
+                  {row.name} {row.is_user && <span className="text-[10px] uppercase tracking-wide">(vos)</span>}
+                </p>
+                {row.beaten != null && (
+                  <p className="text-[10px] text-subtle">{row.beaten ? 'Ya lo venciste' : 'Sin vencer'}</p>
+                )}
+              </div>
+              <span className="text-sm font-bold text-cream tabular shrink-0">
+                {row.points.toLocaleString('es-AR')} <span className="text-[10px] text-subtle font-semibold">pts</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Retrato con respaldo a la inicial.
 function Face({ slug, name, className }: { slug: string; name: string; className?: string }) {
   const [imgFailed, setImgFailed] = useState(false)
   return (
-    <div className={cn('flex items-center justify-center bg-surface2 font-display text-3xl font-bold text-cream', className)}>
-      {imgFailed ? (
+    <div className={cn('flex items-center justify-center bg-surface2 font-display font-bold text-cream', className)}>
+      {imgFailed || !slug ? (
         name.charAt(0)
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
@@ -484,13 +885,33 @@ function CloudLayer({ side }: { side: 'left' | 'right' }) {
   )
 }
 
-function DifficultyBar({ value }: { value: number }) {
+// Una fila "rasgo: barrita de 10" (dificultad, mentiroso, agresivo).
+function StatRow({ label, value }: { label: string; value: number }) {
   return (
-    <span className="inline-flex items-center gap-0.5" title={`Dificultad ${value}/10`} aria-label={`Dificultad ${value} de 10`}>
-      {Array.from({ length: 10 }).map((_, i) => (
-        <span key={i} className={cn('h-2.5 w-1 rounded-full', i < value ? 'bg-gold' : 'bg-line')} />
-      ))}
-    </span>
+    <div className="flex items-center justify-between gap-2" aria-label={`${label}: ${value} de 10`}>
+      <span className="text-[11px] font-semibold text-subtle">{label}</span>
+      <span className="inline-flex items-center gap-0.5" title={`${label} ${value}/10`}>
+        {Array.from({ length: 10 }).map((_, i) => (
+          <span key={i} className={cn('h-2.5 w-1 rounded-full', i < value ? 'bg-gold' : 'bg-line')} />
+        ))}
+      </span>
+    </div>
+  )
+}
+
+function StarIcon({ size = 11 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2l2.9 6.26 6.6.7-4.9 4.5 1.35 6.54L12 16.77 6.05 20l1.35-6.54-4.9-4.5 6.6-.7L12 2z" />
+    </svg>
+  )
+}
+
+function PodiumIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 21V9H3v12h6zM15 21V3H9v18h6zM21 21v-8h-6v8h6z" />
+    </svg>
   )
 }
 
@@ -498,6 +919,22 @@ function BackIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M15 18l-6-6 6-6" />
+    </svg>
+  )
+}
+
+function CloseIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+      <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
     </svg>
   )
 }

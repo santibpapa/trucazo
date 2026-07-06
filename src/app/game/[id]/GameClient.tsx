@@ -763,17 +763,30 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             {won ? '¡Ganaste!' : 'Perdiste'}
           </h2>
 
-          {/* Premio: solo la primera vez que vencés a este rival */}
-          {won && game.campaign_reward > 0 && (
-            <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 font-display font-bold text-gold shadow-gold-ring animate-scale-in">
-              <CoinIcon size={18} />
-              +{game.campaign_reward.toLocaleString('es-AR')}
+          {/* Premios del duelo: puntos de ranking (si ganó algo) y monedas (solo
+              la primera vez que vencés a este rival). */}
+          {won && (game.campaign_points_earned > 0 || game.campaign_reward > 0) && (
+            <div className="flex items-center gap-2">
+              {game.campaign_points_earned > 0 && (
+                <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 font-display font-bold text-gold shadow-gold-ring animate-scale-in">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2l2.9 6.26 6.6.7-4.9 4.5 1.35 6.54L12 16.77 6.05 20l1.35-6.54-4.9-4.5 6.6-.7L12 2z" />
+                  </svg>
+                  +{game.campaign_points_earned.toLocaleString('es-AR')} pts
+                </div>
+              )}
+              {game.campaign_reward > 0 && (
+                <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 font-display font-bold text-gold shadow-gold-ring animate-scale-in">
+                  <CoinIcon size={18} />
+                  +{game.campaign_reward.toLocaleString('es-AR')}
+                </div>
+              )}
             </div>
           )}
 
           <p className="text-sm text-muted">
             {won
-              ? `Le ganaste a ${opponentUsername}. ¡Se desbloqueó el próximo rival!`
+              ? `Le ganaste a ${opponentUsername}. Mirá el mapa: capaz se abrió algo nuevo.`
               : `${opponentUsername} te ganó esta vez. Volvé a intentarlo, le vas a encontrar la vuelta.`}
           </p>
 

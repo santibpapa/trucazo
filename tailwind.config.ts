@@ -110,6 +110,25 @@ const config: Config = {
           "70%": { opacity: "1" },
           "100%": { transform: "translateX(82%)", opacity: "0" },
         },
+        // La provincia "aparece flotando" al abrirla (entrada con zoom suave)...
+        "float-in": {
+          "0%": { opacity: "0", transform: "translateY(26px) scale(0.82)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        // ...y al cerrarla se despide igual de suave (el espejo de la entrada).
+        "float-out": {
+          "0%": { opacity: "1", transform: "translateY(0) scale(1)" },
+          "100%": { opacity: "0", transform: "translateY(18px) scale(0.88)" },
+        },
+        "fade-out": {
+          from: { opacity: "1" },
+          to: { opacity: "0" },
+        },
+        // ...y después levita despacito, como suspendida en el aire.
+        "levitate": {
+          "0%,100%": { transform: "translateY(-5px)" },
+          "50%": { transform: "translateY(6px)" },
+        },
         // Latido dorado del rival que te toca (el "próximo desafío").
         "pulse-glow": {
           "0%,100%": { boxShadow: "0 0 0 0 rgba(201,162,75,0), 0 0 12px 2px rgba(201,162,75,0.25)" },
@@ -139,6 +158,10 @@ const config: Config = {
         "deal-in": "deal-in 0.35s cubic-bezier(0.22,1,0.36,1) backwards",
         "play-in": "play-in 0.42s cubic-bezier(0.22,1,0.36,1) backwards",
         "unlock-pop": "unlock-pop 0.6s cubic-bezier(0.22,1,0.36,1) both",
+        "float-in": "float-in 0.55s cubic-bezier(0.22,1,0.36,1) both",
+        "float-out": "float-out 0.24s ease-in both",
+        "fade-out": "fade-out 0.24s ease-in both",
+        "levitate": "levitate 5.5s ease-in-out 0.55s infinite",
         "pulse-glow": "pulse-glow 1.9s ease-in-out infinite",
         "clouds-left": "clouds-left 3s cubic-bezier(0.45,0,0.25,1) 0.4s forwards",
         "clouds-right": "clouds-right 3s cubic-bezier(0.45,0,0.25,1) 0.4s forwards",

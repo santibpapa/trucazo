@@ -822,7 +822,12 @@ declare
   v_loser_un   text;
   v_net        numeric;
   v_human      uuid;
-  v_reward     integer;
+  r_base       integer;
+  r_coins      integer;
+  v_margin     integer;
+  v_pts        integer;
+  v_crumb      integer;
+  v_acc        integer;
 begin
   select * into g from games where id = p_game_id for update;
   if not found then raise exception 'game not found'; end if;
@@ -844,13 +849,42 @@ begin
      where id in (g.player1_id, g.player2_id) and not is_bot limit 1;
 
     if v_human is not null and p_winner_id = v_human then
+      select points_reward, reward_coins into r_base, r_coins
+        from campaign_rivals where id = g.campaign_rival_id;
+      r_base  := coalesce(r_base, 0);
+      r_coins := coalesce(r_coins, 0);
+
+      v_margin := case when v_human = g.player1_id
+                       then p_p1_score - p_p2_score else p_p2_score - p_p1_score end;
+      v_margin := greatest(coalesce(v_margin, 0), 0);
+
       insert into campaign_progress (user_id, rival_id)
       values (v_human, g.campaign_rival_id)
       on conflict (user_id, rival_id) do nothing;
+
       if found then
-        select reward_coins into v_reward from campaign_rivals where id = g.campaign_rival_id;
-        update profiles set coins = coins + coalesce(v_reward, 0) where id = v_human;
-        update games set campaign_reward = coalesce(v_reward, 0) where id = p_game_id;
+        v_pts := r_base + round(r_base * 0.20 * v_margin::numeric / greatest(g.target_score, 1))::int;
+        update profiles
+           set coins = coins + r_coins, campaign_points = campaign_points + v_pts
+         where id = v_human;
+        update games
+           set campaign_reward = r_coins, campaign_points_earned = v_pts
+         where id = p_game_id;
+      else
+        select rematch_points into v_acc from campaign_progress
+         where user_id = v_human and rival_id = g.campaign_rival_id;
+        v_crumb := least(floor(r_base * 0.10)::int,
+                         floor(r_base * 0.30)::int - coalesce(v_acc, 0));
+        v_crumb := greatest(v_crumb, 0);
+
+        update campaign_progress
+           set wins = wins + 1, rematch_points = rematch_points + v_crumb
+         where user_id = v_human and rival_id = g.campaign_rival_id;
+
+        if v_crumb > 0 then
+          update profiles set campaign_points = campaign_points + v_crumb where id = v_human;
+          update games set campaign_points_earned = v_crumb where id = p_game_id;
+        end if;
       end if;
     end if;
     return;
@@ -949,6 +983,106 @@ begin
     from campaign_rivals cr
     left join campaign_progress cp on cp.rival_id = cr.id and cp.user_id = uid
   ) s;
+
+  return v_result;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.get_campaign_map()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  uid         uuid := auth.uid();
+  v_pts       integer;
+  v_provinces jsonb;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+
+  select campaign_points into v_pts from profiles where id = uid;
+  v_pts := coalesce(v_pts, 0);
+
+  select coalesce(jsonb_agg(
+    jsonb_build_object(
+      'id', p.id,
+      'order_index', p.order_index,
+      'slug', p.slug,
+      'name', p.name,
+      'points_required', p.points_required,
+      'unlocked', (v_pts >= p.points_required),
+      'rivals', (
+        select coalesce(jsonb_agg(jsonb_build_object(
+          'id', cr.id,
+          'order_index', cr.order_index,
+          'slug', cr.slug,
+          'display_name', cr.display_name,
+          'tagline', cr.tagline,
+          'difficulty', cr.difficulty,
+          'trait_liar', cr.trait_liar,
+          'trait_aggressive', cr.trait_aggressive,
+          'target_score', cr.target_score,
+          'reward_coins', cr.reward_coins,
+          'points_required', cr.points_required,
+          'ranking_points', cr.ranking_points,
+          'points_reward', cr.points_reward,
+          'beaten', (cp.user_id is not null),
+          'unlocked', (v_pts >= p.points_required and v_pts >= cr.points_required)
+        ) order by cr.points_required, cr.order_index), '[]'::jsonb)
+        from campaign_rivals cr
+        left join campaign_progress cp on cp.rival_id = cr.id and cp.user_id = uid
+        where cr.province_id = p.id
+      )
+    ) order by p.order_index), '[]'::jsonb)
+  into v_provinces
+  from campaign_provinces p;
+
+  return jsonb_build_object('points', v_pts, 'provinces', v_provinces);
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.get_campaign_ranking()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  uid      uuid := auth.uid();
+  v_pts    integer;
+  v_name   text;
+  v_result jsonb;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+
+  select username, coalesce(campaign_points, 0) into v_name, v_pts
+    from profiles where id = uid;
+  if v_name is null then raise exception 'perfil no encontrado'; end if;
+
+  with entries as (
+    select cr.display_name as name, cr.slug as slug, cr.ranking_points as points,
+           false as is_user, (cp.user_id is not null) as beaten, pv.slug as province
+      from campaign_rivals cr
+      join campaign_provinces pv on pv.id = cr.province_id
+      left join campaign_progress cp on cp.rival_id = cr.id and cp.user_id = uid
+    union all
+    select v_name, null, v_pts, true, null, null
+  ), ordered as (
+    select e.*, row_number() over (order by e.points desc, e.is_user asc, e.name) as position
+      from entries e
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'position', o.position,
+           'name', o.name,
+           'slug', o.slug,
+           'points', o.points,
+           'is_user', o.is_user,
+           'beaten', o.beaten,
+           'province', o.province
+         ) order by o.position), '[]'::jsonb)
+    into v_result
+    from ordered o;
 
   return v_result;
 end;
@@ -1933,8 +2067,8 @@ AS $function$
 declare
   uid        uuid := auth.uid();
   r          campaign_rivals%rowtype;
-  v_min      integer;
-  v_prev     uuid;
+  pv         campaign_provinces%rowtype;
+  v_pts      integer;
   v_username text;
   v_id       uuid := gen_random_uuid();
   h1 jsonb; h2 jsonb;
@@ -1944,17 +2078,15 @@ begin
 
   select * into r from campaign_rivals where id = p_rival_id;
   if not found then raise exception 'rival no encontrado'; end if;
+  if r.province_id is null then raise exception 'rival sin provincia'; end if;
 
-  select min(order_index) into v_min from campaign_rivals;
-  if r.order_index > v_min then
-    select id into v_prev from campaign_rivals where order_index = r.order_index - 1;
-    if not exists (select 1 from campaign_progress where user_id = uid and rival_id = v_prev) then
-      raise exception 'todavía no desbloqueaste este rival';
-    end if;
-  end if;
-
-  select username into v_username from profiles where id = uid;
+  select username, campaign_points into v_username, v_pts from profiles where id = uid;
   if v_username is null then raise exception 'perfil no encontrado'; end if;
+  v_pts := coalesce(v_pts, 0);
+
+  select * into pv from campaign_provinces where id = r.province_id;
+  if v_pts < pv.points_required then raise exception 'todavía no desbloqueaste esta provincia'; end if;
+  if v_pts < r.points_required then raise exception 'todavía no desbloqueaste este rival'; end if;
 
   delete from tables t
    where t.creator_id = uid

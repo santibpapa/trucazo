@@ -16,6 +16,7 @@
 -- ============================================================
 
 alter table public.campaign_progress enable row level security;
+alter table public.campaign_provinces enable row level security;
 alter table public.campaign_rivals enable row level security;
 alter table public.chat_messages enable row level security;
 alter table public.feedback enable row level security;
@@ -36,11 +37,15 @@ alter table public.user_presence enable row level security;
 alter table public.campaign_progress add constraint campaign_progress_pkey PRIMARY KEY (user_id, rival_id);
 alter table public.campaign_progress add constraint campaign_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.campaign_progress add constraint campaign_progress_rival_id_fkey FOREIGN KEY (rival_id) REFERENCES campaign_rivals(id) ON DELETE CASCADE;
+alter table public.campaign_provinces add constraint campaign_provinces_pkey PRIMARY KEY (id);
+alter table public.campaign_provinces add constraint campaign_provinces_order_index_key UNIQUE (order_index);
+alter table public.campaign_provinces add constraint campaign_provinces_slug_key UNIQUE (slug);
 alter table public.campaign_rivals add constraint campaign_rivals_pkey PRIMARY KEY (id);
 alter table public.campaign_rivals add constraint campaign_rivals_order_index_key UNIQUE (order_index);
 alter table public.campaign_rivals add constraint campaign_rivals_slug_key UNIQUE (slug);
 alter table public.campaign_rivals add constraint campaign_rivals_target_score_chk CHECK ((target_score = ANY (ARRAY[15, 30])));
 alter table public.campaign_rivals add constraint campaign_rivals_bot_id_fkey FOREIGN KEY (bot_id) REFERENCES profiles(id);
+alter table public.campaign_rivals add constraint campaign_rivals_province_id_fkey FOREIGN KEY (province_id) REFERENCES campaign_provinces(id);
 alter table public.feedback add constraint feedback_pkey PRIMARY KEY (id);
 alter table public.feedback add constraint feedback_rating_aesthetics_check CHECK (((rating_aesthetics >= 1) AND (rating_aesthetics <= 5)));
 alter table public.feedback add constraint feedback_rating_general_check CHECK (((rating_general >= 1) AND (rating_general <= 5)));
@@ -99,6 +104,7 @@ alter table public.tables add constraint tables_time_limit_chk CHECK ((time_limi
 
 create policy "El creador puede eliminar su mesa" on public.tables for DELETE to public using ((auth.uid() = creator_id));
 create policy "rivales visibles para todos" on public.campaign_rivals for SELECT to anon, authenticated using (true);
+create policy "provincias visibles para todos" on public.campaign_provinces for SELECT to anon, authenticated using (true);
 create policy "ver mi progreso" on public.campaign_progress for SELECT to authenticated using ((auth.uid() = user_id));
 create policy "Las mesas son visibles para todos" on public.tables for SELECT to public using (true);
 create policy "Los jugadores pueden ver su partida" on public.games for SELECT to public using (((auth.uid() = player1_id) OR (auth.uid() = player2_id)));

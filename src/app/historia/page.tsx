@@ -14,8 +14,19 @@ export default async function HistoriaPage() {
     .eq('id', user.id)
     .single()
 
-  // La galería de rivales con el estado (vencido/desbloqueado) del jugador actual.
-  const { data: rivals } = await supabase.rpc('get_campaign')
+  // El mapa de la campaña: puntos del jugador + provincias con sus rivales
+  // (vencido/desbloqueado calculado en el servidor para el jugador actual).
+  const { data: map } = await supabase.rpc('get_campaign_map')
+  const campaign = (map ?? { points: 0, provinces: [] }) as {
+    points: number
+    provinces: never[]
+  }
 
-  return <HistoriaClient initialRivals={rivals ?? []} coins={profile?.coins ?? 0} />
+  return (
+    <HistoriaClient
+      points={campaign.points}
+      provinces={campaign.provinces}
+      coins={profile?.coins ?? 0}
+    />
+  )
 }
