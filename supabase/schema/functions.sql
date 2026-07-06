@@ -294,6 +294,10 @@ declare
   g       games%rowtype;
   v_bot   uuid;
   d       int;
+  tl      int;              -- trait_liar (1..10, 5 = neutro)
+  ta      int;              -- trait_aggressive (1..10, 5 = neutro)
+  liar_n  numeric;          -- desvío del neutro: -4..+5
+  aggr_n  numeric;
   acted_ok boolean;
   es_status text; tr_status text; last_env text; last_truco text; declare_turn text;
   cur_truco_val int; mano_declared int;
@@ -315,7 +319,11 @@ begin
 
   if g.status <> 'playing' or g.awaiting_deal then return g; end if;
 
-  select coalesce(difficulty, 5) into d from campaign_rivals where id = g.campaign_rival_id;
+  select coalesce(difficulty, 5), coalesce(trait_liar, 5), coalesce(trait_aggressive, 5)
+    into d, tl, ta
+    from campaign_rivals where id = g.campaign_rival_id;
+  liar_n := tl - 5;
+  aggr_n := ta - 5;
 
   es_status    := g.envido_state->>'status';
   tr_status    := g.truco_state->>'status';
@@ -347,7 +355,7 @@ begin
       mano_declared := (g.envido_state->>'mano_declared')::int;
       if et > mano_declared then
         act := 'envido_say'; p_type := 'tengo';
-      elsif rr < d::numeric / 10 then
+      elsif rr < d::numeric / 10 + liar_n * 0.02 then
         act := 'envido_say'; p_type := 'son_buenas';
       else
         act := 'envido_say'; p_type := 'tengo';
@@ -367,7 +375,7 @@ begin
     end if;
 
   elsif tr_status in ('truco','retruco','vale_cuatro') and last_truco is distinct from v_bot::text then
-    if eff >= 30 and d >= 6 and cur_truco_val < 4 and rr < 0.40 then
+    if eff >= 30 and d >= 6 and cur_truco_val < 4 and rr < 0.40 + aggr_n * 0.015 then
       act := 'sing_truco';
       p_type := case cur_truco_val when 2 then 'retruco' when 3 then 'vale_cuatro' else 'retruco' end;
     elsif eff >= greatest(12, 22 - d) then
@@ -384,17 +392,17 @@ begin
                                 where pc.value->>'player_id' = v_bot::text));
 
     if can_env and ( et >= 27
-                     or (et >= 23 and rr < d::numeric / 12)
-                     or (et <= 20 and d >= 7 and rr < (d - 6) * 0.03) ) then
+                     or (et >= 23 and rr < d::numeric / 12 + aggr_n * 0.01)
+                     or (et <= 20 and d >= 5 and rr < (d - 4) * 0.02 + liar_n * 0.005) ) then
       act := 'sing_envido';
       p_type := case when et >= 32 and d >= 7 then 'real_envido' else 'envido' end;
 
-    elsif tr_status = 'none' and ( (eff >= 24 and rr < 0.35 + 0.05 * d)
-                                   or (eff <= 12 and d >= 6 and rr < (d - 5) * 0.035) ) then
+    elsif tr_status = 'none' and ( (eff >= 24 and rr < 0.35 + 0.05 * d + aggr_n * 0.02)
+                                   or (eff <= 12 and d >= 6 and rr < (d - 5) * 0.035 + liar_n * 0.005) ) then
       act := 'sing_truco'; p_type := 'truco';
 
     elsif tr_status = 'accepted' and last_truco is distinct from v_bot::text
-          and cur_truco_val < 4 and eff >= 30 and d >= 7 and rr < 0.30 then
+          and cur_truco_val < 4 and eff >= 30 and d >= 7 and rr < 0.30 + aggr_n * 0.015 then
       act := 'sing_truco'; p_type := case cur_truco_val when 2 then 'retruco' else 'vale_cuatro' end;
 
     else
@@ -1011,7 +1019,14 @@ begin
       'slug', p.slug,
       'name', p.name,
       'points_required', p.points_required,
-      'unlocked', (v_pts >= p.points_required),
+      'unlocked', (
+        v_pts >= p.points_required
+        or exists (
+          select 1 from campaign_progress cp2
+          join campaign_rivals cr2 on cr2.id = cp2.rival_id
+          where cp2.user_id = uid and cr2.province_id = p.id
+        )
+      ),
       'rivals', (
         select coalesce(jsonb_agg(jsonb_build_object(
           'id', cr.id,
@@ -1028,7 +1043,10 @@ begin
           'ranking_points', cr.ranking_points,
           'points_reward', cr.points_reward,
           'beaten', (cp.user_id is not null),
-          'unlocked', (v_pts >= p.points_required and v_pts >= cr.points_required)
+          'unlocked', (
+            cp.user_id is not null
+            or (v_pts >= p.points_required and v_pts >= cr.points_required)
+          )
         ) order by cr.points_required, cr.order_index), '[]'::jsonb)
         from campaign_rivals cr
         left join campaign_progress cp on cp.rival_id = cr.id and cp.user_id = uid
@@ -2084,9 +2102,13 @@ begin
   if v_username is null then raise exception 'perfil no encontrado'; end if;
   v_pts := coalesce(v_pts, 0);
 
-  select * into pv from campaign_provinces where id = r.province_id;
-  if v_pts < pv.points_required then raise exception 'todavía no desbloqueaste esta provincia'; end if;
-  if v_pts < r.points_required then raise exception 'todavía no desbloqueaste este rival'; end if;
+  -- Un rival ya vencido siempre acepta la revancha; los candados de puntos
+  -- valen solo para los que nunca venciste.
+  if not exists (select 1 from campaign_progress where user_id = uid and rival_id = p_rival_id) then
+    select * into pv from campaign_provinces where id = r.province_id;
+    if v_pts < pv.points_required then raise exception 'todavía no desbloqueaste esta provincia'; end if;
+    if v_pts < r.points_required then raise exception 'todavía no desbloqueaste este rival'; end if;
+  end if;
 
   delete from tables t
    where t.creator_id = uid

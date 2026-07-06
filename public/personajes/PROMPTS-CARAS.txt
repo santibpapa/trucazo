@@ -1,0 +1,122 @@
+PROMPTS PARA GENERAR LAS CARAS DE LOS 16 RIVALES NUEVOS
+=========================================================
+
+CÓMO USAR: para cada personaje, abrí GPT, ADJUNTÁ UNA CARA YA HECHA como
+referencia de estilo (carnicero.png o tahur.png van bien) y pegá el "PROMPT
+BASE" + la línea del personaje. Guardá el resultado en esta carpeta como
+{nombre}.png (cuadrada, 256x256 o más; con fondo normal, NO transparente).
+
+---------------------------------------------------------
+PROMPT BASE (pegar siempre, junto con la línea del personaje):
+
+Generá un retrato ilustrado con EXACTAMENTE el mismo estilo de la imagen que
+te adjunto: ilustración detallada estilo vintage con línea fina, fondo ocre
+liso tipo pergamino con un marco de línea finita, personaje de medio cuerpo
+sentado detrás de una mesa de paño verde, con un mate y un mazo de cartas de
+truco sobre la mesa. Paleta cálida (ocres, marrones, verde paño). Formato
+cuadrado. Sin ningún texto salvo el que ya trae la escena de referencia.
+El personaje es:
+
+---------------------------------------------------------
+BUENOS AIRES
+
+colectivero.png — Beto, el Colectivero
+Un colectivero porteño de unos 45 años, robusto, con camisa celeste de chofer
+arremangada y termo bajo el brazo. Cara simpática y canchera, bigote fino,
+gorra de chofer echada para atrás. Mira con media sonrisa de apurado, como si
+el semáforo estuviera por cambiar.
+
+tanguero.png — Aníbal, el Tanguero
+Un tanguero elegante de unos 60 años, pelo engominado peinado a la gomina,
+traje oscuro a rayas con pañuelo blanco en el bolsillo. Expresión melancólica
+y seria, ojos entrecerrados que estudian al rival. Un fueye (bandoneón)
+apoyado a un costado de la mesa.
+
+---------------------------------------------------------
+SANTA FE
+
+pescador.png — Cholo, el Pescador
+Un pescador de río de unos 55 años, piel muy curtida por el sol, camisa
+gastada abierta sobre camiseta, sombrero de paja de ala corta. Expresión
+serena y paciente, casi zen. Una caña de pescar apoyada detrás y un río
+apenas insinuado en el fondo.
+
+cumbiero.png — Yony, el Cumbiero
+Un joven santafesino de unos 25 años con campera deportiva brillante, cadena
+dorada gruesa, gorra de visera plana y una sonrisa pícara de costado. Energía
+de fiesta: se está moviendo aunque esté sentado.
+
+quinielera.png — Marta, la Quinielera
+Una señora de unos 60 años con anteojos colgando de una cadenita, cárdigan de
+lana y expresión astuta de que sabe algo que vos no. Sobre la mesa, talones
+de quiniela y un lápiz detrás de la oreja.
+
+---------------------------------------------------------
+CÓRDOBA
+
+fernetero.png — El Colo del Fernet
+Un cordobés pelirrojo de unos 30 años, de barba colorada tupida y cara
+sonriente y confianzuda, con remera de cuarteto. En la mesa, un vaso de
+fernet con cola bien oscuro. Actitud relajada, echado para atrás en la silla.
+
+humorista.png — Chicho, el Humorista
+Un comediante cordobés de unos 50 años, morocho, con cara elástica de
+comediante en pleno remate: cejas levantadas, sonrisa enorme y pícara.
+Saco a cuadros medio chillón con moñito torcido.
+
+cuartetero.png — Dante, el Cuartetero
+Un cantante de cuarteto de unos 40 años con camisa de raso brillante abierta
+hasta el pecho, medallón dorado, pelo largo con reflejos. Pose teatral con el
+mentón alto, como en plena tarima. Un micrófono viejo apoyado en la mesa.
+
+serrana.png — Doña Nélida, la Serrana
+Una señora de las sierras cordobesas de unos 70 años, cara arrugada y noble
+con ojos vivos, pañuelo floreado en la cabeza y poncho de lana. Detrás,
+insinuadas, unas sierras suaves. Mirada dulce pero de mano dura para el truco.
+
+---------------------------------------------------------
+MENDOZA
+
+bodeguero.png — Don Facundo, el Bodeguero
+Un bodeguero mendocino de unos 65 años, distinguido, con chaleco de paño y
+camisa blanca impecable, bigote canoso prolijo. En la mesa, una copa de vino
+tinto. Detrás, barricas de roble insinuadas. Mirada calma de quien no apura
+nada.
+
+arriero.png — Ceferino, el Arriero
+Un arriero de montaña de unos 50 años, curtido y seco, con poncho pesado,
+sombrero de fieltro de ala ancha y un lazo enrollado al hombro. Cicatriz
+chica en la ceja, mirada firme como la piedra. Detrás, la cordillera nevada
+apenas insinuada.
+
+montanesa.png — Alma, la Montañesa
+Una mujer de montaña de unos 35 años, trenzas oscuras largas, campera de
+abrigo con cuello de lana y gorro andino de colores apagados. Mejillas
+curtidas por el viento, ojos claros y penetrantes que parecen ver de lejos.
+
+---------------------------------------------------------
+SANTIAGO DEL ESTERO
+
+bombisto.png — Segundo, el Bombisto
+Un folclorista santiagueño de unos 55 años, morocho y fornido, de camisa
+criolla oscura. Tiene un bombo legüero apoyado al costado y las manos
+grandes de percusionista sobre la mesa. Sonrisa contenida de quien lleva el
+ritmo de todo.
+
+siestero.png — Don Ulises, el Siestero
+Un señor santiagueño de unos 70 años con cara de recién levantado de la
+siesta: párpados a media asta, bostezo contenido, pelo revuelto, camisa
+abierta con camiseta blanca. Pero los ojos, debajo de los párpados caídos,
+brillan despiertos y calculadores.
+
+bruja.png — Doña Yaya, la Bruja
+Una curandera santiagueña de edad indefinida, envuelta en un chal oscuro con
+bordados, collares de semillas y piedras. De un sahumador en la mesa sube un
+hilo de humo. Media sonrisa enigmática, ojos que parecen leerte las cartas… y
+el alma.
+
+coplero.png — Fortunato, el Coplero
+Un coplero norteño de unos 60 años, flaco y nervudo, con sombrero criollo de
+ala ancha, poncho claro terciado al hombro y una caja coplera (tamborcito con
+aro) en la mano. Boca entreabierta como declamando una copla, expresión
+socarrona.

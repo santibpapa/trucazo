@@ -1,20 +1,45 @@
 ILUSTRACIONES DE LOS RIVALES DEL MODO HISTORIA
 ================================================
 
-Guardá acá la imagen de cada personaje, en PNG, cuadrada (ideal 256x256 o más),
-con EXACTAMENTE estos nombres (todo en minúscula):
+Las 26 caras están cargadas y optimizadas. Nombres de archivo (todo en
+minúscula, sin acentos ni ñ — así lo busca la web):
 
+BUENOS AIRES
   novato.png       -> Tobías, el Novato
+  colectivero.png  -> Beto, el Colectivero
   vecina.png       -> Doña Rosa, la Vecina
+  tanguero.png     -> Aníbal, el Tanguero
   carnicero.png    -> Aldo, el Carnicero
   tana.png         -> Carmela, la Tana
+
+SANTA FE
+  pescador.png     -> Cholo, el Pescador
+  cumbiero.png     -> Yony, el Cumbiero
   tahur.png        -> Ramón, el Tahúr
+  quinielera.png   -> Marta, la Quinielera
   patrona.png      -> Doña Elvira, la Patrona
+
+CÓRDOBA
+  fernetero.png    -> El Colo del Fernet
+  humorista.png    -> Chicho, el Humorista
+  cuartetero.png   -> Dante, el Cuartetero
+  serrana.png      -> Doña Nélida, la Serrana
   maestro.png      -> Don Genaro, el Maestro
+
+MENDOZA
+  bodeguero.png    -> Don Facundo, el Bodeguero
   campeon.png      -> Lucho, el Campeón
+  arriero.png      -> Ceferino, el Arriero
+  montanesa.png    -> Alma, la Montañesa      (OJO: el archivo va SIN ñ)
   coneja.png       -> Sofía, la Coneja
+
+SANTIAGO DEL ESTERO
+  bombisto.png     -> Segundo, el Bombisto
+  siestero.png     -> Don Ulises, el Siestero
+  bruja.png        -> Doña Yaya, la Bruja
+  coplero.png      -> Fortunato, el Coplero
   mudo.png         -> Don Salvador, el Mudo
 
-El que tenga imagen la muestra (en la galería y en la mesa); el que no, muestra
-la inicial del nombre como respaldo. No hay que tocar nada más: con poner el
-archivo con el nombre correcto alcanza.
+Si en el futuro reemplazás alguna cara: guardala con su nombre exacto de esta
+lista. Ideal que sea cuadrada. Si te sale muy pesada (más de ~1 MB) no importa,
+se puede optimizar después. Los prompts que se usaron están en PROMPTS-CARAS.txt.
