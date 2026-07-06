@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Panel, Logo, Input, Button, Alert } from '@/components/ui'
 import GuestButton from '@/components/GuestButton'
+import GoogleButton from '@/components/GoogleButton'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -93,7 +94,10 @@ export default function LoginPage() {
           <span className="h-px flex-1 bg-line" />o<span className="h-px flex-1 bg-line" />
         </div>
 
-        <GuestButton variant="secondary" size="lg" />
+        <div className="flex flex-col gap-3">
+          <GoogleButton variant="secondary" size="lg" />
+          <GuestButton variant="ghost" size="lg" />
+        </div>
 
         <p className="text-center text-sm text-muted">
           ¿No tenés cuenta?{' '}
