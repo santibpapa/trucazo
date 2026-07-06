@@ -44,8 +44,18 @@ interface RankingRow {
   province: string | null
 }
 
+interface Style {
+  known: boolean
+  hands: number
+  liar: number
+  folder: number
+  aggressive: number
+}
+
 interface Props {
   points: number
+  fama: number
+  style: Style | null
   provinces: Province[]
   coins: number
 }
@@ -61,6 +71,7 @@ const TUTORIAL_PASOS: { titulo: string; texto: string }[] = [
   { titulo: 'Recorré Argentina', texto: 'Cada provincia tiene sus propios rivales, con su estilo y su nivel de juego.' },
   { titulo: 'Sumá puntos', texto: 'Ganá duelos para sumar puntos y desbloquear rivales y provincias nuevas.' },
   { titulo: 'Llegá a la cima', texto: 'Subí en el Ranking de Argentina hasta destronar al número 1.' },
+  { titulo: 'Cuidá tu fama', texto: 'A medida que progresás te hacés una fama en el ambiente. Los rivales más picantes te empiezan a leer: si mentís mucho el envido o te achicás seguido, se dan cuenta y te lo hacen pagar. Mirá tu fama tocando la barra abajo de las monedas.' },
 ]
 
 // Medida real del mapa político (public/historia/mapa-argentina.png). El
@@ -91,11 +102,12 @@ const LUGARES: Record<string, Pos[]> = {
   'santiago-del-estero': [{ x: 61.6, y: 43.8 }, { x: 40, y: 62 }, { x: 68, y: 13.1 }, { x: 64.2, y: 76.2 }, { x: 35, y: 30 }, { x: 65, y: 55 }],
 }
 
-export default function HistoriaClient({ points, provinces: initialProvinces, coins }: Props) {
+export default function HistoriaClient({ points, fama, style, provinces: initialProvinces, coins }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [showFama, setShowFama] = useState(false)
   const [openProv, setOpenProv] = useState<string | null>(null)
   // Cierre suave: primero corre la animación de salida y recién ahí se desmonta.
   const [closing, setClosing] = useState(false)
@@ -281,8 +293,10 @@ export default function HistoriaClient({ points, provinces: initialProvinces, co
         ))}
       </div>
 
-      {/* HUD: barra superior fija, con chips sólidos como los del lobby. */}
-      <div className="fixed top-0 inset-x-0 z-20 flex items-center justify-between gap-3 p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+      {/* HUD: barra superior fija, con chips sólidos como los del lobby. Alineado
+          arriba (items-start) para que Ranking y monedas queden en la línea del
+          botón de volver; la barra de fama cuelga debajo de las monedas. */}
+      <div className="fixed top-0 inset-x-0 z-20 flex items-start justify-between gap-3 p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
         {/* Chip principal: volver + título + puntos, todo junto. */}
         <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface2/95 pl-1.5 pr-4 py-1.5 shadow-card pointer-events-auto min-w-0">
           <Link
@@ -299,7 +313,7 @@ export default function HistoriaClient({ points, provinces: initialProvinces, co
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2 pointer-events-auto shrink-0">
+        <div className="flex items-start gap-2 pointer-events-auto shrink-0">
           <button
             onClick={() => setShowRanking(true)}
             className="flex items-center gap-1.5 rounded-full border border-gold/50 bg-surface2/95 px-3 py-2.5 text-xs font-bold text-gold hover:bg-gold/10 transition-colors shadow-card"
@@ -307,9 +321,24 @@ export default function HistoriaClient({ points, provinces: initialProvinces, co
             <PodiumIcon />
             Ranking
           </button>
-          <Panel className="flex items-center gap-2 px-3 py-2 !rounded-full">
-            <Coins amount={coins} size="sm" />
-          </Panel>
+          {/* Monedas arriba; abajo, la barra de fama (discreta, se toca para ver
+              tu estilo). */}
+          <div className="flex flex-col items-stretch gap-1.5">
+            <Panel className="flex items-center justify-center gap-2 px-3 py-2 !rounded-full">
+              <Coins amount={coins} size="sm" />
+            </Panel>
+            <button
+              onClick={() => setShowFama(true)}
+              aria-label={`Fama ${fama} de 100 — ver tu estilo`}
+              className="group flex items-center gap-1.5 rounded-full border border-line bg-surface2/95 px-2.5 py-1.5 shadow-card hover:border-gold/60 transition-colors"
+            >
+              <FameIcon />
+              <div className="h-1.5 w-12 sm:w-16 rounded-full bg-black/45 overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-gold-700 to-gold transition-[width] duration-700 ease-out" style={{ width: `${fama}%` }} />
+              </div>
+              <span className="text-[10px] font-bold text-gold tabular">{fama}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -438,6 +467,40 @@ export default function HistoriaClient({ points, provinces: initialProvinces, co
             </Button>
           </div>
         )}
+      </Modal>
+
+      {/* Panel de fama + estilo (al tocar la barra) */}
+      <Modal open={showFama} onClose={() => setShowFama(false)}>
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="w-12 h-12 rounded-full bg-gold/15 text-gold flex items-center justify-center shadow-gold-ring">
+            <FameIcon size={22} />
+          </span>
+          <h2 className="font-display text-2xl font-extrabold text-cream leading-tight">Tu fama</h2>
+          <div className="w-full flex items-center gap-2">
+            <div className="h-2.5 flex-1 rounded-full bg-black/40 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-gold-700 to-gold" style={{ width: `${fama}%` }} />
+            </div>
+            <span className="text-sm font-bold text-gold tabular">{fama}/100</span>
+          </div>
+          <p className="text-xs text-muted -mt-1">
+            Tu fama crece con tu progreso. Cuanta más tenés, más te leen los rivales picantes.
+          </p>
+
+          <div className="w-full border-t border-line/60 pt-3 mt-1">
+            <p className="text-[11px] uppercase tracking-wide text-subtle mb-2">Cómo te ven en la mesa</p>
+            {style && style.known ? (
+              <div className="flex flex-col gap-2">
+                <StyleRow label="Mentiroso" value={style.liar} hint="Cuánto faroleás el envido y el truco" />
+                <StyleRow label="Se achica" value={style.folder} hint="Cuánto te bajás cuando te cantan" />
+                <StyleRow label="Agresivo" value={style.aggressive} hint="Cuánto cantás vos" />
+              </div>
+            ) : (
+              <p className="text-sm text-muted py-2">
+                Jugá unos duelos más y el ambiente va a empezar a conocer tu estilo.
+              </p>
+            )}
+          </div>
+        </div>
       </Modal>
 
       {/* Tutorial de bienvenida (una sola vez por dispositivo) */}
@@ -885,6 +948,20 @@ function CloudLayer({ side }: { side: 'left' | 'right' }) {
   )
 }
 
+// Una fila del estilo del jugador: rasgo + barra 0..100 + nivel bajo/medio/alto.
+function StyleRow({ label, value, hint }: { label: string; value: number; hint: string }) {
+  const nivel = value < 33 ? 'Bajo' : value < 66 ? 'Medio' : 'Alto'
+  return (
+    <div className="flex items-center gap-2" title={hint}>
+      <span className="text-xs font-semibold text-cream w-20 text-left shrink-0">{label}</span>
+      <div className="h-2 flex-1 rounded-full bg-black/40 overflow-hidden">
+        <div className="h-full bg-gold" style={{ width: `${Math.max(4, value)}%` }} />
+      </div>
+      <span className="text-[10px] font-bold text-gold w-9 text-right shrink-0">{nivel}</span>
+    </div>
+  )
+}
+
 // Una fila "rasgo: barrita de 10" (dificultad, mentiroso, agresivo).
 function StatRow({ label, value }: { label: string; value: number }) {
   return (
@@ -903,6 +980,18 @@ function StarIcon({ size = 11 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M12 2l2.9 6.26 6.6.7-4.9 4.5 1.35 6.54L12 16.77 6.05 20l1.35-6.54-4.9-4.5 6.6-.7L12 2z" />
+    </svg>
+  )
+}
+
+function FameIcon({ size = 13 }: { size?: number }) {
+  // Laureles (símbolo de fama/renombre).
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gold" aria-hidden="true">
+      <path d="M12 4v13" />
+      <path d="M12 17c-3 0-5-2-5-6 3 0 5 2 5 6z" />
+      <path d="M12 17c3 0 5-2 5-6-3 0-5 2-5 6z" />
+      <path d="M9 20h6" />
     </svg>
   )
 }

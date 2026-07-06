@@ -14,19 +14,31 @@ export default async function HistoriaPage() {
     .eq('id', user.id)
     .single()
 
-  // El mapa de la campaña: puntos del jugador + provincias con sus rivales
-  // (vencido/desbloqueado calculado en el servidor para el jugador actual).
+  // El mapa de la campaña: puntos y fama del jugador, resumen de su estilo, y
+  // las provincias con sus rivales (todo calculado en el servidor).
   const { data: map } = await supabase.rpc('get_campaign_map')
-  const campaign = (map ?? { points: 0, provinces: [] }) as {
+  const campaign = (map ?? { points: 0, fama: 0, style: null, provinces: [] }) as {
     points: number
+    fama: number
+    style: Style | null
     provinces: never[]
   }
 
   return (
     <HistoriaClient
       points={campaign.points}
+      fama={campaign.fama}
+      style={campaign.style}
       provinces={campaign.provinces}
       coins={profile?.coins ?? 0}
     />
   )
+}
+
+export interface Style {
+  known: boolean
+  hands: number
+  liar: number
+  folder: number
+  aggressive: number
 }

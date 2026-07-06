@@ -42,6 +42,18 @@ create table if not exists public.campaign_rivals (
   trait_aggressive smallint not null default 5
 );
 
+create table if not exists public.campaign_style (
+  user_id uuid not null,
+  hands_played integer not null default 0,
+  envido_sung integer not null default 0,
+  envido_bluff integer not null default 0,
+  envido_folded integer not null default 0,
+  truco_sung integer not null default 0,
+  truco_bluff integer not null default 0,
+  truco_folded integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.chat_messages (
   id         uuid not null default gen_random_uuid(),
   user_id    uuid not null,

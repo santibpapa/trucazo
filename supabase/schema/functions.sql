@@ -279,6 +279,8 @@ begin
     awaiting_deal = false,
     updated_at    = now()
   where id = p_game_id returning * into g;
+
+  begin perform public._record_style(p_game_id, 'hand_played'); exception when others then null; end;
   return g;
 end;
 $function$;
@@ -293,11 +295,21 @@ declare
   uid     uuid := auth.uid();
   g       games%rowtype;
   v_bot   uuid;
+  v_human uuid;
   d       int;
   tl      int;              -- trait_liar (1..10, 5 = neutro)
   ta      int;              -- trait_aggressive (1..10, 5 = neutro)
   liar_n  numeric;          -- desvío del neutro: -4..+5
   aggr_n  numeric;
+  cs        campaign_style%rowtype;
+  hp        int;
+  fama_pts  int;
+  fama      numeric;          -- 0..1
+  read      numeric;          -- 0..1 fuerza de lectura de la reputación
+  liar_rate numeric; fold_rate numeric; aggr_rate numeric;
+  r_call    numeric;          -- empujón a "quiero" (lectura 1)
+  r_bluff   numeric;          -- empujón a farolear (lecturas 2 y 3)
+  fama_cap  constant int := 2000;
   acted_ok boolean;
   es_status text; tr_status text; last_env text; last_truco text; declare_turn text;
   cur_truco_val int; mano_declared int;
@@ -316,6 +328,7 @@ begin
   select id into v_bot from profiles where id in (g.player1_id, g.player2_id) and is_bot limit 1;
   if v_bot is null then raise exception 'esta partida no tiene bot'; end if;
   if uid = v_bot then raise exception 'el bot no juega solo'; end if;
+  v_human := case when v_bot = g.player1_id then g.player2_id else g.player1_id end;
 
   if g.status <> 'playing' or g.awaiting_deal then return g; end if;
 
@@ -324,6 +337,21 @@ begin
     from campaign_rivals where id = g.campaign_rival_id;
   liar_n := tl - 5;
   aggr_n := ta - 5;
+
+  -- Reputación: qué tanto "lee" este rival al humano (fama * dificultad * muestra).
+  select coalesce(campaign_points, 0) into fama_pts from profiles where id = v_human;
+  fama := least(1.0, fama_pts::numeric / fama_cap);
+  select * into cs from campaign_style where user_id = v_human;
+  hp := coalesce(cs.hands_played, 0);
+  liar_rate := (coalesce(cs.envido_bluff,0) + coalesce(cs.truco_bluff,0))::numeric
+               / greatest(1, coalesce(cs.envido_sung,0) + coalesce(cs.truco_sung,0));
+  fold_rate := least(1.0, (coalesce(cs.envido_folded,0) + coalesce(cs.truco_folded,0))::numeric
+               / greatest(1, hp) * 2);
+  aggr_rate := least(1.0, (coalesce(cs.envido_sung,0) + coalesce(cs.truco_sung,0))::numeric
+               / greatest(1, hp) / 1.5);
+  read := fama * greatest(0, (d - 5) / 5.0) * least(1.0, hp / 20.0);
+  r_call  := read * liar_rate * 0.45;                        -- lectura 1
+  r_bluff := read * (fold_rate - aggr_rate) * 0.40;          -- lecturas 2 (fold+) y 3 (aggr-)
 
   es_status    := g.envido_state->>'status';
   tr_status    := g.truco_state->>'status';
@@ -366,7 +394,7 @@ begin
     esc_type := case es_status when 'envido' then 'real_envido' when 'real_envido' then 'falta_envido' else null end;
     if et >= 31 and d >= 6 and esc_type is not null and rr < 0.45 then
       act := 'sing_envido'; p_type := esc_type;
-    elsif et >= greatest(20, 27 - d) then
+    elsif et >= greatest(20, 27 - d) or rr < r_call then     -- lectura 1: al mentiroso lo quiero más
       act := 'respond_envido_yes';
     elsif d <= 3 and rr < 0.5 then
       act := 'respond_envido_yes';
@@ -378,7 +406,7 @@ begin
     if eff >= 30 and d >= 6 and cur_truco_val < 4 and rr < 0.40 + aggr_n * 0.015 then
       act := 'sing_truco';
       p_type := case cur_truco_val when 2 then 'retruco' when 3 then 'vale_cuatro' else 'retruco' end;
-    elsif eff >= greatest(12, 22 - d) then
+    elsif eff >= greatest(12, 22 - d) or rr < r_call then    -- lectura 1: al mentiroso lo quiero más
       act := 'respond_truco_yes';
     elsif d <= 3 and rr < 0.6 then
       act := 'respond_truco_yes';
@@ -393,12 +421,12 @@ begin
 
     if can_env and ( et >= 27
                      or (et >= 23 and rr < d::numeric / 12 + aggr_n * 0.01)
-                     or (et <= 20 and d >= 5 and rr < (d - 4) * 0.02 + liar_n * 0.005) ) then
-      act := 'sing_envido';
+                     or (et <= 20 and d >= 5 and rr < (d - 4) * 0.02 + liar_n * 0.005 + greatest(0, r_bluff)) ) then
+      act := 'sing_envido';                                  -- lecturas 2/3 en el farol de envido
       p_type := case when et >= 32 and d >= 7 then 'real_envido' else 'envido' end;
 
     elsif tr_status = 'none' and ( (eff >= 24 and rr < 0.35 + 0.05 * d + aggr_n * 0.02)
-                                   or (eff <= 12 and d >= 6 and rr < (d - 5) * 0.035 + liar_n * 0.005) ) then
+                                   or (eff <= 12 and d >= 6 and rr < (d - 5) * 0.035 + liar_n * 0.005 + greatest(0, r_bluff)) ) then
       act := 'sing_truco'; p_type := 'truco';
 
     elsif tr_status = 'accepted' and last_truco is distinct from v_bot::text
@@ -996,6 +1024,66 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public._record_style(p_game_id uuid, p_signal text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  g        games%rowtype;
+  actor    uuid := auth.uid();
+  v_human  uuid;
+  remaining jsonb; full_hand jsonb;
+  tanto int; power int;
+  bluff_envido constant int := 24;
+  bluff_truco  constant int := 12;
+begin
+  select * into g from games where id = p_game_id;
+  if not found or g.campaign_rival_id is null then return; end if;
+
+  select id into v_human from profiles
+   where id in (g.player1_id, g.player2_id) and not is_bot limit 1;
+  if v_human is null or actor is distinct from v_human then return; end if;
+
+  insert into campaign_style (user_id) values (v_human) on conflict (user_id) do nothing;
+
+  if p_signal = 'hand_played' then
+    update campaign_style set hands_played = hands_played + 1, updated_at = now()
+     where user_id = v_human;
+
+  elsif p_signal = 'envido_sung' then
+    select cards into remaining from game_hands where game_id = p_game_id and player_id = v_human;
+    full_hand := coalesce(remaining, '[]'::jsonb) || coalesce(
+      (select jsonb_agg(pc.value->'card') from jsonb_array_elements(g.played_cards) pc
+       where pc.value->>'player_id' = v_human::text), '[]'::jsonb);
+    tanto := public._envido_points(full_hand);
+    update campaign_style set
+      envido_sung  = envido_sung + 1,
+      envido_bluff = envido_bluff + (case when tanto < bluff_envido then 1 else 0 end),
+      updated_at = now()
+     where user_id = v_human;
+
+  elsif p_signal = 'truco_sung' then
+    select cards into remaining from game_hands where game_id = p_game_id and player_id = v_human;
+    power := public._bot_hand_power(remaining);
+    update campaign_style set
+      truco_sung  = truco_sung + 1,
+      truco_bluff = truco_bluff + (case when power < bluff_truco then 1 else 0 end),
+      updated_at = now()
+     where user_id = v_human;
+
+  elsif p_signal = 'envido_folded' then
+    update campaign_style set envido_folded = envido_folded + 1, updated_at = now()
+     where user_id = v_human;
+
+  elsif p_signal = 'truco_folded' then
+    update campaign_style set truco_folded = truco_folded + 1, updated_at = now()
+     where user_id = v_human;
+  end if;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.get_campaign_map()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1006,11 +1094,28 @@ declare
   uid         uuid := auth.uid();
   v_pts       integer;
   v_provinces jsonb;
+  cs          campaign_style%rowtype;
+  hp          int;
+  fama        int;
+  liar_pct int; folder_pct int; aggr_pct int;
+  sung int;
+  fama_cap constant int := 2000;   -- PERILLA: puntos para llegar a fama 100
+  known_min constant int := 8;     -- PERILLA: manos mínimas para "te conocen"
 begin
   if uid is null then raise exception 'no autenticado'; end if;
 
   select campaign_points into v_pts from profiles where id = uid;
   v_pts := coalesce(v_pts, 0);
+  fama := least(100, (v_pts * 100) / fama_cap);
+
+  select * into cs from campaign_style where user_id = uid;
+  hp   := coalesce(cs.hands_played, 0);
+  sung := coalesce(cs.envido_sung, 0) + coalesce(cs.truco_sung, 0);
+  liar_pct   := round( (coalesce(cs.envido_bluff,0) + coalesce(cs.truco_bluff,0))::numeric
+                       / greatest(1, sung) * 100 );
+  folder_pct := round( least(1, (coalesce(cs.envido_folded,0) + coalesce(cs.truco_folded,0))::numeric
+                       / greatest(1, hp) * 2) * 100 );
+  aggr_pct   := round( least(1, sung::numeric / greatest(1, hp) / 1.5) * 100 );
 
   select coalesce(jsonb_agg(
     jsonb_build_object(
@@ -1056,7 +1161,18 @@ begin
   into v_provinces
   from campaign_provinces p;
 
-  return jsonb_build_object('points', v_pts, 'provinces', v_provinces);
+  return jsonb_build_object(
+    'points', v_pts,
+    'fama', fama,
+    'style', jsonb_build_object(
+      'known', hp >= known_min,
+      'hands', hp,
+      'liar', liar_pct,
+      'folder', folder_pct,
+      'aggressive', aggr_pct
+    ),
+    'provinces', v_provinces
+  );
 end;
 $function$;
 
@@ -1727,6 +1843,8 @@ begin
   end if;
 
   -- No quiero (igual que antes)
+  begin perform public._record_style(p_game_id, 'envido_folded'); exception when others then null; end;
+
   next_turn := public._turn_after_envido(g);
   singer := (g.envido_state->>'last_singer')::uuid;
   val := public._envido_reject_value(g.envido_state->'chain', g.player1_score, g.player2_score, g.target_score);
@@ -1870,6 +1988,8 @@ begin
     return g;
   end if;
 
+  begin perform public._record_style(p_game_id, 'truco_folded'); exception when others then null; end;
+
   singer := (g.truco_state->>'last_singer')::uuid;
   val := (g.truco_state->>'value')::int - 1;
   s1 := g.player1_score + case when singer = g.player1_id then val else 0 end;
@@ -2012,6 +2132,8 @@ begin
     envido_state = jsonb_build_object('status', p_type, 'last_singer', uid, 'value', val, 'chain', new_chain),
     current_turn = oppid, updated_at = now()
   where id = p_game_id returning * into g;
+
+  begin perform public._record_style(p_game_id, 'envido_sung'); exception when others then null; end;
   return g;
 end;
 $function$;
@@ -2072,6 +2194,8 @@ begin
     current_turn = oppid,
     updated_at = now()
   where id = p_game_id returning * into g;
+
+  begin perform public._record_style(p_game_id, 'truco_sung'); exception when others then null; end;
   return g;
 end;
 $function$;
@@ -2133,6 +2257,7 @@ begin
     (v_id, uid,      h1),
     (v_id, r.bot_id, h2);
 
+  begin perform public._record_style(v_id, 'hand_played'); exception when others then null; end;
   return g;
 end;
 $function$;
