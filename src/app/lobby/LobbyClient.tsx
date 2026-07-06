@@ -9,6 +9,7 @@ import { generatePrivateCode } from '@/lib/tables'
 import { Button, Panel, Input, Modal, Coins, Logo, Alert, Toggle, cn } from '@/components/ui'
 import { useCommunity } from '@/lib/useCommunity'
 import FriendsPanel from '@/components/FriendsPanel'
+import ChatGlobal from '@/components/ChatGlobal'
 
 interface Props {
   profile: Profile
@@ -35,6 +36,8 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
   // Amigos: presencia, solicitudes e invitaciones (para el panel rápido flotante)
   const community = useCommunity(profile.id)
   const [friendsOpen, setFriendsOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const friendsBadge =
     (community.data?.incoming.length ?? 0) + (community.data?.invites_in.length ?? 0)
 
@@ -242,165 +245,231 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
   }
 
   return (
-    <main className="flex flex-col min-h-screen p-4 sm:p-6 gap-5 max-w-2xl mx-auto w-full">
-      {/* Header */}
-      <header className="flex items-center justify-between gap-3 pt-1">
-        <Logo size="md" />
-        <div className="flex items-center gap-3 sm:gap-4">
-          <Link href="/profile" aria-label="Ver perfil">
-            <Panel className="flex items-center gap-2 px-3 py-1.5 !rounded-full transition-shadow hover:shadow-lift">
-              <Coins amount={coins} size="sm" />
-            </Panel>
-          </Link>
-          <div className="hidden sm:flex flex-col items-end leading-tight">
-            <Link href="/profile" className="text-sm font-semibold text-cream hover:text-gold transition-colors">
-              {profile.username}
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="-my-2 py-2 inline-flex items-center text-xs text-subtle hover:text-negative transition-colors"
-            >
-              Cerrar sesión
-            </button>
+    <div className="min-h-screen lg:flex">
+      {/* Menú lateral (solo compu) */}
+      <aside className="hidden lg:flex lg:flex-col w-56 shrink-0 border-r border-line bg-surface/40 p-4 gap-1 sticky top-0 h-screen">
+        <div className="px-2 py-3">
+          <Logo size="md" />
+        </div>
+        <nav className="flex flex-col gap-1 mt-2">
+          <NavItem href="/lobby" icon={<HomeIcon />} label="Home" active />
+          <NavItem href="/historia" icon={<SwordsIcon />} label="Modo Historia" />
+          <NavItem href="/comunidad" icon={<UsersIcon />} label="Comunidad" badge={friendsBadge} />
+        </nav>
+
+        {/* Cuenta: saldo, perfil y salir — anclado abajo del menú */}
+        <div className="mt-auto flex flex-col gap-1.5 border-t border-line pt-3">
+          <div className="flex items-center justify-between rounded-xl bg-surface2 border border-line px-3 py-2">
+            <span className="text-xs text-subtle">Saldo</span>
+            <Coins amount={coins} size="sm" />
           </div>
-          <Link href="/profile" className="sm:hidden -my-2 py-2 px-1 -mx-1 inline-flex items-center text-xs text-gold font-semibold">
-            Perfil
+          <Link
+            href="/profile"
+            className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-surface2 transition-colors group"
+          >
+            <span className="w-9 h-9 rounded-full bg-base border border-gold/40 flex items-center justify-center font-display font-bold text-gold shrink-0">
+              {profile.username.charAt(0).toUpperCase()}
+            </span>
+            <span className="flex flex-col leading-tight min-w-0">
+              <span className="text-sm font-semibold text-cream truncate group-hover:text-gold transition-colors">
+                {profile.username}
+              </span>
+              <span className="text-xs text-subtle">Ver perfil</span>
+            </span>
           </Link>
           <button
             onClick={handleLogout}
-            className="sm:hidden -my-2 py-2 px-1 -mx-1 inline-flex items-center text-xs text-subtle hover:text-negative transition-colors"
+            className="flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium text-subtle hover:text-negative hover:bg-surface2 transition-colors"
           >
-            Salir
+            <LogoutIcon /> Cerrar sesión
           </button>
         </div>
-      </header>
+      </aside>
 
-      {error && <Alert>{error}</Alert>}
+      {/* Columna central */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Barra superior (solo celular/tablet: en compu todo esto vive en el menú lateral) */}
+        <header className="flex lg:hidden items-center justify-between gap-3 px-4 pt-4 sm:px-6 sm:pt-5">
+          <Logo size="md" />
 
-      {/* Volver a la partida en curso */}
-      {activeGameId && (
-        <Panel className="p-4 flex items-center justify-between gap-3 border-gold/50 bg-gold/10 shadow-gold-ring">
-          <div className="min-w-0">
-            <p className="font-semibold text-cream">Tenés una partida en curso</p>
-            <p className="text-sm text-subtle">Volvé para seguir jugando.</p>
+          {/* Ícono de perfil con menucito (perfil / cerrar sesión) */}
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              aria-label="Perfil"
+              className="w-10 h-10 rounded-full bg-surface2 border border-gold/40 flex items-center justify-center font-display font-bold text-gold transition-colors hover:border-gold/70"
+            >
+              {profile.username.charAt(0).toUpperCase()}
+            </button>
+
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 z-40 w-48 rounded-xl border border-line bg-surface shadow-lift p-1.5 animate-fade-up">
+                  <Link
+                    href="/profile"
+                    onClick={() => setMenuOpen(false)}
+                    className="block rounded-lg px-3 py-2 text-sm font-medium text-cream hover:bg-surface2 transition-colors"
+                  >
+                    Mi perfil
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left rounded-lg px-3 py-2 text-sm font-medium text-subtle hover:text-negative hover:bg-surface2 transition-colors"
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-          <Button size="sm" onClick={() => router.push(`/game/${activeGameId}`)} className="shrink-0">
-            Volver a la partida
-          </Button>
-        </Panel>
-      )}
+        </header>
 
-      {/* Modo historia: jugar contra bots que suben de nivel */}
-      <Link href="/historia" className="block">
-        <Panel className="p-4 flex items-center justify-between gap-3 transition-shadow hover:shadow-lift">
-          <div className="min-w-0">
-            <p className="font-semibold text-cream flex items-center gap-2">
-              <SwordsIcon /> Modo Historia
-            </p>
-            <p className="text-sm text-subtle">Jugá contra rivales que suben de nivel y ganá monedas.</p>
+        {/* Tira de nombre + monedas (solo celular) */}
+        <div className="lg:hidden flex items-center justify-center gap-2 border-y border-line bg-surface/40 px-4 py-1.5 mt-3 text-sm">
+          <span className="text-muted truncate max-w-[45%]">{profile.username}</span>
+          <span className="text-subtle">·</span>
+          <Coins amount={coins} size="sm" />
+        </div>
+
+        <main className="flex flex-col gap-5 px-4 sm:px-6 pt-4 pb-24 lg:pt-6 lg:pb-10 w-full max-w-4xl mx-auto xl:max-w-none xl:mx-0">
+          {error && <Alert>{error}</Alert>}
+
+          {/* Volver a la partida en curso */}
+          {activeGameId && (
+            <Panel className="p-4 flex items-center justify-between gap-3 border-gold/50 bg-gold/10 shadow-gold-ring">
+              <div className="min-w-0">
+                <p className="font-semibold text-cream">Tenés una partida en curso</p>
+                <p className="text-sm text-subtle">Volvé para seguir jugando.</p>
+              </div>
+              <Button size="sm" onClick={() => router.push(`/game/${activeGameId}`)} className="shrink-0">
+                Volver a la partida
+              </Button>
+            </Panel>
+          )}
+
+          {/* Cartel grande: Modo Historia (imagen de fondo + texto encima) */}
+          <Link href="/historia" className="block group">
+            <div className="relative overflow-hidden rounded-2xl border border-gold/40 shadow-[0_6px_18px_-7px_rgba(201,162,75,0.4)] h-48 sm:h-56 bg-surface2 bg-[url('/lobby/banner-historia.png')] bg-cover bg-left sm:bg-center transition-transform duration-200 group-hover:-translate-y-0.5">
+              {/* Oscurecido. Celular: parejo (texto centrado). Compu: más fuerte a la derecha. */}
+              <div className="absolute inset-0 bg-black/45 sm:hidden" />
+              <div className="absolute inset-0 hidden sm:block bg-gradient-to-r from-black/10 via-black/25 to-black/75" />
+              {/* Texto y botón. Celular: centrado. Compu: a la derecha. */}
+              <div className="relative h-full flex flex-col justify-center items-center text-center sm:items-end sm:text-right p-5 sm:p-7">
+                <div className="sm:max-w-xs">
+                  <span className="text-xs font-bold uppercase tracking-widest text-gold">Modo Historia</span>
+                  <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-cream leading-tight [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]">
+                    Jugá la campaña
+                  </h2>
+                  <p className="text-sm text-cream/85 mt-1 [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
+                    Ganale a todos y convertite en el mejor jugador de Argentina.
+                  </p>
+                  <span className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-6 py-3 font-semibold text-ink shadow-gold transition-colors group-hover:bg-gold-600">
+                    Jugar
+                    <ChevronRightIcon className="text-ink" />
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          {/* Anti-quiebra: si te quedaste sin monedas para jugar, reclamá el bonus */}
+          {coins < 10 && (
+            <Panel className="p-4 flex items-center justify-between gap-3 border-gold/40 bg-gold/5">
+              <div className="min-w-0">
+                <p className="font-semibold text-cream">Te quedaste sin monedas</p>
+                <p className="text-sm text-subtle">Reclamá un bonus para seguir jugando.</p>
+              </div>
+              <Button size="sm" onClick={handleClaimBonus} disabled={loading} className="shrink-0">
+                Reclamar 100
+              </Button>
+            </Panel>
+          )}
+
+          {/* Acciones principales */}
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              size="md"
+              fullWidth
+              onClick={() => { setShowCreateModal(true); setError('') }}
+              className="!shadow-[0_6px_18px_-7px_rgba(201,162,75,0.4)]"
+            >
+              <PlusIcon /> Crear mesa
+            </Button>
+            <Button
+              variant="ghost"
+              size="md"
+              fullWidth
+              onClick={() => { setShowJoinPrivate(true); setError('') }}
+            >
+              <LockIcon /> Unirse
+            </Button>
           </div>
-          <ChevronRightIcon />
-        </Panel>
-      </Link>
 
-      {/* Comunidad: chat global, amigos y grupos */}
-      <Link href="/comunidad" className="block">
-        <Panel className="p-4 flex items-center justify-between gap-3 transition-shadow hover:shadow-lift">
-          <div className="min-w-0">
-            <p className="font-semibold text-cream flex items-center gap-2">
-              <UsersIcon className="text-gold" /> Comunidad
-            </p>
-            <p className="text-sm text-subtle">Chat global, amigos y grupos.</p>
-          </div>
-          <ChevronRightIcon />
-        </Panel>
-      </Link>
+          {/* Lista de mesas */}
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-base font-bold text-cream">Mesas disponibles</h2>
+              <span className="text-sm text-subtle tabular">{tables.length}</span>
+            </div>
 
-      {/* Anti-quiebra: si te quedaste sin monedas para jugar, reclamá el bonus */}
-      {coins < 10 && (
-        <Panel className="p-4 flex items-center justify-between gap-3 border-gold/40 bg-gold/5">
-          <div className="min-w-0">
-            <p className="font-semibold text-cream">Te quedaste sin monedas</p>
-            <p className="text-sm text-subtle">Reclamá un bonus para seguir jugando.</p>
-          </div>
-          <Button size="sm" onClick={handleClaimBonus} disabled={loading} className="shrink-0">
-            Reclamar 100
-          </Button>
-        </Panel>
-      )}
+            {tables.length === 0 && (
+              <Panel className="p-10 text-center flex flex-col gap-1 border-dashed">
+                <p className="font-medium text-muted">No hay mesas disponibles</p>
+                <p className="text-sm text-subtle">Creá una y esperá a un rival.</p>
+              </Panel>
+            )}
 
-      {/* Acciones principales */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Button
-          size="lg"
-          fullWidth
-          onClick={() => { setShowCreateModal(true); setError('') }}
-        >
-          <PlusIcon /> Crear mesa
-        </Button>
-        <Button
-          variant="ghost"
-          size="lg"
-          fullWidth
-          onClick={() => { setShowJoinPrivate(true); setError('') }}
-        >
-          <LockIcon /> Unirse con código
-        </Button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {tables.map((table, i) => (
+                <Panel
+                  key={table.id}
+                  className="p-4 flex flex-col gap-3 transition-shadow duration-200 hover:shadow-lift animate-fade-up"
+                  style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+                >
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <p className="font-semibold text-cream truncate">{table.name}</p>
+                    <span className="shrink-0 rounded-full border border-line bg-surface2 px-2 py-0.5 text-[10px] font-bold text-muted">
+                      a {table.target_score}
+                    </span>
+                  </div>
+                  <p className="text-sm text-subtle truncate -mt-1.5">por {table.creator_username}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-col leading-tight">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-subtle">
+                        Apuesta
+                      </span>
+                      <Coins amount={table.bet} size="sm" />
+                    </div>
+                    {table.creator_id !== profile.id ? (
+                      <Button
+                        size="sm"
+                        onClick={() => handleJoinTable(table)}
+                        disabled={loading || coins < table.bet}
+                      >
+                        Unirse
+                      </Button>
+                    ) : (
+                      <span className="text-xs font-semibold text-gold px-2">Tu mesa</span>
+                    )}
+                  </div>
+                </Panel>
+              ))}
+            </div>
+          </section>
+        </main>
       </div>
 
-      {/* Lista de mesas */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-base font-bold text-cream">Mesas disponibles</h2>
-          <span className="text-sm text-subtle tabular">{tables.length}</span>
+      {/* Panel social (solo compu ancha): amigos + chat global */}
+      <aside className="hidden xl:flex xl:flex-col w-80 shrink-0 border-l border-line sticky top-0 h-screen">
+        <div className="p-4 border-b border-line max-h-[44%] overflow-y-auto">
+          <h3 className="font-display font-bold text-cream mb-3">Amigos</h3>
+          <FriendsPanel c={community} compact />
         </div>
-
-        {tables.length === 0 && (
-          <Panel className="p-10 text-center flex flex-col gap-1 border-dashed">
-            <p className="font-medium text-muted">No hay mesas disponibles</p>
-            <p className="text-sm text-subtle">Creá una y esperá a un rival.</p>
-          </Panel>
-        )}
-
-        <div className="flex flex-col gap-3">
-          {tables.map((table, i) => (
-            <Panel
-              key={table.id}
-              className="p-4 flex items-center justify-between gap-3 transition-shadow duration-200 hover:shadow-lift animate-fade-up"
-              style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
-            >
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <p className="font-semibold text-cream truncate">{table.name}</p>
-                  <span className="shrink-0 rounded-full border border-line bg-surface2 px-2 py-0.5 text-[10px] font-bold text-muted">
-                    a {table.target_score}
-                  </span>
-                </div>
-                <p className="text-sm text-subtle truncate">por {table.creator_username}</p>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="flex flex-col items-end leading-tight">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-subtle">
-                    Apuesta
-                  </span>
-                  <Coins amount={table.bet} size="sm" />
-                </div>
-                {table.creator_id !== profile.id ? (
-                  <Button
-                    size="sm"
-                    onClick={() => handleJoinTable(table)}
-                    disabled={loading || coins < table.bet}
-                  >
-                    Unirse
-                  </Button>
-                ) : (
-                  <span className="text-xs font-semibold text-gold px-2">Tu mesa</span>
-                )}
-              </div>
-            </Panel>
-          ))}
+        <div className="flex-1 min-h-0 p-4">
+          <ChatGlobal myId={profile.id} isAdmin={!!profile.is_admin} className="h-full" />
         </div>
-      </section>
+      </aside>
 
       {/* Modal crear mesa */}
       <Modal
@@ -529,40 +598,56 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
         </div>
       </Modal>
 
-      {/* Amigos: botón flotante + panel rápido. El fondo invisible cierra el
-          panel al tocar afuera. */}
+      {/* Panel rápido de amigos: se abre desde 'Amigos' en la barra de abajo (solo
+          celular). El fondo invisible cierra al tocar afuera. */}
       {friendsOpen && (
-        <div className="fixed inset-0 z-30" onClick={() => setFriendsOpen(false)} />
-      )}
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
-        {friendsOpen && (
-          <Panel className="w-[min(92vw,360px)] max-h-[70dvh] overflow-y-auto p-4 shadow-lift animate-fade-up">
+        <>
+          <div className="fixed inset-0 z-30 lg:hidden" onClick={() => setFriendsOpen(false)} />
+          <Panel className="lg:hidden fixed inset-x-3 bottom-[4.75rem] z-40 max-h-[68dvh] overflow-y-auto p-4 shadow-lift animate-fade-up">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-display font-bold text-cream">Amigos</h3>
-              <Link href="/comunidad" className="text-xs font-semibold text-gold hover:text-gold-600 transition-colors">
+              <Link
+                href="/comunidad"
+                onClick={() => setFriendsOpen(false)}
+                className="text-xs font-semibold text-gold hover:text-gold-600 transition-colors"
+              >
                 Abrir Comunidad →
               </Link>
             </div>
             <FriendsPanel c={community} compact />
           </Panel>
-        )}
-        <button
-          onClick={() => setFriendsOpen(o => !o)}
-          aria-label={friendsOpen ? 'Cerrar amigos' : 'Abrir amigos'}
-          className={cn(
-            'relative w-14 h-14 rounded-full bg-surface2 border border-gold/50 text-gold shadow-lift flex items-center justify-center transition-transform hover:scale-105',
-            friendsBadge > 0 && !friendsOpen && 'animate-pulse-glow',
-          )}
-        >
-          <UsersIcon size={24} />
-          {friendsBadge > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-gold text-ink text-[11px] font-bold flex items-center justify-center">
-              {friendsBadge}
-            </span>
-          )}
-        </button>
-      </div>
-    </main>
+        </>
+      )}
+
+      {/* Chat global: se abre desde 'Chat' en la barra de abajo (solo celular). */}
+      {chatOpen && (
+        <>
+          <div className="fixed inset-0 z-30 lg:hidden" onClick={() => setChatOpen(false)} />
+          <Panel className="lg:hidden fixed inset-x-3 bottom-[4.75rem] z-40 p-4 shadow-lift animate-fade-up">
+            <ChatGlobal myId={profile.id} isAdmin={!!profile.is_admin} />
+          </Panel>
+        </>
+      )}
+
+      {/* Barra de navegación inferior (solo celular): fondo vino, activo en dorado */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch border-t border-line bg-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+        <BottomTab href="/lobby" icon={<HomeIcon size={22} />} label="Home" active />
+        <BottomTab href="/comunidad" icon={<GlobeIcon />} label="Comunidad" />
+        <BottomTab
+          onClick={() => { setChatOpen(o => !o); setFriendsOpen(false) }}
+          icon={<ChatIcon />}
+          label="Chat"
+          active={chatOpen}
+        />
+        <BottomTab
+          onClick={() => { setFriendsOpen(o => !o); setChatOpen(false) }}
+          icon={<UsersIcon size={22} />}
+          label="Amigos"
+          active={friendsOpen}
+          badge={friendsBadge}
+        />
+      </nav>
+    </div>
   )
 }
 
@@ -583,14 +668,100 @@ function LockIcon() {
   )
 }
 
-function SwordsIcon() {
+function SwordsIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-gold">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M14.5 17.5 3 6V3h3l11.5 11.5" />
       <path d="m13 19 6-6M16 16l4 4M19 21l2-2" />
       <path d="M14.5 6.5 18 3h3v3l-3.5 3.5" />
       <path d="m5 14 6 6M8 17l-4 4M5 19l-2-2" />
     </svg>
+  )
+}
+
+function LogoutIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="m16 17 5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
+  )
+}
+
+function HomeIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5 9.5V21h14V9.5" />
+    </svg>
+  )
+}
+
+function GlobeIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z" />
+    </svg>
+  )
+}
+
+function ChatIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  )
+}
+
+function BottomTab({
+  href, onClick, icon, label, active = false, badge = 0,
+}: {
+  href?: string; onClick?: () => void; icon: React.ReactNode; label: string; active?: boolean; badge?: number
+}) {
+  const inner = (
+    <span className={cn('flex flex-col items-center justify-center gap-0.5 pt-2 pb-1.5', active ? 'text-gold' : 'text-muted')}>
+      <span className="relative">
+        {icon}
+        {badge > 0 && (
+          <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-gold text-ink text-[10px] font-bold flex items-center justify-center">
+            {badge}
+          </span>
+        )}
+      </span>
+      <span className="text-[10px] font-semibold">{label}</span>
+    </span>
+  )
+  return href ? (
+    <Link href={href} className="flex-1">{inner}</Link>
+  ) : (
+    <button onClick={onClick} className="flex-1" aria-label={label}>{inner}</button>
+  )
+}
+
+function NavItem({
+  href, icon, label, active = false, badge = 0,
+}: {
+  href: string; icon: React.ReactNode; label: string; active?: boolean; badge?: number
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors',
+        active ? 'bg-gold/15 text-gold' : 'text-muted hover:text-cream hover:bg-surface2',
+      )}
+    >
+      <span className="shrink-0">{icon}</span>
+      <span className="truncate">{label}</span>
+      {badge > 0 && (
+        <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-ink text-[10px] font-bold flex items-center justify-center">
+          {badge}
+        </span>
+      )}
+    </Link>
   )
 }
 
@@ -605,9 +776,9 @@ function UsersIcon({ size = 18, className }: { size?: number; className?: string
   )
 }
 
-function ChevronRightIcon() {
+function ChevronRightIcon({ className }: { className?: string }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-subtle shrink-0">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={cn('text-subtle shrink-0', className)}>
       <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )

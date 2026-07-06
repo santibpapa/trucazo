@@ -10,9 +10,9 @@ const MAX_LEN = 300
 // Chat global con historial: trae los últimos mensajes y escucha en vivo los
 // nuevos y los borrados. El admin puede borrar cualquiera; cada uno, el suyo.
 export default function ChatGlobal({
-  myId, isAdmin,
+  myId, isAdmin, className,
 }: {
-  myId: string; isAdmin: boolean
+  myId: string; isAdmin: boolean; className?: string
 }) {
   const supabase = createClient()
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -21,6 +21,10 @@ export default function ChatGlobal({
   const [sending, setSending] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const atBottomRef = useRef(true)
+  // Nombre de canal único por instancia: puede haber más de un ChatGlobal montado
+  // a la vez (ej: panel social de compu + panel del celular), y Supabase no permite
+  // dos canales con el mismo nombre.
+  const channelName = useRef(`global-chat-${Math.random().toString(36).slice(2, 10)}`)
 
   // Baja al último mensaje (solo si el usuario ya estaba abajo, para no cortarle
   // la lectura si subió a mirar mensajes viejos).
@@ -45,7 +49,7 @@ export default function ChatGlobal({
     })()
 
     const channel = supabase
-      .channel('global-chat')
+      .channel(channelName.current)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'chat_messages' },
@@ -100,7 +104,7 @@ export default function ChatGlobal({
   }
 
   return (
-    <div className="flex flex-col h-[60dvh] lg:h-[64dvh]">
+    <div className={cn('flex flex-col', className ?? 'h-[60dvh] lg:h-[64dvh]')}>
       <div className="flex items-center justify-between mb-2">
         <h2 className="font-display font-bold text-cream">Chat global</h2>
         {isAdmin && messages.length > 0 && (

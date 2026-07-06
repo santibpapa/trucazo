@@ -1,0 +1,13 @@
+BANNER DEL BOTÓN "MODO HISTORIA" (en el lobby)
+==============================================
+
+Guardá acá la imagen del banner con este nombre EXACTO:
+
+  banner-historia.png
+
+Es la ilustración ancha (el mapa con los rivales). El código la usa de fondo del
+cartel grande de Modo Historia, y le pone el texto encima a la derecha (sobre la
+zona oscura de la imagen).
+
+Si algún día querés cambiar el banner, reemplazá este archivo por otro con el
+mismo nombre (banner-historia.png) y listo.
