@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Logo, CoinIcon, buttonClass } from '@/components/ui'
 import GuestButton from '@/components/GuestButton'
+import GoogleButton from '@/components/GoogleButton'
 
 export default function Home() {
   return (
@@ -24,7 +25,8 @@ export default function Home() {
           <span className="h-px flex-1 bg-line" />o<span className="h-px flex-1 bg-line" />
         </div>
 
-        <GuestButton variant="secondary" size="lg" />
+        <GoogleButton variant="secondary" size="lg" />
+        <GuestButton variant="ghost" size="lg" />
       </div>
 
       <p className="inline-flex items-center gap-2 text-sm text-subtle animate-fade-up">
