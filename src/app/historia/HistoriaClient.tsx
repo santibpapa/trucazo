@@ -84,11 +84,11 @@ const MARCADORES: Record<string, Pos> = {
 // etapa 3 van cayendo en los que siguen). También se afinan con ?ajustar=1
 // abriendo la provincia.
 const LUGARES: Record<string, Pos[]> = {
-  'buenos-aires':        [{ x: 31, y: 37 }, { x: 69.5, y: 23 }, { x: 30.2, y: 71.8 }, { x: 82.9, y: 54 }, { x: 35, y: 74 }, { x: 55, y: 84 }],
-  'santa-fe':            [{ x: 48, y: 25 }, { x: 55, y: 48 }, { x: 45, y: 68 }, { x: 58, y: 82 }, { x: 35, y: 40 }, { x: 60, y: 15 }],
-  'cordoba':             [{ x: 50, y: 40 }, { x: 40, y: 62 }, { x: 62, y: 58 }, { x: 45, y: 20 }, { x: 60, y: 25 }, { x: 50, y: 80 }],
-  'mendoza':             [{ x: 42, y: 30 }, { x: 58, y: 52 }, { x: 40, y: 68 }, { x: 60, y: 20 }, { x: 30, y: 50 }, { x: 55, y: 80 }],
-  'santiago-del-estero': [{ x: 50, y: 42 }, { x: 40, y: 62 }, { x: 62, y: 30 }, { x: 55, y: 70 }, { x: 35, y: 30 }, { x: 65, y: 55 }],
+  'buenos-aires':        [{ x: 31, y: 37 }, { x: 69.5, y: 23 }, { x: 30.2, y: 71.8 }, { x: 82.9, y: 54 }, { x: 55.1, y: 68 }, { x: 50.8, y: 8.2 }],
+  'santa-fe':            [{ x: 67.4, y: 9.5 }, { x: 50.6, y: 44.2 }, { x: 45, y: 68 }, { x: 38, y: 89.9 }, { x: 47.3, y: 24.1 }, { x: 60, y: 15 }],
+  'cordoba':             [{ x: 40.4, y: 48.8 }, { x: 39.5, y: 77.8 }, { x: 62, y: 58 }, { x: 39.2, y: 18.4 }, { x: 66.4, y: 22.1 }, { x: 50, y: 80 }],
+  'mendoza':             [{ x: 42, y: 30 }, { x: 72.8, y: 59.7 }, { x: 41.5, y: 79.1 }, { x: 60, y: 20 }, { x: 30, y: 50 }, { x: 55, y: 80 }],
+  'santiago-del-estero': [{ x: 61.6, y: 43.8 }, { x: 40, y: 62 }, { x: 68, y: 13.1 }, { x: 64.2, y: 76.2 }, { x: 35, y: 30 }, { x: 65, y: 55 }],
 }
 
 export default function HistoriaClient({ points, provinces: initialProvinces, coins }: Props) {
