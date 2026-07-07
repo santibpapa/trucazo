@@ -36,11 +36,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Con sesión de cuenta real, /login y /register redirigen al lobby (no hace
-  // falta volver a entrar). Los INVITADOS (sesión anónima) sí pueden pasar: si
+  // Con sesión de cuenta real, la home, /login y /register redirigen al lobby
+  // (no hace falta volver a entrar; si no, la home muestra botones de login a
+  // alguien que ya entró). Los INVITADOS (sesión anónima) sí pueden pasar: si
   // tocan "Iniciar sesión" es porque quieren entrar con su cuenta de verdad, y
   // al hacerlo la sesión de invitado se reemplaza.
-  if (user && !user.is_anonymous && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register')) {
+  if (user && !user.is_anonymous && ['/', '/login', '/register'].includes(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone()
     url.pathname = '/lobby'
     return NextResponse.redirect(url)
