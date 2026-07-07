@@ -31,6 +31,11 @@ export async function GET(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
+          // Igual que en middleware.ts: además de la respuesta, actualizamos las
+          // cookies del request para que las llamadas de ESTE handler que vienen
+          // después del canje (crear el perfil) ya salgan autenticadas. Sin esto,
+          // el insert del perfil corría sin sesión y la RLS lo rechazaba.
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           )
