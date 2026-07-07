@@ -1,11 +1,15 @@
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 /**
  * Página de vuelta del login con Google (y cualquier OAuth).
  * Google manda al usuario acá con un ?code=… ; lo canjeamos por una sesión,
  * nos aseguramos de que tenga perfil (con 1.000 monedas si es nuevo) y lo
  * mandamos al lobby.
+ *
+ * Importante: las cookies de sesión se escriben DIRECTO sobre la respuesta de
+ * redirección (igual que en middleware.ts). Si se usa el helper de next/headers,
+ * la cookie no viaja con el redirect y el usuario llega "sin sesión" al lobby.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -15,17 +19,31 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login`)
   }
 
-  const supabase = await createClient()
+  // Respuesta que devolvemos; el cliente de Supabase escribe las cookies acá.
+  const response = NextResponse.redirect(`${origin}/lobby`)
 
-  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-  if (exchangeError) {
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+  if (error || !data.user) {
     return NextResponse.redirect(`${origin}/login`)
   }
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.redirect(`${origin}/login`)
-  }
+  const user = data.user
 
   // ¿Ya tiene perfil? (puede haberlo creado el trigger handle_new_user). Si no,
   // lo creamos con un nombre a partir del email y 1.000 monedas por defecto.
@@ -48,5 +66,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/lobby`)
+  return response
 }
