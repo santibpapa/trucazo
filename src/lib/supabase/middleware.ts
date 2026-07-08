@@ -2,6 +2,17 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+  // Red de seguridad para el login con Google (OAuth): a veces Supabase nos
+  // devuelve el ?code=… a la raíz del sitio (Site URL) en vez de a la página de
+  // vuelta. Si vemos un código en cualquier página que no sea /auth/callback,
+  // lo reenviamos ahí para completar el login del lado del servidor.
+  const oauthCode = request.nextUrl.searchParams.get('code')
+  if (oauthCode && request.nextUrl.pathname !== '/auth/callback') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    return NextResponse.redirect(url)
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
