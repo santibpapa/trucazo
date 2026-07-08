@@ -255,6 +255,7 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
           <NavItem href="/lobby" icon={<HomeIcon />} label="Home" active />
           <NavItem href="/historia" icon={<SwordsIcon />} label="Modo Historia" />
           <NavItem href="/comunidad" icon={<UsersIcon />} label="Comunidad" badge={friendsBadge} />
+          <NavItem href="/tienda" icon={<StoreIcon />} label="Tienda" />
         </nav>
 
         {/* Cuenta: saldo, perfil y salir — anclado abajo del menú */}
@@ -632,6 +633,7 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
       {/* Barra de navegación inferior (solo celular): fondo vino, activo en dorado */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch border-t border-line bg-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
         <BottomTab href="/lobby" icon={<HomeIcon size={22} />} label="Home" active />
+        <BottomTab href="/tienda" icon={<StoreIcon size={22} />} label="Tienda" />
         <BottomTab href="/comunidad" icon={<GlobeIcon />} label="Comunidad" />
         <BottomTab
           onClick={() => { setChatOpen(o => !o); setFriendsOpen(false) }}
@@ -694,6 +696,17 @@ function HomeIcon({ size = 18 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M3 10.5 12 3l9 7.5" />
       <path d="M5 9.5V21h14V9.5" />
+    </svg>
+  )
+}
+
+function StoreIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 8 5.5 3h13L20 8" />
+      <path d="M4 8h16v2.5a2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0V8Z" />
+      <path d="M5.5 12.5V21h13v-8.5" />
+      <path d="M9.5 21v-5h5v5" />
     </svg>
   )
 }

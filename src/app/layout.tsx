@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, Sora } from 'next/font/google'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import GuestSessionGuard from '@/components/GuestSessionGuard'
 import './globals.css'
 
@@ -32,6 +33,8 @@ export default function RootLayout({
         {/* Cierra sesiones de invitado heredadas de una visita anterior */}
         <GuestSessionGuard />
         {children}
+        {/* Métricas de velocidad reales (se ven en el panel de Vercel) */}
+        <SpeedInsights />
       </body>
     </html>
   )

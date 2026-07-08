@@ -7,6 +7,18 @@ export interface Profile {
   games_lost: number
   created_at: string
   is_admin?: boolean
+  // Salón (fondo de la mesa) en uso; 'clasico' si nunca cambió
+  active_salon?: string
+}
+
+// Tienda: un salón del catálogo (fondo de la mesa de juego).
+// Su imagen es /mesa/{slug}.png
+export interface Salon {
+  slug: string
+  name: string
+  description: string
+  price: number
+  sort_order: number
 }
 
 export interface ChatMessage {

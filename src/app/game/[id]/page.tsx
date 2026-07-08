@@ -83,12 +83,21 @@ export default async function GamePage({ params }: { params: { id: string } }) {
     campaignRivalSlug = rival?.slug ?? null
   }
 
+  // Salón (fondo de la mesa) elegido por este jugador; cada uno ve el suyo.
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('active_salon')
+    .eq('id', user.id)
+    .single()
+  const salonSlug = prof?.active_salon ?? 'clasico'
+
   return (
     <GameClient
       game={game}
       currentUserId={user.id}
       myHand={myHand}
       campaignRivalSlug={campaignRivalSlug}
+      salonSlug={salonSlug}
     />
   )
 }

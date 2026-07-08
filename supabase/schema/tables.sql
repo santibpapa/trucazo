@@ -192,7 +192,24 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now(),
   is_bot boolean not null default false,
   is_admin boolean not null default false,
-  campaign_points integer not null default 0
+  campaign_points integer not null default 0,
+  active_salon text not null default 'clasico'
+);
+
+-- Tienda: catálogo de salones (fondos de la mesa de juego)
+create table if not exists public.salons (
+  slug        text not null,
+  name        text not null,
+  description text not null,
+  price       integer not null,
+  sort_order  integer not null default 0
+);
+
+-- Tienda: salones comprados por cada perfil (escribe solo buy_salon)
+create table if not exists public.profile_salons (
+  profile_id   uuid not null,
+  salon_slug   text not null,
+  purchased_at timestamptz not null default now()
 );
 
 create table if not exists public.user_presence (

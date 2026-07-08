@@ -9,6 +9,7 @@ import { Panel, Button, CoinIcon } from '@/components/ui'
 import PlayingCard from '@/components/game/PlayingCard'
 import CardBack from '@/components/game/CardBack'
 import { playSound, isMuted, setMuted } from '@/lib/sounds'
+import { getSalonTheme } from '@/lib/salones'
 
 interface Props {
   game: Game
@@ -16,6 +17,8 @@ interface Props {
   myHand: Card[]
   // Modo historia: slug del rival, para mostrar su ilustración en la mesa.
   campaignRivalSlug?: string | null
+  // Salón (fondo de la mesa) elegido por este jugador en la Tienda.
+  salonSlug?: string
 }
 
 type EnvidoType = 'envido' | 'real_envido' | 'falta_envido'
@@ -126,7 +129,7 @@ function MesaButton({
   )
 }
 
-export default function GameClient({ game: initialGame, currentUserId, myHand: initialMyHand, campaignRivalSlug }: Props) {
+export default function GameClient({ game: initialGame, currentUserId, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico' }: Props) {
   const router = useRouter()
   const [game, setGame] = useState<Game>(initialGame)
   const [myHand, setMyHand] = useState<Card[]>(initialMyHand)
@@ -1025,11 +1028,14 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   // El abanico del rival descuenta también las cartas que bajó por el envido
   const oppRevealedCount = envidoReveal && !revealIsMine ? envidoReveal.cards.length : 0
   const oppCardsLeft = Math.max(0, 3 - game.played_cards.filter(pc => pc.player_id === opponentId).length - oppRevealedCount)
+  // Colores de la mesa según el salón elegido (madera, filete y paño)
+  const salonTheme = getSalonTheme(salonSlug)
 
   return (
     <main className="fixed inset-0 overflow-hidden">
       {/* Fondo: salón del club. Base de degradados cálidos (lámparas + penumbra)
-          y, encima, la foto public/mesa/salon.png si existe. Cierra una viñeta. */}
+          y, encima, la foto del salón elegido (public/mesa/{slug}.png) si existe.
+          Cierra una viñeta. */}
       <div
         aria-hidden
         className="absolute inset-0"
@@ -1043,7 +1049,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       <div
         aria-hidden
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/mesa/salon.png')" }}
+        style={{ backgroundImage: `url('/mesa/${salonSlug}.png')` }}
       />
       <div
         aria-hidden
@@ -1135,7 +1141,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
           <div
             className="absolute inset-0 rounded-[50%]"
             style={{
-              background: 'linear-gradient(180deg, #7a5533 0%, #5d3f26 22%, #46301d 55%, #2c1e12 100%)',
+              background: salonTheme.rim,
               boxShadow:
                 '0 40px 90px -24px rgba(0,0,0,0.85), inset 0 2px 5px rgba(255,255,255,0.10), inset 0 -10px 26px rgba(0,0,0,0.5)',
             }}
@@ -1144,15 +1150,15 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             className="absolute rounded-[50%]"
             style={{
               inset: '4%',
-              border: '2px solid rgba(201,162,75,0.6)',
-              boxShadow: '0 0 14px rgba(201,162,75,0.28), inset 0 0 10px rgba(201,162,75,0.15)',
+              border: `2px solid ${salonTheme.inlay}`,
+              boxShadow: `0 0 14px ${salonTheme.inlayGlow}, inset 0 0 10px ${salonTheme.inlayGlow}`,
             }}
           />
           <div
             className="absolute rounded-[50%]"
             style={{
               inset: '6.5%',
-              background: 'radial-gradient(ellipse at 50% 36%, #56262d 0%, #432027 48%, #2f161c 100%)',
+              background: salonTheme.felt,
               boxShadow: 'inset 0 14px 44px rgba(0,0,0,0.6), inset 0 -10px 30px rgba(0,0,0,0.45)',
             }}
           />

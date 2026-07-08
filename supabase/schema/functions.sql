@@ -505,6 +505,45 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.buy_salon(p_slug text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  uid     uuid := auth.uid();
+  s       salons%rowtype;
+  v_coins integer;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+
+  select * into s from salons where slug = p_slug;
+  if not found then raise exception 'salón no encontrado'; end if;
+  if s.price <= 0 then raise exception 'este salón es gratis, no hace falta comprarlo'; end if;
+
+  -- Lock del perfil: evita comprar dos veces o gastar de más en simultáneo
+  select coins into v_coins from profiles where id = uid for update;
+  if not found then raise exception 'perfil no encontrado'; end if;
+
+  if exists (select 1 from profile_salons where profile_id = uid and salon_slug = p_slug) then
+    raise exception 'ya tenés este salón';
+  end if;
+  if v_coins < s.price then
+    raise exception 'no te alcanzan las monedas';
+  end if;
+
+  update profiles
+     set coins = coins - s.price,
+         active_salon = p_slug          -- lo recién comprado queda en uso
+   where id = uid;
+
+  insert into profile_salons (profile_id, salon_slug) values (uid, p_slug);
+
+  return json_build_object('coins', v_coins - s.price, 'active_salon', p_slug);
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.cancel_table(p_table_id uuid)
  RETURNS void
  LANGUAGE plpgsql
@@ -2089,6 +2128,31 @@ begin
 
   insert into friendships (requester_id, addressee_id) values (me, other.id);
   return jsonb_build_object('status', 'pending', 'username', other.username);
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.set_active_salon(p_slug text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  uid     uuid := auth.uid();
+  v_price integer;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+
+  select price into v_price from salons where slug = p_slug;
+  if not found then raise exception 'salón no encontrado'; end if;
+
+  -- Los gratis los puede usar cualquiera; los pagos, solo si los compró.
+  if v_price > 0
+     and not exists (select 1 from profile_salons where profile_id = uid and salon_slug = p_slug) then
+    raise exception 'no tenés este salón';
+  end if;
+
+  update profiles set active_salon = p_slug where id = uid;
 end;
 $function$;
 

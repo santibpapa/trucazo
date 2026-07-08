@@ -32,6 +32,8 @@ alter table public.game_presence enable row level security;
 alter table public.games enable row level security;
 alter table public.news enable row level security;
 alter table public.profiles enable row level security;
+alter table public.profile_salons enable row level security;
+alter table public.salons enable row level security;
 alter table public.tables enable row level security;
 alter table public.user_presence enable row level security;
 
@@ -96,6 +98,11 @@ alter table public.games add constraint games_winner_id_fkey FOREIGN KEY (winner
 alter table public.profiles add constraint profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
 alter table public.profiles add constraint profiles_pkey PRIMARY KEY (id);
 alter table public.profiles add constraint profiles_username_key UNIQUE (username);
+alter table public.salons add constraint salons_pkey PRIMARY KEY (slug);
+alter table public.salons add constraint salons_price_check CHECK ((price >= 0));
+alter table public.profile_salons add constraint profile_salons_pkey PRIMARY KEY (profile_id, salon_slug);
+alter table public.profile_salons add constraint profile_salons_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.profile_salons add constraint profile_salons_salon_slug_fkey FOREIGN KEY (salon_slug) REFERENCES salons(slug) ON DELETE CASCADE;
 alter table public.user_presence add constraint user_presence_pkey PRIMARY KEY (user_id);
 alter table public.user_presence add constraint user_presence_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.tables add constraint tables_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES profiles(id) ON DELETE CASCADE;
@@ -113,6 +120,10 @@ create policy "ver mi progreso" on public.campaign_progress for SELECT to authen
 create policy "Las mesas son visibles para todos" on public.tables for SELECT to public using (true);
 create policy "Los jugadores pueden ver su partida" on public.games for SELECT to public using (((auth.uid() = player1_id) OR (auth.uid() = player2_id)));
 create policy "Los perfiles son visibles para todos" on public.profiles for SELECT to public using (true);
+-- Tienda: el catálogo lo ve cualquiera; las compras, cada uno la suya
+-- (no hay INSERT/UPDATE de cliente: escribe solo buy_salon, security definer).
+create policy "salons_select_all" on public.salons for SELECT to public using (true);
+create policy "profile_salons_select_own" on public.profile_salons for SELECT to authenticated using ((profile_id = auth.uid()));
 create policy "Los usuarios autenticados pueden crear mesas" on public.tables for INSERT to public with check ((auth.uid() = creator_id));
 create policy "Los usuarios pueden crear su propio perfil" on public.profiles for INSERT to public with check ((auth.uid() = id));
 create policy "Los usuarios ven su propio historial" on public.game_history for SELECT to public using ((auth.uid() = player_id));
