@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Sora } from 'next/font/google'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import GuestSessionGuard from '@/components/GuestSessionGuard'
+import RegisterSW from '@/components/RegisterSW'
 import './globals.css'
 
 const inter = Inter({
@@ -41,6 +42,8 @@ export default function RootLayout({
       <body className="min-h-screen bg-base font-sans text-cream antialiased">
         {/* Cierra sesiones de invitado heredadas de una visita anterior */}
         <GuestSessionGuard />
+        {/* Registra el service worker (permite instalar la web como app) */}
+        <RegisterSW />
         {children}
         {/* Métricas de velocidad reales (se ven en el panel de Vercel) */}
         <SpeedInsights />

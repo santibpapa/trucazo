@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Panel, Logo, Input, Button, Alert } from '@/components/ui'
 import GuestButton from '@/components/GuestButton'
 import GoogleButton from '@/components/GoogleButton'
+import InstallButton from '@/components/InstallButton'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -97,6 +98,7 @@ export default function LoginPage() {
         <div className="flex flex-col gap-3">
           <GoogleButton variant="secondary" size="lg" />
           <GuestButton variant="ghost" size="lg" />
+          <InstallButton />
         </div>
 
         <p className="text-center text-sm text-muted">

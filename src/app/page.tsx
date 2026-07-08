@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Logo, CoinIcon, buttonClass } from '@/components/ui'
 import GuestButton from '@/components/GuestButton'
 import GoogleButton from '@/components/GoogleButton'
+import InstallButton from '@/components/InstallButton'
 
 export default function Home() {
   return (
@@ -27,6 +28,7 @@ export default function Home() {
 
         <GoogleButton variant="secondary" size="lg" />
         <GuestButton variant="ghost" size="lg" />
+        <InstallButton />
       </div>
 
       <p className="inline-flex items-center gap-2 text-sm text-subtle animate-fade-up">
