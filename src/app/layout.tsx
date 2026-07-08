@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, Sora } from 'next/font/google'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import GuestSessionGuard from '@/components/GuestSessionGuard'
@@ -23,6 +23,12 @@ export const metadata: Metadata = {
   // La app ya es oscura de fábrica: este "candado" hace que la extensión
   // Dark Reader se desactive sola acá (si no, re-pinta y rompe los colores).
   other: { 'darkreader-lock': '' },
+}
+
+// Declara la app como oscura (emite <meta name="color-scheme" content="dark">).
+// Es la señal estándar para que el navegador NO auto-oscurezca/invierta la web.
+export const viewport: Viewport = {
+  colorScheme: 'dark',
 }
 
 export default function RootLayout({
