@@ -45,24 +45,27 @@ export default async function LobbyPage() {
     )
   }
 
-  const { data: tables } = await supabase
-    .from('tables')
-    .select('*')
-    .eq('status', 'waiting')
-    .eq('is_private', false)
-    .order('created_at', { ascending: false })
-
+  // Estos dos pedidos no dependen entre sí, así que los pedimos juntos (en
+  // paralelo) para no esperar uno atrás del otro y que el lobby cargue más rápido.
   // Partida en curso del usuario (la RLS de games ya limita a las suyas).
   // Los duelos del modo historia no cuentan acá: son práctica, no una partida
   // apostada para retomar, y no deben quedar colgados como "partida en curso".
-  const { data: activeGame } = await supabase
-    .from('games')
-    .select('id')
-    .eq('status', 'playing')
-    .is('campaign_rival_id', null)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const [{ data: tables }, { data: activeGame }] = await Promise.all([
+    supabase
+      .from('tables')
+      .select('*')
+      .eq('status', 'waiting')
+      .eq('is_private', false)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('games')
+      .select('id')
+      .eq('status', 'playing')
+      .is('campaign_rival_id', null)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
 
   return (
     <LobbyClient
