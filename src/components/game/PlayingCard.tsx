@@ -62,8 +62,10 @@ export default function PlayingCard({
           'enabled:active:-translate-y-1',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
           'disabled:opacity-60 disabled:cursor-not-allowed',
-          deal && 'animate-deal-in',
-          flip && 'animate-play-in',
+          // will-change promueve la carta a su propia capa de GPU antes de animar:
+          // sin esto, en celulares el flip/reparto puede perder cuadros y "no verse".
+          deal && 'animate-deal-in will-change-transform',
+          flip && 'animate-play-in will-change-transform',
           className,
         )}
       >
@@ -75,7 +77,12 @@ export default function PlayingCard({
   return (
     <div
       style={style}
-      className={cn(surface, deal && 'animate-deal-in', flip && 'animate-play-in', className)}
+      className={cn(
+        surface,
+        deal && 'animate-deal-in will-change-transform',
+        flip && 'animate-play-in will-change-transform',
+        className,
+      )}
     >
       {inner}
     </div>

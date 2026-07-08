@@ -98,7 +98,8 @@ CREATE OR REPLACE FUNCTION public._envido_reveal_for(g games, p_player uuid)
 AS $function$
 declare full_hand jsonb; win_cards jsonb; played_by jsonb; unplayed jsonb := '[]'::jsonb; wc jsonb;
 begin
-  if g.envido_state->>'status' <> 'accepted' then return null; end if;
+  -- 'accepted' = resuelto declarando; 'mazo' = el rival abandonó y ganó el declarante
+  if g.envido_state->>'status' not in ('accepted','mazo') then return null; end if;
   if (g.envido_state->>'winner_id') is distinct from p_player::text then return null; end if;
 
   select cards into full_hand from game_hands where game_id = g.id and player_id = p_player;
@@ -706,7 +707,7 @@ declare
   es jsonb; dturn uuid; mano uuid; pie uuid;
   my_tanto int; mano_tanto int; winner uuid; val int;
   next_turn uuid; s1 int; s2 int; stake int; oppid uuid;
-  myhand jsonb; expose1 int; expose2 int;
+  myhand jsonb; expose1 int; expose2 int; v_reveal jsonb;
 begin
   if uid is null then raise exception 'no autenticado'; end if;
   if p_action not in ('tengo','son_buenas','mazo') then raise exception 'accion invalida'; end if;
@@ -730,14 +731,25 @@ begin
     stake := case when g.truco_state->>'status' = 'accepted' then (g.truco_state->>'value')::int else 1 end;
     s1 := g.player1_score + case when oppid = g.player1_id then val + stake else 0 end;
     s2 := g.player2_score + case when oppid = g.player2_id then val + stake else 0 end;
+
+    es := es || jsonb_build_object('status','mazo','winner_id',oppid);
+    -- Si el rival (la mano) ya había declarado su tanto, queda expuesto y debe
+    -- mostrar las cartas que lo forman. Si nadie declaró, no hay nada que probar.
+    if oppid = mano and (es->>'mano_declared') is not null then
+      es := es || (case when mano = g.player1_id
+        then jsonb_build_object('player1_points',(es->>'mano_declared')::int)
+        else jsonb_build_object('player2_points',(es->>'mano_declared')::int) end);
+      g.envido_state := es;
+      v_reveal := public._envido_reveal_for(g, oppid);
+    end if;
+
     if s1 >= g.target_score or s2 >= g.target_score then
       update games set player1_score = s1, player2_score = s2,
-        envido_state = es || jsonb_build_object('status','mazo','winner_id',oppid),
-        updated_at = now() where id = p_game_id;
+        envido_state = es, updated_at = now() where id = p_game_id;
       perform public.finish_game(p_game_id, oppid, s1, s2);
     else
       update games set player1_score = s1, player2_score = s2,
-        envido_state = es || jsonb_build_object('status','mazo','winner_id',oppid),
+        envido_state = es, envido_reveal = v_reveal,
         awaiting_deal = true, updated_at = now() where id = p_game_id;
     end if;
     select * into g from games where id = p_game_id;
@@ -1480,7 +1492,7 @@ begin
   s1 := g.player1_score + case when oppid = g.player1_id then stake else 0 end;
   s2 := g.player2_score + case when oppid = g.player2_id then stake else 0 end;
 
-  v_reveal := public._envido_reveal_for(g, uid);
+  v_reveal := public._envido_reveal_for(g, (g.envido_state->>'winner_id')::uuid);
 
   update games set player1_score = s1, player2_score = s2, awaiting_deal = true,
     envido_reveal = v_reveal, updated_at = now()
@@ -2364,6 +2376,7 @@ AS $function$
 declare
   g games%rowtype; loser uuid; oppid uuid; stake int; s1 int; s2 int;
   new_count int; deadline timestamptz; extra int := 0; is_decl boolean; v_reveal jsonb;
+  es2 jsonb;
 begin
   if auth.uid() is null then raise exception 'no autenticado'; end if;
   select * into g from games where id = p_game_id for update;
@@ -2384,6 +2397,19 @@ begin
   deadline := g.turn_started_at + make_interval(secs => g.time_limit);
   if now() < deadline then raise exception 'todavia hay tiempo'; end if;
 
+  -- Estado final del envido: si el timeout fue declarando, lo gana el rival por
+  -- mazo. Si el rival (la mano) ya había declarado su tanto, queda expuesto y
+  -- debe mostrar las cartas que lo forman.
+  es2 := g.envido_state;
+  if is_decl then
+    es2 := es2 || jsonb_build_object('status','mazo','winner_id',oppid);
+    if oppid = g.mano_player and (es2->>'mano_declared') is not null then
+      es2 := es2 || (case when g.mano_player = g.player1_id
+        then jsonb_build_object('player1_points',(es2->>'mano_declared')::int)
+        else jsonb_build_object('player2_points',(es2->>'mano_declared')::int) end);
+    end if;
+  end if;
+
   stake := (case when g.truco_state->>'status' = 'accepted' then (g.truco_state->>'value')::int else 1 end) + extra;
   s1 := g.player1_score + case when oppid = g.player1_id then stake else 0 end;
   s2 := g.player2_score + case when oppid = g.player2_id then stake else 0 end;
@@ -2394,8 +2420,7 @@ begin
     update games set
       mazo_count_p1 = case when loser = g.player1_id then new_count else mazo_count_p1 end,
       mazo_count_p2 = case when loser = g.player2_id then new_count else mazo_count_p2 end,
-      envido_state = case when is_decl then envido_state || jsonb_build_object('status','mazo','winner_id',oppid) else envido_state end,
-      updated_at = now()
+      envido_state = es2, updated_at = now()
     where id = p_game_id;
     perform public.finish_game(p_game_id, oppid, g.player1_score, g.player2_score);
     select * into g from games where id = p_game_id;
@@ -2406,21 +2431,21 @@ begin
     update games set player1_score = s1, player2_score = s2,
       mazo_count_p1 = case when loser = g.player1_id then new_count else mazo_count_p1 end,
       mazo_count_p2 = case when loser = g.player2_id then new_count else mazo_count_p2 end,
-      envido_state = case when is_decl then envido_state || jsonb_build_object('status','mazo','winner_id',oppid) else envido_state end,
-      updated_at = now()
+      envido_state = es2, updated_at = now()
     where id = p_game_id;
     perform public.finish_game(p_game_id, oppid, s1, s2);
     select * into g from games where id = p_game_id;
     return g;
   end if;
 
-  v_reveal := public._envido_reveal_for(g, loser);
+  -- Revelación del envido: siempre la del ganador (resuelto declarando o por mazo)
+  g.envido_state := es2;
+  v_reveal := public._envido_reveal_for(g, (es2->>'winner_id')::uuid);
 
   update games set player1_score = s1, player2_score = s2,
     mazo_count_p1 = case when loser = g.player1_id then new_count else mazo_count_p1 end,
     mazo_count_p2 = case when loser = g.player2_id then new_count else mazo_count_p2 end,
-    envido_state = case when is_decl then envido_state || jsonb_build_object('status','mazo','winner_id',oppid) else envido_state end,
-    envido_reveal = v_reveal, awaiting_deal = true, updated_at = now()
+    envido_state = es2, envido_reveal = v_reveal, awaiting_deal = true, updated_at = now()
   where id = p_game_id returning * into g;
   return g;
 end;

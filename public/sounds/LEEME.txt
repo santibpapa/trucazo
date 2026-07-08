@@ -1,0 +1,29 @@
+SONIDOS DEL JUEGO
+=================
+
+Estos archivos se reproducen durante la partida. Para que suene un canto,
+poné acá un archivo con EXACTAMENTE el nombre de abajo (respetá minúsculas
+y guiones). Si un archivo no está, ese canto simplemente no suena (no rompe
+nada).
+
+Ya incluidos (efectos neutros, generados por nosotros):
+  carta.wav          -> al tirar una carta (tuya o del rival)
+  gano.wav           -> al ganar la partida
+  perdi.wav          -> al perder la partida
+
+Faltan (los ponés vos, en formato .mp3):
+  truco.mp3          -> canto "¡Truco!"
+  retruco.mp3        -> canto "¡Retruco!" (o "quiero retruco")
+  vale-cuatro.mp3    -> canto "¡Vale cuatro!"
+  envido.mp3         -> canto "¡Envido!"
+  real-envido.mp3    -> canto "¡Real envido!"
+  falta-envido.mp3   -> canto "¡Falta envido!"
+  quiero.mp3         -> respuesta "¡Quiero!" (sirve para truco y envido)
+  no-quiero.mp3      -> respuesta "¡No quiero!"
+
+Consejos:
+- Duración corta (1 a 2 segundos), volumen parejo entre todos.
+- Podés reemplazar también carta.wav / gano.wav / perdi.wav por otros
+  que te gusten más: respetá el nombre (podés usar .mp3, pero entonces
+  avisá para cambiar la referencia, que hoy apunta a .wav).
+- El jugador puede silenciar todo con el botón de altavoz en la mesa.
