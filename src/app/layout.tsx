@@ -20,6 +20,9 @@ const sora = Sora({
 export const metadata: Metadata = {
   title: 'Trucazo',
   description: 'Truco argentino online',
+  // La app ya es oscura de fábrica: este "candado" hace que la extensión
+  // Dark Reader se desactive sola acá (si no, re-pinta y rompe los colores).
+  other: { 'darkreader-lock': '' },
 }
 
 export default function RootLayout({
