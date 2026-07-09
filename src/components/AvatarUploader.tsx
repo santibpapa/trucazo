@@ -63,10 +63,8 @@ export default function AvatarUploader({ userId, username, initialUrl }: Props) 
       const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
       const publicUrl = pub.publicUrl
 
-      const { error: updErr } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', userId)
+      // profiles no permite UPDATE directo (RLS); se guarda por función de servidor.
+      const { error: updErr } = await supabase.rpc('set_avatar_url', { p_url: publicUrl })
       if (updErr) throw updErr
 
       setUrl(publicUrl)

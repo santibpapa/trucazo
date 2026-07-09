@@ -77,8 +77,9 @@ export async function GET(request: NextRequest) {
     }
   } else if (!existing.avatar_url && googlePhoto) {
     // Usuario de Google que ya existía sin foto: le ponemos la de Google por
-    // defecto (no pisa una foto propia que ya haya subido).
-    await supabase.from('profiles').update({ avatar_url: googlePhoto }).eq('id', user.id)
+    // defecto (no pisa una foto propia que ya haya subido). Vía función de
+    // servidor porque profiles no permite UPDATE directo (RLS).
+    await supabase.rpc('set_avatar_url', { p_url: googlePhoto })
   }
 
   return response

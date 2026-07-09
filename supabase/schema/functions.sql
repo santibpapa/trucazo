@@ -2555,3 +2555,18 @@ begin
 end;
 $function$;
 
+-- Guarda la foto de perfil del propio usuario (profiles no permite UPDATE directo).
+CREATE OR REPLACE FUNCTION public.set_avatar_url(p_url text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  if auth.uid() is null then
+    raise exception 'no autenticado';
+  end if;
+  update profiles set avatar_url = p_url where id = auth.uid();
+end;
+$function$;
+
