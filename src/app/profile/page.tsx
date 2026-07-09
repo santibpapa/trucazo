@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Panel, Logo, Coins, CoinIcon, buttonClass } from '@/components/ui'
+import AvatarUploader from '@/components/AvatarUploader'
 import { Profile, GameHistory } from '@/lib/types'
 
 export default async function ProfilePage() {
@@ -46,9 +47,12 @@ export default async function ProfilePage() {
 
       {/* Identidad + monedas */}
       <Panel className="p-5 flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs uppercase tracking-widest text-subtle">Jugador</p>
-          <h1 className="font-display text-2xl font-extrabold text-cream truncate">{profile.username}</h1>
+        <div className="flex items-center gap-4 min-w-0">
+          <AvatarUploader userId={user.id} username={profile.username} initialUrl={profile.avatar_url} />
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-widest text-subtle">Jugador</p>
+            <h1 className="font-display text-2xl font-extrabold text-cream truncate">{profile.username}</h1>
+          </div>
         </div>
         <Coins amount={profile.coins} />
       </Panel>

@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Profile, Table } from '@/lib/types'
 import { generatePrivateCode } from '@/lib/tables'
-import { Button, Panel, Input, Modal, Coins, Logo, Alert, Toggle, cn } from '@/components/ui'
+import { Button, Panel, Input, Modal, Coins, Logo, Alert, Toggle, Avatar, cn } from '@/components/ui'
 import { useCommunity } from '@/lib/useCommunity'
 import FriendsPanel from '@/components/FriendsPanel'
 import ChatGlobal from '@/components/ChatGlobal'
@@ -42,6 +42,22 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
     (community.data?.incoming.length ?? 0) + (community.data?.invites_in.length ?? 0)
 
   const supabase = createClient()
+
+  // Fotos de los creadores de las mesas visibles (profiles es de lectura pública).
+  const [creatorAvatars, setCreatorAvatars] = useState<Record<string, string | null>>({})
+  useEffect(() => {
+    const ids = Array.from(new Set(tables.map(t => t.creator_id))).filter(id => !(id in creatorAvatars))
+    if (ids.length === 0) return
+    supabase.from('profiles').select('id, avatar_url').in('id', ids).then(({ data }) => {
+      if (!data) return
+      setCreatorAvatars(prev => {
+        const next = { ...prev }
+        for (const p of data as { id: string; avatar_url: string | null }[]) next[p.id] = p.avatar_url
+        return next
+      })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tables])
 
   // Tiempo real
   useEffect(() => {
@@ -268,9 +284,7 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
             href="/profile"
             className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-surface2 transition-colors group"
           >
-            <span className="w-9 h-9 rounded-full bg-base border border-gold/40 flex items-center justify-center font-display font-bold text-gold shrink-0">
-              {profile.username.charAt(0).toUpperCase()}
-            </span>
+            <Avatar url={profile.avatar_url} name={profile.username} size={36} className="border-gold/40" />
             <span className="flex flex-col leading-tight min-w-0">
               <span className="text-sm font-semibold text-cream truncate group-hover:text-gold transition-colors">
                 {profile.username}
@@ -298,9 +312,9 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
             <button
               onClick={() => setMenuOpen(o => !o)}
               aria-label="Perfil"
-              className="w-10 h-10 rounded-full bg-surface2 border border-gold/40 flex items-center justify-center font-display font-bold text-gold transition-colors hover:border-gold/70"
+              className="rounded-full transition-opacity hover:opacity-90"
             >
-              {profile.username.charAt(0).toUpperCase()}
+              <Avatar url={profile.avatar_url} name={profile.username} size={40} className="border-gold/40" />
             </button>
 
             {menuOpen && (
@@ -434,7 +448,10 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
                       a {table.target_score}
                     </span>
                   </div>
-                  <p className="text-sm text-subtle truncate -mt-1.5">por {table.creator_username}</p>
+                  <div className="flex items-center gap-2 -mt-1.5 min-w-0">
+                    <Avatar url={creatorAvatars[table.creator_id]} name={table.creator_username} size={22} />
+                    <p className="text-sm text-subtle truncate">por {table.creator_username}</p>
+                  </div>
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex flex-col leading-tight">
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-subtle">

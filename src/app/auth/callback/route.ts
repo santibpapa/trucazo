@@ -50,11 +50,17 @@ export async function GET(request: NextRequest) {
   }
   const user = data.user
 
+  // Foto que Google nos comparte (si la tiene). Supabase la deja en user_metadata.
+  const googlePhoto =
+    (user.user_metadata?.avatar_url as string | undefined) ||
+    (user.user_metadata?.picture as string | undefined) ||
+    null
+
   // ¿Ya tiene perfil? (puede haberlo creado el trigger handle_new_user). Si no,
   // lo creamos con un nombre a partir del email y 1.000 monedas por defecto.
   const { data: existing } = await supabase
     .from('profiles')
-    .select('id')
+    .select('id, avatar_url')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -65,10 +71,14 @@ export async function GET(request: NextRequest) {
       const username = i === 0 ? base : `${base}${Math.floor(100 + Math.random() * 900)}`
       const { error: pErr } = await supabase
         .from('profiles')
-        .insert({ id: user.id, username, coins: 1000 })
+        .insert({ id: user.id, username, coins: 1000, avatar_url: googlePhoto })
       if (!pErr) created = true
       else if (pErr.code !== '23505') break // error real: cortamos y mandamos al lobby igual
     }
+  } else if (!existing.avatar_url && googlePhoto) {
+    // Usuario de Google que ya existía sin foto: le ponemos la de Google por
+    // defecto (no pisa una foto propia que ya haya subido).
+    await supabase.from('profiles').update({ avatar_url: googlePhoto }).eq('id', user.id)
   }
 
   return response

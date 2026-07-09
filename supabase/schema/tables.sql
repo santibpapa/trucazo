@@ -193,7 +193,8 @@ create table if not exists public.profiles (
   is_bot boolean not null default false,
   is_admin boolean not null default false,
   campaign_points integer not null default 0,
-  active_salon text not null default 'clasico'
+  active_salon text not null default 'clasico',
+  avatar_url text
 );
 
 -- Tienda: catálogo de salones (fondos de la mesa de juego)

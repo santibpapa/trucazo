@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Button, Input, Alert, cn } from '@/components/ui'
+import { useState, useEffect } from 'react'
+import { Button, Input, Alert, Avatar, cn } from '@/components/ui'
+import { createClient } from '@/lib/supabase/client'
 import type { useCommunity } from '@/lib/useCommunity'
 
 type Community = ReturnType<typeof useCommunity>
@@ -13,6 +14,22 @@ export default function FriendsPanel({ c, compact = false }: { c: Community; com
   const [name, setName] = useState('')
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const d = c.data
+
+  // Fotos de los amigos (profiles es de lectura pública).
+  const [avatars, setAvatars] = useState<Record<string, string | null>>({})
+  useEffect(() => {
+    const ids = Array.from(new Set((d?.friends ?? []).map(f => f.user_id))).filter(id => !(id in avatars))
+    if (ids.length === 0) return
+    createClient().from('profiles').select('id, avatar_url').in('id', ids).then(({ data }) => {
+      if (!data) return
+      setAvatars(prev => {
+        const next = { ...prev }
+        for (const p of data as { id: string; avatar_url: string | null }[]) next[p.id] = p.avatar_url
+        return next
+      })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [d?.friends])
 
   async function add() {
     if (await c.sendRequest(name)) setName('')
@@ -127,12 +144,15 @@ export default function FriendsPanel({ c, compact = false }: { c: Community; com
               key={f.friendship_id}
               className="flex items-center gap-2.5 rounded-xl border border-line bg-surface2 px-3 py-2"
             >
-              <span
-                className={cn(
-                  'w-2.5 h-2.5 rounded-full shrink-0',
-                  f.playing ? 'bg-info' : f.online ? 'bg-positive' : 'bg-line',
-                )}
-              />
+              <div className="relative shrink-0">
+                <Avatar url={avatars[f.user_id]} name={f.username} size={34} />
+                <span
+                  className={cn(
+                    'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface2',
+                    f.playing ? 'bg-info' : f.online ? 'bg-positive' : 'bg-line',
+                  )}
+                />
+              </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-cream truncate">{f.username}</p>
                 <p className="text-[11px] text-subtle">

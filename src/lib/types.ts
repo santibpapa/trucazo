@@ -9,6 +9,8 @@ export interface Profile {
   is_admin?: boolean
   // Salón (fondo de la mesa) en uso; 'clasico' si nunca cambió
   active_salon?: string
+  // Foto de perfil (URL pública en storage, o la de Google). null si no tiene.
+  avatar_url?: string | null
 }
 
 // Tienda: un salón del catálogo (fondo de la mesa de juego).
