@@ -244,9 +244,14 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   const hasPendingEnvido =
     ['envido', 'real_envido', 'falta_envido'].includes(game.envido_state.status) &&
     game.envido_state.last_singer !== currentUserId
+  // El envido va primero: mientras haya un envido sin resolver (cantado o
+  // declarando tantos), el truco pendiente queda en pausa y no se responde.
+  const envidoUnresolved =
+    ['envido', 'real_envido', 'falta_envido', 'declaring'].includes(game.envido_state.status)
   const hasPendingTruco =
     ['truco', 'retruco', 'vale_cuatro'].includes(game.truco_state.status) &&
-    game.truco_state.last_singer !== currentUserId
+    game.truco_state.last_singer !== currentUserId &&
+    !envidoUnresolved
 
   // Modo historia: el rival es un bot. Cuando no me toca a mí hacer nada, le doy
   // pie al bot (el servidor decide y juega por él). botTurnKey identifica el

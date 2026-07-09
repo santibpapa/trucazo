@@ -2032,6 +2032,11 @@ begin
     raise exception 'no hay truco para responder';
   end if;
 
+  -- El envido va primero: con un envido sin resolver, el truco espera.
+  if g.envido_state->>'status' in ('envido','real_envido','falta_envido','declaring') then
+    raise exception 'primero se resuelve el envido';
+  end if;
+
   if p_accept then
     update games set truco_state = g.truco_state || jsonb_build_object('status','accepted'),
       current_turn = public._who_plays_next(g), updated_at = now()
@@ -2245,11 +2250,9 @@ begin
   cur_val := case when st = 'none' then 1 else (g.truco_state->>'value')::int end;
   req_val := case p_type when 'truco' then 2 when 'retruco' then 3 else 4 end;
 
-  -- no se puede cantar truco si debés responder un envido
-  if g.envido_state->>'status' in ('envido','real_envido','falta_envido')
-     and last_s is distinct from uid::text
-     and (g.envido_state->>'last_singer') is distinct from uid::text then
-    raise exception 'primero respondé el envido';
+  -- El envido va primero: con un envido sin resolver no se canta ni escala truco.
+  if g.envido_state->>'status' in ('envido','real_envido','falta_envido','declaring') then
+    raise exception 'primero se resuelve el envido';
   end if;
 
   if pending and last_s is distinct from uid::text then
