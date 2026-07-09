@@ -1,6 +1,11 @@
+import type { Viewport } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import HistoriaClient from './HistoriaClient'
+
+// El mapa maneja su propio alto (fixed inset-0), así que NO usa viewport-fit:cover
+// (se queda dentro de la zona segura, como antes). Evita tocar su HUD flotante.
+export const viewport: Viewport = { colorScheme: 'dark', viewportFit: 'auto' }
 
 export default async function HistoriaPage() {
   const supabase = await createClient()

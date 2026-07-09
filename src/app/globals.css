@@ -27,6 +27,13 @@
     font-feature-settings: "ss01", "cv01";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Respeta las zonas seguras del teléfono en modo app (notch arriba, muescas
+       laterales en horizontal). El fondo va fijo, así que sigue a pantalla
+       completa; solo el contenido se corre para no quedar tapado. En navegador
+       normal estos valores son 0, así que no cambia nada. */
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 }
 

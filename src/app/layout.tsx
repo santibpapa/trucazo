@@ -28,8 +28,12 @@ export const metadata: Metadata = {
 
 // Declara la app como oscura (emite <meta name="color-scheme" content="dark">).
 // Es la señal estándar para que el navegador NO auto-oscurezca/invierta la web.
+// viewportFit 'cover': en modo app (iPhone) el contenido usa toda la pantalla y el
+// navegador expone las "zonas seguras" (notch, barra de inicio) vía env(safe-area-*),
+// que usamos en el body y en la barra inferior del lobby para no quedar recortados.
 export const viewport: Viewport = {
   colorScheme: 'dark',
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
