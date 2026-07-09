@@ -134,6 +134,10 @@ const config: Config = {
           "0%,100%": { boxShadow: "0 0 0 0 rgba(201,162,75,0), 0 0 12px 2px rgba(201,162,75,0.25)" },
           "50%": { boxShadow: "0 0 0 5px rgba(201,162,75,0.16), 0 0 22px 6px rgba(201,162,75,0.55)" },
         },
+        // Giro lento del aro de los marcos del avatar (brillo metálico en movimiento).
+        "spin-slow": {
+          to: { transform: "rotate(360deg)" },
+        },
         // Giro 3D al jugar: entra de canto desde la mano (--fromY) y se da vuelta en la mesa
         "play-in": {
           "0%": {
@@ -163,6 +167,7 @@ const config: Config = {
         "fade-out": "fade-out 0.24s ease-in both",
         "levitate": "levitate 5.5s ease-in-out 0.55s infinite",
         "pulse-glow": "pulse-glow 1.9s ease-in-out infinite",
+        "spin-slow": "spin-slow 7s linear infinite",
         "clouds-left": "clouds-left 3s cubic-bezier(0.45,0,0.25,1) 0.4s forwards",
         "clouds-right": "clouds-right 3s cubic-bezier(0.45,0,0.25,1) 0.4s forwards",
         fly: "fly 0.46s cubic-bezier(0.22,1,0.36,1) forwards",

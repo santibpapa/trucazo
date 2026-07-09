@@ -10,6 +10,7 @@ import PlayingCard from '@/components/game/PlayingCard'
 import CardBack from '@/components/game/CardBack'
 import { playSound, isMuted, setMuted } from '@/lib/sounds'
 import { getSalonTheme } from '@/lib/salones'
+import { getFrameTheme } from '@/lib/marcos'
 
 interface Props {
   game: Game
@@ -20,6 +21,9 @@ interface Props {
   // Fotos de perfil (URL) de cada jugador, para los asientos del marcador.
   myAvatarUrl?: string | null
   opponentAvatarUrl?: string | null
+  // Marco decorativo (aro) del avatar de cada jugador, comprado en la Tienda.
+  myFrame?: string | null
+  opponentFrame?: string | null
   // Salón (fondo de la mesa) elegido por este jugador en la Tienda.
   salonSlug?: string
 }
@@ -69,29 +73,59 @@ const DEAL_ORIGINS: Array<Record<string, string>> = [
 
 // Asiento del marcador: la cara del rival de campaña (/personajes/{slug}.png) o
 // una silueta genérica. El aro dorado latiendo marca al que le toca actuar.
-function SeatAvatar({ slug, imageUrl, name, active }: { slug?: string | null; imageUrl?: string | null; name: string; active?: boolean }) {
+function SeatAvatar({ slug, imageUrl, name, active, frame }: { slug?: string | null; imageUrl?: string | null; name: string; active?: boolean; frame?: string | null }) {
   const [imgFailed, setImgFailed] = useState(false)
   // El rival de campaña usa su ilustración (slug); el resto, su foto de perfil.
   const src = slug ? `/personajes/${slug}.png` : imageUrl || null
+  // Marco comprado en la Tienda. En el asiento (cuadrado) lo dibujamos como borde
+  // fijo (sin girar) para no deformar la forma; el brillo giratorio queda para los
+  // avatares redondos (perfil, lobby, amigos).
+  const theme = getFrameTheme(frame)
+
+  const face =
+    src && !imgFailed ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={name}
+        onError={() => setImgFailed(true)}
+        referrerPolicy="no-referrer"
+        className="w-full h-full object-cover"
+      />
+    ) : (
+      <PersonIcon />
+    )
+
+  const leather = 'linear-gradient(180deg, #3a2224 0%, #2a1517 100%)'
+
+  // Con marco: aro de degradado como borde y la foto embutida adentro.
+  if (theme) {
+    return (
+      <div
+        className={`relative shrink-0 w-12 h-12 rounded-xl overflow-hidden transition-shadow ${
+          active ? 'ring-1 ring-gold/60 animate-pulse-glow' : ''
+        }`}
+        style={{ background: theme.ring, boxShadow: active ? undefined : theme.glow }}
+      >
+        <div
+          className="absolute inset-[3px] rounded-[9px] overflow-hidden flex items-center justify-center"
+          style={{ background: leather }}
+        >
+          {face}
+        </div>
+      </div>
+    )
+  }
+
+  // Sin marco: el asiento clásico (borde dorado cuando le toca actuar).
   return (
     <div
       className={`shrink-0 w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center border transition-shadow ${
         active ? 'border-gold ring-1 ring-gold/60 animate-pulse-glow' : 'border-line'
       }`}
-      style={{ background: 'linear-gradient(180deg, #3a2224 0%, #2a1517 100%)' }}
+      style={{ background: leather }}
     >
-      {src && !imgFailed ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt={name}
-          onError={() => setImgFailed(true)}
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <PersonIcon />
-      )}
+      {face}
     </div>
   )
 }
@@ -135,7 +169,7 @@ function MesaButton({
   )
 }
 
-export default function GameClient({ game: initialGame, currentUserId, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl }: Props) {
+export default function GameClient({ game: initialGame, currentUserId, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame }: Props) {
   const router = useRouter()
   const [game, setGame] = useState<Game>(initialGame)
   const [myHand, setMyHand] = useState<Card[]>(initialMyHand)
@@ -1081,7 +1115,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       >
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex-1 flex items-center gap-1.5 min-w-0">
-            <SeatAvatar slug={campaignRivalSlug} imageUrl={opponentAvatarUrl} name={opponentUsername} active={!meActive} />
+            <SeatAvatar slug={campaignRivalSlug} imageUrl={opponentAvatarUrl} name={opponentUsername} active={!meActive} frame={opponentFrame} />
             <div className="flex-1 flex flex-col gap-0.5 min-w-0">
               <span className="block w-full truncate text-[11px] leading-tight text-muted">{opponentUsername}</span>
               <span className="font-display text-2xl font-extrabold text-cream tabular leading-none">{opponentScore}</span>
@@ -1105,7 +1139,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               <span className="block w-full truncate text-[11px] leading-tight text-gold">{myUsername} (vos)</span>
               <span className="font-display text-2xl font-extrabold text-cream tabular leading-none">{myScore}</span>
             </div>
-            <SeatAvatar imageUrl={myAvatarUrl} name={myUsername} active={meActive} />
+            <SeatAvatar imageUrl={myAvatarUrl} name={myUsername} active={meActive} frame={myFrame} />
           </div>
         </div>
       </div>

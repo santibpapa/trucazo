@@ -48,7 +48,7 @@ export default async function ProfilePage() {
       {/* Identidad + monedas */}
       <Panel className="p-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-4 min-w-0">
-          <AvatarUploader userId={user.id} username={profile.username} initialUrl={profile.avatar_url} />
+          <AvatarUploader userId={user.id} username={profile.username} initialUrl={profile.avatar_url} frame={profile.active_frame} />
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-widest text-subtle">Jugador</p>
             <h1 className="font-display text-2xl font-extrabold text-cream truncate">{profile.username}</h1>

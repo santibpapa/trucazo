@@ -9,6 +9,8 @@ interface Props {
   userId: string
   username: string
   initialUrl?: string | null
+  /** Marco decorativo del avatar (comprado en la Tienda). */
+  frame?: string | null
 }
 
 /** Recorta la imagen a un cuadrado centrado y la reduce a `size`px (JPEG). */
@@ -28,7 +30,7 @@ async function toSquareBlob(file: File, size = 256): Promise<Blob> {
 }
 
 /** Foto de perfil del usuario + botón para cambiarla. */
-export default function AvatarUploader({ userId, username, initialUrl }: Props) {
+export default function AvatarUploader({ userId, username, initialUrl, frame }: Props) {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const [url, setUrl] = useState<string | null>(initialUrl ?? null)
@@ -85,7 +87,7 @@ export default function AvatarUploader({ userId, username, initialUrl }: Props) 
         title={url ? 'Cambiar foto' : 'Subir foto'}
         className="relative rounded-full transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"
       >
-        <Avatar url={url} name={username} size={64} />
+        <Avatar url={url} name={username} size={64} frame={frame} />
         {/* Insignia de cámara: indica que la foto se puede cambiar */}
         <span className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-line bg-surface2 text-gold shadow-card">
           {loading ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-gold border-t-transparent" /> : <CameraIcon />}

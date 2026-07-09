@@ -544,6 +544,45 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.buy_frame(p_slug text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  uid     uuid := auth.uid();
+  f       frames%rowtype;
+  v_coins integer;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+
+  select * into f from frames where slug = p_slug;
+  if not found then raise exception 'marco no encontrado'; end if;
+  if f.price <= 0 then raise exception 'este marco es gratis, no hace falta comprarlo'; end if;
+
+  -- Lock del perfil: evita comprar dos veces o gastar de más en simultáneo
+  select coins into v_coins from profiles where id = uid for update;
+  if not found then raise exception 'perfil no encontrado'; end if;
+
+  if exists (select 1 from profile_frames where profile_id = uid and frame_slug = p_slug) then
+    raise exception 'ya tenés este marco';
+  end if;
+  if v_coins < f.price then
+    raise exception 'no te alcanzan las monedas';
+  end if;
+
+  update profiles
+     set coins = coins - f.price,
+         active_frame = p_slug          -- lo recién comprado queda en uso
+   where id = uid;
+
+  insert into profile_frames (profile_id, frame_slug) values (uid, p_slug);
+
+  return json_build_object('coins', v_coins - f.price, 'active_frame', p_slug);
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.cancel_table(p_table_id uuid)
  RETURNS void
  LANGUAGE plpgsql
@@ -2158,6 +2197,31 @@ begin
   end if;
 
   update profiles set active_salon = p_slug where id = uid;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.set_active_frame(p_slug text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  uid     uuid := auth.uid();
+  v_price integer;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+
+  select price into v_price from frames where slug = p_slug;
+  if not found then raise exception 'marco no encontrado'; end if;
+
+  -- Los gratis los puede usar cualquiera; los pagos, solo si los compró.
+  if v_price > 0
+     and not exists (select 1 from profile_frames where profile_id = uid and frame_slug = p_slug) then
+    raise exception 'no tenés este marco';
+  end if;
+
+  update profiles set active_frame = p_slug where id = uid;
 end;
 $function$;
 

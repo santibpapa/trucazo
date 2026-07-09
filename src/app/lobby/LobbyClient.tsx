@@ -43,16 +43,22 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
 
   const supabase = createClient()
 
-  // Fotos de los creadores de las mesas visibles (profiles es de lectura pública).
+  // Fotos y marcos de los creadores de las mesas visibles (profiles es de lectura pública).
   const [creatorAvatars, setCreatorAvatars] = useState<Record<string, string | null>>({})
+  const [creatorFrames, setCreatorFrames] = useState<Record<string, string | null>>({})
   useEffect(() => {
     const ids = Array.from(new Set(tables.map(t => t.creator_id))).filter(id => !(id in creatorAvatars))
     if (ids.length === 0) return
-    supabase.from('profiles').select('id, avatar_url').in('id', ids).then(({ data }) => {
+    supabase.from('profiles').select('id, avatar_url, active_frame').in('id', ids).then(({ data }) => {
       if (!data) return
       setCreatorAvatars(prev => {
         const next = { ...prev }
         for (const p of data as { id: string; avatar_url: string | null }[]) next[p.id] = p.avatar_url
+        return next
+      })
+      setCreatorFrames(prev => {
+        const next = { ...prev }
+        for (const p of data as { id: string; active_frame: string | null }[]) next[p.id] = p.active_frame
         return next
       })
     })
@@ -284,7 +290,7 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
             href="/profile"
             className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-surface2 transition-colors group"
           >
-            <Avatar url={profile.avatar_url} name={profile.username} size={36} className="border-gold/40" />
+            <Avatar url={profile.avatar_url} name={profile.username} size={36} frame={profile.active_frame} className="border-gold/40" />
             <span className="flex flex-col leading-tight min-w-0">
               <span className="text-sm font-semibold text-cream truncate group-hover:text-gold transition-colors">
                 {profile.username}
@@ -314,7 +320,7 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
               aria-label="Perfil"
               className="rounded-full transition-opacity hover:opacity-90"
             >
-              <Avatar url={profile.avatar_url} name={profile.username} size={40} className="border-gold/40" />
+              <Avatar url={profile.avatar_url} name={profile.username} size={40} frame={profile.active_frame} className="border-gold/40" />
             </button>
 
             {menuOpen && (
@@ -449,7 +455,7 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
                     </span>
                   </div>
                   <div className="flex items-center gap-2 -mt-1.5 min-w-0">
-                    <Avatar url={creatorAvatars[table.creator_id]} name={table.creator_username} size={22} />
+                    <Avatar url={creatorAvatars[table.creator_id]} name={table.creator_username} size={22} frame={creatorFrames[table.creator_id]} />
                     <p className="text-sm text-subtle truncate">por {table.creator_username}</p>
                   </div>
                   <div className="flex items-center justify-between gap-3">

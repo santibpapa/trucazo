@@ -15,16 +15,22 @@ export default function FriendsPanel({ c, compact = false }: { c: Community; com
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const d = c.data
 
-  // Fotos de los amigos (profiles es de lectura pública).
+  // Fotos y marcos de los amigos (profiles es de lectura pública).
   const [avatars, setAvatars] = useState<Record<string, string | null>>({})
+  const [frames, setFrames] = useState<Record<string, string | null>>({})
   useEffect(() => {
     const ids = Array.from(new Set((d?.friends ?? []).map(f => f.user_id))).filter(id => !(id in avatars))
     if (ids.length === 0) return
-    createClient().from('profiles').select('id, avatar_url').in('id', ids).then(({ data }) => {
+    createClient().from('profiles').select('id, avatar_url, active_frame').in('id', ids).then(({ data }) => {
       if (!data) return
       setAvatars(prev => {
         const next = { ...prev }
         for (const p of data as { id: string; avatar_url: string | null }[]) next[p.id] = p.avatar_url
+        return next
+      })
+      setFrames(prev => {
+        const next = { ...prev }
+        for (const p of data as { id: string; active_frame: string | null }[]) next[p.id] = p.active_frame
         return next
       })
     })
@@ -145,7 +151,7 @@ export default function FriendsPanel({ c, compact = false }: { c: Community; com
               className="flex items-center gap-2.5 rounded-xl border border-line bg-surface2 px-3 py-2"
             >
               <div className="relative shrink-0">
-                <Avatar url={avatars[f.user_id]} name={f.username} size={34} />
+                <Avatar url={avatars[f.user_id]} name={f.username} size={34} frame={frames[f.user_id]} />
                 <span
                   className={cn(
                     'absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface2',

@@ -9,6 +9,8 @@ export interface Profile {
   is_admin?: boolean
   // Salón (fondo de la mesa) en uso; 'clasico' si nunca cambió
   active_salon?: string
+  // Marco (aro decorativo del avatar) en uso; 'ninguno' si no tiene
+  active_frame?: string
   // Foto de perfil (URL pública en storage, o la de Google). null si no tiene.
   avatar_url?: string | null
 }
@@ -16,6 +18,16 @@ export interface Profile {
 // Tienda: un salón del catálogo (fondo de la mesa de juego).
 // Su imagen es /mesa/{slug}.png
 export interface Salon {
+  slug: string
+  name: string
+  description: string
+  price: number
+  sort_order: number
+}
+
+// Tienda: un marco del catálogo (aro decorativo del avatar).
+// Su estilo se dibuja por CSS en src/lib/marcos.ts.
+export interface Frame {
   slug: string
   name: string
   description: string

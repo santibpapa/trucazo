@@ -194,6 +194,7 @@ create table if not exists public.profiles (
   is_admin boolean not null default false,
   campaign_points integer not null default 0,
   active_salon text not null default 'clasico',
+  active_frame text not null default 'ninguno',
   avatar_url text
 );
 
@@ -210,6 +211,22 @@ create table if not exists public.salons (
 create table if not exists public.profile_salons (
   profile_id   uuid not null,
   salon_slug   text not null,
+  purchased_at timestamptz not null default now()
+);
+
+-- Tienda: catálogo de marcos (aros decorativos del avatar; el dibujo es CSS)
+create table if not exists public.frames (
+  slug        text not null,
+  name        text not null,
+  description text not null,
+  price       integer not null,
+  sort_order  integer not null default 0
+);
+
+-- Tienda: marcos comprados por cada perfil (escribe solo buy_frame)
+create table if not exists public.profile_frames (
+  profile_id   uuid not null,
+  frame_slug   text not null,
   purchased_at timestamptz not null default now()
 );
 

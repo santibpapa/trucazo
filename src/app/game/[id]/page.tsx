@@ -86,23 +86,26 @@ export default async function GamePage({ params }: { params: { id: string } }) {
   // Salón (fondo de la mesa) elegido por este jugador y su foto de perfil.
   const { data: prof } = await supabase
     .from('profiles')
-    .select('active_salon, avatar_url')
+    .select('active_salon, avatar_url, active_frame')
     .eq('id', user.id)
     .single()
   const salonSlug = prof?.active_salon ?? 'clasico'
   const myAvatarUrl = prof?.avatar_url ?? null
+  const myFrame = prof?.active_frame ?? 'ninguno'
 
   // Foto del rival (profiles es de lectura pública). En campaña el rival es un
   // bot y usa su ilustración por slug, así que su foto no importa.
   const opponentId = game.player1_id === user.id ? game.player2_id : game.player1_id
   let opponentAvatarUrl: string | null = null
+  let opponentFrame: string | null = null
   if (opponentId) {
     const { data: opp } = await supabase
       .from('profiles')
-      .select('avatar_url')
+      .select('avatar_url, active_frame')
       .eq('id', opponentId)
       .single()
     opponentAvatarUrl = opp?.avatar_url ?? null
+    opponentFrame = opp?.active_frame ?? null
   }
 
   return (
@@ -114,6 +117,8 @@ export default async function GamePage({ params }: { params: { id: string } }) {
       salonSlug={salonSlug}
       myAvatarUrl={myAvatarUrl}
       opponentAvatarUrl={opponentAvatarUrl}
+      myFrame={myFrame}
+      opponentFrame={opponentFrame}
     />
   )
 }
