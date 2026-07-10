@@ -1183,7 +1183,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       <div className="relative flex-1 min-h-0 flex flex-col justify-center">
         {/* Bloque de la mesa: en celular ocupa menos alto y queda centrado, para
             que asome el salón arriba y abajo. En compu (sm+) llena como antes. */}
-        <div className="relative w-full min-h-0 h-[84%] sm:h-full p-1 sm:p-2 flex flex-col">
+        <div className="relative w-full min-h-0 h-[70%] sm:h-full p-1 sm:p-2 flex flex-col">
         {/* Mesa ovalada: madera con filete dorado y paño bordó */}
         <div aria-hidden className="absolute -top-2 -bottom-12 left-1/2 -translate-x-1/2 w-[min(135vw,950px)]">
           <div
@@ -1335,9 +1335,11 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
           })}
         </div>
 
-        {/* Historial de rondas: centrado en el paño; si falta espacio se superpone
-            con las filas vecinas (sobre el paño vacío) en vez de empujar los botones */}
-        <div className="relative z-10 flex-1 min-h-0 flex justify-center gap-2 sm:gap-8 items-center py-1">
+        {/* Historial de rondas: 3 ranuras SIEMPRE reservadas (aunque estén vacías),
+            así la fila nunca se re-centra y cada carta cae en un lugar fijo y se
+            queda ahí (mesa real). El pb en celular la levanta para que la mano,
+            anclada abajo, no la tape. */}
+        <div className="relative z-10 flex-1 min-h-0 flex justify-center gap-2 sm:gap-8 items-center pt-1 pb-16 sm:pb-1">
           {[1, 2, 3].map(roundNum => {
             const roundCards = game.played_cards.filter(pc => pc.round === roundNum)
             const myRoundCard = roundCards.find(pc => pc.player_id === currentUserId)
@@ -1345,8 +1347,6 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             const roundResult = game.round_results.find(r => r.round === roundNum)
             // Carta del envido revelada que "cae" en esta ronda (como jugada normal)
             const revealCard = revealByRound.get(roundNum)
-
-            if (roundNum > game.round_number && roundCards.length === 0 && !revealCard) return null
 
             // La carta ganadora va encima; en parda (empate) van parejas a la misma altura
             const isTie = roundResult ? roundResult.winner_id === null : false
@@ -1370,8 +1370,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             }
 
             return (
-              <div key={roundNum} className="flex flex-col items-center gap-1">
-                <span className="text-[9px] uppercase tracking-wider text-cream/40">Ronda {roundNum}</span>
+              <div key={roundNum} className="flex flex-col items-center">
                 <div className="relative w-24 h-[9.25rem] sm:w-28 sm:h-44">
                   {opponentRoundCard && (
                     <PlayingCard
@@ -1406,9 +1405,11 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             )
           })}
         </div>
+        </div>
 
-        {/* Mis cartas, en abanico */}
-        <div className="relative z-20 shrink-0 flex justify-center items-end -space-x-1.5 pb-0.5">
+        {/* Mis cartas, en abanico. Ancladas abajo (fuera del bloque de la mesa)
+            para que no pisen las cartas jugadas y queden cerca de los botones. */}
+        <div className="absolute inset-x-0 bottom-1 z-20 flex justify-center items-end -space-x-1.5">
           {myCards.map((card, i) => {
             const mid = (myCards.length - 1) / 2
             return (
@@ -1440,7 +1441,6 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               </div>
             )
           })}
-        </div>
         </div>
       </div>
 
