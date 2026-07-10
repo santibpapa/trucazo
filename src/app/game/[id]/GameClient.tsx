@@ -1180,7 +1180,10 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       {/* Zona de juego. La mesa ovalada vive acá adentro, anclada a esta zona:
           crece o se achica con ella, así las cartas siempre quedan sobre el paño
           y nunca pisan los botones de abajo. */}
-      <div className="relative flex-1 min-h-0 p-1 sm:p-2 flex flex-col">
+      <div className="relative flex-1 min-h-0 flex flex-col justify-center">
+        {/* Bloque de la mesa: en celular ocupa menos alto y queda centrado, para
+            que asome el salón arriba y abajo. En compu (sm+) llena como antes. */}
+        <div className="relative w-full min-h-0 h-[84%] sm:h-full p-1 sm:p-2 flex flex-col">
         {/* Mesa ovalada: madera con filete dorado y paño bordó */}
         <div aria-hidden className="absolute -top-2 -bottom-12 left-1/2 -translate-x-1/2 w-[min(135vw,950px)]">
           <div
@@ -1437,6 +1440,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               </div>
             )
           })}
+        </div>
         </div>
       </div>
 
