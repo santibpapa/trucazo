@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Trucazo',
     short_name: 'Trucazo',
-    description: 'Truco argentino online',
+    description: 'Truco argentino online, gratis y 1 contra 1. El de siempre, como siempre.',
     start_url: '/',
     display: 'standalone',
     background_color: '#1A0F10',

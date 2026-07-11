@@ -3,6 +3,7 @@ import { Inter, Sora } from 'next/font/google'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import GuestSessionGuard from '@/components/GuestSessionGuard'
 import RegisterSW from '@/components/RegisterSW'
+import { SITE_URL, GOOGLE_SITE_VERIFICATION } from '@/lib/site'
 import './globals.css'
 
 const inter = Inter({
@@ -19,8 +20,53 @@ const sora = Sora({
 })
 
 export const metadata: Metadata = {
-  title: 'Trucazo',
-  description: 'Truco argentino online',
+  // Base para armar URLs absolutas (canónicas, imágenes, etc.).
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'Trucazo — Truco argentino online, gratis y 1 contra 1',
+    // Las demás páginas se ven como "Lobby · Trucazo", "Tienda · Trucazo", etc.
+    template: '%s · Trucazo',
+  },
+  description:
+    'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 a 15 o 30 puntos, con envido y truco, contra rivales de verdad. El de siempre, como siempre.',
+  applicationName: 'Trucazo',
+  keywords: [
+    'truco',
+    'truco argentino',
+    'truco online',
+    'jugar al truco',
+    'truco gratis',
+    'truco 1 contra 1',
+    'truco online argentina',
+    'envido',
+    'juego de cartas argentino',
+  ],
+  authors: [{ name: 'Trucazo' }],
+  creator: 'Trucazo',
+  // URL canónica: le dice a Google cuál es la dirección "oficial" de la portada.
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    locale: 'es_AR',
+    url: SITE_URL,
+    siteName: 'Trucazo',
+    title: 'Trucazo — Truco argentino online, gratis y 1 contra 1',
+    description:
+      'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 contra rivales de verdad. El de siempre, como siempre.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Trucazo — Truco argentino online',
+    description:
+      'Jugá al truco argentino online, gratis y 1 contra 1. El de siempre, como siempre.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
+  },
+  // Verificación de Google Search Console (se completa con la variable de Vercel).
+  verification: { google: GOOGLE_SITE_VERIFICATION },
   // La app ya es oscura de fábrica: este "candado" hace que la extensión
   // Dark Reader se desactive sola acá (si no, re-pinta y rompe los colores).
   other: { 'darkreader-lock': '' },
