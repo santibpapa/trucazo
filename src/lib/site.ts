@@ -3,9 +3,10 @@
 //
 // Si algún día cambia el dominio, NO hace falta tocar código: se setea la
 // variable NEXT_PUBLIC_SITE_URL en Vercel (Settings → Environment Variables)
-// y listo. Mientras tanto, el valor por defecto es trucazo.com.ar.
+// y listo. El valor por defecto es el dominio de producción real (con www,
+// tal como figura como dominio principal en Vercel).
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://trucazo.com.ar'
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.trucazo.com.ar'
 ).replace(/\/$/, '') // sin barra final, para armar URLs prolijas
 
 // Código que da Google Search Console para verificar que el sitio es tuyo.
