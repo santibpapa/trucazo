@@ -15,9 +15,10 @@ interface Props {
   profile: Profile
   initialTables: Table[]
   activeGameId: string | null
+  myMedal: string
 }
 
-export default function LobbyClient({ profile, initialTables, activeGameId }: Props) {
+export default function LobbyClient({ profile, initialTables, activeGameId, myMedal }: Props) {
   const router = useRouter()
   const [tables, setTables] = useState<Table[]>(initialTables)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -293,6 +294,7 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
         <nav className="flex flex-col gap-1 mt-2">
           <NavItem href="/lobby" icon={<HomeIcon />} label="Home" active />
           <NavItem href="/historia" icon={<SwordsIcon />} label="Modo Historia" />
+          <NavItem href="/ranking" icon={<RankIcon />} label="Ranking" />
           <NavItem href="/comunidad" icon={<UsersIcon />} label="Comunidad" badge={friendsBadge} />
           <NavItem href="/tienda" icon={<StoreIcon />} label="Tienda" />
         </nav>
@@ -307,7 +309,7 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
             href="/profile"
             className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-surface2 transition-colors group"
           >
-            <Avatar url={profile.avatar_url} name={profile.username} size={36} frame={profile.active_frame} className="border-gold/40" />
+            <Avatar url={profile.avatar_url} name={profile.username} size={36} frame={profile.active_frame} medal={myMedal} className="border-gold/40" />
             <span className="flex flex-col leading-tight min-w-0">
               <span className="text-sm font-semibold text-cream truncate group-hover:text-gold transition-colors">
                 {profile.username}
@@ -337,7 +339,7 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
               aria-label="Perfil"
               className="rounded-full transition-opacity hover:opacity-90"
             >
-              <Avatar url={profile.avatar_url} name={profile.username} size={40} frame={profile.active_frame} className="border-gold/40" />
+              <Avatar url={profile.avatar_url} name={profile.username} size={40} frame={profile.active_frame} medal={myMedal} className="border-gold/40" />
             </button>
 
             {menuOpen && (
@@ -673,6 +675,7 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
       {/* Barra de navegación inferior (solo celular): fondo vino, activo en dorado */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch border-t border-line bg-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
         <BottomTab href="/lobby" icon={<HomeIcon size={22} />} label="Home" active />
+        <BottomTab href="/ranking" icon={<RankIcon size={22} />} label="Ranking" />
         <BottomTab href="/tienda" icon={<StoreIcon size={22} />} label="Tienda" />
         <BottomTab href="/comunidad" icon={<GlobeIcon />} label="Comunidad" />
         <BottomTab
@@ -747,6 +750,17 @@ function StoreIcon({ size = 18 }: { size?: number }) {
       <path d="M4 8h16v2.5a2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0V8Z" />
       <path d="M5.5 12.5V21h13v-8.5" />
       <path d="M9.5 21v-5h5v5" />
+    </svg>
+  )
+}
+
+// Podio (1-2-3): representa el ranking.
+function RankIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="9" y="9" width="6" height="12" />
+      <rect x="3" y="13" width="6" height="8" />
+      <rect x="15" y="11" width="6" height="10" />
     </svg>
   )
 }

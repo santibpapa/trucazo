@@ -583,6 +583,243 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.buy_accessory(p_slug text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  uid     uuid := auth.uid();
+  a       accessories%rowtype;
+  v_coins integer;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+
+  select * into a from accessories where slug = p_slug;
+  if not found then raise exception 'accesorio no encontrado'; end if;
+  if a.price <= 0 then raise exception 'este accesorio es gratis, no hace falta comprarlo'; end if;
+
+  select coins into v_coins from profiles where id = uid for update;
+  if not found then raise exception 'perfil no encontrado'; end if;
+
+  if exists (select 1 from profile_accessories where profile_id = uid and accessory_slug = p_slug) then
+    raise exception 'ya tenés este accesorio';
+  end if;
+  if v_coins < a.price then
+    raise exception 'no te alcanzan las monedas';
+  end if;
+
+  update profiles
+     set coins = coins - a.price,
+         active_accessory = p_slug
+   where id = uid;
+
+  insert into profile_accessories (profile_id, accessory_slug) values (uid, p_slug);
+
+  return json_build_object('coins', v_coins - a.price, 'active_accessory', p_slug);
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.set_active_accessory(p_slug text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  uid     uuid := auth.uid();
+  v_price integer;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+
+  if p_slug = 'ninguno' then
+    update profiles set active_accessory = 'ninguno' where id = uid;
+    return;
+  end if;
+
+  select price into v_price from accessories where slug = p_slug;
+  if not found then raise exception 'accesorio no encontrado'; end if;
+
+  if v_price > 0
+     and not exists (select 1 from profile_accessories where profile_id = uid and accessory_slug = p_slug) then
+    raise exception 'no tenés este accesorio';
+  end if;
+
+  update profiles set active_accessory = p_slug where id = uid;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.award_event_medals(p_uid uuid, p_barrida boolean DEFAULT false)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v      profiles%rowtype;
+  v_win5 integer;
+  v_prov boolean;
+begin
+  select * into v from profiles where id = p_uid;
+  if not found or v.is_bot then return; end if;
+
+  if p_barrida then
+    insert into profile_medals (profile_id, medal_slug) values (p_uid, 'barrida') on conflict do nothing;
+  end if;
+
+  if v.games_won >= 1 then
+    insert into profile_medals (profile_id, medal_slug) values (p_uid, 'primera') on conflict do nothing;
+  end if;
+  if v.games_played >= 100 then
+    insert into profile_medals (profile_id, medal_slug) values (p_uid, 'veterano') on conflict do nothing;
+  end if;
+  if v.coins >= 10000 then
+    insert into profile_medals (profile_id, medal_slug) values (p_uid, 'millonario') on conflict do nothing;
+  end if;
+
+  select count(*) into v_win5 from (
+    select result from game_history where player_id = p_uid order by created_at desc limit 5
+  ) t where result = 'win';
+  if v_win5 = 5 then
+    insert into profile_medals (profile_id, medal_slug) values (p_uid, 'racha') on conflict do nothing;
+  end if;
+
+  select exists (
+    select 1 from campaign_provinces pr
+    where (select count(*) from campaign_rivals cr where cr.province_id = pr.id) > 0
+      and (select count(*) from campaign_rivals cr where cr.province_id = pr.id)
+        = (select count(*) from campaign_progress cp
+             join campaign_rivals cr2 on cr2.id = cp.rival_id
+            where cp.user_id = p_uid and cr2.province_id = pr.id)
+  ) into v_prov;
+  if v_prov then
+    insert into profile_medals (profile_id, medal_slug) values (p_uid, 'conquistador') on conflict do nothing;
+  end if;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.player_medals(p_uid uuid)
+ RETURNS text[]
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  arr    text[];
+  v_won  integer;
+  v_camp integer;
+begin
+  select coalesce(array_agg(medal_slug), '{}') into arr
+    from profile_medals where profile_id = p_uid;
+
+  select games_won, campaign_points into v_won, v_camp from profiles where id = p_uid;
+  if not found then return arr; end if;
+
+  if coalesce(v_won, 0) > 0
+     and p_uid in (select id from profiles where not is_bot order by games_won desc limit 10) then
+    arr := arr || 'top10';
+  end if;
+  if coalesce(v_camp, 0) > 0
+     and p_uid in (select id from profiles where not is_bot order by campaign_points desc limit 5) then
+    arr := arr || 'top5_campana';
+  end if;
+  if p_uid = (select id from profiles where not is_bot and campaign_points > 0
+              order by campaign_points desc limit 1) then
+    arr := arr || 'rey';
+  end if;
+
+  return arr;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.active_medal_for(p_uid uuid)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v text;
+begin
+  select active_medal into v from profiles where id = p_uid;
+  if v is null or v = 'ninguno' then return 'ninguno'; end if;
+  if v = any (player_medals(p_uid)) then return v; end if;
+  return 'ninguno';
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.get_active_medals(p_ids uuid[])
+ RETURNS TABLE (id uuid, medal text)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  return query
+    select p.id, active_medal_for(p.id)
+      from profiles p
+     where p.id = any (p_ids)
+       and active_medal_for(p.id) <> 'ninguno';
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.set_active_medal(p_slug text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare uid uuid := auth.uid();
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+  if p_slug <> 'ninguno' and not (p_slug = any (player_medals(uid))) then
+    raise exception 'no tenés esta medalla';
+  end if;
+  update profiles set active_medal = p_slug where id = uid;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.award_medals_on_profile_change()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  perform award_event_medals(new.id, false);
+  return new;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.award_barrida_on_game_finish()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  if new.status = 'finished' and old.status is distinct from 'finished'
+     and new.campaign_rival_id is null and new.winner_id is not null
+     and ((new.player1_score = new.target_score and new.player2_score = 0)
+       or (new.player2_score = new.target_score and new.player1_score = 0)) then
+    perform award_event_medals(new.winner_id, true);
+  end if;
+  return new;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.award_medals_on_history()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  perform award_event_medals(new.player_id, false);
+  return new;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.cancel_table(p_table_id uuid)
  RETURNS void
  LANGUAGE plpgsql

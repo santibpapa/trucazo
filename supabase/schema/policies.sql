@@ -36,6 +36,10 @@ alter table public.profile_salons enable row level security;
 alter table public.salons enable row level security;
 alter table public.profile_frames enable row level security;
 alter table public.frames enable row level security;
+alter table public.profile_medals enable row level security;
+alter table public.medals enable row level security;
+alter table public.profile_accessories enable row level security;
+alter table public.accessories enable row level security;
 alter table public.tables enable row level security;
 alter table public.user_presence enable row level security;
 
@@ -110,6 +114,15 @@ alter table public.frames add constraint frames_price_check CHECK ((price >= 0))
 alter table public.profile_frames add constraint profile_frames_pkey PRIMARY KEY (profile_id, frame_slug);
 alter table public.profile_frames add constraint profile_frames_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.profile_frames add constraint profile_frames_frame_slug_fkey FOREIGN KEY (frame_slug) REFERENCES frames(slug) ON DELETE CASCADE;
+alter table public.medals add constraint medals_pkey PRIMARY KEY (slug);
+alter table public.profile_medals add constraint profile_medals_pkey PRIMARY KEY (profile_id, medal_slug);
+alter table public.profile_medals add constraint profile_medals_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.profile_medals add constraint profile_medals_medal_slug_fkey FOREIGN KEY (medal_slug) REFERENCES medals(slug) ON DELETE CASCADE;
+alter table public.accessories add constraint accessories_pkey PRIMARY KEY (slug);
+alter table public.accessories add constraint accessories_price_check CHECK ((price >= 0));
+alter table public.profile_accessories add constraint profile_accessories_pkey PRIMARY KEY (profile_id, accessory_slug);
+alter table public.profile_accessories add constraint profile_accessories_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.profile_accessories add constraint profile_accessories_accessory_slug_fkey FOREIGN KEY (accessory_slug) REFERENCES accessories(slug) ON DELETE CASCADE;
 alter table public.user_presence add constraint user_presence_pkey PRIMARY KEY (user_id);
 alter table public.user_presence add constraint user_presence_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.tables add constraint tables_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES profiles(id) ON DELETE CASCADE;
@@ -133,6 +146,10 @@ create policy "salons_select_all" on public.salons for SELECT to public using (t
 create policy "profile_salons_select_own" on public.profile_salons for SELECT to authenticated using ((profile_id = auth.uid()));
 create policy "frames_select_all" on public.frames for SELECT to public using (true);
 create policy "profile_frames_select_own" on public.profile_frames for SELECT to authenticated using ((profile_id = auth.uid()));
+create policy "medals_select_all" on public.medals for SELECT to public using (true);
+create policy "profile_medals_select_own" on public.profile_medals for SELECT to authenticated using ((profile_id = auth.uid()));
+create policy "accessories_select_all" on public.accessories for SELECT to public using (true);
+create policy "profile_accessories_select_own" on public.profile_accessories for SELECT to authenticated using ((profile_id = auth.uid()));
 create policy "Los usuarios autenticados pueden crear mesas" on public.tables for INSERT to public with check ((auth.uid() = creator_id));
 create policy "Los usuarios pueden crear su propio perfil" on public.profiles for INSERT to public with check ((auth.uid() = id));
 create policy "Los usuarios ven su propio historial" on public.game_history for SELECT to public using ((auth.uid() = player_id));

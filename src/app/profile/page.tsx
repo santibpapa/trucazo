@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Panel, Logo, Coins, CoinIcon, buttonClass } from '@/components/ui'
 import AvatarUploader from '@/components/AvatarUploader'
+import MedalsShowcase from './MedalsShowcase'
 import { Profile, GameHistory } from '@/lib/types'
 
 export default async function ProfilePage() {
@@ -25,6 +26,10 @@ export default async function ProfilePage() {
     .order('created_at', { ascending: false })
     .limit(20)
   const history = (historyData ?? []) as GameHistory[]
+
+  // Medallas actuales del jugador (permanentes + vivas), para la vitrina.
+  const { data: medalsData } = await supabase.rpc('player_medals', { p_uid: user.id })
+  const earnedMedals = (medalsData as string[] | null) ?? []
 
   const winRate = profile.games_played > 0
     ? Math.round((profile.games_won / profile.games_played) * 100)
@@ -66,6 +71,9 @@ export default async function ProfilePage() {
           </Panel>
         ))}
       </section>
+
+      {/* Medallas */}
+      <MedalsShowcase earned={earnedMedals} initialActive={profile.active_medal ?? 'ninguno'} />
 
       {/* Historial */}
       <section className="flex flex-col gap-3">

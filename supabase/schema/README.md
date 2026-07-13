@@ -33,3 +33,6 @@ Si alguna vez reconstruís de cero, hay que volver a activarlas a mano:
 - **Realtime** activado en las tablas `games` y `tables` (para que las jugadas
   del rival aparezcan solas).
 - El **cron** que limpia partidas abandonadas (`sweep_stale_games`, cada 5 min).
+- Los **triggers de medallas** (`trg_award_medals` sobre `profiles`,
+  `trg_award_barrida` sobre `games` y `trg_award_on_history` sobre `game_history`),
+  creados por la migración `20260709_medallas.sql`.

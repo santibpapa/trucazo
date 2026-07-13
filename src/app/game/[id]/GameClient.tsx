@@ -11,6 +11,7 @@ import CardBack from '@/components/game/CardBack'
 import { playSound, isMuted, setMuted } from '@/lib/sounds'
 import { getSalonTheme } from '@/lib/salones'
 import { getFrameTheme } from '@/lib/marcos'
+import { getMedal } from '@/lib/medallas'
 
 interface Props {
   game: Game
@@ -24,6 +25,12 @@ interface Props {
   // Marco decorativo (aro) del avatar de cada jugador, comprado en la Tienda.
   myFrame?: string | null
   opponentFrame?: string | null
+  // Medalla destacada (ya validada) de cada jugador, para el pin del asiento.
+  myMedal?: string | null
+  opponentMedal?: string | null
+  // Accesorio de la mesa de cada jugador (imagen sobre el paño en su lado).
+  myAccessory?: string | null
+  opponentAccessory?: string | null
   // Salón (fondo de la mesa) elegido por este jugador en la Tienda.
   salonSlug?: string
 }
@@ -73,7 +80,7 @@ const DEAL_ORIGINS: Array<Record<string, string>> = [
 
 // Asiento del marcador: la cara del rival de campaña (/personajes/{slug}.png) o
 // una silueta genérica. El aro dorado latiendo marca al que le toca actuar.
-function SeatAvatar({ slug, imageUrl, name, active, frame }: { slug?: string | null; imageUrl?: string | null; name: string; active?: boolean; frame?: string | null }) {
+function SeatAvatar({ slug, imageUrl, name, active, frame, medal }: { slug?: string | null; imageUrl?: string | null; name: string; active?: boolean; frame?: string | null; medal?: string | null }) {
   const [imgFailed, setImgFailed] = useState(false)
   // El rival de campaña usa su ilustración (slug); el resto, su foto de perfil.
   const src = slug ? `/personajes/${slug}.png` : imageUrl || null
@@ -99,26 +106,22 @@ function SeatAvatar({ slug, imageUrl, name, active, frame }: { slug?: string | n
   const leather = 'linear-gradient(180deg, #3a2224 0%, #2a1517 100%)'
 
   // Con marco: aro de degradado como borde y la foto embutida adentro.
-  if (theme) {
-    return (
-      <div
-        className={`relative shrink-0 w-12 h-12 rounded-xl overflow-hidden transition-shadow ${
-          active ? 'ring-1 ring-gold/60 animate-pulse-glow' : ''
-        }`}
-        style={{ background: theme.ring, boxShadow: active ? undefined : theme.glow }}
-      >
-        <div
-          className="absolute inset-[3px] rounded-[9px] overflow-hidden flex items-center justify-center"
-          style={{ background: leather }}
-        >
-          {face}
-        </div>
-      </div>
-    )
-  }
-
   // Sin marco: el asiento clásico (borde dorado cuando le toca actuar).
-  return (
+  const box = theme ? (
+    <div
+      className={`shrink-0 w-12 h-12 rounded-xl overflow-hidden transition-shadow relative ${
+        active ? 'ring-1 ring-gold/60 animate-pulse-glow' : ''
+      }`}
+      style={{ background: theme.ring, boxShadow: active ? undefined : theme.glow }}
+    >
+      <div
+        className="absolute inset-[3px] rounded-[9px] overflow-hidden flex items-center justify-center"
+        style={{ background: leather }}
+      >
+        {face}
+      </div>
+    </div>
+  ) : (
     <div
       className={`shrink-0 w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center border transition-shadow ${
         active ? 'border-gold ring-1 ring-gold/60 animate-pulse-glow' : 'border-line'
@@ -126,6 +129,23 @@ function SeatAvatar({ slug, imageUrl, name, active, frame }: { slug?: string | n
       style={{ background: leather }}
     >
       {face}
+    </div>
+  )
+
+  const medalMeta = getMedal(medal)
+  if (!medalMeta) return box
+
+  // Pin de la medalla destacada en la esquina del asiento.
+  return (
+    <div className="relative shrink-0 w-12 h-12">
+      {box}
+      <span
+        aria-hidden="true"
+        title={medalMeta.name}
+        className="absolute -bottom-1 -right-1 inline-flex items-center justify-center rounded-full border border-line bg-surface2 shadow-card leading-none w-5 h-5 text-[13px]"
+      >
+        {medalMeta.emoji}
+      </span>
     </div>
   )
 }
@@ -136,6 +156,28 @@ function PersonIcon() {
       <circle cx="12" cy="8" r="3.6" fill="currentColor" />
       <path d="M4 20.5c1.2-3.8 4.3-5.8 8-5.8s6.8 2 8 5.8V22H4v-1.5Z" fill="currentColor" />
     </svg>
+  )
+}
+
+// Accesorio comprado en la Tienda, apoyado sobre el paño en el lado del jugador.
+// El rival va a la IZQUIERDA y un poco abajo de sus cartas; el mío a la DERECHA.
+// Se ubican en los costados (donde no caen cartas) para que no queden tapados.
+// Imagen /accesorios/{slug}.png; si falta, se oculta sola (onError).
+function TableAccessory({ slug, who }: { slug?: string | null; who: 'me' | 'opponent' }) {
+  if (!slug || slug === 'ninguno') return null
+  const pos =
+    who === 'opponent'
+      ? 'top-[24%] left-1 sm:left-4'   // rival: izquierda, debajo de sus cartas
+      : 'bottom-[13%] right-0 sm:right-2' // yo: derecha, un poco más abajo
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`/accesorios/${slug}.png`}
+      alt=""
+      aria-hidden="true"
+      onError={e => { e.currentTarget.style.display = 'none' }}
+      className={`pointer-events-none absolute ${pos} z-[5] w-14 sm:w-20 object-contain select-none drop-shadow-[0_8px_10px_rgba(0,0,0,0.55)]`}
+    />
   )
 }
 
@@ -169,7 +211,7 @@ function MesaButton({
   )
 }
 
-export default function GameClient({ game: initialGame, currentUserId, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame }: Props) {
+export default function GameClient({ game: initialGame, currentUserId, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory }: Props) {
   const router = useRouter()
   const [game, setGame] = useState<Game>(initialGame)
   const [myHand, setMyHand] = useState<Card[]>(initialMyHand)
@@ -1115,7 +1157,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       >
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex-1 flex items-center gap-1.5 min-w-0">
-            <SeatAvatar slug={campaignRivalSlug} imageUrl={opponentAvatarUrl} name={opponentUsername} active={!meActive} frame={opponentFrame} />
+            <SeatAvatar slug={campaignRivalSlug} imageUrl={opponentAvatarUrl} name={opponentUsername} active={!meActive} frame={opponentFrame} medal={opponentMedal} />
             <div className="flex-1 flex flex-col gap-0.5 min-w-0">
               <span className="block w-full truncate text-[11px] leading-tight text-muted">{opponentUsername}</span>
               <span className="font-display text-2xl font-extrabold text-cream tabular leading-none">{opponentScore}</span>
@@ -1139,7 +1181,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               <span className="block w-full truncate text-[11px] leading-tight text-gold">{myUsername} (vos)</span>
               <span className="font-display text-2xl font-extrabold text-cream tabular leading-none">{myScore}</span>
             </div>
-            <SeatAvatar imageUrl={myAvatarUrl} name={myUsername} active={meActive} frame={myFrame} />
+            <SeatAvatar imageUrl={myAvatarUrl} name={myUsername} active={meActive} frame={myFrame} medal={myMedal} />
           </div>
         </div>
       </div>
@@ -1166,24 +1208,29 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         </div>
       </div>
 
-      {/* Error de la última acción (se autodescarta) */}
+      {/* Error de la última acción (se autodescarta). Flota sobre la mesa (h-0 +
+          absolute) para no empujar el layout: la mesa no cambia de tamaño. */}
       {actionError && (
+        <div className="relative z-40 h-0 overflow-visible">
         <div
           role="alert"
           onClick={() => setActionError('')}
-          className="relative z-30 shrink-0 rounded-xl border border-negative/40 bg-negative/12 p-2 text-center text-sm font-medium text-[#F0B3A4] cursor-pointer animate-fade-up"
+          className="absolute inset-x-0 top-1 rounded-xl border border-negative/40 bg-negative/60 backdrop-blur p-2 text-center text-sm font-medium text-white shadow-card cursor-pointer animate-fade-up"
         >
           {actionError}
+        </div>
         </div>
       )}
 
       {/* Zona de juego. La mesa ovalada vive acá adentro, anclada a esta zona:
           crece o se achica con ella, así las cartas siempre quedan sobre el paño
           y nunca pisan los botones de abajo. */}
-      <div className="relative flex-1 min-h-0 flex flex-col justify-center">
-        {/* Bloque de la mesa: en celular ocupa menos alto y queda centrado, para
-            que asome el salón arriba y abajo. En compu (sm+) llena como antes. */}
-        <div className="relative w-full min-h-0 h-[70%] sm:h-full p-1 sm:p-2 flex flex-col">
+      <div className="relative flex-1 min-h-0 flex flex-col pt-14 sm:pt-0 sm:justify-center">
+        {/* Bloque de la mesa: en celular toma el alto que queda entre la franja de
+            salón (pt de arriba) y la fila de la mano (abajo, con alto propio); como
+            todos esos altos son fijos, la mesa NUNCA cambia de tamaño. En compu
+            (sm+) llena la zona como antes y la mano flota encima. */}
+        <div className="relative w-full min-h-0 flex-1 sm:flex-none sm:h-full p-1 sm:p-2 flex flex-col">
         {/* Mesa ovalada: madera con filete dorado y paño bordó */}
         <div aria-hidden className="absolute -top-2 -bottom-12 left-1/2 -translate-x-1/2 w-[min(135vw,950px)]">
           <div
@@ -1211,6 +1258,12 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             }}
           />
         </div>
+
+        {/* Accesorios sobre el paño: el del rival a la izquierda (debajo de sus
+            cartas) y el mío a la derecha, en los costados para no pisar cartas. */}
+        <TableAccessory slug={opponentAccessory} who="opponent" />
+        <TableAccessory slug={myAccessory} who="me" />
+
         {/* Silenciar / activar sonidos */}
         <button
           onClick={toggleMute}
@@ -1305,8 +1358,10 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
           </div>
         )}
 
-        {/* Mazo: pila de dorsos de la que "salen" las cartas al repartir */}
-        <div className="pointer-events-none absolute top-2 right-2 z-20" aria-hidden="true">
+        {/* Mazo: pila de dorsos de la que "salen" las cartas al repartir. En
+            celular va más abajo, bien sobre el paño (arriba quedaba fuera del
+            óvalo, que en la mesa achatada ya no llega a esa esquina). */}
+        <div className="pointer-events-none absolute top-24 sm:top-2 right-2 z-20" aria-hidden="true">
           <div className="relative w-7 sm:w-9 aspect-[11/17] drop-shadow-md">
             <CardBack className="absolute inset-0 translate-x-[3px] -translate-y-[3px] opacity-60" />
             <CardBack className="absolute inset-0 translate-x-[1.5px] -translate-y-[1.5px] opacity-80" />
@@ -1315,8 +1370,9 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         </div>
 
         {/* Cartas del oponente boca abajo, en abanico (no conocemos sus cartas,
-            solo cuántas le quedan) */}
-        <div className="relative shrink-0 flex justify-center -space-x-3 pt-0.5">
+            solo cuántas le quedan). Alto fijo: cuando se queda sin cartas la fila
+            no colapsa y nada de la mesa se mueve. */}
+        <div className="relative shrink-0 min-h-20 sm:min-h-[5.6rem] flex justify-center -space-x-3 -mt-1.5 sm:mt-0 sm:pt-0.5">
           {[...Array(oppCardsLeft)].map((_, i) => {
             const mid = (oppCardsLeft - 1) / 2
             return (
@@ -1337,9 +1393,9 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
 
         {/* Historial de rondas: 3 ranuras SIEMPRE reservadas (aunque estén vacías),
             así la fila nunca se re-centra y cada carta cae en un lugar fijo y se
-            queda ahí (mesa real). El pb en celular la levanta para que la mano,
-            anclada abajo, no la tape. */}
-        <div className="relative z-10 flex-1 min-h-0 flex justify-center gap-2 sm:gap-8 items-center pt-1 pb-16 sm:pb-1">
+            queda ahí (mesa real). Se centra en el espacio entre el abanico del
+            rival y la mano (que ya no se superpone: tiene su propia fila). */}
+        <div className="relative z-10 flex-1 min-h-0 flex justify-center gap-2 sm:gap-8 items-center py-1">
           {[1, 2, 3].map(roundNum => {
             const roundCards = game.played_cards.filter(pc => pc.round === roundNum)
             const myRoundCard = roundCards.find(pc => pc.player_id === currentUserId)
@@ -1407,9 +1463,11 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         </div>
         </div>
 
-        {/* Mis cartas, en abanico. Ancladas abajo (fuera del bloque de la mesa)
-            para que no pisen las cartas jugadas y queden cerca de los botones. */}
-        <div className="absolute inset-x-0 bottom-1 z-20 flex justify-center items-end -space-x-1.5">
+        {/* Mis cartas, en abanico. En celular es una fila con alto PROPIO debajo
+            del bloque de la mesa (imposible que tape las cartas jugadas) y pegada
+            a los botones; el alto fijo evita saltos cuando quedan menos cartas.
+            En compu (sm+) flota abajo como siempre. */}
+        <div className="relative z-20 shrink-0 h-[8.75rem] translate-y-3 flex justify-center items-end -space-x-1.5 sm:absolute sm:inset-x-0 sm:bottom-1 sm:h-auto sm:translate-y-0">
           {myCards.map((card, i) => {
             const mid = (myCards.length - 1) / 2
             return (
@@ -1444,8 +1502,11 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         </div>
       </div>
 
-      {/* Botones de acción (z-30: siempre por encima de la mesa, que asoma detrás) */}
-      <div className="relative z-30 shrink-0 flex flex-col gap-1.5">
+      {/* Botones de acción (z-30: siempre por encima de la mesa, que asoma detrás).
+          Alto FIJO (el del caso más alto: responder truco + envido va primero),
+          con el contenido anclado abajo: aparezcan los botones que aparezcan, la
+          mesa no cambia de tamaño ni se mueve nada. */}
+      <div className="relative z-30 shrink-0 h-[8.25rem] flex flex-col justify-end gap-1">
         {/* Responder envido */}
         {hasPendingEnvido && (
           <div className="flex flex-col gap-2">
@@ -1490,7 +1551,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
 
         {/* Responder truco */}
         {hasPendingTruco && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
             <div className="flex gap-2">
               <MesaButton tone="positive" onClick={() => respondTruco(true)} disabled={loading}>Quiero</MesaButton>
               {game.truco_state.status !== 'vale_cuatro' && (
@@ -1503,7 +1564,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             {/* El envido va primero: se puede cantar envido en respuesta al truco */}
             {canSingEnvido && (
               <>
-                <p className="text-xs text-center text-cream/60">…o el envido va primero:</p>
+                <p className="text-[11px] leading-none text-center text-cream/60">…o el envido va primero:</p>
                 <div className="flex gap-2">
                   <MesaButton onClick={() => singEnvido('envido')} disabled={loading}>Envido</MesaButton>
                   <MesaButton onClick={() => singEnvido('real_envido')} disabled={loading}>Real Envido</MesaButton>
@@ -1519,7 +1580,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         {isMyTurn && !isDeclaring && !hasPendingEnvido && !hasPendingTruco && (
           <div className="flex gap-2">
             {canSingTruco && (
-              <MesaButton tone="gold" className="h-12 text-base" onClick={() => singTruco(
+              <MesaButton tone="gold" className="h-11 text-base" onClick={() => singTruco(
                 game.truco_state.status === 'none' ? 'truco' :
                 game.truco_state.value === 2 ? 'retruco' : 'vale_cuatro'
               )} disabled={loading}>
@@ -1527,7 +1588,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
                   game.truco_state.value === 2 ? 'Retruco' : 'Vale Cuatro'}
               </MesaButton>
             )}
-            <MesaButton tone="ghost" className={canSingTruco ? 'h-12' : 'h-10'} onClick={irseAlMazo} disabled={loading}>
+            <MesaButton tone="ghost" className={canSingTruco ? 'h-11' : 'h-10'} onClick={irseAlMazo} disabled={loading}>
               Irse al mazo
             </MesaButton>
           </div>
@@ -1535,7 +1596,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
 
         {/* Abandonar la partida (derrota) */}
         <button onClick={forfeit} disabled={loading}
-          className="self-center -my-1 py-2 px-3 inline-flex items-center text-xs text-subtle hover:text-negative transition-colors disabled:opacity-50">
+          className="self-center -my-1 py-1.5 px-3 inline-flex items-center text-xs text-subtle hover:text-negative transition-colors disabled:opacity-50">
           Abandonar partida
         </button>
       </div>

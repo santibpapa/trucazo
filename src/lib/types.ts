@@ -11,6 +11,10 @@ export interface Profile {
   active_salon?: string
   // Marco (aro decorativo del avatar) en uso; 'ninguno' si no tiene
   active_frame?: string
+  // Medalla destacada (pin sobre el avatar); 'ninguno' si no eligió
+  active_medal?: string
+  // Accesorio de la mesa en uso; 'ninguno' si no puso ninguno
+  active_accessory?: string
   // Foto de perfil (URL pública en storage, o la de Google). null si no tiene.
   avatar_url?: string | null
 }
@@ -28,6 +32,15 @@ export interface Salon {
 // Tienda: un marco del catálogo (aro decorativo del avatar).
 // Su estilo se dibuja por CSS en src/lib/marcos.ts.
 export interface Frame {
+  slug: string
+  name: string
+  description: string
+  price: number
+  sort_order: number
+}
+
+// Tienda: un accesorio de la mesa. Su imagen es /accesorios/{slug}.png
+export interface Accessory {
   slug: string
   name: string
   description: string

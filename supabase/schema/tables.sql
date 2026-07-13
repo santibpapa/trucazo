@@ -195,6 +195,8 @@ create table if not exists public.profiles (
   campaign_points integer not null default 0,
   active_salon text not null default 'clasico',
   active_frame text not null default 'ninguno',
+  active_medal text not null default 'ninguno',
+  active_accessory text not null default 'ninguno',
   avatar_url text
 );
 
@@ -228,6 +230,39 @@ create table if not exists public.profile_frames (
   profile_id   uuid not null,
   frame_slug   text not null,
   purchased_at timestamptz not null default now()
+);
+
+-- Medallas: catálogo (insignias que se ganan; kind = 'event' | 'live')
+create table if not exists public.medals (
+  slug        text not null,
+  name        text not null,
+  description text not null,
+  emoji       text not null,
+  kind        text not null default 'event',
+  sort_order  integer not null default 0
+);
+
+-- Medallas permanentes ganadas por cada perfil (escribe solo award_event_medals)
+create table if not exists public.profile_medals (
+  profile_id uuid not null,
+  medal_slug text not null,
+  earned_at  timestamptz not null default now()
+);
+
+-- Tienda: catálogo de accesorios de la mesa (imagen en /accesorios/{slug}.png)
+create table if not exists public.accessories (
+  slug        text not null,
+  name        text not null,
+  description text not null,
+  price       integer not null,
+  sort_order  integer not null default 0
+);
+
+-- Tienda: accesorios comprados por cada perfil (escribe solo buy_accessory)
+create table if not exists public.profile_accessories (
+  profile_id     uuid not null,
+  accessory_slug text not null,
+  purchased_at   timestamptz not null default now()
 );
 
 create table if not exists public.user_presence (

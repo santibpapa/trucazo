@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import type { Salon, Frame } from '@/lib/types'
+import type { Salon, Frame, Accessory } from '@/lib/types'
 import { Panel, Button, Coins, CoinIcon, Alert, Avatar } from '@/components/ui'
 import { getSalonTheme } from '@/lib/salones'
 
@@ -15,6 +15,9 @@ interface Props {
   initialActiveFrame: string
   frames: Frame[]
   initialOwnedFrames: string[]
+  initialActiveAccessory: string
+  accessories: Accessory[]
+  initialOwnedAccessories: string[]
   avatarUrl: string | null
   username: string
 }
@@ -27,6 +30,9 @@ export default function TiendaClient({
   initialActiveFrame,
   frames,
   initialOwnedFrames,
+  initialActiveAccessory,
+  accessories,
+  initialOwnedAccessories,
   avatarUrl,
   username,
 }: Props) {
@@ -35,6 +41,8 @@ export default function TiendaClient({
   const [ownedSalons, setOwnedSalons] = useState<string[]>(initialOwnedSalons)
   const [activeFrame, setActiveFrame] = useState(initialActiveFrame)
   const [ownedFrames, setOwnedFrames] = useState<string[]>(initialOwnedFrames)
+  const [activeAccessory, setActiveAccessory] = useState(initialActiveAccessory)
+  const [ownedAccessories, setOwnedAccessories] = useState<string[]>(initialOwnedAccessories)
   const [busy, setBusy] = useState<string | null>(null) // slug de la acción en curso
   const [error, setError] = useState('')
 
@@ -101,6 +109,40 @@ export default function TiendaClient({
     const { error } = await supabase.rpc('set_active_frame', { p_slug: f.slug })
     if (error) setError(error.message || 'No se pudo cambiar el marco')
     else setActiveFrame(f.slug)
+    setBusy(null)
+  }
+
+  // ---- Accesorios ----
+  function accessoryOwned(a: Accessory) {
+    return a.price === 0 || ownedAccessories.includes(a.slug)
+  }
+
+  async function buyAccessory(a: Accessory) {
+    if (busy) return
+    if (!window.confirm(`¿Comprar "${a.name}" por ${a.price.toLocaleString('es-AR')} monedas?`)) return
+    setBusy(a.slug)
+    setError('')
+    const { data, error } = await supabase.rpc('buy_accessory', { p_slug: a.slug })
+    if (error) {
+      setError(error.message || 'No se pudo comprar el accesorio')
+    } else if (data) {
+      const res = data as { coins: number; active_accessory: string }
+      setCoins(res.coins)
+      setActiveAccessory(res.active_accessory)
+      setOwnedAccessories(prev => [...prev, a.slug])
+    }
+    setBusy(null)
+  }
+
+  // Poner en la mesa, o sacar (si ya está puesto) volviendo a 'ninguno'.
+  async function activateAccessory(a: Accessory) {
+    if (busy) return
+    const next = activeAccessory === a.slug ? 'ninguno' : a.slug
+    setBusy(a.slug)
+    setError('')
+    const { error } = await supabase.rpc('set_active_accessory', { p_slug: next })
+    if (error) setError(error.message || 'No se pudo cambiar el accesorio')
+    else setActiveAccessory(next)
     setBusy(null)
   }
 
@@ -253,6 +295,84 @@ export default function TiendaClient({
                       >
                         <CoinIcon size={14} />
                         {canAfford ? f.price.toLocaleString('es-AR') : `Te faltan ${(f.price - coins).toLocaleString('es-AR')}`}
+                      </Button>
+                    )}
+                  </div>
+                </Panel>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Accesorios */}
+      <section className="flex flex-col gap-3">
+        <div>
+          <h2 className="font-display text-lg font-bold text-gold">Accesorios</h2>
+          <p className="text-sm text-muted">
+            Un objeto para apoyar sobre la mesa, en tu lado. Elegís uno y tu rival lo ve. Podés sacarlo cuando quieras.
+          </p>
+        </div>
+
+        {accessories.length === 0 ? (
+          <Panel className="p-8 text-center text-sm text-muted">
+            Todavía no hay accesorios. Volvé en un ratito.
+          </Panel>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            {accessories.map(a => {
+              const mine = accessoryOwned(a)
+              const inUse = activeAccessory === a.slug
+              const canAfford = coins >= a.price
+              return (
+                <Panel
+                  key={a.slug}
+                  className={`overflow-hidden flex flex-col transition-shadow ${
+                    inUse ? 'border-gold shadow-gold-ring' : ''
+                  }`}
+                >
+                  {/* Vista previa: la imagen del accesorio sobre un paño */}
+                  <div
+                    className="relative flex items-center justify-center p-4"
+                    style={{ background: 'radial-gradient(ellipse at 50% 40%, #56262d 0%, #3a1c22 60%, #2a141a 100%)' }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/accesorios/${a.slug}.png`}
+                      alt={a.name}
+                      onError={e => { e.currentTarget.style.visibility = 'hidden' }}
+                      className="h-24 w-auto object-contain drop-shadow-[0_10px_14px_rgba(0,0,0,0.55)]"
+                    />
+                    {inUse && (
+                      <span className="absolute top-2 right-2 rounded-full bg-gold px-2.5 py-0.5 text-[11px] font-bold text-ink shadow-gold">
+                        En la mesa
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 flex flex-col gap-1.5 p-3">
+                    <h3 className="font-display font-bold text-cream leading-tight">{a.name}</h3>
+                    <p className="text-xs text-muted leading-snug flex-1">{a.description}</p>
+
+                    {inUse ? (
+                      <Button variant="secondary" size="sm" fullWidth onClick={() => activateAccessory(a)} disabled={busy != null}>
+                        Sacar de la mesa
+                      </Button>
+                    ) : mine ? (
+                      <Button variant="primary" size="sm" fullWidth onClick={() => activateAccessory(a)} disabled={busy != null}>
+                        Poner en la mesa
+                      </Button>
+                    ) : (
+                      <Button
+                        variant={canAfford ? 'primary' : 'secondary'}
+                        size="sm"
+                        fullWidth
+                        onClick={() => buyAccessory(a)}
+                        disabled={busy != null || !canAfford}
+                        title={canAfford ? undefined : 'No te alcanzan las monedas'}
+                      >
+                        <CoinIcon size={14} />
+                        {canAfford ? a.price.toLocaleString('es-AR') : `Te faltan ${(a.price - coins).toLocaleString('es-AR')}`}
                       </Button>
                     )}
                   </div>

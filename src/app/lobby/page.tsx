@@ -50,7 +50,7 @@ export default async function LobbyPage() {
   // Partida en curso del usuario (la RLS de games ya limita a las suyas).
   // Los duelos del modo historia no cuentan acá: son práctica, no una partida
   // apostada para retomar, y no deben quedar colgados como "partida en curso".
-  const [{ data: tables }, { data: activeGame }] = await Promise.all([
+  const [{ data: tables }, { data: activeGame }, { data: myMedal }] = await Promise.all([
     supabase
       .from('tables')
       .select('*')
@@ -65,6 +65,8 @@ export default async function LobbyPage() {
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    // Medalla destacada del usuario, ya validada (si era "viva" y la perdió, vuelve 'ninguno').
+    supabase.rpc('active_medal_for', { p_uid: user.id }),
   ])
 
   return (
@@ -72,6 +74,7 @@ export default async function LobbyPage() {
       profile={profile}
       initialTables={tables || []}
       activeGameId={activeGame?.id ?? null}
+      myMedal={(myMedal as string | null) ?? 'ninguno'}
     />
   )
 }

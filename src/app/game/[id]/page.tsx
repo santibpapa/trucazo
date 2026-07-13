@@ -86,26 +86,36 @@ export default async function GamePage({ params }: { params: { id: string } }) {
   // Salón (fondo de la mesa) elegido por este jugador y su foto de perfil.
   const { data: prof } = await supabase
     .from('profiles')
-    .select('active_salon, avatar_url, active_frame')
+    .select('active_salon, avatar_url, active_frame, active_accessory')
     .eq('id', user.id)
     .single()
   const salonSlug = prof?.active_salon ?? 'clasico'
   const myAvatarUrl = prof?.avatar_url ?? null
   const myFrame = prof?.active_frame ?? 'ninguno'
+  const myAccessory = prof?.active_accessory ?? 'ninguno'
+
+  // Medalla destacada (ya validada) del jugador, para el pin del asiento.
+  const { data: myMedalData } = await supabase.rpc('active_medal_for', { p_uid: user.id })
+  const myMedal = (myMedalData as string | null) ?? 'ninguno'
 
   // Foto del rival (profiles es de lectura pública). En campaña el rival es un
   // bot y usa su ilustración por slug, así que su foto no importa.
   const opponentId = game.player1_id === user.id ? game.player2_id : game.player1_id
   let opponentAvatarUrl: string | null = null
   let opponentFrame: string | null = null
+  let opponentMedal: string | null = null
+  let opponentAccessory: string | null = null
   if (opponentId) {
     const { data: opp } = await supabase
       .from('profiles')
-      .select('avatar_url, active_frame')
+      .select('avatar_url, active_frame, active_accessory')
       .eq('id', opponentId)
       .single()
     opponentAvatarUrl = opp?.avatar_url ?? null
     opponentFrame = opp?.active_frame ?? null
+    opponentAccessory = opp?.active_accessory ?? 'ninguno'
+    const { data: oppMedal } = await supabase.rpc('active_medal_for', { p_uid: opponentId })
+    opponentMedal = (oppMedal as string | null) ?? 'ninguno'
   }
 
   return (
@@ -119,6 +129,10 @@ export default async function GamePage({ params }: { params: { id: string } }) {
       opponentAvatarUrl={opponentAvatarUrl}
       myFrame={myFrame}
       opponentFrame={opponentFrame}
+      myMedal={myMedal}
+      opponentMedal={opponentMedal}
+      myAccessory={myAccessory}
+      opponentAccessory={opponentAccessory}
     />
   )
 }
