@@ -38,6 +38,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# proyecto de video promocional aparte (Remotion, con su propio node_modules)
+/my-video/
+
+# workspace de VSCode (config personal del editor, no es parte del juego)
+/trucazo.code-workspace
+
 # skills/herramientas locales de Claude (no son parte del juego)
 /.claude/
 
