@@ -1187,9 +1187,12 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       </div>
 
       {/* Estado del turno: pastilla compacta flotante */}
-      <div className="relative z-30 shrink-0 flex justify-center">
+      {/* Alto FIJO (h-9): el cartel cambia de estilo según el turno pero su
+          contenedor no cambia de alto, así la mesa (que toma "lo que queda") no
+          se reajusta en cada jugada. */}
+      <div className="relative z-30 shrink-0 h-9 flex items-center justify-center">
         <div
-          className={`rounded-full border transition-colors ${
+          className={`rounded-full border transition-colors text-center ${
             meActive
               ? 'px-5 py-1.5 text-sm font-bold border-gold-700 bg-gold text-ink animate-pulse-glow'
               : 'px-4 py-1 text-xs font-semibold border-line/70 bg-black/45 text-muted backdrop-blur-sm'
