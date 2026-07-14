@@ -37,6 +37,15 @@ export default function Home() {
           <CoinIcon size={14} /> 1.000
         </span>
       </p>
+
+      <nav className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-subtle animate-fade-up">
+        <Link href="/como-se-juega-al-truco" className="hover:text-gold transition-colors">
+          Cómo se juega al truco
+        </Link>
+        <Link href="/jugar-al-truco-online-gratis" className="hover:text-gold transition-colors">
+          Jugar al truco online gratis
+        </Link>
+      </nav>
     </main>
   )
 }
