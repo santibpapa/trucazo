@@ -82,6 +82,23 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
+// Datos estructurados de marca: le dicen a Google quién es Trucazo (el sitio
+// y la organización detrás). Aparecen en todas las páginas.
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Trucazo',
+  url: SITE_URL,
+  inLanguage: 'es-AR',
+}
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Trucazo',
+  url: SITE_URL,
+  logo: `${SITE_URL}/icon-512.png`,
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -90,6 +107,15 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${inter.variable} ${sora.variable}`}>
       <body className="min-h-screen bg-base font-sans text-cream antialiased">
+        {/* Datos estructurados de marca para Google (no se ven en pantalla) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
         {/* Cierra sesiones de invitado heredadas de una visita anterior */}
         <GuestSessionGuard />
         {/* Registra el service worker (permite instalar la web como app) */}
