@@ -66,6 +66,21 @@ export default function JugarOnlinePage() {
     })),
   }
 
+  // Migas de pan: le muestra a Google la ruta "Inicio › Jugar al truco online gratis".
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Inicio', item: SITE_URL },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Jugar al truco online gratis',
+        item: `${SITE_URL}/jugar-al-truco-online-gratis`,
+      },
+    ],
+  }
+
   return (
     <SeoPageLayout
       title="Jugar al truco online gratis"
@@ -74,6 +89,10 @@ export default function JugarOnlinePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <Section title="Por qué jugar en Trucazo">
