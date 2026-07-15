@@ -167,6 +167,23 @@ export default function LobbyClient({ profile, initialTables, activeGameId }: Pr
     // Reflejar el descuento localmente (el servidor ya lo aplicó)
     setCoins(c => c - betNum)
 
+    // Aviso al dueño por Telegram (best-effort). Solo mesas públicas y no las
+    // que abre el propio dueño (admin). keepalive: que el pedido igual salga
+    // aunque enseguida naveguemos a la partida.
+    if (!isPrivate && !profile.is_admin) {
+      fetch('/api/notify-mesa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({
+          name: tableName.trim(),
+          bet: betNum,
+          creator: profile.username,
+          targetScore,
+        }),
+      }).catch(() => {})
+    }
+
     if (isPrivate && code) {
       setCreatedTableId(table.id)
       setCreatedCode(code)
