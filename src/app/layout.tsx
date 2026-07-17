@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Sora } from 'next/font/google'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { Analytics } from '@vercel/analytics/next'
 import GuestSessionGuard from '@/components/GuestSessionGuard'
 import RegisterSW from '@/components/RegisterSW'
 import { SITE_URL, GOOGLE_SITE_VERIFICATION } from '@/lib/site'
@@ -123,6 +124,8 @@ export default function RootLayout({
         {children}
         {/* Métricas de velocidad reales (se ven en el panel de Vercel) */}
         <SpeedInsights />
+        {/* Analítica de visitas y páginas (panel de Vercel) */}
+        <Analytics />
       </body>
     </html>
   )
