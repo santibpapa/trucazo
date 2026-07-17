@@ -2735,6 +2735,32 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.sweep_stale_tables(p_minutes integer DEFAULT 15)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  t record;
+  n int := 0;
+  cutoff timestamptz := now() - make_interval(mins => p_minutes);
+begin
+  for t in
+    select tb.* from tables tb
+    where tb.status = 'waiting'
+      and tb.created_at < cutoff
+    for update
+  loop
+    -- reembolsar la apuesta al creador (igual que cancel_table)
+    update profiles set coins = coins + t.bet where id = t.creator_id;
+    delete from tables where id = t.id;  -- borra también la invitación (cascade)
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.timeout_mazo(p_game_id uuid)
  RETURNS games
  LANGUAGE plpgsql
