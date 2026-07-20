@@ -298,20 +298,21 @@ declare
   v_bot   uuid;
   v_human uuid;
   d       int;
-  tl      int;              -- trait_liar (1..10, 5 = neutro)
-  ta      int;              -- trait_aggressive (1..10, 5 = neutro)
-  liar_n  numeric;          -- desvío del neutro: -4..+5
-  aggr_n  numeric;
+  tl      int; ta int;
+  liar_n  numeric; aggr_n numeric;
+  -- Reputación del humano:
   cs        campaign_style%rowtype;
   hp        int;
   fama_pts  int;
   fama      numeric;          -- 0..1
-  read      numeric;          -- 0..1 fuerza de lectura de la reputación
+  read      numeric;          -- 0..1 fuerza de lectura
   liar_rate numeric; fold_rate numeric; aggr_rate numeric;
   r_call    numeric;          -- empujón a "quiero" (lectura 1)
-  r_bluff   numeric;          -- empujón a farolear (lecturas 2 y 3)
+  r_bluff   numeric;          -- empujón a farolear (lecturas 2 y 3 combinadas)
   fama_cap  constant int := 2000;
   acted_ok boolean;
+  v_err    text;
+  sit      text;
   es_status text; tr_status text; last_env text; last_truco text; declare_turn text;
   cur_truco_val int; mano_declared int;
   bot_remaining jsonb; bot_full jsonb;
@@ -339,9 +340,9 @@ begin
   liar_n := tl - 5;
   aggr_n := ta - 5;
 
-  -- Reputación: qué tanto "lee" este rival al humano (fama * dificultad * muestra).
+  -- ===== Reputación: qué tanto "lee" este rival al humano =====
   select coalesce(campaign_points, 0) into fama_pts from profiles where id = v_human;
-  fama := least(1.0, fama_pts::numeric / fama_cap);
+  fama := least(1.0, fama_pts::numeric / fama_cap);          -- 0..1 (progreso)
   select * into cs from campaign_style where user_id = v_human;
   hp := coalesce(cs.hands_played, 0);
   liar_rate := (coalesce(cs.envido_bluff,0) + coalesce(cs.truco_bluff,0))::numeric
@@ -350,7 +351,9 @@ begin
                / greatest(1, hp) * 2);
   aggr_rate := least(1.0, (coalesce(cs.envido_sung,0) + coalesce(cs.truco_sung,0))::numeric
                / greatest(1, hp) / 1.5);
+  -- read: solo si hay fama, el rival es difícil (d>5) y jugaste varias manos.
   read := fama * greatest(0, (d - 5) / 5.0) * least(1.0, hp / 20.0);
+  -- Empujones (PERILLAS de intensidad: 0.45 y 0.40, moderados):
   r_call  := read * liar_rate * 0.45;                        -- lectura 1
   r_bluff := read * (fold_rate - aggr_rate) * 0.40;          -- lecturas 2 (fold+) y 3 (aggr-)
 
@@ -369,15 +372,19 @@ begin
 
   et    := public._envido_points(bot_full);
   power := public._bot_hand_power(bot_remaining);
+  select count(*) into ncards from jsonb_array_elements(coalesce(bot_remaining, '[]'::jsonb));
   select count(*) filter (where e.value->>'winner_id' = v_bot::text),
          count(*) filter (where e.value->>'winner_id' is not null and e.value->>'winner_id' <> v_bot::text)
     into bot_won, opp_won
     from jsonb_array_elements(g.round_results) e;
   standing := coalesce(bot_won, 0) - coalesce(opp_won, 0);
-  eff := power + standing * 6;
+  -- EL ARREGLO: la suma de cartas restantes se lleva a escala de 3 cartas,
+  -- así las varas de abajo valen igual en cualquier ronda.
+  eff := round(power * 3.0 / greatest(ncards, 1)) + standing * 6;
   rr  := random();
 
   if es_status = 'declaring' and declare_turn = v_bot::text then
+    sit := 'declarar_tanto';
     if (g.envido_state->>'mano_declared') is null then
       act := 'envido_say'; p_type := 'tengo';
     else
@@ -392,6 +399,7 @@ begin
     end if;
 
   elsif es_status in ('envido','real_envido','falta_envido') and last_env is distinct from v_bot::text then
+    sit := 'responder_envido';
     esc_type := case es_status when 'envido' then 'real_envido' when 'real_envido' then 'falta_envido' else null end;
     if et >= 31 and d >= 6 and esc_type is not null and rr < 0.45 then
       act := 'sing_envido'; p_type := esc_type;
@@ -404,6 +412,7 @@ begin
     end if;
 
   elsif tr_status in ('truco','retruco','vale_cuatro') and last_truco is distinct from v_bot::text then
+    sit := 'responder_truco';
     if eff >= 30 and d >= 6 and cur_truco_val < 4 and rr < 0.40 + aggr_n * 0.015 then
       act := 'sing_truco';
       p_type := case cur_truco_val when 2 then 'retruco' when 3 then 'vale_cuatro' else 'retruco' end;
@@ -416,6 +425,7 @@ begin
     end if;
 
   elsif g.current_turn = v_bot then
+    sit := 'turno';
     can_env := (es_status = 'none' and g.round_number = 1 and tr_status <> 'accepted'
                 and not exists (select 1 from jsonb_array_elements(g.played_cards) pc
                                 where pc.value->>'player_id' = v_bot::text));
@@ -428,7 +438,7 @@ begin
 
     elsif tr_status = 'none' and ( (eff >= 24 and rr < 0.35 + 0.05 * d + aggr_n * 0.02)
                                    or (eff <= 12 and d >= 6 and rr < (d - 5) * 0.035 + liar_n * 0.005 + greatest(0, r_bluff)) ) then
-      act := 'sing_truco'; p_type := 'truco';
+      act := 'sing_truco'; p_type := 'truco';                -- lecturas 2/3 en el farol de truco
 
     elsif tr_status = 'accepted' and last_truco is distinct from v_bot::text
           and cur_truco_val < 4 and eff >= 30 and d >= 7 and rr < 0.30 + aggr_n * 0.015 then
@@ -440,7 +450,6 @@ begin
         from jsonb_array_elements(g.played_cards) e
         where (e.value->>'round')::int = g.round_number and e.value->>'player_id' <> v_bot::text
         limit 1;
-      select count(*) into ncards from jsonb_array_elements(coalesce(bot_remaining, '[]'::jsonb));
 
       if opp_rank is not null then
         if rr < d::numeric / 10 then
@@ -496,9 +505,22 @@ begin
     end case;
   exception when others then
     acted_ok := false;
+    v_err := sqlerrm;
   end;
   perform set_config('request.jwt.claim.sub', uid::text, true);
   perform set_config('request.jwt.claims', json_build_object('sub', uid::text, 'role', 'authenticated')::text, true);
+
+  -- Registro de la decisión (y limpieza ocasional de lo viejo).
+  insert into bot_decisions (game_id, rival_id, situation, action, detail, numbers, ok, error)
+  values (p_game_id, g.campaign_rival_id, sit, act, p_type,
+          jsonb_build_object('d', d, 'round', g.round_number, 'ncards', ncards,
+                             'power', power, 'eff', eff, 'et', et,
+                             'standing', standing, 'truco_val', cur_truco_val,
+                             'rr', round(rr, 3), 'card', chosen),
+          acted_ok, v_err);
+  if rr < 0.02 then
+    delete from bot_decisions where created_at < now() - interval '30 days';
+  end if;
 
   select * into g from games where id = p_game_id;
   return g;
@@ -1362,7 +1384,7 @@ declare
   actor    uuid := auth.uid();
   v_human  uuid;
   remaining jsonb; full_hand jsonb;
-  tanto int; power int;
+  tanto int; power int; n int;
   bluff_envido constant int := 24;
   bluff_truco  constant int := 12;
 begin
@@ -1393,7 +1415,9 @@ begin
 
   elsif p_signal = 'truco_sung' then
     select cards into remaining from game_hands where game_id = p_game_id and player_id = v_human;
-    power := public._bot_hand_power(remaining);
+    select count(*) into n from jsonb_array_elements(coalesce(remaining, '[]'::jsonb));
+    -- misma escala de 3 cartas que usa el bot para su propia mano
+    power := round(public._bot_hand_power(remaining) * 3.0 / greatest(n, 1));
     update campaign_style set
       truco_sung  = truco_sung + 1,
       truco_bluff = truco_bluff + (case when power < bluff_truco then 1 else 0 end),

@@ -8,6 +8,19 @@
 -- policies.sql.
 -- ============================================================
 
+create table if not exists public.bot_decisions (
+  id         bigint generated always as identity,
+  game_id    uuid not null,
+  rival_id   uuid,
+  situation  text not null,
+  action     text,
+  detail     text,
+  numbers    jsonb,
+  ok         boolean,
+  error      text,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.campaign_progress (
   user_id uuid not null,
   rival_id uuid not null,
