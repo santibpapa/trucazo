@@ -592,19 +592,33 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   }, [game.rematch_game_id])
 
   // Modo historia: le doy pie al bot cuando le toca. bot_step hace UNA sola
-  // acción por llamada; esperamos >=2s antes de cada una para que "piense" y se
-  // entiendan los tiempos de la mesa. La dependencia es botTurnKey (estable entre
-  // los re-renders del reloj y distinto en cada acción del bot), así cada
+  // acción por llamada. El tiempo de "pensar" varía según la situación (antes
+  // era un 2s clavado, y ese metrónomo delataba a la máquina): la carta sale
+  // rapidito, decir el tanto un poco más, y una decisión grande (le cantaron
+  // truco o envido) se piensa bastante más — con una pausa dramática cada
+  // tanto, como quien duda de verdad. La dependencia es botTurnKey (estable
+  // entre re-renders del reloj y distinto en cada acción del bot), así cada
   // canto/jugada del bot se dispara por separado y espaciado.
   useEffect(() => {
     if (!botTurnKey) return
+    const bigCall =
+      (['truco', 'retruco', 'vale_cuatro'].includes(game.truco_state.status) &&
+        game.truco_state.last_singer === currentUserId &&
+        !envidoUnresolved) ||
+      (['envido', 'real_envido', 'falta_envido'].includes(game.envido_state.status) &&
+        game.envido_state.last_singer === currentUserId)
+    const thinkMs = bigCall
+      ? 1800 + Math.random() * 2400 + (Math.random() < 0.18 ? 1800 : 0)
+      : game.envido_state.status === 'declaring'
+        ? 1200 + Math.random() * 1100
+        : 1100 + Math.random() * 1300
     const t = setTimeout(async () => {
       const { data, error } = await supabase.rpc('bot_step', { p_game_id: game.id })
       if (!rpcFailed('bot_step RPC:', error) && data) {
         lastActionRef.current = Date.now()
         setGame(data as Game)
       }
-    }, 2000)
+    }, thinkMs)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [botTurnKey, game.id])
