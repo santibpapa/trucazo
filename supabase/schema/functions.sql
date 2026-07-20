@@ -451,16 +451,20 @@ begin
         where (e.value->>'round')::int = g.round_number and e.value->>'player_id' <> v_bot::text
         limit 1;
 
-      -- ¿Se va al mazo? Solo en ronda 2 y perdiendo la mano: nunca en ronda 1
-      -- (no quema el envido) ni en ronda 3 (la última carta no cuesta nada).
-      if g.round_number = 2 and standing < 0 then
+      -- ¿Se va al mazo? Solo en ronda 2, respondiendo a una carta que lo deja
+      -- sin salida (perdiendo nunca le toca abrir: abre el que ganó la 1ra):
+      --   * perdió la 1ra: condenado si no puede SUPERAR la carta (empatar
+      --     tampoco lo salva);
+      --   * la 1ra fue parda: condenado solo si su mejor carta PIERDE (con
+      --     un empate sigue vivo hasta la 3ra).
+      if g.round_number = 2 and opp_rank is not null then
         select min((e.value->>'rank')::int) into best_rank
           from jsonb_array_elements(coalesce(bot_remaining, '[]'::jsonb)) e;
-        if opp_rank is not null and best_rank is not null and best_rank >= opp_rank
+        if best_rank is not null
+           and ( (standing < 0 and best_rank >= opp_rank)
+              or (standing = 0 and best_rank > opp_rank) )
            and random() < 0.55 - aggr_n * 0.03 then
-          act := 'mazo';                                     -- perdida segura: no puede superar la carta
-        elsif opp_rank is null and eff <= 12 and random() < 0.25 - aggr_n * 0.02 then
-          act := 'mazo';                                     -- le toca abrir con cartas de descarte
+          act := 'mazo';
         end if;
       end if;
 

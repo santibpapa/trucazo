@@ -8,15 +8,16 @@
 -- con cualquier basura, algo que ningún jugador real hace. Ahora, cuando
 -- le toca jugar, puede abandonar la mano — con reglas para no regalar
 -- puntos:
---   * Solo en la RONDA 2: en la ronda 1 nunca (no quema el envido, y
---     abandonar ahí regala información), y en la ronda 3 tampoco (jugar
---     la última carta no cuesta nada y una parda puede salvarlo).
---   * Perdió la ronda 1 y el rival ya tiró una carta que no puede
---     superar (mano matemáticamente perdida): se va ~55% de las veces.
---   * Perdió la ronda 1, le toca abrir y le quedan cartas de descarte
---     (fuerza normalizada <= 12): se va ~25% de las veces.
---   * Los rasgos matizan: el AGRESIVO se emperra y se va un poco menos
---     (-3% por punto en la perdida segura, -2% en la casi perdida).
+--   * Solo en la RONDA 2 y respondiendo a una carta ya jugada: en la
+--     ronda 1 nunca (no quema el envido), y en la ronda 3 tampoco (jugar
+--     la última carta no cuesta nada). Ojo: abrir la ronda perdiendo es
+--     imposible (abre el que ganó la anterior), así que el bot acá
+--     siempre juega segundo.
+--   * Perdió la 1ra y no puede SUPERAR la carta jugada (la parda tampoco
+--     lo salva: mano matemáticamente perdida): se va ~55% de las veces.
+--   * La 1ra fue PARDA y su mejor carta PIERDE contra la jugada (acá el
+--     empate sí lo salva y lo lleva a la 3ra): se va ~55% de las veces.
+--   * El rasgo AGRESIVO se emperra y se va un poco menos (-3% por punto).
 --
 -- La decisión queda registrada en bot_decisions como action = 'mazo'.
 -- El resto del cerebro queda EXACTAMENTE igual que en la migración de
@@ -187,16 +188,20 @@ begin
         where (e.value->>'round')::int = g.round_number and e.value->>'player_id' <> v_bot::text
         limit 1;
 
-      -- ¿Se va al mazo? Solo en ronda 2 y perdiendo la mano: nunca en ronda 1
-      -- (no quema el envido) ni en ronda 3 (la última carta no cuesta nada).
-      if g.round_number = 2 and standing < 0 then
+      -- ¿Se va al mazo? Solo en ronda 2, respondiendo a una carta que lo deja
+      -- sin salida (perdiendo nunca le toca abrir: abre el que ganó la 1ra):
+      --   * perdió la 1ra: condenado si no puede SUPERAR la carta (empatar
+      --     tampoco lo salva);
+      --   * la 1ra fue parda: condenado solo si su mejor carta PIERDE (con
+      --     un empate sigue vivo hasta la 3ra).
+      if g.round_number = 2 and opp_rank is not null then
         select min((e.value->>'rank')::int) into best_rank
           from jsonb_array_elements(coalesce(bot_remaining, '[]'::jsonb)) e;
-        if opp_rank is not null and best_rank is not null and best_rank >= opp_rank
+        if best_rank is not null
+           and ( (standing < 0 and best_rank >= opp_rank)
+              or (standing = 0 and best_rank > opp_rank) )
            and random() < 0.55 - aggr_n * 0.03 then
-          act := 'mazo';                                     -- perdida segura: no puede superar la carta
-        elsif opp_rank is null and eff <= 12 and random() < 0.25 - aggr_n * 0.02 then
-          act := 'mazo';                                     -- le toca abrir con cartas de descarte
+          act := 'mazo';
         end if;
       end if;
 

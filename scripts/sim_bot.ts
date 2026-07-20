@@ -67,13 +67,14 @@ function subeTrucoAceptado(eff: number, d: number, trucoVal: number, rr: number)
   return trucoVal < 4 && eff >= 30 && d >= 7 && rr < 0.30
 }
 
-// ¿Se va al mazo? Solo ronda 2 perdiendo: perdida segura (el rival ya jugó una
-// carta que no supera) ~55%, o abre con descarte (eff <= 12) ~25%.
-function seVaAlMazo(eff: number, mejorPoder: number, oppPoder: number | null, ronda: number, standing: number): boolean {
-  if (ronda !== 2 || standing >= 0) return false
-  if (oppPoder !== null && mejorPoder <= oppPoder) return Math.random() < 0.55
-  if (oppPoder === null && eff <= 12) return Math.random() < 0.25
-  return false
+// ¿Se va al mazo? Solo ronda 2, respondiendo a una carta que lo deja sin
+// salida (perdiendo nunca abre él): si perdió la 1ra, condenado cuando no
+// puede SUPERAR la carta; si la 1ra fue parda, solo cuando su mejor carta
+// PIERDE (el empate lo lleva a la 3ra). En ambos casos se va ~55%.
+function seVaAlMazo(mejorPoder: number, oppPoder: number | null, ronda: number, standing: number): boolean {
+  if (ronda !== 2 || oppPoder === null || standing > 0) return false
+  const condenado = standing < 0 ? mejorPoder <= oppPoder : mejorPoder < oppPoder
+  return condenado && Math.random() < 0.55
 }
 
 // ---------------------------------------------------------------
@@ -203,22 +204,21 @@ function monteCarloSubir() {
 }
 
 function monteCarloMazo() {
-  console.log('\n=== ¿SE VA AL MAZO? — ronda 2, perdió la 1ra (manos al azar) ===')
-  for (const abre of [false, true]) {
-    let perdidas = 0, seFue = 0
+  console.log('\n=== ¿SE VA AL MAZO? — ronda 2, el rival ya jugó su carta (manos al azar) ===')
+  for (const standing of [-1, 0]) {
+    let condenadas = 0, seFue = 0
     for (let i = 0; i < N; i++) {
       const mazo = [...MAZO_PODERES]
       const mano: number[] = []
       for (let k = 0; k < 2; k++) mano.push(mazo.splice(Math.floor(Math.random() * mazo.length), 1)[0])
-      const opp = abre ? null : mazo.splice(Math.floor(Math.random() * mazo.length), 1)[0]
-      const eff = effNueva(mano, -1)
-      const condenado = abre ? eff <= 12 : Math.max(...mano) <= (opp as number)
-      if (condenado) perdidas++
-      if (seVaAlMazo(eff, Math.max(...mano), opp, 2, -1)) seFue++
+      const opp = mazo.splice(Math.floor(Math.random() * mazo.length), 1)[0]
+      const mejor = Math.max(...mano)
+      if (standing < 0 ? mejor <= opp : mejor < opp) condenadas++
+      if (seVaAlMazo(mejor, opp, 2, standing)) seFue++
     }
     console.log(
-      `  ${abre ? 'le toca abrir            ' : 'el rival ya jugó su carta'} | ` +
-      `mano condenada: ${pct(perdidas)} de las veces | se va al mazo: ${pct(seFue)} del total`,
+      `  ${standing < 0 ? 'perdió la 1ra    ' : 'la 1ra fue parda'} | ` +
+      `mano condenada: ${pct(condenadas)} de las veces | se va al mazo: ${pct(seFue)} del total`,
     )
   }
 }
