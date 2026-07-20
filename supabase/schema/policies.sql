@@ -10,11 +10,12 @@
 --
 -- Nota de seguridad: games y game_hands SOLO tienen política de SELECT — no hay
 -- INSERT/UPDATE para el cliente. Eso es a propósito (etapa "lock down"): la
--- partida solo la mueven las funciones security definer. feedback tiene RLS pero
--- NINGUNA política: se escribe solo por la RPC submit_feedback (definer) y el
--- dueño la lee desde el panel de Supabase (ignora RLS).
+-- partida solo la mueven las funciones security definer. feedback y
+-- bot_decisions tienen RLS pero NINGUNA política: las escriben solo funciones
+-- definer y el dueño las lee desde el panel de Supabase (ignora RLS).
 -- ============================================================
 
+alter table public.bot_decisions enable row level security;
 alter table public.campaign_progress enable row level security;
 alter table public.campaign_provinces enable row level security;
 alter table public.campaign_rivals enable row level security;
@@ -43,6 +44,9 @@ alter table public.accessories enable row level security;
 alter table public.tables enable row level security;
 alter table public.user_presence enable row level security;
 
+alter table public.bot_decisions add constraint bot_decisions_pkey PRIMARY KEY (id);
+create index if not exists bot_decisions_created_at_idx on public.bot_decisions (created_at);
+revoke all on public.bot_decisions from anon, authenticated;
 alter table public.campaign_progress add constraint campaign_progress_pkey PRIMARY KEY (user_id, rival_id);
 alter table public.campaign_progress add constraint campaign_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.campaign_progress add constraint campaign_progress_rival_id_fkey FOREIGN KEY (rival_id) REFERENCES campaign_rivals(id) ON DELETE CASCADE;

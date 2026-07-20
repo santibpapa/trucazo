@@ -10,6 +10,7 @@ import PlayingCard from '@/components/game/PlayingCard'
 import CardBack from '@/components/game/CardBack'
 import { playSound, isMuted, setMuted } from '@/lib/sounds'
 import { getSalonTheme } from '@/lib/salones'
+import { fraseDelBot, type MomentoFrase } from '@/lib/botFrases'
 import { getFrameTheme } from '@/lib/marcos'
 import { getMedal } from '@/lib/medallas'
 
@@ -526,6 +527,21 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     return () => clearTimeout(t)
   }, [oppEmote])
 
+  // El rival de campaña "habla": frase en su globito de emote según el momento.
+  // Las frases propias del personaje salen máximo una vez por partida (el set
+  // las recuerda) y entre frase y frase hay un respiro para que no sea un loro.
+  const botFrasesUsadasRef = useRef<Set<string>>(new Set())
+  const botFraseAtRef = useRef(0)
+  function botHabla(momento: MomentoFrase) {
+    if (!campaignRivalSlug) return
+    const now = Date.now()
+    if (now - botFraseAtRef.current < 5000) return
+    const frase = fraseDelBot(campaignRivalSlug, momento, botFrasesUsadasRef.current)
+    if (!frase) return
+    botFraseAtRef.current = now
+    setOppEmote(frase)
+  }
+
   function sendEmote(text: string) {
     if (emoteCooldown) return
     chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text } })
@@ -565,6 +581,14 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     return () => clearTimeout(t)
   }, [game.status, showFinish])
 
+  // Frase de despedida del rival de campaña: aprovecha el ratito entre que
+  // termina la partida y aparece la pantalla de fin.
+  useEffect(() => {
+    if (game.status !== 'finished' || !isCampaign || !game.winner_id) return
+    botHabla(game.winner_id === currentUserId ? 'pierde_partida' : 'gana_partida')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.status])
+
   // Partida terminada: seguimos escuchando para la revancha (votos y nueva partida).
   useEffect(() => {
     if (game.status !== 'finished') return
@@ -592,19 +616,42 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   }, [game.rematch_game_id])
 
   // Modo historia: le doy pie al bot cuando le toca. bot_step hace UNA sola
-  // acción por llamada; esperamos >=2s antes de cada una para que "piense" y se
-  // entiendan los tiempos de la mesa. La dependencia es botTurnKey (estable entre
-  // los re-renders del reloj y distinto en cada acción del bot), así cada
+  // acción por llamada. El tiempo de "pensar" varía según la situación (antes
+  // era un 2s clavado, y ese metrónomo delataba a la máquina): la carta sale
+  // rapidito, decir el tanto un poco más, y una decisión grande (le cantaron
+  // truco o envido) se piensa bastante más — con una pausa dramática cada
+  // tanto, como quien duda de verdad. La dependencia es botTurnKey (estable
+  // entre re-renders del reloj y distinto en cada acción del bot), así cada
   // canto/jugada del bot se dispara por separado y espaciado.
   useEffect(() => {
     if (!botTurnKey) return
+    const bigCall =
+      (['truco', 'retruco', 'vale_cuatro'].includes(game.truco_state.status) &&
+        game.truco_state.last_singer === currentUserId &&
+        !envidoUnresolved) ||
+      (['envido', 'real_envido', 'falta_envido'].includes(game.envido_state.status) &&
+        game.envido_state.last_singer === currentUserId)
+    const thinkMs = bigCall
+      ? 1800 + Math.random() * 2400 + (Math.random() < 0.18 ? 1800 : 0)
+      : game.envido_state.status === 'declaring'
+        ? 1200 + Math.random() * 1100
+        : 1100 + Math.random() * 1300
     const t = setTimeout(async () => {
       const { data, error } = await supabase.rpc('bot_step', { p_game_id: game.id })
       if (!rpcFailed('bot_step RPC:', error) && data) {
         lastActionRef.current = Date.now()
-        setGame(data as Game)
+        const next = data as Game
+        // ¿El bot se fue al mazo? La mano quedó en espera sin que él haya
+        // jugado su carta de esta ronda (y no fue un "no quiero" al truco).
+        // Siempre lo anuncia: con una frase suya o con el cartelito clásico.
+        const botCartas = next.played_cards.filter(pc => pc.player_id !== currentUserId).length
+        if (next.awaiting_deal && !game.awaiting_deal && next.truco_state.status !== 'rejected'
+            && botCartas < next.round_number && campaignRivalSlug) {
+          setOppEmote(fraseDelBot(campaignRivalSlug, 'mazo', botFrasesUsadasRef.current) ?? 'Me voy al mazo')
+        }
+        setGame(next)
       }
-    }, 2000)
+    }, thinkMs)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [botTurnKey, game.id])
@@ -636,6 +683,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         titleClass: 'text-gold uppercase tracking-wide',
         subtitle: `lo cantó ${mine ? myUsername : opponentUsername}`,
       })
+      if (!mine) botHabla('canta_envido')
       return
     }
 
@@ -647,6 +695,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         if (soundReadyRef.current) playSound('quiero')
         showAnnounce({ side: responderIsMe ? 'bottom' : 'top',
           eyebrow: ENVIDO_LABEL[tier] ?? 'envido', title: 'Quiero', titleClass: 'text-cream' })
+        if (!responderIsMe) botHabla('quiere')
       } else {
         // La mano declaró su tanto
         const manoIsMe = game.mano_player === currentUserId
@@ -666,6 +715,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       if (st === 'rejected') {
         if (soundReadyRef.current) playSound('no-quiero')
         showAnnounce({ side, eyebrow, title: 'No quiero', titleClass: 'text-cream' })
+        if (!responderIsMe) botHabla('no_quiere')
         return
       }
 
@@ -733,12 +783,14 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       showAnnounce({ side: byMe ? 'bottom' : 'top',
         title: TRUCO_LABEL[st] ?? 'truco', titleClass: 'text-gold uppercase tracking-wide',
         subtitle: `lo cantó ${byMe ? myUsername : opponentUsername}` })
+      if (!byMe) botHabla(st === 'truco' ? 'canta_truco' : 'sube')
     } else if (st === 'accepted' && prev?.status !== 'accepted') {
       // Quiero: lado del que responde (no es el que cantó)
       const responderIsMe = ts.last_singer !== currentUserId
       if (soundReadyRef.current) playSound('quiero')
       showAnnounce({ side: responderIsMe ? 'bottom' : 'top',
         eyebrow: 'Truco', title: 'Quiero', titleClass: 'text-cream' })
+      if (!responderIsMe) botHabla('quiere')
     } else if (st === 'rejected' && prev?.status !== 'rejected') {
       // No quiero: el que cantó (last_singer) gana el valor anterior. El cartel
       // sale del lado del que rechazó (el que NO es el cantor).
@@ -750,6 +802,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       if (soundReadyRef.current) playSound('no-quiero')
       showAnnounce({ side: winnerIsMe ? 'top' : 'bottom',
         eyebrow: canto, title: 'No quiero', titleClass: 'text-cream' })
+      if (winnerIsMe) botHabla('no_quiere')
     }
 
     prevTrucoRef.current = { status: st, singer: ts.last_singer ?? null, value: ts.value ?? 1, hand: game.hand_number }
