@@ -14,8 +14,9 @@
  *     la NUEVA (fuerza normalizada a escala de 3 cartas), mostrando el % de
  *     quiero / no quiero / sube en cada situación.
  *
- * Espejo de la migración 20260720_bot_fuerza_por_ronda.sql: si cambian los
- * umbrales del bot en SQL, actualizar este archivo (y viceversa).
+ * Espejo de las migraciones 20260720_bot_fuerza_por_ronda.sql y
+ * 20260720_bot_se_va_al_mazo.sql: si cambian los umbrales del bot en SQL,
+ * actualizar este archivo (y viceversa).
  * Rasgos de personalidad en neutro (5) y sin reputación: no cambian el fondo.
  */
 
@@ -64,6 +65,15 @@ function cantaTruco(eff: number, d: number, rr: number): 'de verdad' | 'farol' |
 
 function subeTrucoAceptado(eff: number, d: number, trucoVal: number, rr: number): boolean {
   return trucoVal < 4 && eff >= 30 && d >= 7 && rr < 0.30
+}
+
+// ¿Se va al mazo? Solo ronda 2 perdiendo: perdida segura (el rival ya jugó una
+// carta que no supera) ~55%, o abre con descarte (eff <= 12) ~25%.
+function seVaAlMazo(eff: number, mejorPoder: number, oppPoder: number | null, ronda: number, standing: number): boolean {
+  if (ronda !== 2 || standing >= 0) return false
+  if (oppPoder !== null && mejorPoder <= oppPoder) return Math.random() < 0.55
+  if (oppPoder === null && eff <= 12) return Math.random() < 0.25
+  return false
 }
 
 // ---------------------------------------------------------------
@@ -192,8 +202,30 @@ function monteCarloSubir() {
   }
 }
 
+function monteCarloMazo() {
+  console.log('\n=== ¿SE VA AL MAZO? — ronda 2, perdió la 1ra (manos al azar) ===')
+  for (const abre of [false, true]) {
+    let perdidas = 0, seFue = 0
+    for (let i = 0; i < N; i++) {
+      const mazo = [...MAZO_PODERES]
+      const mano: number[] = []
+      for (let k = 0; k < 2; k++) mano.push(mazo.splice(Math.floor(Math.random() * mazo.length), 1)[0])
+      const opp = abre ? null : mazo.splice(Math.floor(Math.random() * mazo.length), 1)[0]
+      const eff = effNueva(mano, -1)
+      const condenado = abre ? eff <= 12 : Math.max(...mano) <= (opp as number)
+      if (condenado) perdidas++
+      if (seVaAlMazo(eff, Math.max(...mano), opp, 2, -1)) seFue++
+    }
+    console.log(
+      `  ${abre ? 'le toca abrir            ' : 'el rival ya jugó su carta'} | ` +
+      `mano condenada: ${pct(perdidas)} de las veces | se va al mazo: ${pct(seFue)} del total`,
+    )
+  }
+}
+
 auditoria('lógica VIEJA', effVieja)
 auditoria('lógica NUEVA', effNueva)
 monteCarloResponder()
 monteCarloCantar()
 monteCarloSubir()
+monteCarloMazo()

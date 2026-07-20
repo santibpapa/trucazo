@@ -317,7 +317,7 @@ declare
   cur_truco_val int; mano_declared int;
   bot_remaining jsonb; bot_full jsonb;
   et int; power int; standing int; eff int; bot_won int; opp_won int;
-  opp_rank int; ncards int;
+  opp_rank int; best_rank int; ncards int;
   rr numeric;
   act text; p_type text; chosen jsonb; esc_type text; can_env boolean;
 begin
@@ -378,8 +378,8 @@ begin
     into bot_won, opp_won
     from jsonb_array_elements(g.round_results) e;
   standing := coalesce(bot_won, 0) - coalesce(opp_won, 0);
-  -- EL ARREGLO: la suma de cartas restantes se lleva a escala de 3 cartas,
-  -- así las varas de abajo valen igual en cualquier ronda.
+  -- La suma de cartas restantes se lleva a escala de 3 cartas, así las varas
+  -- de abajo valen igual en cualquier ronda.
   eff := round(power * 3.0 / greatest(ncards, 1)) + standing * 6;
   rr  := random();
 
@@ -451,36 +451,51 @@ begin
         where (e.value->>'round')::int = g.round_number and e.value->>'player_id' <> v_bot::text
         limit 1;
 
-      if opp_rank is not null then
-        if rr < d::numeric / 10 then
-          select e.value into chosen from jsonb_array_elements(bot_remaining) e
-            where (e.value->>'rank')::int < opp_rank
-            order by (e.value->>'rank')::int desc limit 1;
-          if chosen is null then
-            select e.value into chosen from jsonb_array_elements(bot_remaining) e
-              order by (e.value->>'rank')::int desc limit 1;
-          end if;
-        else
-          select e.value into chosen from jsonb_array_elements(bot_remaining) e order by random() limit 1;
-        end if;
-      else
-        if rr < d::numeric / 10 then
-          if standing < 0 or g.round_number >= 2 then
-            select e.value into chosen from jsonb_array_elements(bot_remaining) e
-              order by (e.value->>'rank')::int asc limit 1;
-          else
-            select e.value into chosen from jsonb_array_elements(bot_remaining) e
-              order by (e.value->>'rank')::int asc offset greatest(0, (ncards - 1) / 2) limit 1;
-          end if;
-        else
-          select e.value into chosen from jsonb_array_elements(bot_remaining) e order by random() limit 1;
+      -- ¿Se va al mazo? Solo en ronda 2 y perdiendo la mano: nunca en ronda 1
+      -- (no quema el envido) ni en ronda 3 (la última carta no cuesta nada).
+      if g.round_number = 2 and standing < 0 then
+        select min((e.value->>'rank')::int) into best_rank
+          from jsonb_array_elements(coalesce(bot_remaining, '[]'::jsonb)) e;
+        if opp_rank is not null and best_rank is not null and best_rank >= opp_rank
+           and random() < 0.55 - aggr_n * 0.03 then
+          act := 'mazo';                                     -- perdida segura: no puede superar la carta
+        elsif opp_rank is null and eff <= 12 and random() < 0.25 - aggr_n * 0.02 then
+          act := 'mazo';                                     -- le toca abrir con cartas de descarte
         end if;
       end if;
 
-      if chosen is null then
-        select e.value into chosen from jsonb_array_elements(bot_remaining) e limit 1;
+      if act = 'play' then
+        if opp_rank is not null then
+          if rr < d::numeric / 10 then
+            select e.value into chosen from jsonb_array_elements(bot_remaining) e
+              where (e.value->>'rank')::int < opp_rank
+              order by (e.value->>'rank')::int desc limit 1;
+            if chosen is null then
+              select e.value into chosen from jsonb_array_elements(bot_remaining) e
+                order by (e.value->>'rank')::int desc limit 1;
+            end if;
+          else
+            select e.value into chosen from jsonb_array_elements(bot_remaining) e order by random() limit 1;
+          end if;
+        else
+          if rr < d::numeric / 10 then
+            if standing < 0 or g.round_number >= 2 then
+              select e.value into chosen from jsonb_array_elements(bot_remaining) e
+                order by (e.value->>'rank')::int asc limit 1;
+            else
+              select e.value into chosen from jsonb_array_elements(bot_remaining) e
+                order by (e.value->>'rank')::int asc offset greatest(0, (ncards - 1) / 2) limit 1;
+            end if;
+          else
+            select e.value into chosen from jsonb_array_elements(bot_remaining) e order by random() limit 1;
+          end if;
+        end if;
+
+        if chosen is null then
+          select e.value into chosen from jsonb_array_elements(bot_remaining) e limit 1;
+        end if;
+        if chosen is null then return g; end if;
       end if;
-      if chosen is null then return g; end if;
     end if;
 
   else
@@ -495,6 +510,7 @@ begin
   begin
     case act
       when 'play'               then perform public.play_card(p_game_id, chosen);
+      when 'mazo'               then perform public.irse_al_mazo(p_game_id);
       when 'sing_envido'        then perform public.sing_envido(p_game_id, p_type);
       when 'sing_truco'         then perform public.sing_truco(p_game_id, p_type);
       when 'respond_envido_yes' then perform public.respond_envido(p_game_id, true);
@@ -516,7 +532,7 @@ begin
           jsonb_build_object('d', d, 'round', g.round_number, 'ncards', ncards,
                              'power', power, 'eff', eff, 'et', et,
                              'standing', standing, 'truco_val', cur_truco_val,
-                             'rr', round(rr, 3), 'card', chosen),
+                             'rr', round(rr, 3), 'card', chosen, 'opp_rank', opp_rank),
           acted_ok, v_err);
   if rr < 0.02 then
     delete from bot_decisions where created_at < now() - interval '30 days';

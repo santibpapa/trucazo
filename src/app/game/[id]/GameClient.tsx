@@ -640,7 +640,16 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       const { data, error } = await supabase.rpc('bot_step', { p_game_id: game.id })
       if (!rpcFailed('bot_step RPC:', error) && data) {
         lastActionRef.current = Date.now()
-        setGame(data as Game)
+        const next = data as Game
+        // ¿El bot se fue al mazo? La mano quedó en espera sin que él haya
+        // jugado su carta de esta ronda (y no fue un "no quiero" al truco).
+        // Siempre lo anuncia: con una frase suya o con el cartelito clásico.
+        const botCartas = next.played_cards.filter(pc => pc.player_id !== currentUserId).length
+        if (next.awaiting_deal && !game.awaiting_deal && next.truco_state.status !== 'rejected'
+            && botCartas < next.round_number && campaignRivalSlug) {
+          setOppEmote(fraseDelBot(campaignRivalSlug, 'mazo', botFrasesUsadasRef.current) ?? 'Me voy al mazo')
+        }
+        setGame(next)
       }
     }, thinkMs)
     return () => clearTimeout(t)
