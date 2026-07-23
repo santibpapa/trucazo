@@ -14,11 +14,13 @@
  *     la NUEVA (fuerza normalizada a escala de 3 cartas), mostrando el % de
  *     quiero / no quiero / sube en cada situación.
  *
- * Espejo de las migraciones 20260720_bot_fuerza_por_ronda.sql y
- * 20260720_bot_se_va_al_mazo.sql: si cambian los umbrales del bot en SQL,
- * actualizar este archivo (y viceversa).
+ * Espejo de las migraciones 20260720_bot_fuerza_por_ronda.sql,
+ * 20260720_bot_se_va_al_mazo.sql y 20260723_bot_falta_envido_umbral.sql:
+ * si cambian los umbrales del bot en SQL, actualizar este archivo (y
+ * viceversa).
  * Rasgos de personalidad en neutro (5) y sin reputación: no cambian el fondo.
  */
+import { createDeck, getEnvidoPoints, type Card } from '../src/lib/truco'
 
 // ---------------------------------------------------------------
 // Mazo: poder de cada carta = 15 - rank (mismo CASE que _truco_deck)
@@ -55,6 +57,21 @@ function respondeTruco(eff: number, d: number, trucoVal: number, rr: number): Re
   if (eff >= Math.max(12, 22 - d)) return 'quiero'
   if (d <= 3 && rr < 0.6) return 'quiero'
   return 'no quiero'
+}
+
+// Respuesta al envido, con la vara de "quiero" POR NIVEL: la falta se juega
+// la partida, así que pide un tanto mucho más fuerte (mismos umbrales que el
+// SQL). Sin reputación (r_call = 0).
+type NivelEnvido = 'envido' | 'real_envido' | 'falta_envido'
+function envidoNeed(nivel: NivelEnvido, d: number): number {
+  if (nivel === 'falta_envido') return Math.max(29, 34 - d)
+  if (nivel === 'real_envido') return Math.max(24, 29 - d)
+  return Math.max(20, 27 - d)
+}
+function respondeEnvido(et: number, nivel: NivelEnvido, d: number, rr: number): boolean {
+  if (et >= envidoNeed(nivel, d)) return true
+  if (d <= 3 && nivel !== 'falta_envido' && rr < 0.5) return true
+  return false
 }
 
 function cantaTruco(eff: number, d: number, rr: number): 'de verdad' | 'farol' | null {
@@ -223,9 +240,37 @@ function monteCarloMazo() {
   }
 }
 
+function manoEnvidoAlAzar(): Card[] {
+  const mazo = createDeck()
+  const mano: Card[] = []
+  for (let i = 0; i < 3; i++) mano.push(mazo.splice(Math.floor(Math.random() * mazo.length), 1)[0])
+  return mano
+}
+
+function monteCarloEnvidoResponder() {
+  console.log('\n=== ¿QUIERE EL ENVIDO? — % que acepta con mano al azar, por nivel ===')
+  console.log('  (la falta se juega la partida: debe pedir tanto mucho más fuerte)')
+  const viejaNeed = (d: number) => Math.max(20, 27 - d) // antes: la misma vara para los 3
+  for (const nivel of ['envido', 'real_envido', 'falta_envido'] as const) {
+    console.log(`\n${nivel}`)
+    console.log('  dif |  antes (una sola vara) →  ahora (vara por nivel)')
+    for (const d of DIFICULTADES) {
+      let vieja = 0, nueva = 0
+      for (let i = 0; i < N; i++) {
+        const et = getEnvidoPoints(manoEnvidoAlAzar())
+        const rr = Math.random()
+        if (et >= viejaNeed(d) || (d <= 3 && rr < 0.5)) vieja++
+        if (respondeEnvido(et, nivel, d, rr)) nueva++
+      }
+      console.log(`  ${String(d).padStart(3)} |  ${pct(vieja)} → ${pct(nueva)}`)
+    }
+  }
+}
+
 auditoria('lógica VIEJA', effVieja)
 auditoria('lógica NUEVA', effNueva)
 monteCarloResponder()
 monteCarloCantar()
 monteCarloSubir()
 monteCarloMazo()
+monteCarloEnvidoResponder()

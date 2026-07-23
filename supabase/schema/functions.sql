@@ -317,7 +317,7 @@ declare
   cur_truco_val int; mano_declared int;
   bot_remaining jsonb; bot_full jsonb;
   et int; power int; standing int; eff int; bot_won int; opp_won int;
-  opp_rank int; best_rank int; ncards int;
+  opp_rank int; best_rank int; ncards int; env_need int;
   rr numeric;
   act text; p_type text; chosen jsonb; esc_type text; can_env boolean;
 begin
@@ -401,12 +401,21 @@ begin
   elsif es_status in ('envido','real_envido','falta_envido') and last_env is distinct from v_bot::text then
     sit := 'responder_envido';
     esc_type := case es_status when 'envido' then 'real_envido' when 'real_envido' then 'falta_envido' else null end;
+    -- Cuánto tanto pido para querer, según lo que está EN JUEGO: el envido
+    -- simple se quiere con poco; la falta envido se juega la partida, así que
+    -- solo se quiere con un tanto muy fuerte. Antes había una sola vara (20 en
+    -- dif 7+) para los tres, y el jugador robaba la falta con cualquier tanto.
+    env_need := case es_status
+                  when 'falta_envido' then greatest(29, 34 - d)   -- ~29-31: casi siempre no quiero
+                  when 'real_envido'  then greatest(24, 29 - d)
+                  else                     greatest(20, 27 - d)
+                end;
     if et >= 31 and d >= 6 and esc_type is not null and rr < 0.45 then
       act := 'sing_envido'; p_type := esc_type;
-    elsif et >= greatest(20, 27 - d) or rr < r_call then     -- lectura 1: al mentiroso lo quiero más
-      act := 'respond_envido_yes';
-    elsif d <= 3 and rr < 0.5 then
-      act := 'respond_envido_yes';
+    elsif et >= env_need or (rr < r_call and es_status <> 'falta_envido') then
+      act := 'respond_envido_yes';                            -- lectura 1: al mentiroso lo quiero más (no en la falta)
+    elsif d <= 3 and es_status <> 'falta_envido' and rr < 0.5 then
+      act := 'respond_envido_yes';                            -- el bot tonto acepta a ciegas, salvo la falta
     else
       act := 'respond_envido_no';
     end if;
