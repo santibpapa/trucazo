@@ -124,7 +124,7 @@ def render(slug: str, source: Path, output: Path) -> None:
     result.alpha_composite(border_layer)
 
     result = result.resize((SIZE, SIZE), Image.Resampling.LANCZOS)
-    result.save(output, "WEBP", lossless=True, method=6)
+    result.save(output, "WEBP", lossless=False, quality=82, method=6)
     print(f"{slug}: {output}")
 
 

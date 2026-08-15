@@ -162,8 +162,8 @@ declare
   fama        int;
   liar_pct int; folder_pct int; aggr_pct int;
   sung int;
-  fama_cap constant int := 2000;
-  known_min constant int := 8;
+  fama_cap constant int := 2000;   -- PERILLA: puntos para llegar a fama 100
+  known_min constant int := 8;     -- PERILLA: manos mínimas para "te conocen"
 begin
   if uid is null then raise exception 'no autenticado'; end if;
 
@@ -174,11 +174,12 @@ begin
   select * into cs from campaign_style where user_id = uid;
   hp   := coalesce(cs.hands_played, 0);
   sung := coalesce(cs.envido_sung, 0) + coalesce(cs.truco_sung, 0);
-  liar_pct   := round((coalesce(cs.envido_bluff,0) + coalesce(cs.truco_bluff,0))::numeric
-                       / greatest(1, sung) * 100);
-  folder_pct := round(least(1, (coalesce(cs.envido_folded,0) + coalesce(cs.truco_folded,0))::numeric
-                       / greatest(1, hp) * 2) * 100);
-  aggr_pct   := round(least(1, sung::numeric / greatest(1, hp) / 1.5) * 100);
+  -- Estilo en 0..100 para mostrar (escalas de presentación = perillas):
+  liar_pct   := round( (coalesce(cs.envido_bluff,0) + coalesce(cs.truco_bluff,0))::numeric
+                       / greatest(1, sung) * 100 );
+  folder_pct := round( least(1, (coalesce(cs.envido_folded,0) + coalesce(cs.truco_folded,0))::numeric
+                       / greatest(1, hp) * 2) * 100 );
+  aggr_pct   := round( least(1, sung::numeric / greatest(1, hp) / 1.5) * 100 );
 
   select coalesce(jsonb_agg(
     jsonb_build_object(
@@ -282,9 +283,9 @@ begin
   if v_username is null then raise exception 'perfil no encontrado'; end if;
   v_pts := coalesce(v_pts, 0);
 
-  if not exists (
-    select 1 from campaign_progress where user_id = uid and rival_id = p_rival_id
-  ) then
+  -- Un rival ya vencido siempre acepta la revancha; los candados de puntos
+  -- valen solo para los que nunca venciste.
+  if not exists (select 1 from campaign_progress where user_id = uid and rival_id = p_rival_id) then
     select * into pv from campaign_provinces where id = r.province_id;
     if v_pts < pv.points_required then raise exception 'todavía no desbloqueaste esta provincia'; end if;
     if pv.required_rival_id is not null and not exists (
@@ -298,38 +299,28 @@ begin
 
   delete from tables t
    where t.creator_id = uid
-     and exists (
-       select 1 from games gg
-       where gg.id = t.id and gg.campaign_rival_id is not null and gg.status = 'playing'
-     );
+     and exists (select 1 from games gg
+                 where gg.id = t.id and gg.campaign_rival_id is not null and gg.status = 'playing');
 
   select d.h1, d.h2 into h1, h2 from public._deal_hands() d;
 
-  insert into tables
-    (id, name, creator_id, creator_username, opponent_id, opponent_username,
-     bet, is_private, status, target_score, time_limit)
-  values
-    (v_id, 'Modo historia', uid, v_username, r.bot_id, r.display_name,
-     0, true, 'playing', r.target_score, 30);
+  insert into tables (id, name, creator_id, creator_username, opponent_id, opponent_username,
+                      bet, is_private, status, target_score, time_limit)
+  values (v_id, 'Modo historia', uid, v_username, r.bot_id, r.display_name,
+          0, true, 'playing', r.target_score, 30);
 
-  insert into games
-    (id, player1_id, player2_id, player1_username, player2_username,
-     current_turn, mano_player, bet, target_score, time_limit, turn_started_at,
-     campaign_rival_id)
-  values
-    (v_id, uid, r.bot_id, v_username, r.display_name,
-     uid, uid, 0, r.target_score, 30, now(), p_rival_id)
+  insert into games (id, player1_id, player2_id, player1_username, player2_username,
+                     current_turn, mano_player, bet, target_score, time_limit, turn_started_at,
+                     campaign_rival_id)
+  values (v_id, uid, r.bot_id, v_username, r.display_name,
+          uid, uid, 0, r.target_score, 30, now(), p_rival_id)
   returning * into g;
 
   insert into game_hands (game_id, player_id, cards) values
     (v_id, uid,      h1),
     (v_id, r.bot_id, h2);
 
-  begin
-    perform public._record_style(v_id, 'hand_played');
-  exception when others then null;
-  end;
-
+  begin perform public._record_style(v_id, 'hand_played'); exception when others then null; end;
   return g;
 end;
 $function$;
