@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "check:rpc-allowlist": "node scripts/check-rpc-allowlist.mjs"
+    "check:rpc-allowlist": "node scripts/check-rpc-allowlist.mjs",
+    "check:campaign": "node scripts/check-patagonia-expansion.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

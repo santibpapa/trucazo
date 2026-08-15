@@ -1,5 +1,5 @@
-PROMPTS PARA GENERAR LAS CARAS DE LOS 16 RIVALES NUEVOS
-=========================================================
+PROMPTS PARA GENERAR LAS CARAS DE LOS RIVALES
+==============================================
 
 CÓMO USAR: para cada personaje, abrí GPT, ADJUNTÁ UNA CARA YA HECHA como
 referencia de estilo (carnicero.png o tahur.png van bien) y pegá el "PROMPT
@@ -120,3 +120,60 @@ Un coplero norteño de unos 60 años, flaco y nervudo, con sombrero criollo de
 ala ancha, poncho claro terciado al hombro y una caja coplera (tamborcito con
 aro) en la mano. Boca entreabierta como declamando una copla, expresión
 socarrona.
+
+---------------------------------------------------------
+RUTA PATAGÓNICA (20 RIVALES)
+
+Las ilustraciones finales de esta etapa agregan dos anclas visuales obligatorias
+del set actual: mate marrón abajo a la izquierda con “El Truco es Cultura” y
+caja ornamentada abajo a la derecha con “TRUCO”. Formato final: WebP 512x512.
+
+LA PAMPA
+payador.webp — Cacho, el Payador: payador pampeano de 55 años, sombrero gaucho,
+pañuelo bordó, poncho y guitarra criolla; horizonte llano de fondo.
+bolichera.webp — Mirta, la Bolichera: bolichera rural de 60 años, camisa clara,
+delantal bordó, libreta y lápiz; estantes del boliche de fondo.
+domador.webp — Rubén, el Domador: gaucho de 48 años, boina, chaleco de cuero,
+pañuelo rojo y lazo al hombro; corral insinuado.
+telera.webp — Celia, la Telera: tejedora de 52 años, trenza oscura, chal tejido,
+lanzadera de madera y telar de fondo.
+
+NEUQUÉN
+petrolero.webp — Darío, el Petrolero: trabajador de 44 años con casco gastado,
+campera de lona, guantes y pozo petrolero insinuado.
+criancera.webp — Malena, la Criancera: criancera de 50 años, pañuelo, poncho de
+lana y cayado; chivas y meseta de fondo.
+paleontologo.webp — Bruno, el Paleontólogo: investigador de campo de 40 años,
+anteojos redondos, fósil y pincel; bardas neuquinas de fondo.
+montanista.webp — Vera, la Montañista: montañista de 34 años, gorro de lana,
+campera, cuerda y piqueta; Andes nevados de fondo.
+
+RÍO NEGRO
+fruticultora.webp — Elsa, la Fruticultora: trabajadora de 57 años, pañuelo y
+delantal, sopesando dos manzanas; chacra frutal de fondo.
+ferroviario.webp — Fabián, el Ferroviario: ferroviario de 58 años, gorra oscura,
+reloj de bolsillo y bandera de señales; tren patagónico de fondo.
+cervecera.webp — Abril, la Cervecera: productora de 36 años, delantal de cuero,
+lúpulo y vaso de cobre; barricas y montañas de fondo.
+buzo.webp — Roque, el Buzo: buzo costero de 46 años, gorro y pulóver oscuro,
+antiparras de buceo antiguas al cuello; golfo y barco de fondo.
+
+CHUBUT
+gales.webp — Owen, el Galés: galés patagónico de 55 años, chaleco, taza y plato
+de té; capilla de piedra y estepa de fondo.
+guardafauna.webp — Mariela, la Guardafauna: guardafauna de 45 años, chaqueta
+verde lisa y binoculares; guanacos y cola de ballena de fondo.
+pesquero.webp — Tano, el Pesquero: pescador de 52 años, gorro, impermeable,
+pañuelo rojo y cabo grueso; puerto con temporal de fondo.
+navegante.webp — Ema, la Navegante: navegante de 39 años, tapado naval, bufanda,
+brújula y carta náutica; costa y velero de fondo.
+
+TIERRA DEL FUEGO
+guardafaros.webp — Anselmo, el Guardafaros: hombre de 64 años, gorro de lana,
+chaleco encerado y farol de bronce; faro y canal agitado de fondo.
+pionera.webp — Julia, la Pionera: pobladora de 58 años, abrigo y chal bordó,
+llave y valija antigua; caserío maderero sin carteles de fondo.
+hachero.webp — Ramiro, el Hachero: trabajador forestal de 47 años, gorro,
+camisa a cuadros, tiradores y hacha al hombro; bosque fueguino de fondo.
+antartica.webp — Irene, la Antártica: científica polar de 42 años, parka clara
+sin insignias, calibre y muestra de hielo; barrera de hielo y refugio de fondo.

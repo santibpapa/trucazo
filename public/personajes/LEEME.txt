@@ -1,45 +1,76 @@
 ILUSTRACIONES DE LOS RIVALES DEL MODO HISTORIA
 ================================================
 
-Las 26 caras están cargadas y optimizadas. Nombres de archivo (todo en
+Las 46 caras están cargadas y optimizadas. Nombres de archivo (todo en
 minúscula, sin acentos ni ñ — así lo busca la web):
 
 BUENOS AIRES
-  novato.png       -> Tobías, el Novato
-  colectivero.png  -> Beto, el Colectivero
-  vecina.png       -> Doña Rosa, la Vecina
-  tanguero.png     -> Aníbal, el Tanguero
-  carnicero.png    -> Aldo, el Carnicero
-  tana.png         -> Carmela, la Tana
+  novato.webp       -> Tobías, el Novato
+  colectivero.webp  -> Beto, el Colectivero
+  vecina.webp       -> Doña Rosa, la Vecina
+  tanguero.webp     -> Aníbal, el Tanguero
+  carnicero.webp    -> Aldo, el Carnicero
+  tana.webp         -> Carmela, la Tana
 
 SANTA FE
-  pescador.png     -> Cholo, el Pescador
-  cumbiero.png     -> Yony, el Cumbiero
-  tahur.png        -> Ramón, el Tahúr
-  quinielera.png   -> Marta, la Quinielera
-  patrona.png      -> Doña Elvira, la Patrona
+  pescador.webp     -> Cholo, el Pescador
+  cumbiero.webp     -> Yony, el Cumbiero
+  tahur.webp        -> Ramón, el Tahúr
+  quinielera.webp   -> Marta, la Quinielera
+  patrona.webp      -> Doña Elvira, la Patrona
 
 CÓRDOBA
-  fernetero.png    -> El Colo del Fernet
-  humorista.png    -> Chicho, el Humorista
-  cuartetero.png   -> Dante, el Cuartetero
-  serrana.png      -> Doña Nélida, la Serrana
-  maestro.png      -> Don Genaro, el Maestro
+  fernetero.webp    -> El Colo del Fernet
+  humorista.webp    -> Chicho, el Humorista
+  cuartetero.webp   -> Dante, el Cuartetero
+  serrana.webp      -> Doña Nélida, la Serrana
+  maestro.webp      -> Don Genaro, el Maestro
 
 MENDOZA
-  bodeguero.png    -> Don Facundo, el Bodeguero
-  campeon.png      -> Lucho, el Campeón
-  arriero.png      -> Ceferino, el Arriero
-  montanesa.png    -> Alma, la Montañesa      (OJO: el archivo va SIN ñ)
-  coneja.png       -> Sofía, la Coneja
+  bodeguero.webp    -> Don Facundo, el Bodeguero
+  campeon.webp      -> Lucho, el Campeón
+  arriero.webp      -> Ceferino, el Arriero
+  montanesa.webp    -> Alma, la Montañesa      (OJO: el archivo va SIN ñ)
+  coneja.webp       -> Sofía, la Coneja
 
 SANTIAGO DEL ESTERO
-  bombisto.png     -> Segundo, el Bombisto
-  siestero.png     -> Don Ulises, el Siestero
-  bruja.png        -> Doña Yaya, la Bruja
-  coplero.png      -> Fortunato, el Coplero
-  mudo.png         -> Don Salvador, el Mudo
+  bombisto.webp     -> Segundo, el Bombisto
+  siestero.webp     -> Don Ulises, el Siestero
+  bruja.webp        -> Doña Yaya, la Bruja
+  coplero.webp      -> Fortunato, el Coplero
+  mudo.webp         -> Don Salvador, el Mudo
+
+LA PAMPA
+  payador.webp      -> Cacho, el Payador
+  bolichera.webp    -> Mirta, la Bolichera
+  domador.webp      -> Rubén, el Domador
+  telera.webp       -> Celia, la Telera
+
+NEUQUÉN
+  petrolero.webp    -> Darío, el Petrolero
+  criancera.webp    -> Malena, la Criancera
+  paleontologo.webp -> Bruno, el Paleontólogo
+  montanista.webp   -> Vera, la Montañista
+
+RÍO NEGRO
+  fruticultora.webp -> Elsa, la Fruticultora
+  ferroviario.webp  -> Fabián, el Ferroviario
+  cervecera.webp    -> Abril, la Cervecera
+  buzo.webp         -> Roque, el Buzo
+
+CHUBUT
+  gales.webp        -> Owen, el Galés
+  guardafauna.webp  -> Mariela, la Guardafauna
+  pesquero.webp     -> Tano, el Pesquero
+  navegante.webp    -> Ema, la Navegante
+
+TIERRA DEL FUEGO
+  guardafaros.webp  -> Anselmo, el Guardafaros
+  pionera.webp      -> Julia, la Pionera
+  hachero.webp      -> Ramiro, el Hachero
+  antartica.webp    -> Irene, la Antártica
 
 Si en el futuro reemplazás alguna cara: guardala con su nombre exacto de esta
-lista. Ideal que sea cuadrada. Si te sale muy pesada (más de ~1 MB) no importa,
+lista. La aplicación admite .webp y las caras actuales están normalizadas a
+512x512. Si te sale muy pesada (más de ~1 MB) no importa,
 se puede optimizar después. Los prompts que se usaron están en PROMPTS-CARAS.txt.

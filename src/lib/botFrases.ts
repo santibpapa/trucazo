@@ -56,6 +56,26 @@ const PROPIAS: Record<string, Partial<Record<MomentoFrase, string[]>>> = {
   bruja:       { quiere: ['El humo ya me lo dijo'], no_quiere: ['Tus cartas te delatan, criatura'] },
   coplero:     { canta_truco: ['Con esta mano que tengo, a cualquiera lo entretengo'], canta_envido: ['Verso que canto, punto que levanto'] },
   mudo:        {}, // Don Salvador no habla nunca.
+  payador:     { canta_truco: ['Si la mano viene arisca, con un truco se amansará'], sube: ['Verso que arranco, verso que termino'] },
+  bolichera:   { quiere: ['En mi boliche las cuentas están claras'], canta_envido: ['A los mentirosos los conozco de lejos'] },
+  domador:     { canta_truco: ['A esta mano la llevo con rienda corta'], sube: ['Cuanto más corcovea, más me afirmo'] },
+  telera:      { quiere: ['Este hilo ya sé dónde termina'], gana_partida: ['Punto por punto se arma la trama'] },
+  petrolero:   { canta_truco: ['Ahora sí: subió la presión'], sube: ['En el pozo no hay lugar para tibios'] },
+  criancera:   { quiere: ['Por este sendero ya pasé'], no_quiere: ['A esa huella no la sigo'] },
+  paleontologo: { canta_envido: ['Veamos qué escondés bajo tierra'], quiere: ['Ese farol tiene millones de años'] },
+  montanista:  { canta_truco: ['La subida recién empieza'], sube: ['En la cumbre hablamos'] },
+  fruticultora: { quiere: ['La buena se reconoce al tocarla'], no_quiere: ['Esta cosecha te la dejo'] },
+  ferroviario: { canta_truco: ['Sale puntual, sin demora'], sube: ['Este tren no tiene freno'] },
+  cervecera:   { canta_envido: ['La medida justa, siempre'], quiere: ['Esta receta no falla'] },
+  buzo:        { quiere: ['A esta presión estoy acostumbrado'], canta_truco: ['Vamos hasta el fondo'] },
+  gales:       { canta_envido: ['Primero el té; después, los tantos'], sube: ['Con calma también se aprieta'] },
+  guardafauna: { quiere: ['Vi ese movimiento desde lejos'], no_quiere: ['Hoy te dejo seguir camino'] },
+  pesquero:    { canta_truco: ['Con mar bravo juego mejor'], sube: ['Afirmate, que viene la marejada'] },
+  navegante:   { canta_truco: ['Cambio de rumbo: truco'], quiere: ['El norte sigue estando claro'] },
+  guardafaros: { quiere: ['Ese farol se ve entre la niebla'], canta_envido: ['Encendamos la luz sobre esos tantos'] },
+  pionera:     { canta_truco: ['Yo llegué antes: truco'], sube: ['El último tramo es el más bravo'] },
+  hachero:     { canta_truco: ['Esta mano se parte de un golpe'], sube: ['De acá no retrocedo'] },
+  antartica:   { quiere: ['El frío enseña a esperar'], gana_partida: ['Precisión hasta el último punto'] },
 }
 
 /**
