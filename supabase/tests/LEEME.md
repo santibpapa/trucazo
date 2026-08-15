@@ -2,9 +2,11 @@
 
 ## Qué hay acá
 
-`seguridad_pr1.sql` es un archivo que **intenta hacer trampa** de diez maneras
-distintas contra la base. Si alguna le sale, corta con un error grande. Si
-ninguna le sale, imprime `TODO CERRADO`.
+`seguridad_pr1.sql` **intenta hacer trampa** de diez maneras distintas contra la
+base. `seguridad_privilegios_funciones.sql` comprueba además que todas las
+funciones actuales y futuras nazcan cerradas salvo la API explícita del cliente,
+que el lookup de login sea exclusivo de `service_role`, y que los barridos
+rechacen intervalos peligrosos. Si algo falla, los archivos cortan con error.
 
 Sirve para que los agujeros que se cerraron no vuelvan a abrirse sin que nadie se
 dé cuenta.
@@ -16,6 +18,7 @@ y partidas de mentira; al final deshace todo, pero igual):
 
 ```
 psql -f supabase/tests/seguridad_pr1.sql
+psql -f supabase/tests/seguridad_privilegios_funciones.sql
 ```
 
 Termina en 0 si está todo bien y en distinto de 0 si encontró algo, así que sirve
