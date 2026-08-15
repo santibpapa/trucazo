@@ -89,9 +89,9 @@ const MARCADORES: Record<string, Pos> = {
   'mendoza':             { x: 23.3, y: 38.9 },
   'buenos-aires':        { x: 55, y: 43.4 },
   'la-pampa':            { x: 38.2, y: 44.3 },
-  'neuquen':             { x: 25.7, y: 48.5 },
-  'rio-negro':           { x: 36.9, y: 54.3 },
-  'chubut':              { x: 36, y: 65.2 },
+  'neuquen':             { x: 24.7, y: 49.5 },
+  'rio-negro':           { x: 33.9, y: 54.3 },
+  'chubut':              { x: 34, y: 65.2 },
   'tierra-del-fuego':    { x: 39, y: 91.9 },
 }
 
@@ -106,9 +106,9 @@ const LUGARES: Record<string, Pos[]> = {
   'mendoza':             [{ x: 42, y: 30 }, { x: 72.8, y: 59.7 }, { x: 41.5, y: 79.1 }, { x: 60, y: 20 }, { x: 30, y: 50 }, { x: 55, y: 80 }],
   'santiago-del-estero': [{ x: 61.6, y: 43.8 }, { x: 40, y: 62 }, { x: 68, y: 13.1 }, { x: 64.2, y: 76.2 }, { x: 35, y: 30 }, { x: 65, y: 55 }],
   'la-pampa':            [{ x: 30, y: 31 }, { x: 67, y: 26 }, { x: 33, y: 67 }, { x: 70, y: 70 }],
-  'neuquen':             [{ x: 31, y: 25 }, { x: 67, y: 28 }, { x: 37, y: 66 }, { x: 70, y: 72 }],
-  'rio-negro':           [{ x: 26, y: 32 }, { x: 66, y: 26 }, { x: 39, y: 68 }, { x: 74, y: 66 }],
-  'chubut':              [{ x: 28, y: 29 }, { x: 68, y: 27 }, { x: 33, y: 69 }, { x: 72, y: 70 }],
+  'neuquen':             [{ x: 33, y: 25 }, { x: 67, y: 28 }, { x: 37, y: 66 }, { x: 70, y: 67 }],
+  'rio-negro':           [{ x: 26, y: 37 }, { x: 66, y: 31 }, { x: 39, y: 68 }, { x: 74, y: 66 }],
+  'chubut':              [{ x: 28, y: 29 }, { x: 68, y: 27 }, { x: 33, y: 69 }, { x: 67, y: 68 }],
   'tierra-del-fuego':    [{ x: 12, y: 35 }, { x: 25, y: 55 }, { x: 47, y: 70 }, { x: 68, y: 84 }],
 }
 
