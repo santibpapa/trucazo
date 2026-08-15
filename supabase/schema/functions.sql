@@ -5,10 +5,17 @@
 -- Esto NO es una migración incremental: es una "foto" del estado actual de
 -- TODAS las funciones de la base (security definer, helpers, triggers). Sirve
 -- para reconstruir el backend de cero. El historial incremental vive en
--- supabase/migrations/. Orden de restauración: tables.sql → functions.sql →
--- policies.sql.
+-- supabase/migrations/. Este archivo NO alcanza solo: la reconstrucción completa
+-- es 00_supabase_local.sql → tables.sql → functions.sql → policies.sql → TODAS
+-- las migraciones. Ver supabase/schema/README.md.
 -- Definiciones tomadas en vivo con pg_get_functiondef, ordenadas por nombre.
 -- ============================================================
+
+-- Las funciones están ordenadas alfabéticamente, así que muchas se nombran entre
+-- sí antes de existir (_who_plays_next, por ejemplo). Sin esto, PostgreSQL
+-- rechaza el archivo por "function does not exist" aunque el resultado final sea
+-- correcto. Es local a la sesión: no cambia nada de la base.
+set check_function_bodies = off;
 
 CREATE OR REPLACE FUNCTION public._bot_hand_power(cards jsonb)
  RETURNS integer
