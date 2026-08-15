@@ -201,12 +201,9 @@ export default function LobbyClient({ profile, initialTables, activeGameId, myMe
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         keepalive: true,
-        body: JSON.stringify({
-          name: tableName.trim(),
-          bet: betNum,
-          creator: profile.username,
-          targetScore,
-        }),
+        // Solo el id: el texto del aviso lo arma el servidor con datos de la
+        // base, así nadie puede inventarlo ni hacerse pasar por otro.
+        body: JSON.stringify({ tableId: table.id }),
       }).catch(() => {})
     }
 

@@ -13,10 +13,6 @@ interface Props {
   fullWidth?: boolean
 }
 
-function randomGuestName() {
-  return 'Invitado' + Math.floor(1000 + Math.random() * 9000)
-}
-
 /** Entrar sin registrarse: sesión anónima de Supabase + perfil "Invitado####". */
 export default function GuestButton({
   variant = 'ghost',
@@ -44,26 +40,9 @@ export default function GuestButton({
       return
     }
 
-    // Crear el perfil con un nombre único (reintenta si el azar choca)
-    let created = false
-    for (let i = 0; i < 6 && !created; i++) {
-      const { error: pErr } = await supabase
-        .from('profiles')
-        .insert({ id: data.user.id, username: randomGuestName(), coins: 1000 })
-      if (!pErr) created = true
-      else if (pErr.code !== '23505') {
-        track('guest_session_failed', { source, stage: 'profile' })
-        setError('No se pudo crear el invitado.')
-        setLoading(false)
-        return
-      }
-    }
-    if (!created) {
-      track('guest_session_failed', { source, stage: 'username' })
-      setError('No se pudo crear el invitado, probá de nuevo.')
-      setLoading(false)
-      return
-    }
+    // El perfil "Invitado####" lo crea el servidor solo, al nacer la sesión
+    // (trigger handle_new_user). Antes lo creaba acá, y eso chocaba con el
+    // trigger: si el trigger estaba puesto, el invitado ni siquiera podía entrar.
 
     // Latido fresco para el GuestSessionGuard (así no lo confunde con un
     // invitado viejo y no le cierra la sesión recién creada).

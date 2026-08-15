@@ -56,26 +56,16 @@ export async function GET(request: NextRequest) {
     (user.user_metadata?.picture as string | undefined) ||
     null
 
-  // ¿Ya tiene perfil? (puede haberlo creado el trigger handle_new_user). Si no,
-  // lo creamos con un nombre a partir del email y 1.000 monedas por defecto.
+  // El perfil lo crea el servidor solo al nacer el usuario (trigger
+  // handle_new_user), con el nombre sacado del email. Acá solo nos ocupamos de
+  // la foto de Google, que el trigger no puede conocer.
   const { data: existing } = await supabase
     .from('profiles')
     .select('id, avatar_url')
     .eq('id', user.id)
     .maybeSingle()
 
-  if (!existing) {
-    const base = (user.email?.split('@')[0] || 'Jugador').slice(0, 16)
-    let created = false
-    for (let i = 0; i < 6 && !created; i++) {
-      const username = i === 0 ? base : `${base}${Math.floor(100 + Math.random() * 900)}`
-      const { error: pErr } = await supabase
-        .from('profiles')
-        .insert({ id: user.id, username, coins: 1000, avatar_url: googlePhoto })
-      if (!pErr) created = true
-      else if (pErr.code !== '23505') break // error real: cortamos y mandamos al lobby igual
-    }
-  } else if (!existing.avatar_url && googlePhoto) {
+  if (existing && !existing.avatar_url && googlePhoto) {
     // Usuario de Google que ya existía sin foto: le ponemos la de Google por
     // defecto (no pisa una foto propia que ya haya subido). Vía función de
     // servidor porque profiles no permite UPDATE directo (RLS).

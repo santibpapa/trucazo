@@ -4,10 +4,13 @@ import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const srcRoot = join(root, 'src')
-const migrationPath = join(
-  root,
-  'supabase/migrations/20260815_seguridad_6_privilegios_por_defecto.sql',
-)
+const migrationsRoot = join(root, 'supabase/migrations')
+// La migración que cerró todo y reabrió la API del cliente. Su lista sigue
+// siendo válida, pero NO se toca: ya está aplicada en producción. Las RPC que
+// nazcan después traen su propio `grant execute` en su propia migración, y este
+// script las junta a las dos fuentes para que no haya una lista que mantener a
+// mano (y que se desactualice sin que nadie se entere).
+const baseAllowlistFile = '20260815_seguridad_6_privilegios_por_defecto.sql'
 const serverOnlyPath = 'src/app/api/login-usuario/route.ts'
 
 async function sourceFiles(dir) {
@@ -24,14 +27,38 @@ function rpcNames(source) {
   return [...source.matchAll(/\.rpc\(\s*['"]([a-zA-Z0-9_]+)['"]/g)].map(match => match[1])
 }
 
-const migration = await readFile(migrationPath, 'utf8')
-const allowlistBlock = migration.match(
-  /-- CLIENT_RPC_ALLOWLIST_BEGIN([\s\S]*?)-- CLIENT_RPC_ALLOWLIST_END/,
-)?.[1]
+const migrationFiles = (await readdir(migrationsRoot)).filter(f => f.endsWith('.sql')).sort()
+const allowed = new Set()
 
-if (!allowlistBlock) throw new Error('No se encontró CLIENT_RPC_ALLOWLIST en la migración')
+for (const file of migrationFiles) {
+  const sql = await readFile(join(migrationsRoot, file), 'utf8')
 
-const allowed = new Set([...allowlistBlock.matchAll(/'([a-zA-Z0-9_]+)'/g)].map(match => match[1]))
+  // 1. La lista de la migración que reabrió la API del cliente.
+  if (file === baseAllowlistFile) {
+    const block = sql.match(
+      /-- CLIENT_RPC_ALLOWLIST_BEGIN([\s\S]*?)-- CLIENT_RPC_ALLOWLIST_END/,
+    )?.[1]
+    if (!block) throw new Error(`No se encontró CLIENT_RPC_ALLOWLIST en ${file}`)
+    for (const m of block.matchAll(/'([a-zA-Z0-9_]+)'/g)) allowed.add(m[1])
+  }
+
+  // 2. Los permisos sueltos, pero SOLO de las migraciones POSTERIORES a esa.
+  //    Es que esa migración hizo un "revoke execute on all functions", así que
+  //    todo permiso anterior quedó sin efecto: contarlos daría una lista con
+  //    funciones que en la base real están cerradas (o que ya ni existen).
+  if (file <= baseAllowlistFile) continue
+
+  for (const m of sql.matchAll(
+    /grant\s+execute\s+on\s+function\s+public\.([a-zA-Z0-9_]+)\s*\([^)]*\)\s*\n?\s*to\s+[^;]*\bauthenticated\b/gi,
+  )) {
+    allowed.add(m[1])
+  }
+  for (const m of sql.matchAll(
+    /revoke\s+execute\s+on\s+function\s+public\.([a-zA-Z0-9_]+)\s*\([^)]*\)\s*\n?\s*from\s+[^;]*\bauthenticated\b/gi,
+  )) {
+    allowed.delete(m[1])
+  }
+}
 const browserCalls = new Set()
 const serverCalls = new Set()
 
