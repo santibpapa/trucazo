@@ -18,6 +18,10 @@ interface Props {
   myMedal: string
 }
 
+// "Jugar ya": mesa pública, apuesta fija y partida a 30. Un solo toque y a jugar.
+const JUGAR_YA_APUESTA = 50
+const JUGAR_YA_PUNTOS = 30
+
 export default function LobbyClient({ profile, initialTables, activeGameId, myMedal }: Props) {
   const router = useRouter()
   const [tables, setTables] = useState<Table[]>(initialTables)
@@ -65,6 +69,27 @@ export default function LobbyClient({ profile, initialTables, activeGameId, myMe
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tables])
+
+  // Que el lobby no se vea vacío: si quedan pocas mesas esperando, el servidor
+  // abre un par con los jugadores de la casa. Si ya hay mesas de gente de
+  // verdad, no hace nada (y ahí no refrescamos la lista al pedo).
+  useEffect(() => {
+    let cancelado = false
+    supabase.rpc('ensure_lobby_tables').then(({ data }) => {
+      if (cancelado || !data) return
+      supabase
+        .from('tables')
+        .select('*')
+        .eq('status', 'waiting')
+        .eq('is_private', false)
+        .order('created_at', { ascending: false })
+        .then(({ data: rows }) => {
+          if (!cancelado && rows) setTables(rows as Table[])
+        })
+    })
+    return () => { cancelado = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Tiempo real
   useEffect(() => {
@@ -192,6 +217,39 @@ export default function LobbyClient({ profile, initialTables, activeGameId, myMe
       router.push(`/game/${table.id}`)
     }
 
+    setLoading(false)
+  }
+
+  // "Jugar ya": abre una mesa pública de 50 a 30 puntos y te manda derecho a
+  // ella. Si en unos segundos no entra nadie, la sala de espera invita a un
+  // jugador de la casa, así nunca te quedás sin partida.
+  async function handleJugarYa() {
+    if (loading) return
+    if (coins < JUGAR_YA_APUESTA) {
+      setError(`Necesitás ${JUGAR_YA_APUESTA} monedas para jugar ya`)
+      return
+    }
+
+    setLoading(true)
+    setError('')
+
+    const { data: table, error: tableError } = await supabase.rpc('create_table', {
+      p_name: `Mesa de ${profile.username}`,
+      p_bet: JUGAR_YA_APUESTA,
+      p_is_private: false,
+      p_private_code: null,
+      p_target_score: JUGAR_YA_PUNTOS,
+      p_time_limit: 30,
+    })
+
+    if (tableError || !table) {
+      setError(tableError?.message || 'Error al crear la mesa')
+      setLoading(false)
+      return
+    }
+
+    setCoins(c => c - JUGAR_YA_APUESTA)
+    router.push(`/game/${table.id}`)
     setLoading(false)
   }
 
@@ -445,6 +503,20 @@ export default function LobbyClient({ profile, initialTables, activeGameId, myMe
               <LockIcon /> Unirse
             </Button>
           </div>
+
+          {/* Atajo: una mesa lista y a jugar, sin elegir nada */}
+          <Button
+            size="lg"
+            fullWidth
+            onClick={handleJugarYa}
+            disabled={loading || coins < JUGAR_YA_APUESTA}
+            className="-mt-2 !shadow-[0_8px_22px_-8px_rgba(201,162,75,0.55)]"
+          >
+            <BoltIcon /> Jugar ya
+            <span className="ml-1 rounded-full bg-ink/15 px-2 py-0.5 text-xs font-bold">
+              {JUGAR_YA_APUESTA} monedas · a {JUGAR_YA_PUNTOS}
+            </span>
+          </Button>
 
           {/* Lista de mesas */}
           <section className="flex flex-col gap-3">
@@ -700,6 +772,15 @@ function PlusIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+// Rayo: el atajo para arrancar una partida sin configurar nada.
+function BoltIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5z" />
     </svg>
   )
 }

@@ -34,6 +34,8 @@ interface Props {
   opponentAccessory?: string | null
   // Salón (fondo de la mesa) elegido por este jugador en la Tienda.
   salonSlug?: string
+  // El rival es uno de los bots del lobby (partida normal, con monedas).
+  opponentIsBot?: boolean
 }
 
 type EnvidoType = 'envido' | 'real_envido' | 'falta_envido'
@@ -212,7 +214,7 @@ function MesaButton({
   )
 }
 
-export default function GameClient({ game: initialGame, currentUserId, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory }: Props) {
+export default function GameClient({ game: initialGame, currentUserId, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory, opponentIsBot = false }: Props) {
   const router = useRouter()
   const [game, setGame] = useState<Game>(initialGame)
   const [myHand, setMyHand] = useState<Card[]>(initialMyHand)
@@ -330,15 +332,17 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
     game.truco_state.last_singer !== currentUserId &&
     !envidoUnresolved
 
-  // Modo historia: el rival es un bot. Cuando no me toca a mí hacer nada, le doy
-  // pie al bot (el servidor decide y juega por él). botTurnKey identifica el
-  // estado concreto en que el bot debe actuar, para disparar bot_step una sola
-  // vez por turno (y no en cada re-render del reloj).
+  // El rival es un bot: en el modo historia (rival de la campaña) o en una mesa
+  // normal del lobby. Cuando no me toca a mí hacer nada, le doy pie al bot (el
+  // servidor decide y juega por él). botTurnKey identifica el estado concreto en
+  // que el bot debe actuar, para disparar bot_step una sola vez por turno (y no
+  // en cada re-render del reloj).
   const isCampaign = game.campaign_rival_id != null
+  const isBotGame = isCampaign || opponentIsBot
   const humanCanAct =
     (isMyTurn && !isDeclaring) || hasPendingEnvido || hasPendingTruco || myDeclareTurn
   const botShouldAct =
-    isCampaign && game.status === 'playing' && !game.awaiting_deal && !humanCanAct
+    isBotGame && game.status === 'playing' && !game.awaiting_deal && !humanCanAct
   const botTurnKey = botShouldAct
     ? `${game.hand_number}-${game.round_number}-${game.current_turn}-${game.envido_state.status}-${game.truco_state.status}-${game.envido_state.declare_turn ?? ''}`
     : null

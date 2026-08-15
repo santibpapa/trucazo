@@ -49,7 +49,7 @@ export default async function GamePage({ params }: { params: { id: string } }) {
             </div>
           )}
           <p className="text-xs text-subtle">La pantalla se actualiza sola.</p>
-          <WaitingRoom tableId={params.id} />
+          <WaitingRoom tableId={params.id} isPrivate={table.is_private} />
           <CancelTableButton tableId={params.id} />
         </Panel>
       </main>
@@ -105,15 +105,19 @@ export default async function GamePage({ params }: { params: { id: string } }) {
   let opponentFrame: string | null = null
   let opponentMedal: string | null = null
   let opponentAccessory: string | null = null
+  // Si el rival es un bot del lobby, esta pantalla es la que le da pie para que
+  // juegue sus turnos (igual que en el modo historia).
+  let opponentIsBot = false
   if (opponentId) {
     const { data: opp } = await supabase
       .from('profiles')
-      .select('avatar_url, active_frame, active_accessory')
+      .select('avatar_url, active_frame, active_accessory, is_bot')
       .eq('id', opponentId)
       .single()
     opponentAvatarUrl = opp?.avatar_url ?? null
     opponentFrame = opp?.active_frame ?? null
     opponentAccessory = opp?.active_accessory ?? 'ninguno'
+    opponentIsBot = !!opp?.is_bot
     const { data: oppMedal } = await supabase.rpc('active_medal_for', { p_uid: opponentId })
     opponentMedal = (oppMedal as string | null) ?? 'ninguno'
   }
@@ -133,6 +137,7 @@ export default async function GamePage({ params }: { params: { id: string } }) {
       opponentMedal={opponentMedal}
       myAccessory={myAccessory}
       opponentAccessory={opponentAccessory}
+      opponentIsBot={opponentIsBot}
     />
   )
 }
