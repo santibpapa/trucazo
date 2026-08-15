@@ -16,7 +16,31 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: deps
+
+    # Los saltos de versión MAYOR no entran solos.
+    #
+    # Una versión mayor quiere decir "esto rompe cosas a propósito": React 18→19,
+    # Tailwind 3→4 o TypeScript 5→7 no son actualizaciones, son mudanzas, y hay
+    # que sentarse a hacerlas. Dependabot las abría igual y los deploys de esos
+    # PRs se caían.
+    #
+    # Quedan las versiones menores y las correcciones, que es justo lo que
+    # conviene que entre solo. Los saltos grandes (Next 16, por ejemplo) se
+    # deciden a mano, cada uno en su propio PR.
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
     groups:
+      # React y react-dom TIENEN que moverse juntos: si uno sube y el otro no,
+      # el build se cae. Va primero para que gane sobre el grupo de abajo.
+      react:
+        patterns:
+          - react
+          - react-dom
+          - '@types/react'
+          - '@types/react-dom'
+
       # Todo lo que sea solo para desarrollo, junto en un PR: son cambios de
       # bajo riesgo y no tiene sentido revisarlos de a uno.
       herramientas-de-desarrollo:
