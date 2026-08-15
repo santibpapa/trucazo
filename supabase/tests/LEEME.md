@@ -6,7 +6,10 @@
 base. `seguridad_privilegios_funciones.sql` comprueba además que todas las
 funciones actuales y futuras nazcan cerradas salvo la API explícita del cliente,
 que el lookup de login sea exclusivo de `service_role`, y que los barridos
-rechacen intervalos peligrosos. Si algo falla, los archivos cortan con error.
+rechacen intervalos peligrosos. `seguridad_pr2.sql` comprueba que las cuatro
+formas de darse de alta (invitado, registro, Google y nombre repetido) creen UN
+solo perfil, e intenta abusar de las reseñas y del aviso de mesa. Si algo falla,
+los archivos cortan con error.
 
 Sirve para que los agujeros que se cerraron no vuelvan a abrirse sin que nadie se
 dé cuenta.
@@ -19,6 +22,7 @@ y partidas de mentira; al final deshace todo, pero igual):
 ```
 psql -f supabase/tests/seguridad_pr1.sql
 psql -f supabase/tests/seguridad_privilegios_funciones.sql
+psql -f supabase/tests/seguridad_pr2.sql
 ```
 
 Termina en 0 si está todo bien y en distinto de 0 si encontró algo, así que sirve

@@ -104,11 +104,16 @@ export default function ResenaPage() {
     setLoading(true)
     setError('')
     try {
-      // Subir imágenes (si hay) al depósito privado
+      // Subir imágenes (si hay) al depósito privado, cada uno DENTRO DE SU
+      // CARPETA: la ruta arranca con el id del usuario. Esa regla la aplica el
+      // servidor, así nadie puede pisar ni adjuntar los archivos de otro.
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Volvé a entrar para dejar tu reseña.')
+
       const paths: string[] = []
       for (const f of files) {
         const ext = (f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')
-        const path = uniqueName(ext || 'jpg')
+        const path = `${user.id}/${uniqueName(ext || 'jpg')}`
         const { error: upErr } = await supabase.storage.from('feedback-images').upload(path, f)
         if (upErr) throw upErr
         paths.push(path)

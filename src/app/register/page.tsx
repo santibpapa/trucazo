@@ -13,6 +13,9 @@ export default function RegisterPage() {
   const [username, setUsername] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  // Cuando el proyecto pide confirmar el email, signUp no devuelve sesión: en
+  // vez de mandarlo al lobby (donde no podría entrar), le avisamos.
+  const [confirmarEmail, setConfirmarEmail] = useState(false)
 
   async function handleRegister() {
     if (!email || !password || !username) {
@@ -61,24 +64,52 @@ export default function RegisterPage() {
       return
     }
 
-    if (signUpData.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: signUpData.user.id,
-        username: username,
-        coins: 1000,
-      })
+    // El perfil lo crea el servidor solo (trigger handle_new_user) con el nombre
+    // que mandamos acá arriba. Antes esta pantalla lo creaba de nuevo, y ese
+    // segundo intento chocaba con el primero: la cuenta quedaba creada pero se
+    // mostraba "Ese nombre de usuario ya está en uso" y parecía que había fallado.
 
-      if (profileError) {
-        // 23505 = violación de unicidad (el username se tomó entre el chequeo y el insert)
-        setError(profileError.code === '23505'
-          ? 'Ese nombre de usuario ya está en uso'
-          : 'Error al crear el perfil: ' + profileError.message)
-        setLoading(false)
-        return
-      }
+    // Sin sesión = falta confirmar el email. No lo mandamos al lobby, porque no
+    // podría entrar y parecería que algo se rompió.
+    if (!signUpData.session) {
+      setConfirmarEmail(true)
+      setLoading(false)
+      return
     }
 
     router.push('/lobby')
+    router.refresh()
+  }
+
+  // Falta confirmar el email: la cuenta ya está creada, pero no puede entrar
+  // hasta que toque el link que le llegó.
+  if (confirmarEmail) {
+    return (
+      <main className="flex flex-col items-center justify-center min-h-screen p-6">
+        <Panel className="w-full max-w-sm p-8 flex flex-col items-center gap-5 text-center animate-scale-in">
+          <Logo size="md" />
+          <div className="w-14 h-14 rounded-full bg-gold/15 text-gold flex items-center justify-center shadow-gold-ring">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="m3 7 9 6 9-6" />
+            </svg>
+          </div>
+          <div className="flex flex-col gap-1">
+            <h2 className="font-display text-2xl font-bold text-cream">Revisá tu email</h2>
+            <p className="text-sm text-muted">
+              Te mandamos un mail a <b className="text-cream">{email}</b> para confirmar la cuenta.
+              Tocá el link y ya podés entrar a jugar.
+            </p>
+          </div>
+          <p className="text-xs text-subtle">
+            Si no lo ves, mirá en el correo no deseado.
+          </p>
+          <Link href="/login" className="text-sm font-semibold text-gold hover:text-gold-600 transition-colors">
+            Ir a iniciar sesión
+          </Link>
+        </Panel>
+      </main>
+    )
   }
 
   return (

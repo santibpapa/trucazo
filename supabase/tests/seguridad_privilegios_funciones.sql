@@ -15,7 +15,8 @@ declare
   v_client_functions constant text[] := array[
     'active_medal_for', 'admin_stats', 'advance_hand', 'bot_join_table',
     'bot_step', 'buy_accessory', 'buy_frame', 'buy_salon',
-    'cancel_game_invite', 'cancel_table', 'claim_bonus', 'clear_chat',
+    'cancel_game_invite', 'cancel_table', 'claim_bonus', 'claim_table_notification',
+    'clear_chat',
     'create_group', 'create_table', 'delete_chat_message', 'delete_group',
     'delete_news', 'ensure_lobby_tables', 'envido_say', 'forfeit',
     'get_active_medals', 'get_campaign_map', 'get_campaign_ranking',
