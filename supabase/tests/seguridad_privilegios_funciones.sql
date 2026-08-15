@@ -105,6 +105,16 @@ begin
     ) owners
     join pg_roles r on r.oid = owners.role_oid
   loop
+    -- Los dueños ajenos (roles de los que no somos miembros, típicamente de
+    -- extensiones) no se pueden cerrar ni acá ni en la migración: PostgreSQL no
+    -- deja cambiarles los defaults. Se avisan, pero no se toman como falla,
+    -- porque si no la prueba quedaría en rojo para siempre sin nada que hacer.
+    if not pg_has_role(current_user, v_owner.oid, 'USAGE') then
+      raise notice 'Aviso: el rol % es ajeno y no se le pueden cerrar los defaults (no es una falla).',
+        v_owner.rolname;
+      continue;
+    end if;
+
     if not exists (
       select 1
         from pg_default_acl d

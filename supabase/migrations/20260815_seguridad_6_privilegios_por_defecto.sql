@@ -33,10 +33,11 @@ begin;
 
 do $block$
 declare
-  v_owner record;
+  v_owner    record;
+  v_saltados text[] := '{}';
 begin
   for v_owner in
-    select distinct r.rolname
+    select distinct r.oid, r.rolname
     from (
       select p.proowner as role_oid
       from pg_proc p
@@ -46,12 +47,36 @@ begin
     ) owners
     join pg_roles r on r.oid = owners.role_oid
   loop
+    -- Solo se pueden tocar los defaults de un rol del que uno es miembro. En
+    -- Supabase, el SQL Editor corre como `postgres`, que NO es superusuario: si
+    -- alguna función de `public` pertenece a otro rol (pasa cuando hay una
+    -- extensión instalada en ese schema), el ALTER falla con "permission denied
+    -- to change default privileges" y, como todo esto va en una transacción, se
+    -- caería la migración ENTERA sin explicar por qué.
+    --
+    -- Verificado en Postgres: corriendo como un rol no superusuario y con una
+    -- función de otro dueño en `public`, el bloque abortaba. Por eso se saltean
+    -- los dueños que no se pueden tocar y se avisa al final.
+    if not pg_has_role(current_user, v_owner.oid, 'USAGE') then
+      v_saltados := array_append(v_saltados, v_owner.rolname);
+      continue;
+    end if;
+
     execute format(
       'alter default privileges for role %I '
       'revoke execute on functions from public, anon, authenticated',
       v_owner.rolname
     );
   end loop;
+
+  if array_length(v_saltados, 1) > 0 then
+    raise notice
+      'Aviso: no se pudieron cerrar los permisos por defecto de estos dueños: %. '
+      'Son roles ajenos (normalmente de extensiones). Las funciones del juego SÍ '
+      'quedaron cerradas; esto solo significa que, si ESE rol creara una función '
+      'nueva en public, nacería abierta.',
+      array_to_string(v_saltados, ', ');
+  end if;
 end;
 $block$;
 
