@@ -1,0 +1,32 @@
+# ============================================================
+# Avisos de actualizaciones
+#
+# Dependabot mira una vez por semana si alguna librería del proyecto sacó
+# versión nueva o tiene un problema de seguridad conocido, y abre un Pull
+# Request con el cambio. NO actualiza nada solo: siempre hay que aprobarlo.
+# ============================================================
+version: 2
+updates:
+  # Las librerías del proyecto (React, Next, Supabase, etc.)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+    groups:
+      # Todo lo que sea solo para desarrollo, junto en un PR: son cambios de
+      # bajo riesgo y no tiene sentido revisarlos de a uno.
+      herramientas-de-desarrollo:
+        dependency-type: development
+
+  # Las propias acciones que usa el revisor automático (.github/workflows/)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci

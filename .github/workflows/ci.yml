@@ -1,0 +1,109 @@
+# ============================================================
+# El revisor automático de Trucazo
+#
+# Corre solo en cada Pull Request y en cada cambio a master. Si algo se pone
+# en rojo, GitHub lo muestra en el PR antes de mergear.
+#
+# NO tiene ninguna clave de producción. La base contra la que prueba se arma
+# vacía acá adentro y se tira al terminar: nunca toca el Supabase de verdad.
+# ============================================================
+name: Revisión automática
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+# Si llegan dos cambios seguidos al mismo PR, cancela el anterior: no tiene
+# sentido revisar una versión que ya quedó vieja.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------
+  # 1. La aplicación: que compile y que no se cuele una RPC abierta
+  # ----------------------------------------------------------
+  aplicacion:
+    name: Aplicación
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar (limpio, desde el lockfile)
+        run: npm ci
+
+      - name: Tipos, que nada quede mal escrito
+        run: npx tsc --noEmit
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Que ninguna función del servidor quede abierta al cliente
+        run: node scripts/check-rpc-allowlist.mjs
+
+      - name: Que la lógica de truco del cliente y la del servidor coincidan
+        run: npx tsx scripts/sim.ts
+
+      - name: Build de producción
+        # Claves de mentira a propósito: el build no se conecta a ningún lado,
+        # solo necesita que las variables existan.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ejemplo.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: clave-de-mentira-para-el-build
+          NEXT_PUBLIC_SITE_URL: https://ejemplo.test
+        run: npm run build
+
+  # ----------------------------------------------------------
+  # 2. La base: que se pueda reconstruir y que siga cerrada
+  # ----------------------------------------------------------
+  base-de-datos:
+    name: Base de datos
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: trucazo
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: trucazo
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Reconstruir la base entera desde cero
+        run: scripts/rebuild-db.sh
+
+      # Las tres pruebas de seguridad, contra la base recién armada. Cada una
+      # termina distinto de 0 si encuentra algo, así que alcanza con correrlas.
+      - name: Trampas contra la base (PR 1)
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_pr1.sql
+
+      - name: Permisos de las funciones
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql
+
+      - name: Altas, reseñas y aviso de mesa (PR 2)
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_pr2.sql
