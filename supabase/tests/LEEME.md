@@ -30,37 +30,33 @@ tal cual para automatizarlo más adelante.
 
 ## Para armar la base local
 
-El orden que funciona es:
+Un solo comando:
 
-1. `supabase/schema/tables.sql`
-2. `supabase/schema/functions.sql` — con `set check_function_bodies = off;` antes,
-   porque el archivo está ordenado alfabéticamente y hay funciones que se
-   nombran entre sí antes de existir.
-3. `supabase/schema/policies.sql`
-4. todas las migraciones de `supabase/migrations/`, en orden.
+```bash
+createdb trucazo_prueba
+PGDATABASE=trucazo_prueba scripts/rebuild-db.sh
+```
 
-## Dos trampas que hay que tener en cuenta
+Deja la base igual que la de verdad: las tablas, las funciones, las reglas, los
+6 triggers y los catálogos. Los detalles están en
+[`supabase/schema/README.md`](../schema/README.md).
 
-Las dos hacen que la prueba dé **falsos negativos** (parece que está todo cerrado
-cuando en realidad no se probó nada):
+Hay un cuarto archivo acá, `reconstruccion_completa.sql`, que comprueba que no
+haya quedado nada afuera. El script lo corre al final, pero sirve suelto para
+revisar cualquier base de prueba.
 
-1. **Los permisos de tabla.** Supabase le da a `anon` y `authenticated` permisos
-   amplios sobre `public` y confía la protección a la RLS. Una base local recién
-   armada no los tiene, así que todo falla con `permission denied for table` y
-   parece seguro. Hay que darlos a mano:
+## La trampa que hay que tener en cuenta
 
-   ```sql
-   grant usage on schema public to anon, authenticated;
-   grant all on all tables in schema public to anon, authenticated;
-   grant all on all sequences in schema public to anon, authenticated;
-   revoke all on public.bot_decisions from anon, authenticated;
-   ```
+Hace que las pruebas den **falsos negativos**: parece que está todo cerrado
+cuando en realidad no se probó nada.
 
-2. **Los triggers no están en el snapshot.** `supabase/schema/` guarda las
-   funciones pero no los `create trigger`, así que en una base armada desde el
-   snapshot no se otorgan medallas ni corren los defaults de perfil. Los triggers
-   viven en las migraciones (`20260709_medallas.sql`, `20260620_seguridad_fixes.sql`,
-   `20260626_turn_timer.sql`).
+Supabase le da a `anon` y `authenticated` permiso amplio sobre `public` y confía
+la protección real a la RLS. Una base local que no tenga esos permisos rebota
+**todos** los intentos de trampa con `permission denied for table`, y las pruebas
+pasan en verde sin haber probado absolutamente nada.
+
+`scripts/rebuild-db.sh` ya los aplica (y los repite al final, porque las
+migraciones crean tablas después). Si armás la base a mano, no te los saltees.
 
 Además, en Supabase existe el trigger `handle_new_user`, que crea el perfil
 automáticamente al dar de alta un usuario. Por eso, al insertar perfiles de

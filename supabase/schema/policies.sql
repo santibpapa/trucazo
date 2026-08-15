@@ -4,9 +4,10 @@
 --
 -- Row Level Security (RLS) activado por tabla, llaves primarias/foráneas,
 -- restricciones (check/unique), políticas de acceso e índices.
--- Orden de restauración desde cero: extensiones → tables.sql → functions.sql →
--- policies.sql (este archivo va último: las llaves foráneas necesitan que las
--- tablas ya existan).
+-- Orden de restauración desde cero: 00_supabase_local.sql → tables.sql →
+-- functions.sql → policies.sql → TODAS las migraciones de supabase/migrations/
+-- en orden alfabético. Ver supabase/schema/README.md; lo automatiza
+-- scripts/rebuild-db.sh.
 --
 -- Nota de seguridad: games y game_hands SOLO tienen política de SELECT — no hay
 -- INSERT/UPDATE para el cliente. Eso es a propósito (etapa "lock down"): la
@@ -44,61 +45,79 @@ alter table public.accessories enable row level security;
 alter table public.tables enable row level security;
 alter table public.user_presence enable row level security;
 
+-- ---- Claves primarias (van PRIMERO) ----
+-- Tienen que estar antes de cualquier llave foránea: una foránea exige que la
+-- tabla apuntada ya tenga su clave primaria. Como el resto del archivo está
+-- ordenado alfabéticamente por tabla, sin este bloque adelante la restauración
+-- desde cero falla en campaign_progress, que apunta a profiles mucho antes de
+-- que profiles llegue a tener la suya.
 alter table public.bot_decisions add constraint bot_decisions_pkey PRIMARY KEY (id);
+alter table public.campaign_progress add constraint campaign_progress_pkey PRIMARY KEY (user_id, rival_id);
+alter table public.campaign_provinces add constraint campaign_provinces_pkey PRIMARY KEY (id);
+alter table public.campaign_rivals add constraint campaign_rivals_pkey PRIMARY KEY (id);
+alter table public.campaign_style add constraint campaign_style_pkey PRIMARY KEY (user_id);
+alter table public.feedback add constraint feedback_pkey PRIMARY KEY (id);
+alter table public.chat_messages add constraint chat_messages_pkey PRIMARY KEY (id);
+alter table public.friendships add constraint friendships_pkey PRIMARY KEY (id);
+alter table public.game_hands add constraint game_hands_pkey PRIMARY KEY (game_id, player_id);
+alter table public.game_history add constraint game_history_pkey PRIMARY KEY (id);
+alter table public.game_invites add constraint game_invites_pkey PRIMARY KEY (id);
+alter table public.groups add constraint groups_pkey PRIMARY KEY (id);
+alter table public.group_members add constraint group_members_pkey PRIMARY KEY (user_id);
+alter table public.group_invites add constraint group_invites_pkey PRIMARY KEY (id);
+alter table public.news add constraint news_pkey PRIMARY KEY (id);
+alter table public.game_presence add constraint game_presence_pkey PRIMARY KEY (game_id, player_id);
+alter table public.games add constraint games_pkey PRIMARY KEY (id);
+alter table public.profiles add constraint profiles_pkey PRIMARY KEY (id);
+alter table public.salons add constraint salons_pkey PRIMARY KEY (slug);
+alter table public.profile_salons add constraint profile_salons_pkey PRIMARY KEY (profile_id, salon_slug);
+alter table public.frames add constraint frames_pkey PRIMARY KEY (slug);
+alter table public.profile_frames add constraint profile_frames_pkey PRIMARY KEY (profile_id, frame_slug);
+alter table public.medals add constraint medals_pkey PRIMARY KEY (slug);
+alter table public.profile_medals add constraint profile_medals_pkey PRIMARY KEY (profile_id, medal_slug);
+alter table public.accessories add constraint accessories_pkey PRIMARY KEY (slug);
+alter table public.profile_accessories add constraint profile_accessories_pkey PRIMARY KEY (profile_id, accessory_slug);
+alter table public.user_presence add constraint user_presence_pkey PRIMARY KEY (user_id);
+alter table public.tables add constraint tables_pkey PRIMARY KEY (id);
+
 create index if not exists bot_decisions_created_at_idx on public.bot_decisions (created_at);
 revoke all on public.bot_decisions from anon, authenticated;
-alter table public.campaign_progress add constraint campaign_progress_pkey PRIMARY KEY (user_id, rival_id);
 alter table public.campaign_progress add constraint campaign_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.campaign_progress add constraint campaign_progress_rival_id_fkey FOREIGN KEY (rival_id) REFERENCES campaign_rivals(id) ON DELETE CASCADE;
-alter table public.campaign_provinces add constraint campaign_provinces_pkey PRIMARY KEY (id);
 alter table public.campaign_provinces add constraint campaign_provinces_order_index_key UNIQUE (order_index);
 alter table public.campaign_provinces add constraint campaign_provinces_slug_key UNIQUE (slug);
-alter table public.campaign_rivals add constraint campaign_rivals_pkey PRIMARY KEY (id);
 alter table public.campaign_rivals add constraint campaign_rivals_order_index_key UNIQUE (order_index);
 alter table public.campaign_rivals add constraint campaign_rivals_slug_key UNIQUE (slug);
 alter table public.campaign_rivals add constraint campaign_rivals_target_score_chk CHECK ((target_score = ANY (ARRAY[15, 30])));
 alter table public.campaign_rivals add constraint campaign_rivals_bot_id_fkey FOREIGN KEY (bot_id) REFERENCES profiles(id);
 alter table public.campaign_rivals add constraint campaign_rivals_province_id_fkey FOREIGN KEY (province_id) REFERENCES campaign_provinces(id);
-alter table public.campaign_style add constraint campaign_style_pkey PRIMARY KEY (user_id);
 alter table public.campaign_style add constraint campaign_style_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
-alter table public.feedback add constraint feedback_pkey PRIMARY KEY (id);
 alter table public.feedback add constraint feedback_rating_aesthetics_check CHECK (((rating_aesthetics >= 1) AND (rating_aesthetics <= 5)));
 alter table public.feedback add constraint feedback_rating_general_check CHECK (((rating_general >= 1) AND (rating_general <= 5)));
 alter table public.feedback add constraint feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE SET NULL;
-alter table public.chat_messages add constraint chat_messages_pkey PRIMARY KEY (id);
 alter table public.chat_messages add constraint chat_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
-alter table public.friendships add constraint friendships_pkey PRIMARY KEY (id);
 alter table public.friendships add constraint friendships_requester_id_fkey FOREIGN KEY (requester_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.friendships add constraint friendships_addressee_id_fkey FOREIGN KEY (addressee_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.friendships add constraint friendships_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text])));
 alter table public.friendships add constraint friendships_not_self CHECK ((requester_id <> addressee_id));
 alter table public.game_hands add constraint game_hands_game_id_fkey FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE;
-alter table public.game_hands add constraint game_hands_pkey PRIMARY KEY (game_id, player_id);
 alter table public.game_history add constraint game_history_opponent_id_fkey FOREIGN KEY (opponent_id) REFERENCES profiles(id) ON DELETE CASCADE;
-alter table public.game_history add constraint game_history_pkey PRIMARY KEY (id);
 alter table public.game_history add constraint game_history_player_id_fkey FOREIGN KEY (player_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.game_history add constraint game_history_result_check CHECK ((result = ANY (ARRAY['win'::text, 'loss'::text])));
-alter table public.game_invites add constraint game_invites_pkey PRIMARY KEY (id);
 alter table public.game_invites add constraint game_invites_from_id_fkey FOREIGN KEY (from_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.game_invites add constraint game_invites_to_id_fkey FOREIGN KEY (to_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.game_invites add constraint game_invites_table_id_fkey FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE CASCADE;
 alter table public.game_invites add constraint game_invites_not_self CHECK ((from_id <> to_id));
-alter table public.groups add constraint groups_pkey PRIMARY KEY (id);
 alter table public.groups add constraint groups_leader_id_fkey FOREIGN KEY (leader_id) REFERENCES profiles(id) ON DELETE CASCADE;
-alter table public.group_members add constraint group_members_pkey PRIMARY KEY (user_id);
 alter table public.group_members add constraint group_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.group_members add constraint group_members_group_id_fkey FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
-alter table public.group_invites add constraint group_invites_pkey PRIMARY KEY (id);
 alter table public.group_invites add constraint group_invites_unique UNIQUE (group_id, to_id);
 alter table public.group_invites add constraint group_invites_group_id_fkey FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
 alter table public.group_invites add constraint group_invites_from_id_fkey FOREIGN KEY (from_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.group_invites add constraint group_invites_to_id_fkey FOREIGN KEY (to_id) REFERENCES profiles(id) ON DELETE CASCADE;
-alter table public.news add constraint news_pkey PRIMARY KEY (id);
 alter table public.game_presence add constraint game_presence_game_id_fkey FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE;
-alter table public.game_presence add constraint game_presence_pkey PRIMARY KEY (game_id, player_id);
 alter table public.games add constraint games_campaign_rival_id_fkey FOREIGN KEY (campaign_rival_id) REFERENCES campaign_rivals(id);
 alter table public.games add constraint games_id_fkey FOREIGN KEY (id) REFERENCES tables(id) ON DELETE CASCADE;
-alter table public.games add constraint games_pkey PRIMARY KEY (id);
 alter table public.games add constraint games_player1_id_fkey FOREIGN KEY (player1_id) REFERENCES profiles(id);
 alter table public.games add constraint games_player2_id_fkey FOREIGN KEY (player2_id) REFERENCES profiles(id);
 alter table public.games add constraint games_status_check CHECK ((status = ANY (ARRAY['playing'::text, 'finished'::text])));
@@ -106,32 +125,21 @@ alter table public.games add constraint games_target_score_chk CHECK ((target_sc
 alter table public.games add constraint games_time_limit_chk CHECK ((time_limit = ANY (ARRAY[15, 30])));
 alter table public.games add constraint games_winner_id_fkey FOREIGN KEY (winner_id) REFERENCES profiles(id);
 alter table public.profiles add constraint profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
-alter table public.profiles add constraint profiles_pkey PRIMARY KEY (id);
 alter table public.profiles add constraint profiles_username_key UNIQUE (username);
-alter table public.salons add constraint salons_pkey PRIMARY KEY (slug);
 alter table public.salons add constraint salons_price_check CHECK ((price >= 0));
-alter table public.profile_salons add constraint profile_salons_pkey PRIMARY KEY (profile_id, salon_slug);
 alter table public.profile_salons add constraint profile_salons_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.profile_salons add constraint profile_salons_salon_slug_fkey FOREIGN KEY (salon_slug) REFERENCES salons(slug) ON DELETE CASCADE;
-alter table public.frames add constraint frames_pkey PRIMARY KEY (slug);
 alter table public.frames add constraint frames_price_check CHECK ((price >= 0));
-alter table public.profile_frames add constraint profile_frames_pkey PRIMARY KEY (profile_id, frame_slug);
 alter table public.profile_frames add constraint profile_frames_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.profile_frames add constraint profile_frames_frame_slug_fkey FOREIGN KEY (frame_slug) REFERENCES frames(slug) ON DELETE CASCADE;
-alter table public.medals add constraint medals_pkey PRIMARY KEY (slug);
-alter table public.profile_medals add constraint profile_medals_pkey PRIMARY KEY (profile_id, medal_slug);
 alter table public.profile_medals add constraint profile_medals_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.profile_medals add constraint profile_medals_medal_slug_fkey FOREIGN KEY (medal_slug) REFERENCES medals(slug) ON DELETE CASCADE;
-alter table public.accessories add constraint accessories_pkey PRIMARY KEY (slug);
 alter table public.accessories add constraint accessories_price_check CHECK ((price >= 0));
-alter table public.profile_accessories add constraint profile_accessories_pkey PRIMARY KEY (profile_id, accessory_slug);
 alter table public.profile_accessories add constraint profile_accessories_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.profile_accessories add constraint profile_accessories_accessory_slug_fkey FOREIGN KEY (accessory_slug) REFERENCES accessories(slug) ON DELETE CASCADE;
-alter table public.user_presence add constraint user_presence_pkey PRIMARY KEY (user_id);
 alter table public.user_presence add constraint user_presence_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.tables add constraint tables_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.tables add constraint tables_opponent_id_fkey FOREIGN KEY (opponent_id) REFERENCES profiles(id) ON DELETE CASCADE;
-alter table public.tables add constraint tables_pkey PRIMARY KEY (id);
 alter table public.tables add constraint tables_status_check CHECK ((status = ANY (ARRAY['waiting'::text, 'playing'::text, 'finished'::text])));
 alter table public.tables add constraint tables_target_score_chk CHECK ((target_score = ANY (ARRAY[15, 30])));
 alter table public.tables add constraint tables_time_limit_chk CHECK ((time_limit = ANY (ARRAY[15, 30])));
@@ -183,9 +191,12 @@ CREATE INDEX news_created_idx ON public.news USING btree (created_at DESC);
 -- Realtime: game_invites, chat_messages y group_invites publican cambios (avisos
 -- en vivo; respetan la RLS de SELECT, que debe ser `to public`). games y tables
 -- se configuran a mano en el panel; estas se agregaron por SQL.
-alter publication supabase_realtime add table public.game_invites;
-alter publication supabase_realtime add table public.chat_messages;
-alter publication supabase_realtime add table public.group_invites;
+--
+-- Las tres las suma cada una en su migración (20260702_comunidad_1_amigos,
+-- 20260704_comunidad_2_chat y 20260704_comunidad_3_grupos), que corren después
+-- de este archivo. Acá NO van: "add table" no tiene forma de decir "si no está
+-- ya", así que repetirlas cortaba la reconstrucción con
+-- 'relation is already member of publication'.
 
 -- ------------------------------------------------------------
 -- Storage (depósito de imágenes de las reseñas). El depósito debe existir antes

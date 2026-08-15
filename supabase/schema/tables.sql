@@ -4,8 +4,10 @@
 --
 -- Solo columnas. Las llaves (primary/foreign key), restricciones (check/unique),
 -- el Row Level Security y las políticas van en policies.sql.
--- Orden de restauración desde cero: extensiones → tables.sql → functions.sql →
--- policies.sql.
+-- Orden de restauración desde cero: 00_supabase_local.sql → tables.sql →
+-- functions.sql → policies.sql → TODAS las migraciones de supabase/migrations/
+-- en orden alfabético. Ver supabase/schema/README.md; lo automatiza
+-- scripts/rebuild-db.sh.
 -- ============================================================
 
 create table if not exists public.bot_decisions (
