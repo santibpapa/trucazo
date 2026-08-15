@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui'
 
 interface Props {
@@ -29,6 +28,7 @@ export default function GoogleButton({ variant = 'secondary', size = 'lg' }: Pro
   async function enterWithGoogle() {
     setLoading(true)
     setError('')
+    const { createClient } = await import('@/lib/supabase/client')
     const supabase = createClient()
 
     const { error: authErr } = await supabase.auth.signInWithOAuth({

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Panel, Logo, Input, Button, Alert, CoinIcon } from '@/components/ui'
+import { track } from '@vercel/analytics'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -68,6 +69,13 @@ export default function RegisterPage() {
     // que mandamos acá arriba. Antes esta pantalla lo creaba de nuevo, y ese
     // segundo intento chocaba con el primero: la cuenta quedaba creada pero se
     // mostraba "Ese nombre de usuario ya está en uso" y parecía que había fallado.
+
+    // La cuenta ya fue creada aunque Supabase requiera confirmar el email antes
+    // de iniciar sesión. Medimos ambos casos y distinguimos esa condición.
+    track('register_completed', {
+      method: 'email',
+      confirmation_required: !signUpData.session,
+    })
 
     // Sin sesión = falta confirmar el email. No lo mandamos al lobby, porque no
     // podría entrar y parecería que algo se rompió.

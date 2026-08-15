@@ -1,4 +1,7 @@
-import type { Viewport } from 'next'
+import type { Metadata, Viewport } from 'next'
+import { privateMetadata } from '@/lib/seo'
+
+export const metadata: Metadata = { title: 'Partida', ...privateMetadata }
 
 // La mesa maneja su propio alto (fixed inset-0) y layout delicado, así que NO usa
 // viewport-fit:cover: se queda dentro de la zona segura del teléfono, como antes.

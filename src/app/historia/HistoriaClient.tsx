@@ -74,7 +74,7 @@ const TUTORIAL_PASOS: { titulo: string; texto: string }[] = [
   { titulo: 'Cuidá tu fama', texto: 'A medida que progresás te hacés una fama en el ambiente. Los rivales más picantes te empiezan a leer: si mentís mucho el envido o te achicás seguido, se dan cuenta y te lo hacen pagar. Mirá tu fama tocando la barra abajo de las monedas.' },
 ]
 
-// Medida real del mapa político (public/historia/mapa-argentina.png). El
+// Medida real del mapa político (public/historia/mapa-argentina.webp). El
 // escenario usa esta proporción fija así entra completo en pantalla (en compu
 // manda el alto, en celular el ancho). Si cambiás la imagen, actualizá esto.
 const MAP_W = 976
@@ -269,7 +269,7 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/historia/mapa-argentina.png"
+          src="/historia/mapa-argentina.webp"
           alt="Mapa de Argentina del modo historia"
           className="block w-full h-full object-contain select-none"
           draggable={false}
@@ -391,7 +391,7 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={`/historia/provincia-${provAbierta.slug}.png`}
+                  src={`/historia/provincia-${provAbierta.slug}.webp`}
                   alt={`Provincia de ${provAbierta.name}`}
                   className="block w-full h-full object-contain select-none [filter:drop-shadow(0_34px_38px_rgba(0,0,0,0.65))]"
                   draggable={false}
@@ -569,7 +569,7 @@ function ProvinceShade({ slug, spots }: { slug: string; spots: Pos[] }) {
         </mask>
       </defs>
       <image
-        href={`/historia/provincia-${slug}.png`}
+        href={`/historia/provincia-${slug}.webp`}
         width={S}
         height={S}
         preserveAspectRatio="xMidYMid meet"
@@ -758,7 +758,7 @@ function RivalNode({
           {showFace ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={`/personajes/${r.slug}.png`}
+              src={`/personajes/${r.slug}.webp`}
               alt={r.display_name}
               onError={() => setImgFailed(true)}
               className="w-full h-full object-cover pointer-events-none"
@@ -896,7 +896,7 @@ function Face({ slug, name, className }: { slug: string; name: string; className
         name.charAt(0)
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={`/personajes/${slug}.png`} alt={name} onError={() => setImgFailed(true)} className="w-full h-full object-cover" />
+        <img src={`/personajes/${slug}.webp`} alt={name} onError={() => setImgFailed(true)} className="w-full h-full object-cover" />
       )}
     </div>
   )

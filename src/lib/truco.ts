@@ -88,9 +88,9 @@ export function getCardLabel(card: Card): string {
 }
 
 export function getCardImage(card: Card): string {
-  // PNG en public/cartas/ con nombre {palo}_{valor 2 dígitos}.png (ej: oro_01.png, basto_12.png)
+  // WebP en public/cartas/ con nombre {palo}_{valor 2 dígitos}.webp.
   const value = String(card.value).padStart(2, '0')
-  return `/cartas/${card.suit}_${value}.png`
+  return `/cartas/${card.suit}_${value}.webp`
 }
 
 export function compareCards(a: Card, b: Card): number {

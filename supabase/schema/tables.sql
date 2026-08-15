@@ -262,7 +262,7 @@ create table if not exists public.profile_medals (
   earned_at  timestamptz not null default now()
 );
 
--- Tienda: catálogo de accesorios de la mesa (imagen en /accesorios/{slug}.png)
+-- Tienda: catálogo de accesorios de la mesa (imagen en /accesorios/{slug}.webp)
 create table if not exists public.accessories (
   slug        text not null,
   name        text not null,

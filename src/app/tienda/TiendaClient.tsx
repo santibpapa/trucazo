@@ -193,7 +193,7 @@ export default function TiendaClient({
                     className="relative aspect-[4/3] bg-cover bg-center"
                     style={{
                       backgroundColor: '#241214',
-                      backgroundImage: `url('/mesa/${s.slug}.png'), ${getSalonTheme(s.slug).felt}`,
+                      backgroundImage: `url('/mesa/${s.slug}.webp'), ${getSalonTheme(s.slug).felt}`,
                     }}
                   >
                     {inUse && (
@@ -338,7 +338,7 @@ export default function TiendaClient({
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`/accesorios/${a.slug}.png`}
+                      src={`/accesorios/${a.slug}.webp`}
                       alt={a.name}
                       onError={e => { e.currentTarget.style.visibility = 'hidden' }}
                       className="h-24 w-auto object-contain drop-shadow-[0_10px_14px_rgba(0,0,0,0.55)]"

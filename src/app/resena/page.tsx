@@ -62,7 +62,6 @@ const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
 
 export default function ResenaPage() {
   const router = useRouter()
-  const supabase = createClient()
 
   const [general, setGeneral] = useState(0)
   const [aesthetics, setAesthetics] = useState(0)
@@ -104,12 +103,12 @@ export default function ResenaPage() {
     setLoading(true)
     setError('')
     try {
+      const supabase = createClient()
       // Subir imágenes (si hay) al depósito privado, cada uno DENTRO DE SU
       // CARPETA: la ruta arranca con el id del usuario. Esa regla la aplica el
       // servidor, así nadie puede pisar ni adjuntar los archivos de otro.
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Volvé a entrar para dejar tu reseña.')
-
       const paths: string[] = []
       for (const f of files) {
         const ext = (f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')

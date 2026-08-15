@@ -1,22 +1,14 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Sora } from 'next/font/google'
+import localFont from 'next/font/local'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/next'
-import GuestSessionGuard from '@/components/GuestSessionGuard'
-import RegisterSW from '@/components/RegisterSW'
+import AppRuntime from '@/components/AppRuntime'
 import { SITE_URL, GOOGLE_SITE_VERIFICATION } from '@/lib/site'
 import './globals.css'
 
-const inter = Inter({
-  subsets: ['latin'],
+const geist = localFont({
+  src: './fonts/GeistVF.woff',
   variable: '--font-inter',
-  display: 'swap',
-})
-
-const sora = Sora({
-  subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
-  variable: '--font-sora',
   display: 'swap',
 })
 
@@ -29,23 +21,10 @@ export const metadata: Metadata = {
     template: '%s · Trucazo',
   },
   description:
-    'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 a 15 o 30 puntos, con envido y truco, contra rivales de verdad. El de siempre, como siempre.',
+    'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 a 15 o 30 puntos, con envido y truco, contra personas o la computadora.',
   applicationName: 'Trucazo',
-  keywords: [
-    'truco',
-    'truco argentino',
-    'truco online',
-    'jugar al truco',
-    'truco gratis',
-    'truco 1 contra 1',
-    'truco online argentina',
-    'envido',
-    'juego de cartas argentino',
-  ],
   authors: [{ name: 'Trucazo' }],
   creator: 'Trucazo',
-  // URL canónica: le dice a Google cuál es la dirección "oficial" de la portada.
-  alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
     locale: 'es_AR',
@@ -53,7 +32,7 @@ export const metadata: Metadata = {
     siteName: 'Trucazo',
     title: 'Trucazo — Truco argentino online, gratis y 1 contra 1',
     description:
-      'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 contra rivales de verdad. El de siempre, como siempre.',
+      'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 contra personas o la computadora.',
   },
   twitter: {
     card: 'summary_large_image',
@@ -98,6 +77,19 @@ const organizationJsonLd = {
   name: 'Trucazo',
   url: SITE_URL,
   logo: `${SITE_URL}/icon-512.png`,
+  description:
+    'Proyecto argentino de truco online para jugar en el navegador contra personas o rivales controlados por computadora.',
+  foundingLocation: {
+    '@type': 'Country',
+    name: 'Argentina',
+  },
+  contactPoint: {
+    '@type': 'ContactPoint',
+    url: `${SITE_URL}/contacto`,
+    contactType: 'Soporte',
+    availableLanguage: 'es',
+  },
+  sameAs: ['https://github.com/santibpapa'],
 }
 
 export default function RootLayout({
@@ -106,7 +98,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es" className={`${inter.variable} ${sora.variable}`}>
+    <html lang="es-AR" className={geist.variable}>
       <body className="min-h-screen bg-base font-sans text-cream antialiased">
         {/* Datos estructurados de marca para Google (no se ven en pantalla) */}
         <script
@@ -117,10 +109,8 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
-        {/* Cierra sesiones de invitado heredadas de una visita anterior */}
-        <GuestSessionGuard />
-        {/* Registra el service worker (permite instalar la web como app) */}
-        <RegisterSW />
+        {/* Runtime de la app: el guard de Supabase solo carga en rutas de juego. */}
+        <AppRuntime />
         {children}
         {/* Métricas de velocidad reales (se ven en el panel de Vercel) */}
         <SpeedInsights />

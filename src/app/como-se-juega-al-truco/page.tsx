@@ -1,188 +1,237 @@
-import type { Metadata } from 'next'
+import Link from 'next/link'
 import SeoPageLayout, { Section } from '@/components/SeoPageLayout'
-import { SITE_URL } from '@/lib/site'
+import JsonLd from '@/components/JsonLd'
+import {
+  createArticleJsonLd,
+  createBreadcrumbJsonLd,
+  createPublicMetadata,
+} from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Cómo se juega al truco: reglas fáciles (envido y truco)',
-  description:
-    'Aprendé a jugar al truco argentino desde cero: el orden de las cartas, cómo se cuenta el envido, el truco, retruco y vale cuatro, y cómo se gana. Explicado simple, con ejemplos.',
-  alternates: { canonical: '/como-se-juega-al-truco' },
-  openGraph: {
-    type: 'article',
-    url: `${SITE_URL}/como-se-juega-al-truco`,
-    title: 'Cómo se juega al truco: reglas fáciles',
-    description:
-      'El orden de las cartas, el envido, el truco y cómo se gana. Explicado simple, con ejemplos.',
-  },
-}
+const path = '/como-se-juega-al-truco'
+const title = 'Cómo se juega al truco argentino: reglas y ejemplos'
+const description =
+  'Aprendé las reglas del truco argentino: orden de cartas, envido, real envido, falta envido, pardas, mano, truco y puntajes.'
 
-// Ranking real del juego (espejo de src/lib/truco.ts): de la más fuerte a la
-// más débil. Se muestra como lista para que se entienda el orden.
-const ranking: string[] = [
-  '1 de espada (el «ancho de espada», la carta más fuerte)',
-  '1 de basto (el «ancho de basto»)',
+export const metadata = createPublicMetadata({ title, description, path })
+
+const ranking = [
+  '1 de espada (ancho de espada)',
+  '1 de basto (ancho de basto)',
   '7 de espada',
   '7 de oro',
-  'Los 3 (cualquier palo)',
-  'Los 2 (cualquier palo)',
-  '1 de oro y 1 de copa (los «anchos falsos»)',
-  'Los 12 (rey)',
-  'Los 11 (caballo)',
-  'Los 10 (sota)',
-  '7 de copa y 7 de basto',
-  'Los 6',
-  'Los 5',
-  'Los 4 (las cartas más débiles)',
+  'Todos los 3',
+  'Todos los 2',
+  '1 de oro y 1 de copa (anchos falsos)',
+  'Todos los 12 (reyes)',
+  'Todos los 11 (caballos)',
+  'Todos los 10 (sotas)',
+  '7 de copa y 7 de basto (sietes falsos)',
+  'Todos los 6',
+  'Todos los 5',
+  'Todos los 4',
 ]
 
-// Preguntas frecuentes → se usan en pantalla y también como datos
-// estructurados (FAQ) para que Google pueda mostrarlas destacadas.
-const faqs: { q: string; a: string }[] = [
+const faqs = [
   {
     q: '¿Con cuántas cartas se juega al truco?',
-    a: 'Con la baraja española de 40 cartas, pero se sacan los 8 y los 9. A cada jugador se le reparten 3 cartas por mano.',
+    a: 'Con un mazo español de 40 cartas: cuatro palos con 1, 2, 3, 4, 5, 6, 7, 10, 11 y 12. Si se parte de una baraja de 48, se retiran los cuatro 8 y los cuatro 9. Cada jugador recibe tres cartas.',
   },
   {
-    q: '¿Cuál es la carta más fuerte del truco?',
-    a: 'El 1 de espada, conocido como el «ancho de espada» o «el macho». Le siguen el 1 de basto, el 7 de espada y el 7 de oro.',
+    q: '¿Cuál es la carta más fuerte?',
+    a: 'El 1 de espada, llamado ancho de espada o macho. Después vienen el 1 de basto, el 7 de espada y el 7 de oro.',
   },
   {
-    q: '¿Cómo se cuenta el envido?',
-    a: 'Si tenés dos cartas del mismo palo, sumás sus valores y le agregás 20 (las figuras 10, 11 y 12 valen 0). Si no tenés dos del mismo palo, vale tu carta más alta. El máximo es 33.',
+    q: '¿Qué pasa si dos cartas empatan?',
+    a: 'La baza es parda. La mano completa se define a favor de quien ganó antes otra baza; si las tres quedan pardas, gana el jugador mano.',
   },
   {
-    q: '¿A cuántos puntos se juega?',
-    a: 'Se juega a 15 puntos (partida corta) o a 30 puntos (partida larga). El primero que llega, gana.',
+    q: '¿Trucazo se juega con flor?',
+    a: 'No. La modalidad implementada por Trucazo es mano a mano y sin flor. En una mesa tradicional la flor puede acordarse como variante antes de empezar.',
   },
 ]
 
 export default function ComoSeJuegaPage() {
-  const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: faqs.map(({ q, a }) => ({
-      '@type': 'Question',
-      name: q,
-      acceptedAnswer: { '@type': 'Answer', text: a },
-    })),
-  }
-
-  // Migas de pan: le muestra a Google la ruta "Inicio › Cómo se juega al truco".
-  const breadcrumbJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Inicio', item: SITE_URL },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: 'Cómo se juega al truco',
-        item: `${SITE_URL}/como-se-juega-al-truco`,
-      },
-    ],
-  }
-
   return (
     <SeoPageLayout
-      title="Cómo se juega al truco"
-      intro="El truco es EL juego de cartas argentino: mentira, señas y aguante. Acá te lo explicamos desde cero, en criollo, para que en cinco minutos estés listo para sentarte a la mesa."
+      title="Cómo se juega al truco argentino"
+      breadcrumb="Cómo se juega al truco"
+      intro="El objetivo es sumar puntos ganando el envido y las bazas del truco. En Trucazo se juega 1 contra 1, a 15 o 30 puntos y sin flor. Esta guía explica esa modalidad y marca dónde existen variantes tradicionales."
     >
-      {/* Datos estructurados para Google (no se ven en pantalla) */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
+      <JsonLd data={createArticleJsonLd({ headline: title, description, path })} />
+      <JsonLd data={createBreadcrumbJsonLd('Cómo se juega al truco', path)} />
 
-      <Section title="Lo básico">
+      <Section title="Lo esencial en un minuto">
+        <ul className="flex flex-col gap-2 list-disc pl-5">
+          <li>Se reparten <strong>tres cartas</strong> a cada jugador.</li>
+          <li>Cada mano puede tener hasta <strong>tres bazas</strong>.</li>
+          <li>El envido compara los tantos; el truco apuesta quién gana la mano.</li>
+          <li>La primera persona que llega a 15 o 30 puntos, según la mesa, gana.</li>
+          <li>La mentira es válida: podés desafiar aunque tus cartas sean malas.</li>
+        </ul>
+      </Section>
+
+      <Section title="El mazo correcto: 40 cartas">
         <p>
-          El truco se juega con la baraja española de 40 cartas, pero se sacan
-          los 8 y los 9 (quedan 40 menos esos: los 1, 2, 3, 4, 5, 6, 7, 10, 11 y
-          12 de cada palo). Se reparten <strong>3 cartas a cada jugador</strong>.
+          El truco argentino usa un mazo español de <strong>40 cartas</strong>. Cada uno
+          de sus cuatro palos —espada, basto, oro y copa— tiene 1, 2, 3, 4, 5, 6, 7,
+          10, 11 y 12.
         </p>
         <p>
-          La partida se juega a <strong>15 puntos</strong> (corta) o a{' '}
-          <strong>30 puntos</strong> (larga). Gana el primero que llega. Los
-          puntos se ganan con el <strong>envido</strong> y con el{' '}
-          <strong>truco</strong>, que te explicamos abajo.
+          Si tenés una baraja española completa de 48 cartas, retirás los ocho 8 y 9:
+          así quedan las 40 cartas necesarias. La baraja comercial de 40 ya viene sin
+          esos valores.
         </p>
       </Section>
 
-      <Section title="El orden de las cartas (de la más fuerte a la más débil)">
+      <Section title="Orden de las cartas, de mayor a menor">
         <p>
-          En el truco las cartas no valen por su número: hay un orden especial
-          que conviene aprender de memoria. Estas son, de la más fuerte a la más
-          débil:
+          El número no alcanza para saber qué carta gana. Este es el orden completo
+          usado por Trucazo:
         </p>
-        <ol className="flex flex-col gap-1.5">
-          {ranking.map((item, i) => (
-            <li key={i} className="flex gap-3">
-              <span className="text-gold font-semibold tabular-nums w-6 shrink-0">
-                {i + 1}º
+        <ol className="grid gap-1.5 sm:grid-cols-2">
+          {ranking.map((item, index) => (
+            <li key={item} className="flex gap-3">
+              <span className="w-7 shrink-0 font-semibold tabular-nums text-gold">
+                {index + 1}º
               </span>
               <span>{item}</span>
             </li>
           ))}
         </ol>
+        <p>
+          Las cartas dentro de un mismo grupo empatan entre sí. Por ejemplo, un 3 de
+          copa y un 3 de oro producen una parda. Consultá la{' '}
+          <Link href="/orden-cartas-truco" className="text-gold underline underline-offset-2">
+            tabla visual del orden de cartas
+          </Link>{' '}
+          para ver comparaciones concretas.
+        </p>
       </Section>
 
-      <Section title="El envido">
+      <Section title="Mano, pie y quién juega primero">
         <p>
-          El envido se canta al principio de la mano y compara los puntos que
-          tenés con tus cartas. Se cuenta así:
+          En una partida de dos, <strong>mano</strong> es quien abre la primera baza y
+          tiene prioridad cuando los tantos del envido empatan. El otro jugador es el
+          <strong> pie</strong>. En Trucazo el rol de mano alterna al terminar cada mano.
         </p>
-        <ul className="flex flex-col gap-1.5 list-disc pl-5">
-          <li>
-            Si tenés <strong>dos cartas del mismo palo</strong>: sumás sus
-            valores y le agregás <strong>20</strong>.
-          </li>
-          <li>
-            Las <strong>figuras (10, 11 y 12) valen 0</strong> para el envido.
-          </li>
-          <li>
-            Si no tenés dos del mismo palo, vale <strong>tu carta más alta</strong>.
-          </li>
+        <p>
+          Quien gana una baza abre la siguiente. Si la baza es parda, vuelve a abrir el
+          jugador que había salido en esa baza; en la primera, ese jugador es la mano.
+        </p>
+      </Section>
+
+      <Section title="Cómo se gana una mano y cómo funcionan las pardas">
+        <p>
+          Normalmente gana quien se lleva dos de las tres bazas. Pero una parda puede
+          cerrar la mano antes:
+        </p>
+        <ul className="flex flex-col gap-2 list-disc pl-5">
+          <li>Si ganás la primera y la segunda es parda, ganás la mano.</li>
+          <li>Si la primera es parda y ganás la segunda, ganás la mano.</li>
+          <li>Si cada jugador gana una de las dos primeras, la tercera define.</li>
+          <li>Si dos bazas son pardas y sólo una tiene ganador, gana quien ganó esa baza.</li>
+          <li>Si las tres bazas son pardas, gana la mano.</li>
         </ul>
         <p>
-          Ejemplo: 5 y 6 de oro = 5 + 6 + 20 ={' '}
-          <strong className="text-gold">31 de envido</strong>. El máximo posible
-          es 33. El que tiene más puntos, gana el envido.
+          La guía de{' '}
+          <Link href="/pardas-truco-reglas" className="text-gold underline underline-offset-2">
+            pardas en el truco
+          </Link>{' '}
+          reúne todos los casos en una tabla.
         </p>
       </Section>
 
-      <Section title="El truco, el retruco y el vale cuatro">
+      <Section title="Cómo se calcula el envido">
         <p>
-          El truco es la apuesta por ganar la mano. Se cantan por turnos y cada
-          uno sube lo que está en juego:
+          Para cada carta, el 1 al 7 vale su número y las figuras 10, 11 y 12 valen
+          cero. Después se aplica una de estas dos reglas:
         </p>
-        <ul className="flex flex-col gap-1.5 list-disc pl-5">
+        <ul className="flex flex-col gap-2 list-disc pl-5">
           <li>
-            <strong>Truco</strong>: vale 2 puntos.
+            Con dos o tres cartas del mismo palo, elegís las dos de mayor valor,
+            las sumás y agregás 20.
           </li>
           <li>
-            <strong>Retruco</strong> (lo sube el rival): vale 3 puntos.
-          </li>
-          <li>
-            <strong>Vale cuatro</strong> (la última subida): vale 4 puntos.
+            Sin dos cartas del mismo palo, vale la carta numérica más alta.
           </li>
         </ul>
+        <div className="rounded-2xl border border-line bg-surface p-5">
+          <p><strong>Ejemplo:</strong> 6 y 5 de oro + 12 de copa.</p>
+          <p className="mt-1 text-gold">6 + 5 + 20 = 31 de envido.</p>
+        </div>
         <p>
-          Cuando alguien canta, el otro puede <strong>querer</strong> (aceptar),{' '}
-          <strong>no querer</strong> (se rinde y el otro se lleva los puntos) o{' '}
-          <strong>subir la apuesta</strong>. Acá es donde entra el bluff: podés
-          cantar truco con cartas malas para asustar al rival.
+          El máximo es 33: 7 y 6 del mismo palo. En un empate gana el jugador mano.
+          Podés comprobar cualquier combinación en la{' '}
+          <Link href="/calculadora-envido" className="text-gold underline underline-offset-2">
+            calculadora de envido
+          </Link>
+          .
         </p>
       </Section>
 
-      <Section title="Cómo se gana la mano">
+      <Section title="Envido, real envido y falta envido">
         <p>
-          Cada mano se juega en tres «vueltas»: en cada una, los dos tiran una
-          carta y gana la más fuerte según el orden de arriba.{' '}
-          <strong>El que gana dos de las tres vueltas, gana la mano</strong> y se
-          lleva los puntos del truco.
+          El envido se propone durante la primera baza, antes de que quien canta juegue
+          su primera carta. Si había un truco pendiente, el envido se resuelve primero.
+        </p>
+        <div className="overflow-x-auto rounded-2xl border border-line">
+          <table className="w-full min-w-[34rem] text-left text-sm">
+            <thead className="bg-surface2 text-cream">
+              <tr>
+                <th className="p-3">Canto aceptado</th>
+                <th className="p-3">Puntos</th>
+                <th className="p-3">Si se rechaza</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              <tr><td className="p-3">Envido</td><td className="p-3">2</td><td className="p-3">1</td></tr>
+              <tr><td className="p-3">Real envido</td><td className="p-3">3</td><td className="p-3">1</td></tr>
+              <tr><td className="p-3">Envido + envido</td><td className="p-3">4</td><td className="p-3">2 al rechazar la subida</td></tr>
+              <tr><td className="p-3">Envido + real envido</td><td className="p-3">5</td><td className="p-3">2 al rechazar la subida</td></tr>
+              <tr><td className="p-3">Falta envido</td><td className="p-3">Lo que le falta al puntero</td><td className="p-3">El valor ya aceptado, o 1 si fue directo</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          En Trucazo, la falta envido aceptada vale los puntos que le faltan al jugador
+          que va adelante para alcanzar el objetivo de la mesa. Mirá la{' '}
+          <Link href="/envido-real-envido-falta-envido" className="text-gold underline underline-offset-2">
+            guía completa de cantos y puntajes
+          </Link>{' '}
+          para ver cadenas y rechazos.
+        </p>
+      </Section>
+
+      <Section title="Truco, retruco y vale cuatro">
+        <div className="overflow-x-auto rounded-2xl border border-line">
+          <table className="w-full min-w-[30rem] text-left text-sm">
+            <thead className="bg-surface2 text-cream">
+              <tr>
+                <th className="p-3">Estado</th>
+                <th className="p-3">Si se acepta</th>
+                <th className="p-3">Si se rechaza</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              <tr><td className="p-3">Sin canto</td><td className="p-3">1 punto</td><td className="p-3">—</td></tr>
+              <tr><td className="p-3">Truco</td><td className="p-3">2 puntos</td><td className="p-3">1 punto</td></tr>
+              <tr><td className="p-3">Retruco</td><td className="p-3">3 puntos</td><td className="p-3">2 puntos</td></tr>
+              <tr><td className="p-3">Vale cuatro</td><td className="p-3">4 puntos</td><td className="p-3">3 puntos</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Ante cada desafío podés aceptar, rechazar o subir cuando corresponde. El
+          bluff aparece porque no hace falta tener cartas fuertes para cantar.
+        </p>
+      </Section>
+
+      <Section title="Partidas a 15 o 30 puntos">
+        <p>
+          Trucazo permite elegir una partida corta a 15 o una completa a 30. En el
+          tanteador tradicional de 30, los primeros 15 puntos son las
+          <strong> malas</strong> y los siguientes 15 las <strong>buenas</strong>.
+          Una partida a 15 termina al completar el primer tramo.
         </p>
       </Section>
 
@@ -195,6 +244,22 @@ export default function ComoSeJuegaPage() {
             </div>
           ))}
         </div>
+      </Section>
+
+      <Section title="Fuentes y alcance">
+        <p>
+          Esta guía describe la modalidad que implementa Trucazo y fue contrastada con
+          el reglamento de truco argentino editado por John McLeod en{' '}
+          <a
+            href="https://www.pagat.com/put/truco_ar.html"
+            className="text-gold underline underline-offset-2"
+            rel="noopener noreferrer"
+          >
+            Pagat
+          </a>
+          . Algunas mesas tradicionales acuerdan variantes —en especial la flor y el
+          valor de la falta envido— antes de repartir.
+        </p>
       </Section>
     </SeoPageLayout>
   )

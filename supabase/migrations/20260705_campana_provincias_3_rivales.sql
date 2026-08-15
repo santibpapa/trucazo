@@ -17,7 +17,7 @@
 --    los jugadores que ya venían jugando). get_campaign_map también lo marca
 --    desbloqueado, y la provincia con un vencido adentro se puede abrir.
 --
--- Las caras: public/personajes/{slug}.png (el dueño las genera; mientras
+-- Las caras: public/personajes/{slug}.webp (el dueño las genera; mientras
 -- tanto se ve la inicial). Idempotente.
 -- ============================================================
 
