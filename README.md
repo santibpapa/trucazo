@@ -1,6 +1,6 @@
 # Trucazo
 
-Truco argentino **1 contra 1** online, a 30 puntos y sin flor, con monedas ficticias.
+Truco argentino **1 contra 1** online, a 15 o 30 puntos y sin flor, con monedas ficticias.
 Construido con Next.js (App Router), React, TypeScript y Supabase (Auth + Postgres + Realtime).
 
 ## Stack
@@ -26,22 +26,27 @@ Construido con Next.js (App Router), React, TypeScript y Supabase (Auth + Postgr
 2. Creá un archivo `.env.local` en la raíz con las claves de tu proyecto de Supabase:
 
    ```bash
+   # Imprescindibles
    NEXT_PUBLIC_SUPABASE_URL=https://<tu-proyecto>.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=<tu-anon-key>
+
+   # Opcionales
+   NEXT_PUBLIC_SITE_URL=https://trucazo.com.ar   # para el sitemap y los links absolutos
+   SUPABASE_SERVICE_ROLE_KEY=<tu-service-role>   # entrar con nombre de usuario (solo servidor)
+   TELEGRAM_BOT_TOKEN=<token>                    # aviso cuando alguien crea una mesa
+   TELEGRAM_CHAT_ID=<chat>
+   NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY=<clave>      # aviso por mail de las reseñas
    ```
 
-   > Solo se usan claves públicas (`anon`). La lógica sensible (mover monedas, cerrar
-   > partidas, crear/unirse a mesas) corre en funciones RPC `security definer` en Supabase.
+   > `SUPABASE_SERVICE_ROLE_KEY` **nunca** lleva el prefijo `NEXT_PUBLIC_`: se saltea toda
+   > la seguridad de la base y solo puede vivir del lado del servidor.
 
 3. Asegurate de tener configurado en Supabase:
-   - Tablas: `profiles`, `tables`, `games`, `game_history`
-   - Políticas **RLS** en todas las tablas
-   - Funciones RPC: `create_table`, `join_table`, `cancel_table`, `finish_game`
+   - El esquema: ver [`supabase/schema/README.md`](supabase/schema/README.md), que explica
+     cómo armar la base entera desde cero (lo automatiza `scripts/rebuild-db.sh`).
    - **Realtime habilitado** en las tablas `games` y `tables` (la partida y el lobby
-     dependen de las suscripciones a cambios)
-
-   > ⚠️ El esquema SQL (tablas, RLS y RPCs) todavía **no está versionado en este repo**.
-   > Conviene exportarlo a `supabase/migrations/` para poder reproducir el backend.
+     dependen de las suscripciones a cambios). Esto se activa a mano en el panel.
+   - El **cron** de `sweep_stale_games` y `sweep_stale_tables`, cada 5 minutos.
 
 ## Desarrollo
 
@@ -57,6 +62,12 @@ Abrí [http://localhost:3000](http://localhost:3000).
 - `npm run build` — build de producción
 - `npm run start` — sirve el build de producción
 - `npm run lint` — ESLint (config de Next)
+- `npm run check:rpc-allowlist` — avisa si alguna función del servidor quedó abierta al cliente
+- `npx tsx scripts/sim.ts` — comprueba que la lógica de truco del cliente y su espejo en SQL coincidan
+- `scripts/rebuild-db.sh` — arma la base entera desde cero en un PostgreSQL de prueba
+
+Todo esto lo corre solo GitHub en cada Pull Request (ver `.github/workflows/ci.yml`),
+más las pruebas de seguridad de `supabase/tests/`.
 
 ## Estructura
 
@@ -71,12 +82,27 @@ src/
     types.ts           tipos de dominio (Game, Table, Profile, …)
     tables.ts          helpers de mesas
     supabase/          clientes de Supabase (browser / server / middleware)
-public/cartas/         SVGs de las 40 cartas ({palo}_{valor}.svg)
+public/cartas/         las 40 cartas en WebP ({palo}_{valor}.webp)
+supabase/
+  schema/              cómo armar la base desde cero
+  migrations/          el historial de cambios del backend
+  tests/               pruebas de seguridad (SQL)
+scripts/               herramientas sueltas (reconstruir la base, simulaciones)
 ```
 
 ## Notas de diseño
 
-- El reparto y la mayor parte de la lógica de juego se calculan en el cliente y se
-  persisten en la tabla `games`. La liquidación de monedas y el historial pasan por
-  RPCs server-side para respetar las RLS.
+- **Toda la lógica del juego vive en el servidor**, en funciones `security definer` de
+  Postgres: repartir, jugar una carta, envido, truco, puntajes y monedas. El cliente
+  llama RPCs y muestra lo que le devuelven. **No metas reglas de truco en el cliente.**
+- `src/lib/truco.ts` solo tiene utilidades de presentación (ranking, imágenes), y su
+  lógica está **espejada en SQL**. Si cambiás una, cambiá la otra: `scripts/sim.ts`
+  compara las dos y el CI se pone en rojo si se desalinean.
+- Las manos viven en `game_hands`, con RLS por jugador y **fuera de Realtime**, para
+  que no se filtren las cartas del rival. Nunca en la fila de `games`.
+- Las pantallas privadas se protegen en `src/lib/supabase/middleware.ts`, con la lista
+  `privatePaths`. **Si agregás una pantalla privada nueva, sumala a esa lista** o queda
+  sin protección.
 - Cada jugador nuevo arranca con 1.000 monedas.
+- El backend **no tiene deploy automático**: cada migración se corre a mano en el SQL
+  Editor de Supabase. Nunca se edita una migración ya aplicada; se agrega una nueva.
