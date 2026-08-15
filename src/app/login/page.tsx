@@ -26,23 +26,39 @@ export default function LoginPage() {
     setError('')
 
     const supabase = createClient()
+    const entrada = identifier.trim()
 
-    // Si no es un email, lo tratamos como nombre de usuario y resolvemos su email.
-    let email = identifier.trim()
-    if (!email.includes('@')) {
-      const { data, error: lookupError } = await supabase.rpc('get_login_email', {
-        p_username: email,
-      })
-      if (lookupError || !data) {
-        setError('Usuario o contraseña incorrectos')
+    // Con NOMBRE DE USUARIO: lo resuelve el servidor. El navegador nunca ve el
+    // email de nadie (antes lo preguntaba acá, y eso dejaba sacar el email de
+    // cualquier jugador sabiendo su usuario).
+    if (!entrada.includes('@')) {
+      const res = await fetch('/api/login-usuario', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: entrada, password }),
+      }).catch(() => null)
+
+      if (!res?.ok) {
+        const data = await res?.json().catch(() => null)
+        setError(
+          data?.reason === 'sin-config'
+            ? 'Por ahora entrá con tu email'
+            : res?.status === 429
+              ? 'Demasiados intentos. Esperá un minuto.'
+              : 'Email/usuario o contraseña incorrectos',
+        )
         setLoading(false)
         return
       }
-      email = data as string
+
+      router.push('/lobby')
+      router.refresh()
+      return
     }
 
+    // Con EMAIL: como siempre, directo contra Supabase.
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
+      email: entrada,
       password,
     })
 
