@@ -277,25 +277,37 @@ export default function LobbyClient({ profile, initialTables, activeGameId, myMe
     setLoading(false)
   }
 
+  // Entrar con código. El navegador ya no busca la mesa por su código (eso
+  // permitía leer los códigos ajenos): manda el código y el servidor hace todo
+  // junto — lo busca, valida y descuenta la apuesta una sola vez.
   async function handleJoinPrivate() {
     if (!joinCode.trim()) {
       setError('Ingresá el código de la mesa')
       return
     }
 
-    const { data: table } = await supabase
-      .from('tables')
-      .select('*')
-      .eq('private_code', joinCode.toUpperCase())
-      .eq('status', 'waiting')
-      .single()
+    setLoading(true)
+    setError('')
 
-    if (!table) {
-      setError('Código inválido o la mesa ya no está disponible')
+    const { data: table, error: joinError } = await supabase.rpc('join_table_by_code', {
+      p_code: joinCode.trim().toUpperCase(),
+    })
+
+    if (joinError || !table) {
+      const m = joinError?.message ?? ''
+      setError(
+        m.includes('monedas') ? 'No tenés suficientes monedas para esta mesa'
+          : m.includes('propia') ? 'Esa mesa la creaste vos'
+            : 'Código inválido o la mesa ya no está disponible',
+      )
+      setLoading(false)
       return
     }
 
-    await handleJoinTable(table)
+    const joined = table as Table
+    setCoins(c => c - joined.bet)
+    router.push(`/game/${joined.id}`)
+    setLoading(false)
   }
 
   async function handleLogout() {
