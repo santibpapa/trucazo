@@ -2,7 +2,7 @@
 -- ACCESORIOS DE LA MESA
 -- Objetos que el jugador compra con monedas y apoya sobre la mesa (uno a la vez).
 -- Es cosmético y "por jugador": cada uno ve el suyo en su lado, y ve el del rival
--- en el lado del rival. La imagen es /accesorios/{slug}.png (PNG con transparencia).
+-- en el lado del rival. La imagen es /accesorios/{slug}.webp (con transparencia).
 --
 -- Calca la infra de la Tienda de salones / marcos:
 --   - Tabla `accessories` (catálogo, lectura pública).

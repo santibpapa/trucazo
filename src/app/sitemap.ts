@@ -1,36 +1,32 @@
 import type { MetadataRoute } from 'next'
 import { SITE_URL } from '@/lib/site'
 
-// Fecha del último cambio real de cada página. Google confía más en un dato
-// estable que en "la fecha de hoy" (que cambiaba en cada publicación). Cuando
-// le cambies el contenido a una página, actualizá SU fecha (dejá las otras).
-const LASTMOD = {
-  home: '2026-07-15',
-  comoSeJuega: '2026-07-15',
-  jugarGratis: '2026-07-15',
-}
+const LAST_UPDATED = '2026-08-15'
 
-// sitemap.xml: la lista de páginas que le proponemos a Google para indexar.
-// Solo van las páginas públicas (la app detrás del login no se indexa).
+const routes: { path: string; priority: number; frequency: 'weekly' | 'monthly' | 'yearly' }[] = [
+  { path: '', priority: 1, frequency: 'weekly' },
+  { path: '/como-se-juega-al-truco', priority: 0.9, frequency: 'monthly' },
+  { path: '/jugar-al-truco-online-gratis', priority: 0.9, frequency: 'monthly' },
+  { path: '/orden-cartas-truco', priority: 0.9, frequency: 'monthly' },
+  { path: '/calculadora-envido', priority: 0.9, frequency: 'monthly' },
+  { path: '/envido-real-envido-falta-envido', priority: 0.8, frequency: 'monthly' },
+  { path: '/pardas-truco-reglas', priority: 0.8, frequency: 'monthly' },
+  { path: '/truco-dos-jugadores', priority: 0.8, frequency: 'monthly' },
+  { path: '/jugar-truco-sin-registrarse', priority: 0.8, frequency: 'monthly' },
+  { path: '/jugar-truco-con-amigos', priority: 0.8, frequency: 'monthly' },
+  { path: '/truco-contra-computadora', priority: 0.8, frequency: 'monthly' },
+  { path: '/modo-historia-truco', priority: 0.8, frequency: 'monthly' },
+  { path: '/acerca-de-trucazo', priority: 0.5, frequency: 'yearly' },
+  { path: '/contacto', priority: 0.4, frequency: 'yearly' },
+  { path: '/privacidad', priority: 0.3, frequency: 'yearly' },
+  { path: '/terminos', priority: 0.3, frequency: 'yearly' },
+]
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [
-    {
-      url: SITE_URL,
-      lastModified: LASTMOD.home,
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
-    {
-      url: `${SITE_URL}/como-se-juega-al-truco`,
-      lastModified: LASTMOD.comoSeJuega,
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/jugar-al-truco-online-gratis`,
-      lastModified: LASTMOD.jugarGratis,
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-  ]
+  return routes.map(route => ({
+    url: SITE_URL + route.path,
+    lastModified: LAST_UPDATED,
+    changeFrequency: route.frequency,
+    priority: route.priority,
+  }))
 }

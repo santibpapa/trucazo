@@ -62,7 +62,6 @@ const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
 
 export default function ResenaPage() {
   const router = useRouter()
-  const supabase = createClient()
 
   const [general, setGeneral] = useState(0)
   const [aesthetics, setAesthetics] = useState(0)
@@ -104,6 +103,7 @@ export default function ResenaPage() {
     setLoading(true)
     setError('')
     try {
+      const supabase = createClient()
       // Subir imágenes (si hay) al depósito privado
       const paths: string[] = []
       for (const f of files) {

@@ -13,6 +13,33 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  const pathname = request.nextUrl.pathname
+  const privatePaths = [
+    '/admin',
+    '/lobby',
+    '/game',
+    '/profile',
+    '/ranking',
+    '/tienda',
+    '/comunidad',
+    '/historia',
+  ]
+  const isPrivate = privatePaths.some(path =>
+    pathname === path || pathname.startsWith(`${path}/`),
+  )
+  const isApi = pathname.startsWith('/api/') || pathname === '/auth/callback'
+  const hasSupabaseSessionCookie = request.cookies
+    .getAll()
+    .some(({ name }) => name.startsWith('sb-') && name.includes('auth-token'))
+  const mayRedirectAuthenticatedUser = ['/', '/login', '/register'].includes(pathname)
+
+  // Una visita nueva a contenido público no necesita tocar Supabase. Esto mantiene
+  // rápidas e independientes las landings, guías, imágenes OG, sitemap y robots.
+  // Si existe una cookie o la ruta es privada/API, sí refrescamos y validamos sesión.
+  if (!isPrivate && !isApi && !(mayRedirectAuthenticatedUser && hasSupabaseSessionCookie)) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -38,9 +65,6 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const privatePaths = ['/lobby', '/game', '/profile']
-  const isPrivate = privatePaths.some(p => request.nextUrl.pathname.startsWith(p))
-
   if (!user && isPrivate) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
@@ -52,7 +76,7 @@ export async function updateSession(request: NextRequest) {
   // alguien que ya entró). Los INVITADOS (sesión anónima) sí pueden pasar: si
   // tocan "Iniciar sesión" es porque quieren entrar con su cuenta de verdad, y
   // al hacerlo la sesión de invitado se reemplaza.
-  if (user && !user.is_anonymous && ['/', '/login', '/register'].includes(request.nextUrl.pathname)) {
+  if (user && !user.is_anonymous && mayRedirectAuthenticatedUser) {
     const url = request.nextUrl.clone()
     url.pathname = '/lobby'
     return NextResponse.redirect(url)

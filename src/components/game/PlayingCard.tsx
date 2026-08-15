@@ -1,6 +1,7 @@
 import { cn } from '../ui/cn'
 import { getCardImage, getCardLabel } from '@/lib/truco'
 import type { Card } from '@/lib/truco'
+import Image from 'next/image'
 
 interface PlayingCardProps {
   card: Card
@@ -18,7 +19,7 @@ interface PlayingCardProps {
 }
 
 /**
- * Carta (PNG completa) como protagonista sobre el fondo oscuro. La imagen define
+ * Carta (WebP completa) como protagonista sobre el fondo oscuro. La imagen define
  * su propio alto (h-auto) para que el marco calce exacto con la carta y no asome
  * fondo. Si es interactiva, se eleva al pasar el dedo/mouse.
  */
@@ -33,15 +34,18 @@ export default function PlayingCard({
   style,
 }: PlayingCardProps) {
   const inner = (
-    <img
+    <Image
       src={getCardImage(card)}
       alt={getCardLabel(card)}
+      width={600}
+      height={925}
+      unoptimized
       className="block w-full h-auto select-none pointer-events-none [-webkit-user-drag:none] [-webkit-touch-callout:none]"
       draggable={false}
     />
   )
 
-  // La carta PNG ya es completa (fondo blanco). El alto lo define la imagen
+  // La carta WebP ya es completa (fondo blanco). El alto lo define la imagen
   // (h-auto), y el redondeo de esquinas lo da el overflow-hidden.
   const surface = 'rounded-xl overflow-hidden shadow-card'
 

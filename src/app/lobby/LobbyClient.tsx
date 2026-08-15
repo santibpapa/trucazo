@@ -460,7 +460,7 @@ export default function LobbyClient({ profile, initialTables, activeGameId, myMe
 
           {/* Cartel grande: Modo Historia (imagen de fondo + texto encima) */}
           <Link href="/historia" className="block group">
-            <div className="relative overflow-hidden rounded-2xl border border-gold/40 shadow-[0_6px_18px_-7px_rgba(201,162,75,0.4)] h-48 sm:h-56 bg-surface2 bg-[url('/lobby/banner-historia.png')] bg-cover bg-left sm:bg-center transition-transform duration-200 group-hover:-translate-y-0.5">
+            <div className="relative overflow-hidden rounded-2xl border border-gold/40 shadow-[0_6px_18px_-7px_rgba(201,162,75,0.4)] h-48 sm:h-56 bg-surface2 bg-[url('/lobby/banner-historia.webp')] bg-cover bg-left sm:bg-center transition-transform duration-200 group-hover:-translate-y-0.5">
               {/* Oscurecido. Celular: parejo (texto centrado). Compu: más fuerte a la derecha. */}
               <div className="absolute inset-0 bg-black/45 sm:hidden" />
               <div className="absolute inset-0 hidden sm:block bg-gradient-to-r from-black/10 via-black/25 to-black/75" />

@@ -37,7 +37,7 @@ begin;
 create table if not exists public.campaign_provinces (
   id              uuid primary key,
   order_index     integer not null unique,   -- orden de la "ruta" (1 = arranque)
-  slug            text not null unique,      -- coincide con public/historia/provincia-{slug}.png
+  slug            text not null unique,      -- coincide con public/historia/provincia-{slug}.webp
   name            text not null,
   points_required integer not null default 0
 );

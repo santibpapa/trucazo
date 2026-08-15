@@ -13,6 +13,7 @@ import { getSalonTheme } from '@/lib/salones'
 import { fraseDelBot, type MomentoFrase } from '@/lib/botFrases'
 import { getFrameTheme } from '@/lib/marcos'
 import { getMedal } from '@/lib/medallas'
+import { track } from '@vercel/analytics'
 
 interface Props {
   game: Game
@@ -81,12 +82,12 @@ const DEAL_ORIGINS: Array<Record<string, string>> = [
 ]
 
 
-// Asiento del marcador: la cara del rival de campaña (/personajes/{slug}.png) o
+// Asiento del marcador: la cara del rival de campaña (/personajes/{slug}.webp) o
 // una silueta genérica. El aro dorado latiendo marca al que le toca actuar.
 function SeatAvatar({ slug, imageUrl, name, active, frame, medal }: { slug?: string | null; imageUrl?: string | null; name: string; active?: boolean; frame?: string | null; medal?: string | null }) {
   const [imgFailed, setImgFailed] = useState(false)
   // El rival de campaña usa su ilustración (slug); el resto, su foto de perfil.
-  const src = slug ? `/personajes/${slug}.png` : imageUrl || null
+  const src = slug ? `/personajes/${slug}.webp` : imageUrl || null
   // Marco comprado en la Tienda. En el asiento (cuadrado) lo dibujamos como borde
   // fijo (sin girar) para no deformar la forma; el brillo giratorio queda para los
   // avatares redondos (perfil, lobby, amigos).
@@ -165,7 +166,7 @@ function PersonIcon() {
 // Accesorio comprado en la Tienda, apoyado sobre el paño en el lado del jugador.
 // El rival va a la IZQUIERDA y un poco abajo de sus cartas; el mío a la DERECHA.
 // Se ubican en los costados (donde no caen cartas) para que no queden tapados.
-// Imagen /accesorios/{slug}.png; si falta, se oculta sola (onError).
+// Imagen /accesorios/{slug}.webp; si falta, se oculta sola (onError).
 function TableAccessory({ slug, who }: { slug?: string | null; who: 'me' | 'opponent' }) {
   if (!slug || slug === 'ninguno') return null
   const pos =
@@ -175,7 +176,7 @@ function TableAccessory({ slug, who }: { slug?: string | null; who: 'me' | 'oppo
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`/accesorios/${slug}.png`}
+      src={`/accesorios/${slug}.webp`}
       alt=""
       aria-hidden="true"
       onError={e => { e.currentTarget.style.display = 'none' }}
@@ -245,6 +246,17 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   // Sonido
   const [muted, setMutedState] = useState(false)
   useEffect(() => { setMutedState(isMuted()) }, [])
+  useEffect(() => {
+    const key = `trucazo:tracked-game:${initialGame.id}`
+    try {
+      if (sessionStorage.getItem(key)) return
+      sessionStorage.setItem(key, '1')
+    } catch {}
+    track('partida_iniciada', {
+      mode: campaignRivalSlug ? 'historia' : opponentIsBot ? 'bot' : 'persona',
+      target_score: initialGame.target_score,
+    })
+  }, [campaignRivalSlug, initialGame.id, initialGame.target_score, opponentIsBot])
   function toggleMute() { const v = !muted; setMuted(v); setMutedState(v) }
   // Evita disparar sonidos de cantos/final al montar (p. ej. al refrescar en
   // medio de un canto): recién quedan "vivos" tras el primer render.
@@ -1178,7 +1190,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   return (
     <main className="fixed inset-0 overflow-hidden">
       {/* Fondo: salón del club. Base de degradados cálidos (lámparas + penumbra)
-          y, encima, la foto del salón elegido (public/mesa/{slug}.png) si existe.
+          y, encima, la foto del salón elegido (public/mesa/{slug}.webp) si existe.
           Cierra una viñeta. */}
       <div
         aria-hidden
@@ -1193,7 +1205,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       <div
         aria-hidden
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('/mesa/${salonSlug}.png')` }}
+        style={{ backgroundImage: `url('/mesa/${salonSlug}.webp')` }}
       />
       <div
         aria-hidden

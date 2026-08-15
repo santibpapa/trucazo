@@ -1,7 +1,7 @@
 // Vestuario de la mesa según el salón elegido en la Tienda (solo presentación).
 // Cada salón define los colores de las 3 capas del óvalo que dibuja GameClient:
 // el borde (madera/material), el filete (la línea decorativa) y el paño.
-// La foto del ambiente es /mesa/{slug}.png; esto colorea la mesa para que combine.
+// La foto del ambiente es /mesa/{slug}.webp; esto colorea la mesa para que combine.
 
 export interface SalonTheme {
   /** Fondo del borde de la mesa (degradado del material) */

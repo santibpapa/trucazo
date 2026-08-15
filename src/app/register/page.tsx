@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Panel, Logo, Input, Button, Alert, CoinIcon } from '@/components/ui'
+import { track } from '@vercel/analytics'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -78,6 +79,7 @@ export default function RegisterPage() {
       }
     }
 
+    track('register_completed', { method: 'email' })
     router.push('/lobby')
   }
 

@@ -20,7 +20,7 @@ export interface Profile {
 }
 
 // Tienda: un salón del catálogo (fondo de la mesa de juego).
-// Su imagen es /mesa/{slug}.png
+// Su imagen es /mesa/{slug}.webp
 export interface Salon {
   slug: string
   name: string
@@ -39,7 +39,7 @@ export interface Frame {
   sort_order: number
 }
 
-// Tienda: un accesorio de la mesa. Su imagen es /accesorios/{slug}.png
+// Tienda: un accesorio de la mesa. Su imagen es /accesorios/{slug}.webp
 export interface Accessory {
   slug: string
   name: string
