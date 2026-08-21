@@ -74,7 +74,9 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex w-full max-w-xs flex-col gap-3 animate-fade-up">
+        {/* data-md="skip": botones de acceso. No son contenido legible, así que
+            la versión markdown para agentes los descarta. */}
+        <div data-md="skip" className="flex w-full max-w-xs flex-col gap-3 animate-fade-up">
           <GuestButton
             variant="primary"
             size="lg"
@@ -181,7 +183,7 @@ export default function Home() {
         </section>
       </div>
 
-      <footer className="border-t border-line px-5 py-7 text-sm text-subtle sm:px-8">
+      <footer data-md="skip" className="border-t border-line px-5 py-7 text-sm text-subtle sm:px-8">
         <nav className="mx-auto flex max-w-5xl flex-wrap gap-x-5 gap-y-2">
           <Link href="/acerca-de-trucazo" className="hover:text-gold">Acerca de</Link>
           <Link href="/contacto" className="hover:text-gold">Contacto</Link>
