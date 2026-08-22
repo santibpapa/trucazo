@@ -59,3 +59,7 @@ next-env.d.ts
 # Versión markdown de las páginas: la genera el build (scripts/build-markdown.ts),
 # no se edita ni se versiona a mano.
 /public/_md/
+
+# Informe de SEO: lo genera el robot de GitHub Actions en cada corrida.
+informe-seo.md
+fallo.md
