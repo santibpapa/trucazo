@@ -13,7 +13,8 @@ begin;
 do $test$
 declare
   v_client_functions constant text[] := array[
-    'active_medal_for', 'admin_stats', 'advance_hand', 'bot_join_table',
+    'active_medal_for', 'admin_player', 'admin_stats', 'advance_hand',
+    'bot_join_table',
     'bot_step', 'buy_accessory', 'buy_frame', 'buy_salon',
     'cancel_game_invite', 'cancel_table', 'claim_bonus', 'claim_table_notification',
     'clear_chat',

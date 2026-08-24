@@ -384,3 +384,95 @@ export function Horarios({ horas }: { horas: { hora: number; partidas: number }[
     </div>
   )
 }
+
+// ------------------------------------------------------------
+// Medidor: una barra de 0 a 100 (fama, estilo de juego, avance de campaña).
+// Un solo tono; el fondo es el mismo tono apagado, para que se vea el total.
+// ------------------------------------------------------------
+export function Medidor({
+  etiqueta,
+  valor,
+  maximo = 100,
+  texto,
+  color = VIZ.altas,
+  ayuda,
+}: {
+  etiqueta: string
+  valor: number
+  maximo?: number
+  /** Lo que se muestra a la derecha. Si falta, se muestra "valor/maximo". */
+  texto?: string
+  color?: string
+  ayuda?: string
+}) {
+  const pct = maximo > 0 ? Math.min(100, Math.round((valor / maximo) * 100)) : 0
+  return (
+    <div>
+      <div className="mb-1 flex items-baseline justify-between gap-3">
+        <span className="text-sm text-cream">{etiqueta}</span>
+        <span className="shrink-0 text-sm font-semibold tabular-nums text-cream">
+          {texto ?? `${numero(valor)} / ${numero(maximo)}`}
+        </span>
+      </div>
+      <div
+        className="h-2.5 w-full overflow-hidden rounded-full bg-surface2"
+        role="img"
+        aria-label={`${etiqueta}: ${texto ?? `${valor} de ${maximo}`}`}
+      >
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${Math.max(pct, valor > 0 ? 2 : 0)}%`, backgroundColor: color }}
+        />
+      </div>
+      {ayuda && <p className="mt-1 text-xs text-subtle">{ayuda}</p>}
+    </div>
+  )
+}
+
+// ------------------------------------------------------------
+// Ganadas contra perdidas, en una sola barra.
+//
+// El verde y el rojo solos no alcanzan: para alguien que no distingue esos dos
+// colores serían la misma barra. Por eso los números y las palabras van SIEMPRE
+// escritos al lado, y el color es un apoyo, no la única pista.
+// ------------------------------------------------------------
+export function Reparto({
+  ganadas,
+  perdidas,
+}: {
+  ganadas: number
+  perdidas: number
+}) {
+  const total = ganadas + perdidas
+  if (total === 0) {
+    return <p className="text-sm text-subtle">Todavía no terminó ninguna partida.</p>
+  }
+  return (
+    <div>
+      <div className="flex h-2.5 w-full gap-[2px] overflow-hidden rounded-full bg-surface2">
+        {ganadas > 0 && (
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${(ganadas / total) * 100}%`, backgroundColor: '#46A574' }}
+          />
+        )}
+        {perdidas > 0 && (
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${(perdidas / total) * 100}%`, backgroundColor: '#D2553B' }}
+          />
+        )}
+      </div>
+      <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+        <span className="flex items-center gap-1.5 text-muted">
+          <span className="h-2 w-2 rounded-full bg-positive" aria-hidden="true" />
+          <b className="tabular-nums text-cream">{numero(ganadas)}</b> ganadas
+        </span>
+        <span className="flex items-center gap-1.5 text-muted">
+          <span className="h-2 w-2 rounded-full bg-negative" aria-hidden="true" />
+          <b className="tabular-nums text-cream">{numero(perdidas)}</b> perdidas
+        </span>
+      </p>
+    </div>
+  )
+}
