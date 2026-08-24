@@ -49,8 +49,17 @@ create table if not exists auth.users (
   raw_app_meta_data   jsonb default '{}'::jsonb,
   raw_user_meta_data  jsonb default '{}'::jsonb,
   created_at          timestamptz default now(),
-  updated_at          timestamptz default now()
+  updated_at          timestamptz default now(),
+  -- Las dos que mira el panel del admin: si la cuenta es de un invitado (los que
+  -- entran sin registrarse usan una sesión anónima) y cuándo entró por última
+  -- vez. En Supabase de verdad ya vienen; acá había que agregarlas.
+  last_sign_in_at     timestamptz,
+  is_anonymous        boolean default false
 );
+
+-- Bases locales viejas (armadas antes de que existieran estas dos columnas).
+alter table auth.users add column if not exists last_sign_in_at timestamptz;
+alter table auth.users add column if not exists is_anonymous boolean default false;
 
 -- Quién sos vos. En Supabase esto sale del token de la sesión; acá lo leemos de
 -- una variable que las pruebas fijan a mano con set_config().
