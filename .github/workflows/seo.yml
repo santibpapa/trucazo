@@ -1,0 +1,88 @@
+# ============================================================
+# Informe de SEO cada dos semanas
+#
+# Baja los datos de Google Search Console, los compara con las dos semanas
+# anteriores, revisa que el sitio esté sano y publica todo como un "issue"
+# del repositorio (GitHub te avisa por mail cuando aparece).
+#
+# NO cambia nada del sitio: solo mira y cuenta. Cualquier arreglo se decide
+# después, a mano.
+#
+# Necesita UN secreto configurado en:
+#   Settings → Secrets and variables → Actions → New repository secret
+#   Nombre:  GOOGLE_SERVICE_ACCOUNT_JSON
+#   Valor:   el contenido completo del archivo JSON de la cuenta de servicio
+# ============================================================
+name: Informe de SEO
+
+on:
+  schedule:
+    # Los días 1 y 15 de cada mes, 9:00 UTC (6 de la mañana en Argentina).
+    - cron: '0 9 1,15 * *'
+  # Botón para correrlo cuando quieras: pestaña Actions → Informe de SEO → Run workflow.
+  workflow_dispatch:
+
+# Solo necesita poder crear issues. Ningún permiso sobre el código.
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  informe:
+    name: Bajar datos y publicar el informe
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+
+      # El script usa solo lo que Node ya trae, así que no hay nada que instalar.
+      - name: Armar el informe
+        id: informe
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          SITE_URL: https://www.trucazo.com.ar
+          REPORT_PATH: informe-seo.md
+        run: node scripts/seo-report.mjs
+
+      - name: Publicarlo como issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Informe de SEO — $(date -u +%d/%m/%Y)" \
+            --body-file informe-seo.md
+
+      # Si algo se rompió (la llave venció, Google cambió algo, el sitio se cayó),
+      # también se avisa. Un workflow en rojo es fácil de no ver; un issue no.
+      #
+      # El texto se arma con un heredoc y no con --body "…": dentro de un bloque
+      # YAML el texto va sangrado, y esa sangría llegaría al issue convirtiendo
+      # todo en un bloque de código. El heredoc con <<'FIN' lo deja tal cual.
+      - name: Avisar si falló
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ENLACE_AL_ERROR: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          cat > fallo.md <<'FIN'
+          El robot que arma el informe de SEO falló, así que esta quincena no hay informe.
+
+          **El error exacto está acá:** ENLACE
+
+          Las causas más comunes son:
+
+          - El secreto `GOOGLE_SERVICE_ACCOUNT_JSON` quedó mal pegado o incompleto.
+          - La cuenta de servicio ya no figura en Search Console (Configuración → Usuarios y permisos).
+          - El sitio estuvo caído justo cuando corrió.
+
+          El mensaje de error está al final del registro, en el enlace de arriba, y está escrito en castellano.
+          FIN
+          # El heredoc respeta el texto pero deja la sangría del YAML: se la sacamos.
+          sed -i 's/^          //' fallo.md
+          sed -i "s|ENLACE|$ENLACE_AL_ERROR|" fallo.md
+          gh issue create \
+            --title "⚠️ El informe de SEO no se pudo generar — $(date -u +%d/%m/%Y)" \
+            --body-file fallo.md
