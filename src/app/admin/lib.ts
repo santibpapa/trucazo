@@ -129,20 +129,34 @@ export function diaDe(iso: string): string {
   return fmtDiaISO.format(new Date(iso))
 }
 
-/** "2026-08-24" → "lunes 24 de agosto" (la fecha ya viene sin hora, no se corre de día). */
+// Un día suelto se lee al mediodía para que no se corra de fecha al pasarlo a
+// hora de Argentina. Y se toman solo los primeros 10 caracteres: si el servidor
+// manda "2026-08-24T00:00:00+00:00" en vez de "2026-08-24", igual se entiende.
+// Una fecha rara no puede voltear la página entera: en el peor caso se muestra
+// tal cual vino.
+function alMediodia(iso: string): Date | null {
+  const d = new Date(`${iso.slice(0, 10)}T12:00:00Z`)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+/** "2026-08-24" → "Lunes, 24 de agosto". */
 export function diaLargo(iso: string): string {
-  const t = fmtFechaLarga.format(new Date(`${iso}T12:00:00Z`))
+  const d = alMediodia(iso)
+  if (!d) return iso
+  const t = fmtFechaLarga.format(d)
   return t.charAt(0).toUpperCase() + t.slice(1)
 }
 
 /** "2026-08-24" → "24/08" (etiqueta del eje de los gráficos). */
 export function diaCorto(iso: string): string {
-  return fmtFechaCorta.format(new Date(`${iso}T12:00:00Z`))
+  const d = alMediodia(iso)
+  return d ? fmtFechaCorta.format(d) : iso
 }
 
 /** Momento exacto: "24/08 · 21:40". */
 export function fechaYHora(iso: string): string {
   const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
   return `${fmtFechaCorta.format(d)} · ${fmtHora.format(d)}`.replace(/\u202f|\u00a0/g, ' ')
 }
 
