@@ -21,10 +21,6 @@ on:
     - cron: '0 9 1,15 * *'
   # Botón para correrlo cuando quieras: pestaña Actions → Informe de SEO → Run workflow.
   workflow_dispatch:
-  # TEMPORAL: sirve para probar la conexión con Google antes de mergear a master.
-  # Se saca en cuanto sepamos que la llave funciona.
-  push:
-    branches: [claude/google-seo-api-connection-35vh8b]
 
 # Solo necesita poder crear issues. Ningún permiso sobre el código.
 permissions:
