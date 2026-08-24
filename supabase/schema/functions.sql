@@ -3063,9 +3063,13 @@ begin
       select coalesce(jsonb_agg(jsonb_build_object(
                'dia', d.dia, 'partidas', coalesce(c.cnt, 0)
              ) order by d.dia), '[]'::jsonb)
-      from generate_series(today - 59, today, interval '1 day') as d(dia)
+      -- OJO: generate_series() sobre fechas devuelve TIMESTAMP, no fecha. Sin el
+      -- ::date acá sale "2026-06-26T00:00:00+00:00" en vez de "2026-06-26", y la
+      -- página no puede leer eso. Es el mismo ::date que ya usa admin_stats.
+      from (select d::date as dia
+              from generate_series(today - 59, today, interval '1 day') d) d
       left join (select dia, count(*) as cnt from con_modo group by dia) c
-             on c.dia = d.dia::date
+             on c.dia = d.dia
     ),
 
     'historial', (
