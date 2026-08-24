@@ -39,7 +39,7 @@ export default function SeoPageLayout({
 
       <main className="flex-1 w-full max-w-2xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
         {breadcrumb ? (
-          <nav aria-label="Migas de pan" className="mb-5 text-sm text-subtle">
+          <nav aria-label="Migas de pan" data-md="skip" className="mb-5 text-sm text-subtle">
             <Link href="/" className="hover:text-gold transition-colors">
               Inicio
             </Link>{' '}
@@ -61,7 +61,9 @@ export default function SeoPageLayout({
         <div className="mt-10 flex flex-col gap-10">{children}</div>
 
         {/* Cierre: invitación a jugar */}
-        {showPlayCta ? <section className="mt-14 rounded-2xl border border-gold/30 bg-gold-soft/40 px-6 py-8 text-center">
+        {/* data-md="skip": es una invitación a jugar, no contenido. La versión
+            markdown para agentes (scripts/build-markdown.mjs) la descarta. */}
+        {showPlayCta ? <section data-md="skip" className="mt-14 rounded-2xl border border-gold/30 bg-gold-soft/40 px-6 py-8 text-center">
           <h2 className="font-display font-bold text-2xl text-cream">
             ¿Listo para la mesa?
           </h2>

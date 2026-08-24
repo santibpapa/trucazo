@@ -59,6 +59,12 @@ jobs:
           NEXT_PUBLIC_SITE_URL: https://ejemplo.test
         run: npm run build
 
+      - name: Que el sitio siga siendo legible para agentes de IA
+        # Revisa el lector de la cabecera "Accept" (que no le mande markdown a una
+        # persona con navegador), que cada página tenga su versión markdown ya
+        # generada por el build, y que la lista del sitemap no se haya movido sola.
+        run: npm run check:agentes
+
   # ----------------------------------------------------------
   # 2. La base: que se pueda reconstruir y que siga cerrada
   # ----------------------------------------------------------
