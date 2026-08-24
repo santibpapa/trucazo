@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Avatar } from '@/components/ui'
 import { cn } from '@/components/ui/cn'
 import {
@@ -39,6 +41,7 @@ export default function Personas({
   personas: Persona[]
   ahora: string
 }) {
+  const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [orden, setOrden] = useState<Orden>('creado_at')
@@ -124,6 +127,9 @@ export default function Personas({
                 <Ordenable actual={orden} clave="ganadas" set={setOrden} centro>Ganó / Perdió</Ordenable>
                 <th scope="col" className="px-3 py-2.5 text-center font-semibold">Días que jugó</th>
                 <Ordenable actual={orden} clave="ultima_partida" set={setOrden}>Última partida</Ordenable>
+                <th scope="col" className="px-3 py-2.5">
+                  <span className="sr-only">Ver la ficha</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -139,6 +145,7 @@ export default function Personas({
                     persona={p}
                     ahora={ahora}
                     encabezadoDia={nuevoDia ? { dia, cantidad: delDia } : null}
+                    onAbrir={() => router.push(`/admin/persona/${p.id}`)}
                   />
                 )
               })}
@@ -182,10 +189,12 @@ function RenglonPersona({
   persona: p,
   ahora,
   encabezadoDia,
+  onAbrir,
 }: {
   persona: Persona
   ahora: string
   encabezadoDia: { dia: string; cantidad: number } | null
+  onAbrir: () => void
 }) {
   return (
     <>
@@ -193,7 +202,7 @@ function RenglonPersona({
         <tr className="bg-surface2/60">
           <th
             scope="colgroup"
-            colSpan={7}
+            colSpan={8}
             className="px-4 py-1.5 text-left text-xs font-semibold text-muted"
           >
             <span className="text-cream">{diaLargo(encabezadoDia.dia)}</span>
@@ -203,14 +212,25 @@ function RenglonPersona({
           </th>
         </tr>
       )}
-      <tr className="border-b border-line/50 last:border-0 hover:bg-surface2/40">
+      {/* Toda la fila lleva a la ficha (cómodo con el dedo), y el nombre es
+          además un enlace de verdad, para que ande el teclado y "abrir en otra
+          pestaña". Tocar el enlace navega igual, así que no hay conflicto. */}
+      <tr
+        onClick={onAbrir}
+        className="cursor-pointer border-b border-line/50 last:border-0 hover:bg-surface2/40"
+      >
         {/* Persona */}
         <td className="px-4 py-2.5">
           <div className="flex items-center gap-2.5">
             <Avatar url={p.avatar_url} name={p.nombre} size={30} />
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 truncate font-medium text-cream">
-                {p.nombre}
+                <Link
+                  href={`/admin/persona/${p.id}`}
+                  className="truncate hover:text-gold hover:underline"
+                >
+                  {p.nombre}
+                </Link>
                 <span
                   className={cn(
                     'shrink-0 rounded-full border px-1.5 py-px text-[10px] font-medium',
@@ -283,6 +303,9 @@ function RenglonPersona({
             <span className="text-subtle">Nunca jugó</span>
           )}
         </td>
+
+        {/* La flechita: la pista visual de que la fila se puede abrir. */}
+        <td className="px-3 py-2.5 text-right text-subtle" aria-hidden="true">›</td>
       </tr>
     </>
   )

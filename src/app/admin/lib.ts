@@ -180,3 +180,114 @@ export const ETIQUETA_TIPO: Record<TipoCuenta, string> = {
   google: 'Google',
   invitado: 'Invitado',
 }
+
+// ============================================================
+// La ficha de UNA persona (RPC admin_player)
+// ============================================================
+
+export type Modo = 'personas' | 'bot' | 'campana'
+
+export const ETIQUETA_MODO: Record<Modo, string> = {
+  personas: 'Contra personas',
+  bot: 'Contra bots del lobby',
+  campana: 'Modo campaña',
+}
+
+export type Resultado = 'ganada' | 'perdida' | 'en_curso' | 'anulada'
+
+export type Ficha = {
+  generado_at: string
+  perfil: {
+    id: string
+    nombre: string
+    avatar_url: string | null
+    creado_at: string
+    tipo: TipoCuenta
+    email: string | null
+    es_admin: boolean
+    monedas: number
+    marco: string
+    medalla: string
+    salon: string
+    accesorio: string
+    ultima_sesion: string | null
+    visto_at: string | null
+    medallas: string[]
+  }
+  ranking: {
+    online_puesto: number | null
+    online_total: number
+    campana_puesto: number | null
+    campana_total: number
+    campana_puntos: number
+    fama: number
+  }
+  resumen: {
+    partidas: number
+    ganadas: number
+    perdidas: number
+    en_curso: number
+    anuladas: number
+    efectividad: number | null
+    racha: number
+    racha_ganando: boolean | null
+    mejor_racha: number
+    dias_jugados: number
+    primera_partida: string | null
+    ultima_partida: string | null
+    monedas_ganadas: number
+    monedas_perdidas: number
+    minutos_jugados: number
+  }
+  por_modo: {
+    modo: Modo
+    partidas: number
+    ganadas: number
+    perdidas: number
+    efectividad: number | null
+  }[]
+  campana: {
+    vencidos: number
+    total: number
+    provincias: { nombre: string; vencidos: number; total: number }[]
+    estilo: {
+      conocido: boolean
+      manos: number
+      mentiroso: number
+      achicado: number
+      agresivo: number
+    }
+  }
+  rivales: {
+    nombre: string
+    es_bot: boolean
+    avatar_url: string | null
+    partidas: number
+    ganadas: number
+    perdidas: number
+  }[]
+  actividad: { dia: string; partidas: number }[]
+  historial: {
+    id: string
+    fecha: string
+    modo: Modo
+    rival: string
+    rival_bot: boolean
+    resultado: Resultado
+    mi_puntaje: number
+    su_puntaje: number
+    apuesta: number
+    objetivo: number
+    minutos: number | null
+  }[]
+  colecciones: { salones: number; marcos: number; accesorios: number; medallas: number }
+  social: { amigos: number; mensajes: number; resenas: number }
+}
+
+/** 98 → "1 h 38 min"; 45 → "45 min". */
+export function duracion(minutos: number): string {
+  if (minutos < 60) return `${minutos} min`
+  const h = Math.floor(minutos / 60)
+  const m = minutos % 60
+  return m === 0 ? `${h} h` : `${h} h ${m} min`
+}
