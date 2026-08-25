@@ -45,7 +45,8 @@ next-env.d.ts
 /trucazo.code-workspace
 
 # skills/herramientas locales de Claude (no son parte del juego)
-/.claude/
+/.claude/*
+!/.claude/skills/
 
 # design-sync (sincronización con claude.ai/design): scripts staged, build
 # regenerable y estado de máquina. Lo durable (.design-sync/ config, notas,
