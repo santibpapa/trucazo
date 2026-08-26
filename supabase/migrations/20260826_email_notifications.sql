@@ -10,7 +10,7 @@
 begin;
 
 -- ------------------------------------------------------------
--- 1. PREFERENCIAS Y REGISTRO DE ENVÍOS
+-- 1. PREFERENCIAS, CAMPAÑAS Y REGISTRO DE ENVÍOS
 -- ------------------------------------------------------------
 
 create table if not exists public.email_preferences (
@@ -22,11 +22,36 @@ create table if not exists public.email_preferences (
   updated_at           timestamptz not null default now()
 );
 
+-- Los recordatorios no quedan escritos en el código: el admin los crea,
+-- edita, activa y pausa desde /admin/emails. Se guarda texto plano y el
+-- servidor lo escapa antes de construir el HTML del correo.
+create table if not exists public.reengagement_campaigns (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null check (char_length(btrim(name)) between 1 and 80),
+  audience    text not null check (audience in ('never_played', 'inactive')),
+  delay_days  smallint not null default 2 check (delay_days between 1 and 365),
+  subject     text not null check (char_length(btrim(subject)) between 1 and 180),
+  preview     text not null default '' check (char_length(preview) <= 200),
+  heading     text not null check (char_length(btrim(heading)) between 1 and 180),
+  body        text not null check (char_length(btrim(body)) between 1 and 4000),
+  cta_label   text not null check (char_length(btrim(cta_label)) between 1 and 80),
+  cta_path    text not null default '/lobby'
+              check (char_length(cta_path) between 1 and 500
+                and left(cta_path, 1) = '/'
+                and left(cta_path, 2) <> '//'
+                and position(chr(92) in cta_path) = 0),
+  is_active   boolean not null default false,
+  created_by  uuid references public.profiles(id) on delete set null,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
 create table if not exists public.email_deliveries (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references public.profiles(id) on delete cascade,
   kind        text not null check (kind in ('news', 'never_played', 'inactive')),
   news_id     uuid references public.news(id) on delete set null,
+  campaign_id uuid references public.reengagement_campaigns(id) on delete restrict,
   dedupe_key  text not null unique,
   status      text not null default 'sending'
               check (status in ('sending', 'sent', 'failed')),
@@ -35,19 +60,63 @@ create table if not exists public.email_deliveries (
   last_error  text,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
-  sent_at     timestamptz
+  sent_at     timestamptz,
+  constraint email_delivery_source_check check (
+    (kind = 'news' and campaign_id is null)
+    or
+    (kind in ('never_played', 'inactive') and news_id is null and campaign_id is not null)
+  )
 );
 
 create index if not exists email_deliveries_user_created_idx
   on public.email_deliveries (user_id, created_at desc);
+create index if not exists email_deliveries_campaign_status_idx
+  on public.email_deliveries (campaign_id, status);
 
 alter table public.email_preferences enable row level security;
+alter table public.reengagement_campaigns enable row level security;
 alter table public.email_deliveries enable row level security;
 
 revoke all on table public.email_preferences from anon, authenticated, public;
+revoke all on table public.reengagement_campaigns from anon, authenticated, public;
 revoke all on table public.email_deliveries from anon, authenticated, public;
 grant select, insert, update on table public.email_preferences to service_role;
+grant select, insert, update on table public.reengagement_campaigns to service_role;
 grant select, insert, update on table public.email_deliveries to service_role;
+
+-- Dos borradores de ejemplo. Quedan PAUSADOS para que configurar Resend o
+-- desplegar el cron nunca provoque una campaña sin revisión del administrador.
+insert into public.reengagement_campaigns (
+  id, name, audience, delay_days, subject, preview, heading, body,
+  cta_label, cta_path, is_active
+) values
+  (
+    '10000000-0000-4000-8000-000000000001',
+    'Primera partida',
+    'never_played',
+    2,
+    'Te quedó el mazo sin estrenar',
+    'Tu primera partida de truco te está esperando.',
+    'Te quedó el mazo sin estrenar',
+    'Creaste tu cuenta, pero todavía no jugaste tu primera partida. Entrá al lobby y probá una mano cuando quieras.',
+    'Jugar mi primera partida',
+    '/lobby',
+    false
+  ),
+  (
+    '10000000-0000-4000-8000-000000000002',
+    'Volver a la mesa',
+    'inactive',
+    2,
+    'La mesa te está esperando',
+    'Hace unos días que no tirás una carta.',
+    'La mesa te está esperando',
+    'Hay mesas rápidas, rivales contra la máquina y el Modo Historia esperándote.',
+    'Volver a jugar',
+    '/lobby',
+    false
+  )
+on conflict (id) do nothing;
 
 -- Los perfiles existentes empiezan suscriptos. Cada correo incluye una baja
 -- inmediata y la página de preferencias permite apagar cada tipo por separado.
@@ -173,11 +242,12 @@ begin
     end if;
 
     insert into public.email_deliveries (
-      user_id, kind, news_id, dedupe_key, status
+      user_id, kind, news_id, campaign_id, dedupe_key, status
     ) values (
       (v_job->>'user_id')::uuid,
       v_kind,
       nullif(v_job->>'news_id', '')::uuid,
+      nullif(v_job->>'campaign_id', '')::uuid,
       v_job->>'dedupe_key',
       'sending'
     )

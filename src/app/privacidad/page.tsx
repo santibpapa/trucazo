@@ -42,9 +42,9 @@ export default function PrivacidadPage() {
         </p>
         <p>
           Si la cuenta tiene un email confirmado, Trucazo también puede usarlo para
-          comunicar novedades e invitar a volver cuando todavía no se jugó o pasaron dos
-          días desde la última partida. Cada mensaje permite desactivar uno o ambos tipos
-          de correo de forma inmediata.
+          comunicar novedades e invitar a volver cuando todavía no se jugó o pasó un
+          período de inactividad. Cada mensaje permite desactivar uno o ambos tipos de
+          correo de forma inmediata.
         </p>
       </Section>
 

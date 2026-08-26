@@ -47,26 +47,34 @@ export default function Tablero({ stats, dias }: { stats: Stats; dias: number })
           </p>
         </div>
 
-        <nav
-          className="flex items-center gap-1 rounded-full border border-line bg-surface p-1"
-          aria-label="Período"
-        >
-          {RANGOS.map(r => (
-            <Link
-              key={r}
-              href={`/admin?dias=${r}`}
-              aria-current={r === dias ? 'page' : undefined}
-              className={cn(
-                'rounded-full px-3 py-1.5 text-sm font-semibold transition-colors',
-                r === dias
-                  ? 'bg-gold-soft text-gold shadow-gold-ring'
-                  : 'text-muted hover:text-cream',
-              )}
-            >
-              {r} días
-            </Link>
-          ))}
-        </nav>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/admin/emails"
+            className="rounded-xl border border-gold/60 bg-gold-soft/20 px-4 py-2 text-sm font-bold text-gold transition-colors hover:bg-gold-soft/35"
+          >
+            Emails
+          </Link>
+          <nav
+            className="flex items-center gap-1 rounded-full border border-line bg-surface p-1"
+            aria-label="Período"
+          >
+            {RANGOS.map(r => (
+              <Link
+                key={r}
+                href={`/admin?dias=${r}`}
+                aria-current={r === dias ? 'page' : undefined}
+                className={cn(
+                  'rounded-full px-3 py-1.5 text-sm font-semibold transition-colors',
+                  r === dias
+                    ? 'bg-gold-soft text-gold shadow-gold-ring'
+                    : 'text-muted hover:text-cream',
+                )}
+              >
+                {r} días
+              </Link>
+            ))}
+          </nav>
+        </div>
       </header>
 
       {/* ---------------------------------------------------------- */}

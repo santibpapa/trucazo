@@ -2,7 +2,11 @@ import { createHash } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import type { User } from '@supabase/supabase-js'
 import { createEmailAdminClient } from '@/lib/email/admin'
-import { getReengagementCandidate, type EmailActivity } from '@/lib/email/candidates'
+import {
+  getReengagementCandidate,
+  type EmailActivity,
+  type ReengagementCampaign,
+} from '@/lib/email/candidates'
 import { newsMail, reengagementMail } from '@/lib/email/content'
 import { SITE_URL } from '@/lib/site'
 
@@ -22,6 +26,7 @@ type PendingMail = {
   to: string
   kind: 'news' | 'never_played' | 'inactive'
   newsId: string | null
+  campaignId: string | null
   dedupeKey: string
   subject: string
   html: string
@@ -65,10 +70,20 @@ export async function GET(request: Request) {
     .order('created_at', { ascending: true })
   if (newsError) throw new Error(`No se pudieron cargar las novedades: ${newsError.message}`)
 
+  const { data: campaigns, error: campaignsError } = await supabase
+    .from('reengagement_campaigns')
+    .select('id, name, audience, delay_days, subject, preview, heading, body, cta_label, cta_path, is_active, created_at, updated_at')
+    .eq('is_active', true)
+    .order('delay_days', { ascending: true })
+  if (campaignsError) {
+    throw new Error(`No se pudieron cargar las campañas: ${campaignsError.message}`)
+  }
+
   const pending = buildPendingEmails(
     activities,
     emailById,
     (newsRows ?? []) as News[],
+    (campaigns ?? []) as ReengagementCampaign[],
     now,
   )
   const claimed = await claimEmails(supabase, pending, maxPerRun)
@@ -160,6 +175,7 @@ function buildPendingEmails(
   activities: EmailActivity[],
   emailById: Map<string, string>,
   newsRows: News[],
+  campaigns: ReengagementCampaign[],
   now: Date,
 ) {
   const result: PendingMail[] = []
@@ -184,6 +200,7 @@ function buildPendingEmails(
           to,
           kind: 'news',
           newsId: item.id,
+          campaignId: null,
           dedupeKey: `news:${activity.user_id}:${item.id}`,
           unsubscribeUrl,
           ...content,
@@ -191,22 +208,25 @@ function buildPendingEmails(
       }
     }
 
-    const reminder = getReengagementCandidate(activity, now)
-    if (reminder) {
-      const content = reengagementMail({
-        username: activity.username,
-        preferencesUrl,
-        kind: reminder.kind,
-      })
-      result.push({
-        userId: activity.user_id,
-        to,
-        kind: reminder.kind,
-        newsId: null,
-        dedupeKey: reminder.dedupeKey,
-        unsubscribeUrl,
-        ...content,
-      })
+    for (const campaign of campaigns) {
+      const reminder = getReengagementCandidate(activity, campaign, now)
+      if (reminder) {
+        const content = reengagementMail({
+          username: activity.username,
+          preferencesUrl,
+          campaign,
+        })
+        result.push({
+          userId: activity.user_id,
+          to,
+          kind: reminder.kind,
+          newsId: null,
+          campaignId: campaign.id,
+          dedupeKey: reminder.dedupeKey,
+          unsubscribeUrl,
+          ...content,
+        })
+      }
     }
   }
 
@@ -226,6 +246,7 @@ async function claimEmails(
       user_id: mail.userId,
       kind: mail.kind,
       news_id: mail.newsId,
+      campaign_id: mail.campaignId,
       dedupe_key: mail.dedupeKey,
     })),
     p_limit: maxPerRun,

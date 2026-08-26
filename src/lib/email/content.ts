@@ -1,4 +1,5 @@
 import { SITE_URL } from '@/lib/site'
+import type { ReengagementCampaign } from './candidates'
 
 type MailContent = {
   subject: string
@@ -18,6 +19,10 @@ function escapeHtml(value: string) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;')
+}
+
+export function personalize(value: string, username: string) {
+  return value.replaceAll('{{usuario}}', username)
 }
 
 function layout({
@@ -84,26 +89,31 @@ export function newsMail({
 export function reengagementMail({
   username,
   preferencesUrl,
-  kind,
-}: BaseMail & { kind: 'never_played' | 'inactive' }): MailContent {
-  const neverPlayed = kind === 'never_played'
-  const title = neverPlayed ? 'Te quedó el mazo sin estrenar' : 'La mesa te está esperando'
-  const message = neverPlayed
-    ? `Creaste tu cuenta, pero todavía no jugaste tu primera partida. Entrá al lobby y probá una mano cuando quieras.`
-    : `Hace un par de días que no tirás una carta. Hay mesas rápidas, rivales contra la máquina y el Modo Historia esperándote.`
+  campaign,
+}: BaseMail & { campaign: ReengagementCampaign }): MailContent {
+  const subject = personalize(campaign.subject, username)
+  const preview = personalize(campaign.preview, username)
+  const title = personalize(campaign.heading, username)
+  const message = personalize(campaign.body, username)
+  const cta = personalize(campaign.cta_label, username)
   const greeting = `Hola, ${username}.`
-  const htmlBody = `<p style="margin:0 0 14px">${escapeHtml(greeting)}</p><p style="margin:0">${escapeHtml(message)}</p>`
+  const htmlBody = `<p style="margin:0 0 14px">${escapeHtml(greeting)}</p><p style="margin:0;white-space:pre-wrap">${escapeHtml(message)}</p>`
+  const site = new URL(SITE_URL)
+  const requestedUrl = new URL(campaign.cta_path, site)
+  const ctaUrl = requestedUrl.origin === site.origin
+    ? requestedUrl.toString()
+    : `${SITE_URL}/lobby`
 
   return {
-    subject: title,
+    subject,
     html: layout({
-      preview: message,
+      preview,
       title,
       body: htmlBody,
-      cta: neverPlayed ? 'Jugar mi primera partida' : 'Volver a jugar',
-      ctaUrl: `${SITE_URL}/lobby`,
+      cta,
+      ctaUrl,
       preferencesUrl,
     }),
-    text: `${greeting}\n\n${title}\n\n${message}\n\nJugar: ${SITE_URL}/lobby\n\nPreferencias: ${preferencesUrl}`,
+    text: `${greeting}\n\n${title}\n\n${message}\n\n${cta}: ${ctaUrl}\n\nPreferencias: ${preferencesUrl}`,
   }
 }

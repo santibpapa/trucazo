@@ -54,6 +54,9 @@ Construido con Next.js (App Router), React, TypeScript y Supabase (Auth + Postgr
    - El dominio `trucazo.com.ar` verificado en Resend para poder enviar desde
      `hola@trucazo.com.ar`. El cron de Vercel se configura solo desde `vercel.json`
      y corre todos los días a las 9:00 de Argentina (12:00 UTC).
+   - Las campañas para volver a jugar se crean, editan, activan y pausan desde
+     `/admin/emails`. Los dos ejemplos iniciales quedan pausados hasta que el admin
+     los revise y los active.
 
 ## Desarrollo
 
