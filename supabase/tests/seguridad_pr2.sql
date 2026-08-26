@@ -50,6 +50,13 @@ begin
   if v_nombre is distinct from 'PruebaPedro' then
     fallas := array_append(fallas, 'no se respetó el nombre elegido: ' || coalesce(v_nombre,'(ninguno)'));
   end if;
+  if not exists (
+    select 1 from email_preferences
+    where user_id = 'ff000000-0000-4000-a000-000000000002'
+      and news_enabled and reengagement_enabled
+  ) then
+    fallas := array_append(fallas, 'el registro no creó las preferencias de email');
+  end if;
 
   -- c) GOOGLE: sin nombre elegido, usa la parte de antes del arroba.
   insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at)

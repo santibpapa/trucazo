@@ -93,6 +93,19 @@ begin
     raise exception 'get_login_email no quedó exclusivo de service_role';
   end if;
 
+  -- La actividad y la cola de email contienen datos internos. El navegador no
+  -- puede llamarlas; el cron del servidor sí.
+  if has_function_privilege('anon', 'public.email_recipient_activity(uuid[])', 'execute')
+     or has_function_privilege('authenticated', 'public.email_recipient_activity(uuid[])', 'execute')
+     or not has_function_privilege('service_role', 'public.email_recipient_activity(uuid[])', 'execute') then
+    raise exception 'email_recipient_activity no quedó exclusiva de service_role';
+  end if;
+  if has_function_privilege('anon', 'public.claim_email_deliveries(jsonb,integer)', 'execute')
+     or has_function_privilege('authenticated', 'public.claim_email_deliveries(jsonb,integer)', 'execute')
+     or not has_function_privilege('service_role', 'public.claim_email_deliveries(jsonb,integer)', 'execute') then
+    raise exception 'claim_email_deliveries no quedó exclusiva de service_role';
+  end if;
+
   -- Cada dueño actual debe tener una entrada GLOBAL de default ACL sin EXECUTE
   -- para los roles del navegador ni para PUBLIC (grantee 0). Un revoke limitado
   -- al schema public no anula el grant global incorporado de PostgreSQL.

@@ -9,6 +9,7 @@
     "lint": "next lint",
     "check:rpc-allowlist": "node scripts/check-rpc-allowlist.mjs",
     "check:campaign": "node scripts/check-patagonia-expansion.mjs",
+    "check:emails": "node --import tsx scripts/check-email-notifications.ts",
     "check:agentes": "tsx scripts/check-agent-readiness.ts"
   },
   "dependencies": {

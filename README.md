@@ -35,6 +35,10 @@ Construido con Next.js (App Router), React, TypeScript y Supabase (Auth + Postgr
    SUPABASE_SERVICE_ROLE_KEY=<tu-service-role>   # entrar con nombre de usuario (solo servidor)
    TELEGRAM_BOT_TOKEN=<token>                    # aviso cuando alguien crea una mesa
    TELEGRAM_CHAT_ID=<chat>
+   RESEND_API_KEY=<clave-de-resend>                # novedades y recordatorios por email
+   EMAIL_FROM=Trucazo <hola@trucazo.com.ar>        # remitente verificado en Resend
+   CRON_SECRET=<secreto-largo-y-aleatorio>          # protege la tarea diaria de email
+   EMAIL_MAX_PER_RUN=90                             # opcional: límite de envíos diarios
    NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY=<clave>      # aviso por mail de las reseñas
    ```
 
@@ -47,6 +51,9 @@ Construido con Next.js (App Router), React, TypeScript y Supabase (Auth + Postgr
    - **Realtime habilitado** en las tablas `games` y `tables` (la partida y el lobby
      dependen de las suscripciones a cambios). Esto se activa a mano en el panel.
    - El **cron** de `sweep_stale_games` y `sweep_stale_tables`, cada 5 minutos.
+   - El dominio `trucazo.com.ar` verificado en Resend para poder enviar desde
+     `hola@trucazo.com.ar`. El cron de Vercel se configura solo desde `vercel.json`
+     y corre todos los días a las 9:00 de Argentina (12:00 UTC).
 
 ## Desarrollo
 

@@ -50,6 +50,9 @@ jobs:
       - name: Que la lógica de truco del cliente y la del servidor coincidan
         run: npx tsx scripts/sim.ts
 
+      - name: Que los recordatorios por email salgan cuando corresponde
+        run: npm run check:emails
+
       - name: Build de producción
         # Claves de mentira a propósito: el build no se conecta a ningún lado,
         # solo necesita que las variables existan.
