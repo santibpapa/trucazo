@@ -167,6 +167,12 @@ export default function RegisterPage() {
           )}
         </Button>
 
+        <p className="text-center text-xs leading-relaxed text-subtle">
+          Al registrarte podemos enviarte novedades e invitaciones para volver a jugar.
+          Podés darte de baja con un toque desde cualquier correo.{' '}
+          <Link href="/privacidad" className="text-gold hover:underline">Ver privacidad</Link>
+        </p>
+
         <p className="text-center text-sm text-muted">
           ¿Ya tenés cuenta?{' '}
           <Link href="/login" className="text-gold font-semibold hover:underline">

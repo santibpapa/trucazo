@@ -11,7 +11,13 @@ const migrationsRoot = join(root, 'supabase/migrations')
 // script las junta a las dos fuentes para que no haya una lista que mantener a
 // mano (y que se desactualice sin que nadie se entere).
 const baseAllowlistFile = '20260815_seguridad_6_privilegios_por_defecto.sql'
-const serverOnlyPath = 'src/app/api/login-usuario/route.ts'
+const serverOnlyPaths = new Map([
+  ['src/app/api/login-usuario/route.ts', new Set(['get_login_email'])],
+  ['src/app/api/email/cron/route.ts', new Set([
+    'email_recipient_activity',
+    'claim_email_deliveries',
+  ])],
+])
 
 async function sourceFiles(dir) {
   const entries = await readdir(dir, { withFileTypes: true })
@@ -65,7 +71,7 @@ const serverCalls = new Set()
 for (const path of await sourceFiles(srcRoot)) {
   const names = rpcNames(await readFile(path, 'utf8'))
   const repoPath = relative(root, path).replaceAll('\\', '/')
-  const target = repoPath === serverOnlyPath ? serverCalls : browserCalls
+  const target = serverOnlyPaths.has(repoPath) ? serverCalls : browserCalls
   for (const name of names) target.add(name)
 }
 
@@ -76,9 +82,12 @@ if (missing.length || unused.length) {
   if (missing.length) console.error(`RPC usadas pero no concedidas: ${missing.join(', ')}`)
   if (unused.length) console.error(`RPC concedidas pero no usadas: ${unused.join(', ')}`)
   process.exitCode = 1
-} else if (serverCalls.size !== 1 || !serverCalls.has('get_login_email')) {
+} else if (
+  serverCalls.size !== new Set([...serverOnlyPaths.values()].flatMap(names => [...names])).size ||
+  [...serverOnlyPaths.values()].some(names => [...names].some(name => !serverCalls.has(name)))
+) {
   console.error(`RPC server-only inesperadas: ${[...serverCalls].sort().join(', ') || '(ninguna)'}`)
   process.exitCode = 1
 } else {
-  console.log(`Allowlist correcta: ${allowed.size} RPC cliente y get_login_email sólo en servidor.`)
+  console.log(`Allowlist correcta: ${allowed.size} RPC cliente y ${serverCalls.size} RPC sólo en servidor.`)
 }

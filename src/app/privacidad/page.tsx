@@ -16,7 +16,7 @@ export default function PrivacidadPage() {
     <SeoPageLayout
       title="Política de privacidad"
       breadcrumb="Privacidad"
-      intro="Esta página explica en lenguaje claro qué información necesita Trucazo para funcionar. Última actualización: 15 de agosto de 2026."
+      intro="Esta página explica en lenguaje claro qué información necesita Trucazo para funcionar. Última actualización: 26 de agosto de 2026."
       showPlayCta={false}
       showByline={false}
     >
@@ -40,6 +40,12 @@ export default function PrivacidadPage() {
           guardar progreso, ofrecer funciones sociales, prevenir abuso, investigar
           errores y medir de manera agregada el uso y rendimiento del sitio.
         </p>
+        <p>
+          Si la cuenta tiene un email confirmado, Trucazo también puede usarlo para
+          comunicar novedades e invitar a volver cuando todavía no se jugó o pasó un
+          período de inactividad. Cada mensaje permite desactivar uno o ambos tipos de
+          correo de forma inmediata.
+        </p>
       </Section>
 
       <Section title="Modo invitado">
@@ -57,6 +63,7 @@ export default function PrivacidadPage() {
           <li><strong>Vercel:</strong> alojamiento, entrega del sitio, analítica y métricas de rendimiento.</li>
           <li><strong>Google:</strong> autenticación opcional cuando se elige “Continuar con Google”.</li>
           <li><strong>Web3Forms:</strong> aviso opcional de nuevas reseñas cuando esa integración está configurada.</li>
+          <li><strong>Resend:</strong> entrega de novedades e invitaciones para volver a jugar cuando esa integración está configurada.</li>
         </ul>
         <p>
           Cada proveedor puede procesar datos técnicos según sus propias políticas y la
