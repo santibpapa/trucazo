@@ -276,7 +276,7 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
         <div className="mt-6 border-t border-line pt-6">
           <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-subtle">Vista previa</p>
           <div className="overflow-hidden rounded-2xl border border-line bg-[#1A0F10] p-4 sm:p-7">
-            <p className="mb-1 break-words text-sm font-bold text-cream">PUBLICIDAD — {preview.subject}</p>
+            <p className="mb-1 break-words text-sm font-bold text-cream">{preview.subject}</p>
             <p className="mb-5 break-words text-xs text-subtle">{preview.preview}</p>
             <div className="rounded-2xl border border-[#5a4741] bg-[#251719] p-5 sm:p-7">
               <p className="mb-5 text-xl font-extrabold text-gold">TRUCAZO</p>
