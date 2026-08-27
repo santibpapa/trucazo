@@ -103,7 +103,7 @@ export async function GET(request: Request) {
     body: JSON.stringify(claimed.map(mail => ({
       from,
       to: [mail.to],
-      subject: `PUBLICIDAD — ${mail.subject}`,
+      subject: mail.subject,
       html: mail.html,
       text: mail.text,
       headers: {
