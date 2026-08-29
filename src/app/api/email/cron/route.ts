@@ -8,6 +8,7 @@ import {
   type ReengagementCampaign,
 } from '@/lib/email/candidates'
 import { newsMail, reengagementMail } from '@/lib/email/content'
+import { isConfirmedEmailRecipient } from '@/lib/email/recipients'
 import { SITE_URL } from '@/lib/site'
 
 export const runtime = 'nodejs'
@@ -149,9 +150,7 @@ async function listConfirmedUsers(supabase: ReturnType<typeof createEmailAdminCl
     })
     if (error) throw new Error(`No se pudieron cargar los usuarios: ${error.message}`)
 
-    users.push(...data.users.filter(user =>
-      Boolean(user.email && user.email_confirmed_at && !user.is_anonymous),
-    ))
+    users.push(...data.users.filter(isConfirmedEmailRecipient))
     if (data.users.length < AUTH_PAGE_SIZE) return users
   }
 }

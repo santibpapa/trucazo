@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createEmailAdminClient } from '@/lib/email/admin'
+import { reengagementMail } from '@/lib/email/content'
 import type { ReengagementKind } from '@/lib/email/candidates'
+import { SITE_URL } from '@/lib/site'
 
 export const runtime = 'nodejs'
 
@@ -63,6 +65,74 @@ export async function PATCH(request: Request) {
   return NextResponse.json({ campaign: data })
 }
 
+export async function PUT(request: Request) {
+  const context = await requireAdmin()
+  if (context instanceof NextResponse) return context
+
+  const parsed = validateCampaign(await request.json().catch(() => null))
+  if ('error' in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 })
+  }
+  if (!context.email) {
+    return NextResponse.json(
+      { error: 'Tu cuenta de administrador no tiene un email para recibir la prueba.' },
+      { status: 400 },
+    )
+  }
+
+  const resendKey = process.env.RESEND_API_KEY
+  const from = process.env.EMAIL_FROM ?? 'Trucazo <hola@trucazo.com.ar>'
+  if (!resendKey) {
+    return NextResponse.json({ error: 'Falta configurar Resend.' }, { status: 503 })
+  }
+
+  const { data: preferences } = await context.admin
+    .from('email_preferences')
+    .select('unsubscribe_token')
+    .eq('user_id', context.userId)
+    .maybeSingle()
+  const preferencesUrl = preferences?.unsubscribe_token
+    ? `${SITE_URL}/email/preferencias?token=${preferences.unsubscribe_token}`
+    : `${SITE_URL}/admin/emails`
+  const content = reengagementMail({
+    username: context.username,
+    preferencesUrl,
+    campaign: {
+      id: '00000000-0000-4000-8000-000000000000',
+      ...parsed.value,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  })
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${resendKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: [context.email],
+      subject: content.subject,
+      html: content.html,
+      text: content.text,
+      headers: { 'X-Trucazo-Test': 'true' },
+    }),
+  })
+  const payload = await response.json().catch(() => null) as
+    | { id?: string; message?: string }
+    | null
+  if (!response.ok || !payload?.id) {
+    return NextResponse.json(
+      { error: payload?.message ?? `Resend respondió ${response.status}` },
+      { status: 502 },
+    )
+  }
+
+  return NextResponse.json({ ok: true, to: context.email })
+}
+
 async function requireAdmin() {
   const session = await createClient()
   const { data: { user } } = await session.auth.getUser()
@@ -75,14 +145,19 @@ async function requireAdmin() {
 
   const { data: profile } = await admin
     .from('profiles')
-    .select('is_admin')
+    .select('is_admin, username')
     .eq('id', user.id)
     .maybeSingle()
 
   if (!profile?.is_admin) {
     return NextResponse.json({ error: 'No autorizado.' }, { status: 403 })
   }
-  return { admin, userId: user.id }
+  return {
+    admin,
+    userId: user.id,
+    email: user.email ?? null,
+    username: profile.username || 'Administrador',
+  }
 }
 
 function validateCampaign(value: unknown): { value: CampaignInput } | { error: string } {
