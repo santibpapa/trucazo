@@ -5,6 +5,7 @@ import {
   type ReengagementCampaign,
 } from '../src/lib/email/candidates'
 import { reengagementMail } from '../src/lib/email/content'
+import { isConfirmedEmailRecipient } from '../src/lib/email/recipients'
 
 const now = new Date('2026-08-26T12:00:00Z')
 const base: EmailActivity = {
@@ -77,5 +78,18 @@ const unsafeLink = reengagementMail({
 })
 assert.match(unsafeLink.text, /Jugar: https:\/\/www\.trucazo\.com\.ar\/lobby\?utm_source=trucazo_email&utm_medium=email/)
 assert.doesNotMatch(unsafeLink.text, /evil\.example/)
+
+assert.equal(isConfirmedEmailRecipient({
+  email: 'jugador@example.com',
+  email_confirmed_at: '2026-08-20T12:00:00Z',
+  is_anonymous: false,
+  app_metadata: { provider: 'email', providers: ['email'] },
+}), true)
+assert.equal(isConfirmedEmailRecipient({
+  email: 'bot1@trucazo.bot',
+  email_confirmed_at: '2026-08-20T12:00:00Z',
+  is_anonymous: false,
+  app_metadata: { provider: 'bot', providers: ['bot'] },
+}), false)
 
 console.log('Emails: reglas de reactivación correctas.')

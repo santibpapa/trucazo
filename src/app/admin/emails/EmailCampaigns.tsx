@@ -32,8 +32,10 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
   const [draft, setDraft] = useState<EditableCampaign>(() => selected ? editable(selected) : EMPTY)
   const [creating, setCreating] = useState(initialCampaigns.length === 0)
   const [busy, setBusy] = useState(false)
+  const [testing, setTesting] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [testSentTo, setTestSentTo] = useState('')
 
   const preview = {
     subject: personalize(draft.subject || 'Asunto del correo'),
@@ -49,6 +51,7 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
     setCreating(false)
     setError('')
     setSaved(false)
+    setTestSentTo('')
   }
 
   function newCampaign() {
@@ -57,6 +60,7 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
     setCreating(true)
     setError('')
     setSaved(false)
+    setTestSentTo('')
   }
 
   async function save() {
@@ -108,6 +112,28 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
       setError(cause instanceof Error ? cause.message : 'No se pudo cambiar el estado.')
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function sendTest() {
+    setTesting(true)
+    setError('')
+    setTestSentTo('')
+    try {
+      const response = await fetch('/api/admin/email-campaigns', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(draft),
+      })
+      const result = await response.json() as { ok?: boolean; to?: string; error?: string }
+      if (!response.ok || !result.ok || !result.to) {
+        throw new Error(result.error ?? 'No se pudo enviar la prueba.')
+      }
+      setTestSentTo(result.to)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo enviar la prueba.')
+    } finally {
+      setTesting(false)
     }
   }
 
@@ -180,6 +206,11 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
 
         {error && <p role="alert" className="mb-4 rounded-xl border border-negative/40 bg-negative/10 p-3 text-sm text-cream">{error}</p>}
         {saved && <p className="mb-4 rounded-xl border border-positive/40 bg-positive/10 p-3 text-sm text-cream">Campaña guardada.</p>}
+        {testSentTo && (
+          <p className="mb-4 rounded-xl border border-positive/40 bg-positive/10 p-3 text-sm text-cream">
+            Prueba enviada a {testSentTo}. No cuenta en las estadísticas ni alcanza a otros usuarios.
+          </p>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
@@ -292,7 +323,10 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
           {creating && campaigns.length > 0 && (
             <Button variant="ghost" onClick={() => selectCampaign(campaigns[0])}>Cancelar</Button>
           )}
-          <Button onClick={() => void save()} disabled={busy}>
+          <Button variant="secondary" onClick={() => void sendTest()} disabled={busy || testing}>
+            {testing ? 'Enviando prueba…' : 'Enviar prueba'}
+          </Button>
+          <Button onClick={() => void save()} disabled={busy || testing}>
             {busy ? 'Guardando…' : creating ? 'Crear campaña' : 'Guardar cambios'}
           </Button>
         </div>
@@ -303,6 +337,7 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
   function update<K extends keyof EditableCampaign>(key: K, value: EditableCampaign[K]) {
     setDraft(current => ({ ...current, [key]: value }))
     setSaved(false)
+    setTestSentTo('')
   }
 }
 
