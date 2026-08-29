@@ -1042,7 +1042,277 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-6">
         <Panel className="w-full max-w-sm p-8 text-center flex flex-col items-center gap-5 animate-scale-in">
           <div
-            className={`w-16 h-16 r…3621 tokens truncated…-0 rounded-[50%]"
+            className={`w-16 h-16 rounded-full flex items-center justify-center ${
+              won ? 'bg-gold/15 text-gold shadow-gold-ring' : 'bg-negative/15 text-negative'
+            }`}
+          >
+            {won ? <TrophyIcon /> : <FlagIcon />}
+          </div>
+          <h2 className="font-display text-3xl font-extrabold text-cream">
+            {won ? '¡Ganaste!' : 'Perdiste'}
+          </h2>
+
+          {/* Premios del duelo: puntos de ranking (si ganó algo) y monedas (solo
+              la primera vez que vencés a este rival). */}
+          {won && (game.campaign_points_earned > 0 || game.campaign_reward > 0) && (
+            <div className="flex items-center gap-2">
+              {game.campaign_points_earned > 0 && (
+                <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 font-display font-bold text-gold shadow-gold-ring animate-scale-in">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2l2.9 6.26 6.6.7-4.9 4.5 1.35 6.54L12 16.77 6.05 20l1.35-6.54-4.9-4.5 6.6-.7L12 2z" />
+                  </svg>
+                  +{game.campaign_points_earned.toLocaleString('es-AR')} pts
+                </div>
+              )}
+              {game.campaign_reward > 0 && (
+                <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 font-display font-bold text-gold shadow-gold-ring animate-scale-in">
+                  <CoinIcon size={18} />
+                  +{game.campaign_reward.toLocaleString('es-AR')}
+                </div>
+              )}
+            </div>
+          )}
+
+          <p className="text-sm text-muted">
+            {won
+              ? `Le ganaste a ${opponentUsername}. Mirá el mapa: capaz se abrió algo nuevo.`
+              : `${opponentUsername} te ganó esta vez. Volvé a intentarlo, le vas a encontrar la vuelta.`}
+          </p>
+
+          {actionError && <p className="text-sm text-negative">{actionError}</p>}
+
+          <div className="w-full flex flex-col gap-2">
+            <Button variant="primary" size="md" fullWidth onClick={playAgainCampaign} disabled={loading}>
+              {won ? 'Jugar de nuevo' : 'Revancha'}
+            </Button>
+            <Button variant="ghost" size="md" fullWidth onClick={() => router.push('/historia')} disabled={loading}>
+              Volver al modo historia
+            </Button>
+          </div>
+
+          {/* Pedido de reseña (temporal: por ahora aparece apenas termina cada partida) */}
+          <div className="w-full flex flex-col items-center gap-2 border-t border-line/60 pt-4">
+            {showThanks && (
+              <p className="text-xs font-semibold text-gold text-center">¡Gracias por tu reseña! 🌟</p>
+            )}
+            <p className="text-xs text-muted text-center">¿Nos podrás ayudar con una breve reseña del juego?</p>
+            <Button variant="secondary" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
+              Dejar reseña
+            </Button>
+          </div>
+        </Panel>
+      </main>
+    )
+  }
+
+  if (game.status === 'finished' && showFinish) {
+    // Partida anulada (abandonada por ambos): sin ganador, se reembolsa la apuesta.
+    const voided = game.winner_id == null
+    const won = game.winner_id === currentUserId
+    const net = game.bet / 2
+    const myVote = isPlayer1 ? game.rematch_p1 : game.rematch_p2
+    const oppVote = isPlayer1 ? game.rematch_p2 : game.rematch_p1
+    const rematchCount = (game.rematch_p1 ? 1 : 0) + (game.rematch_p2 ? 1 : 0)
+    const someoneWantsRematch = rematchCount > 0
+    return (
+      <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-6">
+        <Panel className="w-full max-w-sm p-8 text-center flex flex-col items-center gap-5 animate-scale-in">
+          <div
+            className={`w-16 h-16 rounded-full flex items-center justify-center ${
+              voided ? 'bg-surface2 text-muted' : won ? 'bg-gold/15 text-gold shadow-gold-ring' : 'bg-negative/15 text-negative'
+            }`}
+          >
+            {voided ? <FlagIcon /> : won ? <TrophyIcon /> : <FlagIcon />}
+          </div>
+          <h2 className="font-display text-3xl font-extrabold text-cream">
+            {voided ? 'Partida anulada' : won ? '¡Ganaste!' : 'Perdiste'}
+          </h2>
+          {voided ? (
+            <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface2 px-4 py-2 font-display font-bold text-muted">
+              <CoinIcon size={18} />
+              Apuesta reembolsada
+            </div>
+          ) : (
+            <div
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 font-display font-bold ${
+                won
+                  ? 'border-positive/40 bg-positive/10 text-positive'
+                  : 'border-negative/40 bg-negative/10 text-negative'
+              }`}
+            >
+              <CoinIcon size={18} />
+              {won ? '+' : '−'}{net.toLocaleString('es-AR')}
+            </div>
+          )}
+
+          {actionError && <p className="text-sm text-negative">{actionError}</p>}
+
+          {/* Cuadro de revancha: se ilumina si alguno la pidió y muestra el conteo */}
+          <div
+            className={`w-full rounded-2xl border p-3 flex flex-col gap-3 transition-colors ${
+              someoneWantsRematch ? 'border-gold bg-gold/10 shadow-gold-ring' : 'border-line bg-surface2'
+            }`}
+          >
+            {showThanks && (
+              <p className="text-xs font-semibold text-gold text-center">¡Gracias por tu reseña! 🌟</p>
+            )}
+            {someoneWantsRematch && (
+              <p className="text-sm font-semibold text-gold flex items-center justify-center gap-2">
+                {myVote && !oppVote ? 'Esperando a tu rival…'
+                  : oppVote && !myVote ? `${opponentUsername} quiere revancha`
+                  : '¡Revancha!'}
+                <span className="rounded-full bg-gold/20 px-2 py-0.5 text-xs tabular">{rematchCount}/2</span>
+              </p>
+            )}
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" fullWidth onClick={goToLobby} disabled={loading}>
+                Volver al lobby
+              </Button>
+              <Button variant="primary" size="sm" fullWidth onClick={requestRematch} disabled={loading || myVote}>
+                {myVote ? 'Revancha pedida' : 'Revancha'}
+              </Button>
+            </div>
+
+            {/* Pedido de reseña */}
+            <div className="flex flex-col items-center gap-2 border-t border-line/60 pt-3">
+              <p className="text-xs text-muted text-center">¿Nos podrás ayudar con una breve reseña del juego?</p>
+              <Button variant="secondary" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
+                Dejar reseña
+              </Button>
+            </div>
+          </div>
+        </Panel>
+      </main>
+    )
+  }
+
+  // Dorsos del rival: 3 menos las cartas que ya jugó en esta mano.
+  // El abanico del rival descuenta también las cartas que bajó por el envido
+  const oppRevealedCount = envidoReveal && !revealIsMine ? envidoReveal.cards.length : 0
+  const oppCardsLeft = Math.max(0, 3 - game.played_cards.filter(pc => pc.player_id === opponentId).length - oppRevealedCount)
+  // Colores de la mesa según el salón elegido (madera, filete y paño)
+  const salonTheme = getSalonTheme(salonSlug)
+
+  return (
+    <main className="fixed inset-0 overflow-hidden">
+      {/* Fondo: salón del club. Base de degradados cálidos (lámparas + penumbra)
+          y, encima, la foto del salón elegido (public/mesa/{slug}.webp) si existe.
+          Cierra una viñeta. */}
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(42% 20% at 10% 8%, rgba(255,196,120,0.13), transparent 70%),' +
+            'radial-gradient(42% 20% at 90% 8%, rgba(255,196,120,0.13), transparent 70%),' +
+            'linear-gradient(180deg, #271315 0%, #1A0F10 45%, #0f0809 100%)',
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url('/mesa/${salonSlug}.webp')` }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{ background: 'radial-gradient(120% 100% at 50% 42%, transparent 50%, rgba(0,0,0,0.6) 100%)' }}
+      />
+
+      <div className="relative h-full flex flex-col p-2 sm:p-3 gap-2 max-w-lg md:max-w-2xl mx-auto w-full">
+      {/* Marcador: panel de cuero con marco dorado. El aro dorado y el relojito
+          acompañan al jugador que tiene que actuar. */}
+      <div
+        className="shrink-0 rounded-2xl border border-gold/35 px-3 py-2"
+        style={{
+          background: 'linear-gradient(180deg, #2b1517 0%, #1d0e10 100%)',
+          boxShadow:
+            'inset 0 0 0 1px rgba(201,162,75,0.15), inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 38px -12px rgba(0,0,0,0.7)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-1.5">
+          <div className="flex-1 flex items-center gap-1.5 min-w-0">
+            <SeatAvatar slug={campaignRivalSlug} imageUrl={opponentAvatarUrl} name={opponentUsername} active={!meActive} frame={opponentFrame} medal={opponentMedal} />
+            <div className="flex-1 flex flex-col gap-0.5 min-w-0">
+              <span className="block w-full truncate text-[11px] leading-tight text-muted">{opponentUsername}</span>
+              <span className="font-display text-2xl font-extrabold text-cream tabular leading-none">{opponentScore}</span>
+            </div>
+          </div>
+          <div className="flex flex-col items-center gap-0.5 px-1 shrink-0">
+            {game.bet > 0 && (
+              <span className="inline-flex items-center gap-1 font-display font-bold text-gold tabular text-sm">
+                <CoinIcon size={13} />{game.bet}
+              </span>
+            )}
+            <span className="text-[9px] uppercase tracking-widest text-subtle whitespace-nowrap">
+              {game.bet > 0 ? `Pozo · a ${game.target_score}` : `Duelo a ${game.target_score}`}
+            </span>
+            <span className="text-[10px] text-muted whitespace-nowrap">
+              Mano: <b className="text-cream font-semibold">{isMano ? 'Vos' : 'Rival'}</b>
+            </span>
+          </div>
+          <div className="flex-1 flex items-center justify-end gap-1.5 min-w-0">
+            <div className="flex-1 flex flex-col gap-0.5 min-w-0 text-right">
+              <span className="block w-full truncate text-[11px] leading-tight text-gold">{myUsername} (vos)</span>
+              <span className="font-display text-2xl font-extrabold text-cream tabular leading-none">{myScore}</span>
+            </div>
+            <SeatAvatar imageUrl={myAvatarUrl} name={myUsername} active={meActive} frame={myFrame} medal={myMedal} />
+          </div>
+        </div>
+      </div>
+
+      {/* Estado del turno: pastilla compacta flotante */}
+      {/* Alto FIJO (h-9): el cartel cambia de estilo según el turno pero su
+          contenedor no cambia de alto, así la mesa (que toma "lo que queda") no
+          se reajusta en cada jugada. */}
+      <div className="relative z-30 shrink-0 h-9 flex items-center justify-center">
+        <div
+          className={`rounded-full border transition-colors text-center ${
+            meActive
+              ? 'px-5 py-1.5 text-sm font-bold border-gold-700 bg-gold text-ink animate-pulse-glow'
+              : 'px-4 py-1 text-xs font-semibold border-line/70 bg-black/45 text-muted backdrop-blur-sm'
+          }`}
+        >
+          {game.awaiting_deal ? 'Fin de la mano…' :
+           hasPendingEnvido ? `Te cantaron ${ENVIDO_LABEL[game.envido_state.status] ?? 'envido'} — respondé` :
+           hasPendingTruco ? `Te cantaron ${TRUCO_LABEL[game.truco_state.status] ?? 'truco'} — respondé` :
+           isDeclaring ? (myDeclareTurn ? 'Tu turno — decí tu tanto' : `Turno de ${opponentUsername}`) :
+           isMyTurn ? 'Tu turno' : `Turno de ${opponentUsername}`}
+          {!game.awaiting_deal && secondsLeft != null && (
+            <span className={`ml-2 tabular ${secondsLeft <= 5 ? 'text-negative font-bold' : 'opacity-80'}`}>
+              ⏱ {secondsLeft}s
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Error de la última acción (se autodescarta). Flota sobre la mesa (h-0 +
+          absolute) para no empujar el layout: la mesa no cambia de tamaño. */}
+      {actionError && (
+        <div className="relative z-40 h-0 overflow-visible">
+        <div
+          role="alert"
+          onClick={() => setActionError('')}
+          className="absolute inset-x-0 top-1 rounded-xl border border-negative/40 bg-negative/60 backdrop-blur p-2 text-center text-sm font-medium text-white shadow-card cursor-pointer animate-fade-up"
+        >
+          {actionError}
+        </div>
+        </div>
+      )}
+
+      {/* Zona de juego. La mesa ovalada vive acá adentro, anclada a esta zona:
+          crece o se achica con ella, así las cartas siempre quedan sobre el paño
+          y nunca pisan los botones de abajo. */}
+      <div className="relative flex-1 min-h-0 flex flex-col pt-14 sm:pt-0 sm:justify-center">
+        {/* Bloque de la mesa: en celular toma el alto que queda entre la franja de
+            salón (pt de arriba) y la fila de la mano (abajo, con alto propio); como
+            todos esos altos son fijos, la mesa NUNCA cambia de tamaño. En compu
+            (sm+) llena la zona como antes y la mano flota encima. */}
+        <div className="relative w-full min-h-0 flex-1 sm:flex-none sm:h-full p-1 sm:p-2 flex flex-col">
+        {/* Mesa ovalada: madera con filete dorado y paño bordó */}
+        <div aria-hidden className="absolute -top-2 -bottom-12 left-1/2 -translate-x-1/2 w-[min(135vw,950px)]">
+          <div
+            className="absolute inset-0 rounded-[50%]"
             style={{
               background: salonTheme.rim,
               boxShadow:
