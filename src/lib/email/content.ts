@@ -60,23 +60,69 @@ function layout({
 }) {
   return `<!doctype html>
 <html lang="es">
-  <body style="margin:0;background:#1A0F10;color:#EFE6DA;font-family:Arial,sans-serif">
-    <div style="display:none;max-height:0;overflow:hidden">${escapeHtml(preview)}</div>
-    <div style="max-width:560px;margin:0 auto;padding:36px 20px">
-      <div style="border:1px solid #5a4741;border-radius:18px;background:#251719;padding:30px">
-        <p style="margin:0 0 22px;color:#C9A24B;font-size:24px;font-weight:800">TRUCAZO</p>
-        <h1 style="margin:0 0 16px;font-size:26px;line-height:1.2;color:#EFE6DA">${escapeHtml(title)}</h1>
-        <div style="font-size:16px;line-height:1.65;color:#ddd0c4">${body}</div>
-        <p style="margin:28px 0 10px">
-          <a href="${escapeHtml(ctaUrl)}" style="display:inline-block;border-radius:12px;background:#C9A24B;color:#1A0F10;padding:13px 20px;text-decoration:none;font-weight:800">${escapeHtml(cta)}</a>
-        </p>
-      </div>
-      <p style="margin:18px 4px 0;color:#9c8982;font-size:12px;line-height:1.5">
-        Recibís este correo porque tenés una cuenta en Trucazo.
-        Podés solicitar el retiro total o parcial de tu dirección en cualquier momento:
-        <a href="${escapeHtml(preferencesUrl)}" style="color:#C9A24B">cambiar preferencias o darme de baja</a>.
-      </p>
-    </div>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <style>
+      :root { color-scheme: light dark; supported-color-schemes: light dark; }
+      @media screen and (max-width: 600px) {
+        .email-shell { padding: 18px 12px 24px !important; }
+        .email-card { padding: 28px 22px 26px !important; }
+        .email-title { font-size: 29px !important; line-height: 1.12 !important; }
+        .email-button { display: block !important; text-align: center !important; }
+      }
+      @media (prefers-color-scheme: dark) {
+        .email-bg, .email-body { background-color: #1A0F10 !important; }
+        .email-card { background-color: #251719 !important; border-color: #543C3E !important; }
+        .email-title { color: #EFE6DA !important; }
+        .email-copy { color: #D9CBC1 !important; }
+        .email-footer { color: #A9958D !important; }
+        .email-footer a { color: #D7B566 !important; }
+      }
+    </style>
+  </head>
+  <body class="email-body" style="margin:0;padding:0;background-color:#F3EBE5;color:#251719;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;text-size-adjust:100%">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${escapeHtml(preview)}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+    <table class="email-bg" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background-color:#F3EBE5">
+      <tr>
+        <td class="email-shell" align="center" style="padding:32px 18px 38px">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:580px">
+            <tr>
+              <td style="padding:0 8px 18px">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td style="color:#A98532;font-size:22px;line-height:1;font-weight:900;letter-spacing:2.5px">TRUCAZO</td>
+                    <td align="right" style="color:#907E76;font-size:11px;line-height:1.2;font-weight:700;letter-spacing:1.4px;text-transform:uppercase">Truco argentino online</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="email-card" style="background-color:#FFFDFC;border:1px solid #D8C6BD;border-top:4px solid #C9A24B;border-radius:22px;padding:38px 38px 34px;box-shadow:0 10px 28px rgba(55,31,29,.08)">
+                <h1 class="email-title" style="margin:0;color:#251719;font-size:34px;line-height:1.12;letter-spacing:-.7px;font-weight:850">${escapeHtml(title)}</h1>
+                <div style="width:42px;height:3px;margin:22px 0;background-color:#C9A24B;border-radius:2px"></div>
+                <div class="email-copy" style="color:#59494A;font-size:17px;line-height:1.65">${body}</div>
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:28px">
+                  <tr>
+                    <td style="background-color:#C9A24B;border-radius:12px">
+                      <a class="email-button" href="${escapeHtml(ctaUrl)}" style="display:inline-block;padding:15px 24px;color:#1A0F10;text-decoration:none;font-size:16px;line-height:1.2;font-weight:850">${escapeHtml(cta)}&nbsp;&nbsp;→</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="email-footer" style="padding:20px 10px 0;color:#907E76;font-size:12px;line-height:1.65;text-align:center">
+                Este email te llegó porque tenés una cuenta en Trucazo.<br>
+                <a href="${escapeHtml(preferencesUrl)}" style="color:#8C691D;text-decoration:underline">Elegir qué emails recibir o darme de baja</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>`
 }
