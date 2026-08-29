@@ -43,6 +43,12 @@ export function personalize(value: string, username: string) {
   return value.replaceAll('{{usuario}}', username)
 }
 
+// Molde de todos los mails. Va en oscuro (vino + oro) como el sitio: así se ve
+// igual en modo claro y en modo oscuro, en vez de quedar a merced del invertido
+// automático de Gmail, que dejaba el diseño claro hecho un barro marrón.
+const FONT_STACK =
+  "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,sans-serif"
+
 function layout({
   preview,
   title,
@@ -58,68 +64,81 @@ function layout({
   ctaUrl: string
   preferencesUrl: string
 }) {
+  const markUrl = new URL('/icon-192.png', SITE_URL).toString()
+
   return `<!doctype html>
 <html lang="es">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="color-scheme" content="light dark">
-    <meta name="supported-color-schemes" content="light dark">
+    <meta name="color-scheme" content="dark">
+    <meta name="supported-color-schemes" content="dark">
     <style>
-      :root { color-scheme: light dark; supported-color-schemes: light dark; }
+      :root { color-scheme: dark; supported-color-schemes: dark; }
       @media screen and (max-width: 600px) {
-        .email-shell { padding: 18px 12px 24px !important; }
-        .email-card { padding: 28px 22px 26px !important; }
-        .email-title { font-size: 29px !important; line-height: 1.12 !important; }
-        .email-button { display: block !important; text-align: center !important; }
+        .email-shell { padding: 20px 14px 28px !important; }
+        .email-card { padding: 30px 24px 28px !important; }
+        .email-title { font-size: 28px !important; }
+        .email-copy { font-size: 16px !important; }
+        .email-button a { display: block !important; }
       }
-      @media (prefers-color-scheme: dark) {
-        .email-bg, .email-body { background-color: #1A0F10 !important; }
-        .email-card { background-color: #251719 !important; border-color: #543C3E !important; }
-        .email-title { color: #EFE6DA !important; }
-        .email-copy { color: #D9CBC1 !important; }
-        .email-footer { color: #A9958D !important; }
-        .email-footer a { color: #D7B566 !important; }
-      }
+      /* Outlook.com en oscuro: que no nos aclare el texto ni las superficies. */
+      [data-ogsc] .email-title { color: #EFE6DA !important; }
+      [data-ogsc] .email-copy { color: #CDB9B5 !important; }
+      [data-ogsc] .email-footer { color: #9A827E !important; }
+      a { color: #D7B566; }
     </style>
   </head>
-  <body class="email-body" style="margin:0;padding:0;background-color:#F3EBE5;color:#251719;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;text-size-adjust:100%">
+  <body style="margin:0;padding:0;background-color:#140C0D;color:#EFE6DA;font-family:${FONT_STACK};-webkit-text-size-adjust:100%;text-size-adjust:100%">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${escapeHtml(preview)}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
-    <table class="email-bg" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background-color:#F3EBE5">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#140C0D" style="width:100%;background-color:#140C0D">
       <tr>
-        <td class="email-shell" align="center" style="padding:32px 18px 38px">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:580px">
-            <tr>
-              <td style="padding:0 8px 18px">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                  <tr>
-                    <td style="color:#A98532;font-size:22px;line-height:1;font-weight:900;letter-spacing:2.5px">TRUCAZO</td>
-                    <td align="right" style="color:#907E76;font-size:11px;line-height:1.2;font-weight:700;letter-spacing:1.4px;text-transform:uppercase">Truco argentino online</td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td class="email-card" style="background-color:#FFFDFC;border:1px solid #D8C6BD;border-top:4px solid #C9A24B;border-radius:22px;padding:38px 38px 34px;box-shadow:0 10px 28px rgba(55,31,29,.08)">
-                <h1 class="email-title" style="margin:0;color:#251719;font-size:34px;line-height:1.12;letter-spacing:-.7px;font-weight:850">${escapeHtml(title)}</h1>
-                <div style="width:42px;height:3px;margin:22px 0;background-color:#C9A24B;border-radius:2px"></div>
-                <div class="email-copy" style="color:#59494A;font-size:17px;line-height:1.65">${body}</div>
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:28px">
-                  <tr>
-                    <td style="background-color:#C9A24B;border-radius:12px">
-                      <a class="email-button" href="${escapeHtml(ctaUrl)}" style="display:inline-block;padding:15px 24px;color:#1A0F10;text-decoration:none;font-size:16px;line-height:1.2;font-weight:850">${escapeHtml(cta)}&nbsp;&nbsp;→</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td class="email-footer" style="padding:20px 10px 0;color:#907E76;font-size:12px;line-height:1.65;text-align:center">
-                Este email te llegó porque tenés una cuenta en Trucazo.<br>
-                <a href="${escapeHtml(preferencesUrl)}" style="color:#8C691D;text-decoration:underline">Elegir qué emails recibir o darme de baja</a>
-              </td>
-            </tr>
-          </table>
+        <td class="email-shell" align="center" style="padding:34px 20px 40px">
+          <!--[if mso]><table role="presentation" width="580" align="center" cellspacing="0" cellpadding="0" border="0"><tr><td><![endif]-->
+          <div style="max-width:580px;margin:0 auto">
+
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%">
+              <tr>
+                <td width="30" style="padding:0 10px 20px 2px" valign="middle">
+                  <img src="${escapeHtml(markUrl)}" width="30" height="30" alt="" style="display:block;width:30px;height:30px;border:0;border-radius:9px">
+                </td>
+                <td valign="middle" style="padding:0 0 20px;font-family:${FONT_STACK};font-size:21px;line-height:30px;font-weight:800;letter-spacing:-.3px;color:#EFE6DA">Truc<span style="color:#C9A24B">azo</span></td>
+              </tr>
+            </table>
+
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#241517" style="width:100%;background-color:#241517;border:1px solid #3E2429;border-top:3px solid #C9A24B;border-radius:20px;box-shadow:0 18px 40px rgba(0,0,0,.45)">
+              <tr>
+                <td class="email-card" style="padding:36px 38px 34px">
+                  <h1 class="email-title" style="margin:0;font-family:${FONT_STACK};color:#EFE6DA;font-size:32px;line-height:1.15;letter-spacing:-.6px;font-weight:800">${escapeHtml(title)}</h1>
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:20px 0 22px">
+                    <tr><td width="36" height="3" bgcolor="#C9A24B" style="width:36px;height:3px;line-height:3px;font-size:0;background-color:#C9A24B;border-radius:2px">&nbsp;</td></tr>
+                  </table>
+                  <div class="email-copy" style="font-family:${FONT_STACK};color:#CDB9B5;font-size:16.5px;line-height:1.65">${body}</div>
+                  <table class="email-button" role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:28px">
+                    <tr>
+                      <td bgcolor="#C9A24B" align="center" style="background-color:#C9A24B;border-radius:12px;mso-padding-alt:16px 30px">
+                        <a href="${escapeHtml(ctaUrl)}" style="display:inline-block;padding:16px 30px;font-family:${FONT_STACK};color:#1F1011;text-decoration:none;font-size:16px;line-height:1.2;font-weight:800">${escapeHtml(cta)}&nbsp;&nbsp;&rarr;</a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%">
+              <tr>
+                <td align="center" style="padding:24px 12px 14px;font-family:${FONT_STACK};color:#7C6460;font-size:11px;line-height:1.4;letter-spacing:1.2px;text-transform:uppercase;font-weight:700">Truco argentino online</td>
+              </tr>
+              <tr>
+                <td class="email-footer" align="center" style="padding:0 12px;font-family:${FONT_STACK};color:#9A827E;font-size:12px;line-height:1.7">
+                  Te llega porque tenés una cuenta en Trucazo.<br>
+                  <a href="${escapeHtml(preferencesUrl)}" style="color:#C9A24B;text-decoration:underline">Elegir qué emails recibir o darme de baja</a>
+                </td>
+              </tr>
+            </table>
+
+          </div>
+          <!--[if mso]></td></tr></table><![endif]-->
         </td>
       </tr>
     </table>
