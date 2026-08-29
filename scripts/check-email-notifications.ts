@@ -69,7 +69,7 @@ const content = reengagementMail({
 assert.equal(content.subject, 'Volvé, Santi')
 assert.match(content.html, /Probá tu primera partida\./)
 assert.match(content.html, /name="viewport" content="width=device-width,initial-scale=1"/)
-assert.match(content.html, /name="color-scheme" content="dark"/)
+assert.match(content.html, /name="color-scheme" content="light dark"/)
 assert.match(content.html, /class="email-card"/)
 assert.match(content.html, /Elegir qué emails recibir o darme de baja/)
 assert.doesNotMatch(content.html, /retiro total o parcial/)
