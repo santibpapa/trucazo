@@ -13,7 +13,7 @@ begin;
 do $test$
 declare
   v_client_functions constant text[] := array[
-    'active_medal_for', 'admin_player', 'admin_stats', 'advance_hand',
+    'active_medal_for', 'admin_acquisition', 'admin_player', 'admin_stats', 'advance_hand',
     'bot_join_table',
     'bot_step', 'buy_accessory', 'buy_frame', 'buy_salon',
     'cancel_game_invite', 'cancel_table', 'claim_bonus', 'claim_table_notification',
@@ -104,6 +104,14 @@ begin
      or has_function_privilege('authenticated', 'public.claim_email_deliveries(jsonb,integer)', 'execute')
      or not has_function_privilege('service_role', 'public.claim_email_deliveries(jsonb,integer)', 'execute') then
     raise exception 'claim_email_deliveries no quedó exclusiva de service_role';
+  end if;
+
+  -- La escritura de analítica pasa sólo por el servidor: no acepta llamados
+  -- directos del navegador, ni siquiera de un usuario autenticado.
+  if has_function_privilege('anon', 'public.record_analytics_event(uuid,uuid,uuid,text,text,uuid,text,text,text,text,text,text,text,text,text,jsonb)', 'execute')
+     or has_function_privilege('authenticated', 'public.record_analytics_event(uuid,uuid,uuid,text,text,uuid,text,text,text,text,text,text,text,text,text,jsonb)', 'execute')
+     or not has_function_privilege('service_role', 'public.record_analytics_event(uuid,uuid,uuid,text,text,uuid,text,text,text,text,text,text,text,text,text,jsonb)', 'execute') then
+    raise exception 'record_analytics_event no quedó exclusiva de service_role';
   end if;
 
   -- Cada dueño actual debe tener una entrada GLOBAL de default ACL sin EXECUTE

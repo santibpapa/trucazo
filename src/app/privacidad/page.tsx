@@ -16,11 +16,11 @@ export default function PrivacidadPage() {
     <SeoPageLayout
       title="Política de privacidad"
       breadcrumb="Privacidad"
-      intro="Esta página explica en lenguaje claro qué información necesita Trucazo para funcionar. Última actualización: 26 de agosto de 2026."
+      intro="Esta página explica en lenguaje claro qué información necesita Trucazo para funcionar. Última actualización: 29 de agosto de 2026."
       showPlayCta={false}
       showByline={false}
     >
-      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebPage', name: title, description, url: SITE_URL + path, inLanguage: 'es-AR', dateModified: '2026-08-15' }} />
+      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebPage', name: title, description, url: SITE_URL + path, inLanguage: 'es-AR', dateModified: '2026-08-29' }} />
       <JsonLd data={createBreadcrumbJsonLd('Política de privacidad', path)} />
 
       <Section title="Datos que puede tratar el servicio">
@@ -30,7 +30,7 @@ export default function PrivacidadPage() {
           <li><strong>Juego:</strong> mesas, partidas, cartas necesarias durante la partida, resultados, tiempos y estadísticas.</li>
           <li><strong>Comunidad:</strong> mensajes, presencia y relaciones que el usuario decide utilizar.</li>
           <li><strong>Soporte:</strong> puntuaciones, comentarios e imágenes enviadas voluntariamente.</li>
-          <li><strong>Datos técnicos:</strong> información de navegación y rendimiento generada al visitar el sitio.</li>
+          <li><strong>Datos técnicos:</strong> páginas visitadas, origen aproximado de la visita, campaña, país, tipo de dispositivo, navegador y rendimiento.</li>
         </ul>
       </Section>
 
@@ -74,7 +74,10 @@ export default function PrivacidadPage() {
       <Section title="Almacenamiento local y PWA">
         <p>
           El navegador puede guardar preferencias, datos de sesión y recursos necesarios
-          para la aplicación instalable. El service worker permite cachear archivos para
+          para la aplicación instalable. También guarda identificadores aleatorios de
+          visitante y sesión para distinguir personas aproximadas de simples recargas de
+          página. Trucazo no guarda la dirección IP ni el user-agent completo en su
+          analítica propia. El service worker permite cachear archivos para
           mejorar carga y acceso. Borrar los datos del sitio desde el navegador elimina
           esos elementos locales, aunque no necesariamente los datos asociados a una
           cuenta registrada en el servidor.

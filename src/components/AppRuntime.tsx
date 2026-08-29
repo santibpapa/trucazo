@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import RegisterSW from '@/components/RegisterSW'
+import AnalyticsTracker from '@/components/AnalyticsTracker'
 
 const GuestSessionGuard = dynamic(() => import('@/components/GuestSessionGuard'), {
   ssr: false,
@@ -27,6 +28,7 @@ export default function AppRuntime() {
 
   return (
     <>
+      <AnalyticsTracker />
       {needsGuestGuard ? <GuestSessionGuard /> : null}
       <RegisterSW />
     </>

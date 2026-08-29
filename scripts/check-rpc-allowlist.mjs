@@ -17,6 +17,7 @@ const serverOnlyPaths = new Map([
     'email_recipient_activity',
     'claim_email_deliveries',
   ])],
+  ['src/app/api/analytics/route.ts', new Set(['record_analytics_event'])],
 ])
 
 async function sourceFiles(dir) {

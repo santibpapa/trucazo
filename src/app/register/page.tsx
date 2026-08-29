@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Panel, Logo, Input, Button, Alert, CoinIcon } from '@/components/ui'
 import { track } from '@vercel/analytics'
+import { trackFirstParty } from '@/lib/analytics/client'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -73,6 +74,10 @@ export default function RegisterPage() {
     // La cuenta ya fue creada aunque Supabase requiera confirmar el email antes
     // de iniciar sesión. Medimos ambos casos y distinguimos esa condición.
     track('register_completed', {
+      method: 'email',
+      confirmation_required: !signUpData.session,
+    })
+    trackFirstParty('register_completed', {
       method: 'email',
       confirmation_required: !signUpData.session,
     })

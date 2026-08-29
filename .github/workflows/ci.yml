@@ -53,6 +53,9 @@ jobs:
       - name: Que los recordatorios por email salgan cuando corresponde
         run: npm run check:emails
 
+      - name: Que la atribución de visitas clasifique bien cada origen
+        run: npm run check:analytics
+
       - name: Build de producción
         # Claves de mentira a propósito: el build no se conecta a ningún lado,
         # solo necesita que las variables existan.
