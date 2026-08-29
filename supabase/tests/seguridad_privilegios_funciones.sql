@@ -113,6 +113,11 @@ begin
      or not has_function_privilege('service_role', 'public.record_analytics_event(uuid,uuid,uuid,text,text,uuid,text,text,text,text,text,text,text,text,text,jsonb)', 'execute') then
     raise exception 'record_analytics_event no quedó exclusiva de service_role';
   end if;
+  if has_function_privilege('anon', 'public.sweep_old_analytics(integer)', 'execute')
+     or has_function_privilege('authenticated', 'public.sweep_old_analytics(integer)', 'execute')
+     or not has_function_privilege('service_role', 'public.sweep_old_analytics(integer)', 'execute') then
+    raise exception 'sweep_old_analytics no quedó exclusiva de service_role';
+  end if;
 
   -- Cada dueño actual debe tener una entrada GLOBAL de default ACL sin EXECUTE
   -- para los roles del navegador ni para PUBLIC (grantee 0). Un revoke limitado

@@ -6,6 +6,7 @@ import {
   describeUserAgent,
   isLikelyBot,
 } from '@/lib/analytics/source'
+import { isTrustedAnalyticsRequest } from '@/lib/analytics/request'
 
 export const runtime = 'nodejs'
 
@@ -28,13 +29,27 @@ type Payload = {
 }
 
 export async function POST(request: Request) {
+  if (!isTrustedAnalyticsRequest({
+    requestUrl: request.url,
+    origin: request.headers.get('origin'),
+    fetchSite: request.headers.get('sec-fetch-site'),
+  })) {
+    return NextResponse.json({ error: 'Origen no permitido.' }, { status: 403 })
+  }
+
   const userAgent = request.headers.get('user-agent')
   if (isLikelyBot(userAgent)) return new NextResponse(null, { status: 204 })
 
-  const length = Number(request.headers.get('content-length') ?? 0)
-  if (length > 8_192) return NextResponse.json({ error: 'Pedido demasiado grande.' }, { status: 413 })
-
-  const body = await request.json().catch(() => null) as Payload | null
+  // Se mide el cuerpo real. Content-Length no es confiable: quien llama puede
+  // omitirlo o mentir, especialmente fuera de un navegador.
+  const rawBody = await request.text()
+  if (Buffer.byteLength(rawBody, 'utf8') > 8_192) {
+    return NextResponse.json({ error: 'Pedido demasiado grande.' }, { status: 413 })
+  }
+  const body = (() => {
+    try { return JSON.parse(rawBody) as Payload }
+    catch { return null }
+  })()
   const parsed = validate(body)
   if (!parsed) return NextResponse.json({ error: 'Datos inválidos.' }, { status: 400 })
 

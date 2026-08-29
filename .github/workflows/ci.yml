@@ -117,5 +117,8 @@ jobs:
       - name: Permisos de las funciones
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql
 
+      - name: Límites y conservación de la analítica
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/analytics.sql
+
       - name: Altas, reseñas y aviso de mesa (PR 2)
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_pr2.sql

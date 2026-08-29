@@ -111,6 +111,7 @@ set search_path = ''
 as $function$
 declare
   v_now timestamptz := now();
+  v_game_id uuid;
 begin
   if p_event_id is null or p_visitor_id is null or p_session_id is null then
     raise exception 'identificadores inválidos';
@@ -129,6 +130,65 @@ begin
   -- Las visitas del dueño autenticado no contaminan sus propias estadísticas.
   if p_user_id is not null and exists (
     select 1 from public.profiles p where p.id = p_user_id and p.is_admin
+  ) then
+    return;
+  end if;
+
+  -- Reintentos del mismo pedido son gratis y no consumen el límite.
+  if exists (select 1 from public.analytics_events e where e.event_id = p_event_id) then
+    return;
+  end if;
+
+  -- Defensa en profundidad. El endpoint también exige mismo origen, pero esas
+  -- cabeceras pueden falsificarse fuera de un navegador. Estos topes protegen
+  -- los números y la base aunque alguien llame la ruta con un script.
+  if (select count(*) from public.analytics_events e
+      where e.visitor_id = p_visitor_id
+        and e.occurred_at >= v_now - interval '1 minute') >= 30 then
+    return;
+  end if;
+  if (select count(*) from public.analytics_events e
+      where e.visitor_id = p_visitor_id
+        and e.occurred_at >= v_now - interval '1 hour') >= 300 then
+    return;
+  end if;
+  -- Cortacircuito global: el tráfico humano actual está a varios órdenes de
+  -- magnitud. Evita una escritura sin techo aun si rotaran visitor_id.
+  if (select count(*) from public.analytics_events e
+      where e.occurred_at >= v_now - interval '1 minute') >= 2000 then
+    return;
+  end if;
+
+  -- Un comienzo de partida sólo vale si la partida existe y el usuario
+  -- autenticado participa de ella. Así no alcanza con inventar el evento.
+  if p_event_name = 'game_started' then
+    begin
+      v_game_id := (p_properties->>'game_id')::uuid;
+    exception when invalid_text_representation then
+      return;
+    end;
+    if p_user_id is null or v_game_id is null or not exists (
+      select 1 from public.games g
+      where g.id = v_game_id and p_user_id in (g.player1_id, g.player2_id)
+    ) then
+      return;
+    end if;
+    if exists (
+      select 1 from public.analytics_events e
+      where e.visitor_id = p_visitor_id
+        and e.event_name = 'game_started'
+        and e.properties->>'game_id' = v_game_id::text
+    ) then
+      return;
+    end if;
+  end if;
+
+  -- Una alta no se puede repetir a fuerza de refrescar o reenviar el pedido.
+  if p_event_name in ('guest_session_started', 'register_completed') and exists (
+    select 1 from public.analytics_events e
+    where e.visitor_id = p_visitor_id
+      and e.event_name = p_event_name
+      and e.occurred_at >= v_now - interval '1 day'
   ) then
     return;
   end if;
@@ -181,6 +241,46 @@ grant execute on function public.record_analytics_event(
   uuid, uuid, uuid, text, text, uuid, text, text, text, text, text, text, text, text, text, jsonb
 ) to service_role;
 
+-- Conservación: los eventos detallados, las sesiones y los visitantes sin
+-- actividad se eliminan a los 365 días. Los borrados respetan las FK y no
+-- afectan cuentas, perfiles ni partidas.
+create or replace function public.sweep_old_analytics(p_days int default 365)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_cutoff timestamptz;
+  v_events int;
+  v_sessions int;
+  v_visitors int;
+begin
+  if p_days is null or p_days < 30 or p_days > 730 then
+    raise exception 'p_days debe estar entre 30 y 730';
+  end if;
+
+  v_cutoff := now() - make_interval(days => p_days);
+
+  delete from public.analytics_events where occurred_at < v_cutoff;
+  get diagnostics v_events = row_count;
+
+  delete from public.analytics_sessions where last_seen_at < v_cutoff;
+  get diagnostics v_sessions = row_count;
+
+  delete from public.analytics_visitors where last_seen_at < v_cutoff;
+  get diagnostics v_visitors = row_count;
+
+  return jsonb_build_object(
+    'eventos', v_events, 'sesiones', v_sessions, 'visitantes', v_visitors
+  );
+end;
+$function$;
+
+revoke execute on function public.sweep_old_analytics(int)
+  from public, anon, authenticated;
+grant execute on function public.sweep_old_analytics(int) to service_role;
+
 -- Resumen listo para dibujar. Igual que admin_stats, comprueba al dueño en el
 -- servidor: el permiso authenticated no alcanza para leer datos.
 create or replace function public.admin_acquisition(p_days int default 30)
@@ -195,6 +295,8 @@ declare
   today date := (now() at time zone 'America/Argentina/Buenos_Aires')::date;
   v_days int := greatest(1, least(coalesce(p_days, 30), 180));
   since date;
+  since_at timestamptz;
+  until_at timestamptz;
   result jsonb;
 begin
   if auth.uid() is null then raise exception 'no autenticado'; end if;
@@ -204,17 +306,19 @@ begin
   end if;
 
   since := today - (v_days - 1);
+  since_at := since::timestamp at time zone tz;
+  until_at := (today + 1)::timestamp at time zone tz;
 
   with
   eventos as (
     select e.*, (e.occurred_at at time zone tz)::date as dia
     from analytics_events e
-    where (e.occurred_at at time zone tz)::date >= since
+    where e.occurred_at >= since_at and e.occurred_at < until_at
   ),
   sesiones as (
     select s.*, (s.started_at at time zone tz)::date as dia
     from analytics_sessions s
-    where (s.started_at at time zone tz)::date >= since
+    where s.started_at >= since_at and s.started_at < until_at
   ),
   visitantes as (
     select distinct visitor_id from eventos
@@ -361,5 +465,13 @@ $function$;
 
 revoke execute on function public.admin_acquisition(int) from public, anon;
 grant execute on function public.admin_acquisition(int) to authenticated;
+
+-- pg_cron ya está habilitado en Trucazo por los barridos de mesas y partidas.
+-- Se reprograma de forma idempotente y corre una vez por día.
+select cron.schedule(
+  'sweep-old-analytics-trucazo',
+  '35 4 * * *',
+  $$ select public.sweep_old_analytics(365); $$
+);
 
 commit;

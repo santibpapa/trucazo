@@ -88,8 +88,10 @@ export default function PrivacidadPage() {
         <p>
           La información se conserva mientras resulte necesaria para brindar el servicio,
           mantener la integridad de las partidas, resolver incidentes o cumplir
-          obligaciones aplicables. Ningún sistema es completamente infalible; Trucazo
-          aplica controles técnicos y limita el acceso según el tipo de dato.
+          obligaciones aplicables. Los eventos detallados de navegación, las sesiones y
+          los identificadores de visitantes inactivos se eliminan automáticamente cuando
+          superan los 365 días. Ningún sistema es completamente infalible; Trucazo aplica
+          controles técnicos y limita el acceso según el tipo de dato.
         </p>
         <p>
           Podés evitar crear una cuenta usando el modo invitado, no utilizar funciones
