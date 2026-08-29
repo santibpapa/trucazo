@@ -67,14 +67,15 @@ const content = reengagementMail({
 })
 assert.equal(content.subject, 'Volvé, Santi')
 assert.match(content.html, /Probá tu primera partida\./)
-assert.match(content.text, /Jugar: https:\/\/www\.trucazo\.com\.ar\/lobby/)
+assert.match(content.text, /Jugar: https:\/\/www\.trucazo\.com\.ar\/lobby\?utm_source=trucazo_email&utm_medium=email/)
+assert.match(content.text, /utm_campaign=reactivacion-primera-partida/)
 
 const unsafeLink = reengagementMail({
   username: 'Santi',
   preferencesUrl: 'https://www.trucazo.com.ar/email/preferencias?token=test',
   campaign: { ...campaign, cta_path: '/\\evil.example' },
 })
-assert.match(unsafeLink.text, /Jugar: https:\/\/www\.trucazo\.com\.ar\/lobby/)
+assert.match(unsafeLink.text, /Jugar: https:\/\/www\.trucazo\.com\.ar\/lobby\?utm_source=trucazo_email&utm_medium=email/)
 assert.doesNotMatch(unsafeLink.text, /evil\.example/)
 
 console.log('Emails: reglas de reactivación correctas.')

@@ -49,6 +49,12 @@ export default function Tablero({ stats, dias }: { stats: Stats; dias: number })
 
         <div className="flex flex-wrap items-center gap-2">
           <Link
+            href="/admin/analytics"
+            className="rounded-xl border border-gold/60 bg-gold-soft/20 px-4 py-2 text-sm font-bold text-gold transition-colors hover:bg-gold-soft/35"
+          >
+            Tráfico
+          </Link>
+          <Link
             href="/admin/emails"
             className="rounded-xl border border-gold/60 bg-gold-soft/20 px-4 py-2 text-sm font-bold text-gold transition-colors hover:bg-gold-soft/35"
           >

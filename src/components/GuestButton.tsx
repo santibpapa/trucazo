@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui'
 import { track } from '@vercel/analytics'
+import { trackFirstParty } from '@/lib/analytics/client'
 
 interface Props {
   variant?: 'primary' | 'ghost' | 'secondary'
@@ -49,6 +50,7 @@ export default function GuestButton({
     try { localStorage.setItem('trucazo:guest-alive', String(Date.now())) } catch {}
 
     track('guest_session_started', { source })
+    trackFirstParty('guest_session_started', { source })
 
     router.push('/lobby')
     router.refresh()

@@ -21,6 +21,24 @@ function escapeHtml(value: string) {
     .replaceAll("'", '&#039;')
 }
 
+function trackedUrl(path: string, campaign: string) {
+  const url = new URL(path, SITE_URL)
+  url.searchParams.set('utm_source', 'trucazo_email')
+  url.searchParams.set('utm_medium', 'email')
+  url.searchParams.set('utm_campaign', campaign)
+  return url.toString()
+}
+
+function campaignSlug(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80) || 'reactivacion'
+}
+
 export function personalize(value: string, username: string) {
   return value.replaceAll('{{usuario}}', username)
 }
@@ -79,10 +97,10 @@ export function newsMail({
       title,
       body: htmlBody,
       cta: 'Ver novedades',
-      ctaUrl: `${SITE_URL}/comunidad`,
+      ctaUrl: trackedUrl('/comunidad', 'novedades'),
       preferencesUrl,
     }),
-    text: `${greeting}\n\n${title}\n\n${body}\n\nVer novedades: ${SITE_URL}/comunidad\n\nPreferencias: ${preferencesUrl}`,
+    text: `${greeting}\n\n${title}\n\n${body}\n\nVer novedades: ${trackedUrl('/comunidad', 'novedades')}\n\nPreferencias: ${preferencesUrl}`,
   }
 }
 
@@ -101,8 +119,8 @@ export function reengagementMail({
   const site = new URL(SITE_URL)
   const requestedUrl = new URL(campaign.cta_path, site)
   const ctaUrl = requestedUrl.origin === site.origin
-    ? requestedUrl.toString()
-    : `${SITE_URL}/lobby`
+    ? trackedUrl(requestedUrl.toString(), `reactivacion-${campaignSlug(campaign.name)}`)
+    : trackedUrl('/lobby', `reactivacion-${campaignSlug(campaign.name)}`)
 
   return {
     subject,

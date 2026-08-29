@@ -53,6 +53,9 @@ jobs:
       - name: Que los recordatorios por email salgan cuando corresponde
         run: npm run check:emails
 
+      - name: Que la atribución de visitas clasifique bien cada origen
+        run: npm run check:analytics
+
       - name: Build de producción
         # Claves de mentira a propósito: el build no se conecta a ningún lado,
         # solo necesita que las variables existan.
@@ -113,6 +116,9 @@ jobs:
 
       - name: Permisos de las funciones
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql
+
+      - name: Límites y conservación de la analítica
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/analytics.sql
 
       - name: Altas, reseñas y aviso de mesa (PR 2)
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_pr2.sql

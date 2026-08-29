@@ -14,6 +14,7 @@ import { fraseDelBot, type MomentoFrase } from '@/lib/botFrases'
 import { getFrameTheme } from '@/lib/marcos'
 import { getMedal } from '@/lib/medallas'
 import { track } from '@vercel/analytics'
+import { trackFirstParty } from '@/lib/analytics/client'
 
 interface Props {
   game: Game
@@ -253,6 +254,11 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       sessionStorage.setItem(key, '1')
     } catch {}
     track('partida_iniciada', {
+      mode: campaignRivalSlug ? 'historia' : opponentIsBot ? 'bot' : 'persona',
+      target_score: initialGame.target_score,
+    })
+    trackFirstParty('game_started', {
+      game_id: initialGame.id,
       mode: campaignRivalSlug ? 'historia' : opponentIsBot ? 'bot' : 'persona',
       target_score: initialGame.target_score,
     })
