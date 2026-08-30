@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import type { User } from '@supabase/supabase-js'
 import { createEmailAdminClient } from '@/lib/email/admin'
@@ -9,6 +8,7 @@ import {
 } from '@/lib/email/candidates'
 import { newsMail, reengagementMail } from '@/lib/email/content'
 import { isConfirmedEmailRecipient } from '@/lib/email/recipients'
+import { sendResendBatch } from '@/lib/email/resend'
 import { SITE_URL } from '@/lib/site'
 
 export const runtime = 'nodejs'
@@ -94,51 +94,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, sent: 0, candidates: pending.length })
   }
 
-  const response = await fetch('https://api.resend.com/emails/batch', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      'Content-Type': 'application/json',
-      'Idempotency-Key': idempotencyKey(claimed.map(mail => mail.dedupeKey).join('|')),
-    },
-    body: JSON.stringify(claimed.map(mail => ({
-      from,
-      to: [mail.to],
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-      headers: {
-        'List-Unsubscribe': `<${mail.unsubscribeUrl}>`,
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-        'X-Entity-Ref-ID': idempotencyKey(mail.dedupeKey),
-      },
-    }))),
-  })
-
-  const payload = await response.json().catch(() => null) as
-    | { data?: { id: string }[]; message?: string }
-    | null
-
-  if (!response.ok || !payload?.data || payload.data.length !== claimed.length) {
-    const reason = payload?.message ?? `Resend respondió ${response.status}`
-    await markFailed(supabase, claimed, reason)
-    return NextResponse.json({ ok: false, reason }, { status: 502 })
-  }
-
-  await Promise.all(claimed.map((mail, index) =>
-    supabase
-      .from('email_deliveries')
-      .update({
-        status: 'sent',
-        provider_id: payload.data![index].id,
-        sent_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', mail.deliveryId),
-  ))
+  const delivery = await sendResendBatch({ apiKey: resendKey, from, mails: claimed })
+  await Promise.all([
+    markSent(supabase, delivery.sent),
+    markSkipped(supabase, delivery.skipped),
+    markFailed(supabase, delivery.failed),
+  ])
   await markCompletedNews(supabase, (newsRows ?? []) as News[], activities)
 
-  return NextResponse.json({ ok: true, sent: claimed.length, candidates: pending.length })
+  const result = {
+    ok: delivery.failed.length === 0,
+    sent: delivery.sent.length,
+    skipped: delivery.skipped.length,
+    failed: delivery.failed.length,
+    candidates: pending.length,
+  }
+  return NextResponse.json(result, { status: result.ok ? 200 : 502 })
 }
 
 async function listConfirmedUsers(supabase: ReturnType<typeof createEmailAdminClient> extends infer T ? NonNullable<T> : never) {
@@ -260,16 +231,53 @@ async function claimEmails(
     }) satisfies ClaimedMail[]
 }
 
-async function markFailed(
+async function markSent(
   supabase: ReturnType<typeof createEmailAdminClient> extends infer T ? NonNullable<T> : never,
-  emails: ClaimedMail[],
-  reason: string,
+  emails: { mail: ClaimedMail; providerId: string }[],
 ) {
-  const safeReason = reason.slice(0, 500)
-  await Promise.all(emails.map(mail =>
+  const timestamp = new Date().toISOString()
+  await Promise.all(emails.map(({ mail, providerId }) =>
     supabase
       .from('email_deliveries')
-      .update({ status: 'failed', last_error: safeReason, updated_at: new Date().toISOString() })
+      .update({
+        status: 'sent',
+        provider_id: providerId,
+        last_error: null,
+        sent_at: timestamp,
+        updated_at: timestamp,
+      })
+      .eq('id', mail.deliveryId),
+  ))
+}
+
+async function markSkipped(
+  supabase: ReturnType<typeof createEmailAdminClient> extends infer T ? NonNullable<T> : never,
+  emails: { mail: ClaimedMail; reason: string }[],
+) {
+  await Promise.all(emails.map(({ mail, reason }) =>
+    supabase
+      .from('email_deliveries')
+      .update({
+        status: 'skipped',
+        last_error: `Omitido: ${reason}`.slice(0, 500),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', mail.deliveryId),
+  ))
+}
+
+async function markFailed(
+  supabase: ReturnType<typeof createEmailAdminClient> extends infer T ? NonNullable<T> : never,
+  emails: { mail: ClaimedMail; reason: string }[],
+) {
+  await Promise.all(emails.map(({ mail, reason }) =>
+    supabase
+      .from('email_deliveries')
+      .update({
+        status: 'failed',
+        last_error: reason.slice(0, 500),
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', mail.deliveryId),
   ))
 }
@@ -292,7 +300,7 @@ async function markCompletedNews(
         .from('email_deliveries')
         .select('id', { count: 'exact', head: true })
         .eq('news_id', item.id)
-        .eq('status', 'sent')
+        .in('status', ['sent', 'skipped'])
         .in('user_id', expectedIds.slice(i, i + ACTIVITY_CHUNK_SIZE))
       if (error) {
         countFailed = true
@@ -308,10 +316,6 @@ async function markCompletedNews(
       .eq('id', item.id)
       .is('email_completed_at', null)
   }
-}
-
-function idempotencyKey(dedupeKey: string) {
-  return `trucazo-${createHash('sha256').update(dedupeKey).digest('hex')}`
 }
 
 function positiveInt(value: string | undefined, fallback: number) {

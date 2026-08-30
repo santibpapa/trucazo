@@ -5,7 +5,8 @@ import {
   type ReengagementCampaign,
 } from '../src/lib/email/candidates'
 import { reengagementMail } from '../src/lib/email/content'
-import { isConfirmedEmailRecipient } from '../src/lib/email/recipients'
+import { isConfirmedEmailRecipient, isTestEmailAddress } from '../src/lib/email/recipients'
+import { sendResendBatch } from '../src/lib/email/resend'
 
 const now = new Date('2026-08-26T12:00:00Z')
 const base: EmailActivity = {
@@ -85,7 +86,7 @@ assert.match(unsafeLink.text, /Jugar: https:\/\/www\.trucazo\.com\.ar\/lobby\?ut
 assert.doesNotMatch(unsafeLink.text, /evil\.example/)
 
 assert.equal(isConfirmedEmailRecipient({
-  email: 'jugador@example.com',
+  email: 'jugador@gmail.com',
   email_confirmed_at: '2026-08-20T12:00:00Z',
   is_anonymous: false,
   app_metadata: { provider: 'email', providers: ['email'] },
@@ -96,5 +97,70 @@ assert.equal(isConfirmedEmailRecipient({
   is_anonymous: false,
   app_metadata: { provider: 'bot', providers: ['bot'] },
 }), false)
+assert.equal(isTestEmailAddress('persona@example.com'), true)
+assert.equal(isTestEmailAddress('persona@sub.example.org'), true)
+assert.equal(isTestEmailAddress('persona@test.com'), true)
+assert.equal(isTestEmailAddress('persona@gmail.com'), false)
 
-console.log('Emails: reglas de reactivación correctas.')
+function providerMail(to: string, dedupeKey: string) {
+  return {
+    to,
+    dedupeKey,
+    subject: 'Volvé a jugar',
+    html: '<p>Hola</p>',
+    text: 'Hola',
+    unsubscribeUrl: 'https://www.trucazo.com.ar/email/preferencias?token=test',
+  }
+}
+
+let mockCalls = 0
+let accepted = 0
+const mockFetcher = async (_input: string | URL | Request, init?: RequestInit) => {
+  mockCalls += 1
+  const body = JSON.parse(String(init?.body)) as { to: string[] }[]
+  if (body.some(mail => mail.to[0].endsWith('@example.com'))) {
+    return new Response(JSON.stringify({
+      message: 'Invalid `to` field. Please use our testing email address instead of domains like `example.com`.',
+    }), { status: 422, headers: { 'Content-Type': 'application/json' } })
+  }
+  return new Response(JSON.stringify({
+    data: body.map(() => ({ id: `provider-${++accepted}` })),
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+}
+
+async function checkProviderIsolation() {
+  const isolated = await sendResendBatch({
+    apiKey: 'test-key',
+    from: 'Trucazo <hola@trucazo.com.ar>',
+    mails: [
+      providerMail('uno@gmail.com', 'uno'),
+      providerMail('prueba@example.com', 'prueba'),
+      providerMail('dos@gmail.com', 'dos'),
+    ],
+    fetcher: mockFetcher,
+  })
+  assert.deepEqual(isolated.sent.map(item => item.mail.to), ['uno@gmail.com', 'dos@gmail.com'])
+  assert.deepEqual(isolated.skipped.map(item => item.mail.to), ['prueba@example.com'])
+  assert.equal(isolated.failed.length, 0)
+  assert.equal(mockCalls, 5)
+
+  const providerDown = await sendResendBatch({
+    apiKey: 'test-key',
+    from: 'Trucazo <hola@trucazo.com.ar>',
+    mails: [providerMail('uno@gmail.com', 'uno')],
+    fetcher: async () => new Response(
+      JSON.stringify({ message: 'Servicio temporalmente no disponible' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } },
+    ),
+  })
+  assert.equal(providerDown.sent.length, 0)
+  assert.equal(providerDown.skipped.length, 0)
+  assert.equal(providerDown.failed.length, 1)
+}
+
+void checkProviderIsolation()
+  .then(() => console.log('Emails: reglas de reactivación correctas.'))
+  .catch(cause => {
+    console.error(cause)
+    process.exitCode = 1
+  })

@@ -36,7 +36,10 @@ export async function POST(request: Request) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ campaign: { ...data, sent: 0, failed: 0 } }, { status: 201 })
+  return NextResponse.json(
+    { campaign: { ...data, sent: 0, failed: 0, skipped: 0 } },
+    { status: 201 },
+  )
 }
 
 export async function PATCH(request: Request) {
