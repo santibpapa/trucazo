@@ -34,7 +34,7 @@ export default async function AdminEmailsPage() {
   if (error) redirect('/admin')
 
   const campaigns = await Promise.all((data ?? []).map(async campaign => {
-    const [sentResult, failedResult] = await Promise.all([
+    const [sentResult, failedResult, skippedResult] = await Promise.all([
       admin
         .from('email_deliveries')
         .select('id', { count: 'exact', head: true })
@@ -45,11 +45,17 @@ export default async function AdminEmailsPage() {
         .select('id', { count: 'exact', head: true })
         .eq('campaign_id', campaign.id)
         .eq('status', 'failed'),
+      admin
+        .from('email_deliveries')
+        .select('id', { count: 'exact', head: true })
+        .eq('campaign_id', campaign.id)
+        .eq('status', 'skipped'),
     ])
     return {
       ...campaign,
       sent: sentResult.count ?? 0,
       failed: failedResult.count ?? 0,
+      skipped: skippedResult.count ?? 0,
     }
   })) as AdminCampaign[]
 

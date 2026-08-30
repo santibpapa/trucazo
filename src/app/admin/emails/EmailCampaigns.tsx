@@ -8,9 +8,10 @@ import type { ReengagementCampaign, ReengagementKind } from '@/lib/email/candida
 export type AdminCampaign = ReengagementCampaign & {
   sent: number
   failed: number
+  skipped: number
 }
 
-type EditableCampaign = Omit<AdminCampaign, 'id' | 'created_at' | 'updated_at' | 'sent' | 'failed'>
+type EditableCampaign = Omit<AdminCampaign, 'id' | 'created_at' | 'updated_at' | 'sent' | 'failed' | 'skipped'>
 
 const EMPTY: EditableCampaign = {
   name: '',
@@ -79,7 +80,12 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
       const next = creating
         ? [...campaigns, result.campaign]
         : campaigns.map(campaign => campaign.id === result.campaign!.id
-          ? { ...result.campaign!, sent: campaign.sent, failed: campaign.failed }
+          ? {
+            ...result.campaign!,
+            sent: campaign.sent,
+            failed: campaign.failed,
+            skipped: campaign.skipped,
+          }
           : campaign)
       setCampaigns(next.sort((a, b) => a.delay_days - b.delay_days))
       setSelectedId(result.campaign.id)
@@ -105,7 +111,12 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
       const result = await response.json() as { campaign?: AdminCampaign; error?: string }
       if (!response.ok || !result.campaign) throw new Error(result.error ?? 'No se pudo cambiar el estado.')
 
-      const updated = { ...result.campaign, sent: campaign.sent, failed: campaign.failed }
+      const updated = {
+        ...result.campaign,
+        sent: campaign.sent,
+        failed: campaign.failed,
+        skipped: campaign.skipped,
+      }
       setCampaigns(current => current.map(item => item.id === campaign.id ? updated : item))
       if (selectedId === campaign.id) setDraft(editable(updated))
     } catch (cause) {
@@ -179,7 +190,11 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
                 </span>
               </button>
               <span className="mt-3 flex items-center justify-between gap-3 text-[11px] text-subtle">
-                <span>{campaign.sent} enviados{campaign.failed > 0 ? ` · ${campaign.failed} fallidos` : ''}</span>
+                <span>
+                  {campaign.sent} enviados
+                  {campaign.skipped > 0 ? ` · ${campaign.skipped} omitidos` : ''}
+                  {campaign.failed > 0 ? ` · ${campaign.failed} fallidos` : ''}
+                </span>
                 <button
                   type="button"
                   onClick={() => void toggle(campaign)}
