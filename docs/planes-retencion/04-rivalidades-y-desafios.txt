@@ -1,0 +1,311 @@
+TRUCAZO — PLAN 4: RIVALIDADES Y DESAFÍOS DIRECTOS
+==================================================
+
+ESTADO
+Documento de especificación. Todavía no implementado.
+
+PROPÓSITO DE ESTE ARCHIVO
+Definir una primera versión completa para que dos personas puedan desafiarse,
+repetir series y construir un historial cara a cara, aprovechando amigos,
+invitaciones, mesas privadas y Realtime ya existentes.
+
+OBJETIVO DE PRODUCTO
+Convertir partidas aisladas en relaciones recurrentes. El principal motivo para
+volver debe ser una persona concreta: un amigo que desafía, una serie pendiente o
+un rival que quedó arriba en el historial.
+
+ALCANCE CERRADO DE LA PRIMERA VERSIÓN
+
+1. Desafiar directamente a un amigo conectado o desconectado.
+2. Aceptar o rechazar desde lobby y Comunidad.
+3. Enlace de desafío compartible por WhatsApp u otra aplicación.
+4. Desafío simple o serie al mejor de tres.
+5. Historial cara a cara entre humanos registrados.
+6. Estado de serie persistente entre partidas.
+7. Notificaciones internas; correo únicamente con consentimiento y límites.
+8. Acciones integradas en Amigos, perfil y postpartido.
+
+FUERA DE ALCANCE
+
+- Chat de voz.
+- Dinero real o premios transferibles.
+- Desafíos a desconocidos mediante spam masivo.
+- Torneos con cuadro.
+- 2x2 y 3x3.
+- Calendario para programar fecha y hora.
+- Mensajes personalizados libres dentro de una invitación.
+- Notificaciones push en la primera versión.
+
+TIPOS DE DESAFÍO
+
+Partida única:
+- A 15 o 30 puntos.
+- Sin impacto en la temporada competitiva.
+- Apuesta elegida dentro de límites válidos o modo sin apuesta si el backend lo
+  soporta explícitamente.
+
+Mejor de tres:
+- Gana quien consigue dos victorias.
+- Cada partida usa el mismo puntaje objetivo y condiciones.
+- Mostrar marcador de serie 0–0, 1–0, 1–1 o 2–x.
+- Permitir abandonar la serie; queda registrada como incompleta, no fabricar una
+  victoria salvo que exista una regla de forfeit clara y aceptada antes de empezar.
+
+FLUJO DESDE UN AMIGO
+
+1. Tocar “Desafiar”.
+2. Elegir partida única o mejor de tres.
+3. Elegir 15/30 y apuesta permitida.
+4. Confirmar resumen del desafío.
+5. El servidor crea una invitación con expiración.
+6. El receptor ve una insignia y una tarjeta: quién, formato, puntos, apuesta y
+   tiempo restante.
+7. Aceptar crea o reserva la mesa de forma atómica y lleva a ambos a la espera.
+8. Rechazar cierra la invitación y confirma al emisor sin humillar ni insistir.
+
+FLUJO MEDIANTE ENLACE
+
+- Crear un token aleatorio largo, opaco y de un solo uso.
+- Ruta pública sugerida: /desafio/[token].
+- La página muestra condiciones y nombre público del creador.
+- Si no inició sesión, permitir entrar y luego regresar al desafío.
+- Si el enlace venció o fue usado, ofrecer crear otro o ir al lobby.
+- Aceptar consume el token de forma atómica.
+- No poner códigos privados, ids de usuario ni condiciones sensibles en la URL.
+- El enlace debe expirar, por ejemplo en 24 horas.
+
+ENLACE PARA WHATSAPP
+
+- Usar Web Share API en móvil.
+- Respaldo de copiar enlace.
+- Texto sugerido, no editable en esta versión:
+  “Te desafío a una partida a 30 en Trucazo. ¿Te animás?”
+- No integrar una API de WhatsApp ni pedir permisos innecesarios.
+
+INVITACIONES Y PRIORIDAD
+
+- Máximo de invitaciones activas por emisor y receptor.
+- Una persona puede silenciar desafíos de alguien sin eliminarlo como amigo.
+- No permitir invitar repetidamente después de varios rechazos en pocos minutos.
+- Si el receptor ya juega, mostrar “Jugando” y permitir dejar la invitación pendiente
+  hasta su expiración, sin interrumpir la partida.
+- Si ambos aceptan acciones simultáneas, solo una mesa debe crearse.
+
+HISTORIAL CARA A CARA
+
+Mostrar para dos humanos registrados:
+- Partidas terminadas entre ambos.
+- Victorias propias y del rival.
+- Series ganadas por cada uno.
+- Última vez que jugaron.
+- Últimos cinco resultados con fecha y marcador.
+
+No mostrar:
+- Saldos históricos.
+- Partidas contra bots o campaña.
+- Partidas privadas ajenas.
+- Datos que permitan reconstruir cartas.
+
+El historial se abre desde:
+- Perfil o tarjeta del amigo.
+- Cierre postpartido.
+- Pantalla de una serie.
+
+SERIE AL MEJOR DE TRES
+
+- Crear una entidad de serie independiente de game.
+- Cada game guarda series_id y número de juego.
+- Al terminar una partida, el servidor actualiza el marcador una sola vez.
+- Si nadie ganó dos, el CTA principal ofrece “Siguiente partida”.
+- La siguiente partida conserva condiciones y alterna mano según la regla elegida.
+- Al completar la serie, mostrar ganador, marcador total y H2H actualizado.
+- Una revancha posterior crea una serie nueva; no reabre la finalizada.
+
+MODELO DE DATOS SUGERIDO
+
+direct_challenges
+- id.
+- sender_id y recipient_id opcional para enlace abierto.
+- share_token_hash; nunca guardar el token plano si puede evitarse.
+- format: single o best_of_three.
+- target_score, time_limit y bet.
+- status: pending, accepted, declined, expired, cancelled.
+- created_at, expires_at y responded_at.
+- accepted_by para enlaces.
+- table_id o series_id resultante.
+
+match_series
+- id.
+- player1_id y player2_id.
+- best_of = 3.
+- target_score, time_limit y bet.
+- wins_p1, wins_p2.
+- status: active, completed, abandoned.
+- winner_id.
+- created_at y completed_at.
+
+games
+- Agregar series_id y series_game_number si todavía no existen.
+- Restricción única razonable para evitar dos juegos con el mismo número.
+
+challenge_preferences
+- profile_id.
+- allow_friend_challenges.
+- allow_email_challenges.
+- muted_profile_ids en relación normalizada si se implementa silencio individual.
+
+Para H2H, preferir una RPC que agregue game_history o games válidos. Crear tabla de
+resumen solo si el volumen real lo justifica.
+
+LÓGICA DE SERVIDOR
+
+RPC sugeridas:
+- create_direct_challenge(...).
+- accept_direct_challenge(challenge_id o token).
+- decline_direct_challenge(challenge_id).
+- cancel_direct_challenge(challenge_id).
+- get_my_active_challenges().
+- get_head_to_head(other_profile_id).
+- start_next_series_game(series_id).
+
+Reglas:
+- Validar amistad para desafíos dirigidos.
+- Para enlace, validar token, expiración y que quien acepta no sea el creador.
+- Validar saldo de ambos en el momento de aceptar, no solo al crear.
+- Crear mesa/serie y consumir invitación en una transacción.
+- Bloquear filas para aceptación simultánea.
+- El cliente no elige sender_id ni recipient_id arbitrarios.
+- search_path fijo, RLS estricta y sin escrituras directas.
+- Actualizar schema y usar migración nueva.
+
+REALTIME Y NOTIFICACIONES INTERNAS
+
+- Suscribirse a cambios de invitaciones del usuario.
+- Mostrar una única insignia con cantidad contextual.
+- Lectores de pantalla reciben “Tenés 2 desafíos pendientes”, no un “2” aislado.
+- Al aceptar, el emisor recibe estado y navegación disponible.
+- No navegar forzosamente a quien está jugando o completando otro formulario.
+
+EMAIL OPCIONAL
+
+Solo si el sistema de preferencias existente permite consentimiento claro:
+- Enviar únicamente cuando el receptor está desconectado.
+- Máximo un correo de desafío por período definido.
+- Incluir quién desafía, condiciones y enlace seguro.
+- No enviar recordatorios repetidos.
+- Respetar baja y preferencias de email existentes.
+- Registrar delivery sin exponer tokens en logs.
+
+UBICACIONES EN LA INTERFAZ
+
+Amigos:
+- Botón “Desafiar” junto a cada amigo.
+- Estado conectado/jugando ya existente orienta disponibilidad.
+
+Lobby:
+- Tarjeta de desafío entrante sobre las mesas.
+- No abrir modal automáticamente mientras el usuario hace otra acción.
+
+Comunidad:
+- Pestaña o bloque “Desafíos” dentro de Amigos, sin agregar una séptima opción a la
+  navegación móvil.
+
+Postpartido:
+- H2H y CTA de nueva serie o desafío.
+
+Página compartida:
+- Condiciones, expiración, CTA de aceptar e información de seguridad.
+
+ACCESIBILIDAD Y UX
+
+- Formularios con etiquetas visibles; no depender de placeholders.
+- Errores junto al campo y resumen enfocable si hay varios.
+- Modales devuelven foco al botón que los abrió.
+- Escape cierra solo cuando no se pierde una operación confirmada.
+- Botones mínimo 44x44 px y foco visible.
+- Estados pendiente, aceptado, vencido y rechazado no dependen solo del color.
+- Confirmación clara después de enviar, copiar, aceptar, rechazar o cancelar.
+- No usar cuenta regresiva que cambie cada segundo; texto estable por minutos/horas.
+
+ANALÍTICA
+
+- challenge_creation_opened.
+- challenge_created.
+- challenge_shared.
+- challenge_accepted.
+- challenge_declined.
+- challenge_expired.
+- challenge_game_started.
+- challenge_game_completed.
+- series_started.
+- series_completed.
+- head_to_head_viewed.
+
+Métricas:
+- Invitaciones aceptadas.
+- Tiempo hasta aceptar.
+- Partidas terminadas desde invitación.
+- Series completadas.
+- Repetición entre las mismas personas en 7 y 30 días.
+- Bloqueos, silencios o rechazos repetidos como señal de abuso.
+
+SEGURIDAD Y MODERACIÓN
+
+- Tokens de alta entropía, expirables y de un solo uso.
+- Rate limit por cuenta y destino.
+- No aceptar desafío propio.
+- No revelar si un nombre o email específico existe mediante rutas públicas.
+- No permitir texto libre en invitaciones en v1.
+- Respetar bloqueos o silencios antes de mostrar presencia y enviar invitación.
+- Auditar creación, respuesta y mesa resultante.
+
+PRUEBAS OBLIGATORIAS
+
+Servidor:
+- Crear, aceptar, rechazar, cancelar y vencer.
+- Dos aceptaciones simultáneas crean una sola mesa.
+- Saldo insuficiente al aceptar.
+- Token inválido, vencido, usado y propio.
+- Usuario ajeno no lee ni modifica invitación.
+- Serie actualiza una vez por partida y termina al 2.
+- Bot y campaña no aparecen en H2H.
+- Reintentos de red son idempotentes.
+
+Interfaz:
+- Receptor conectado, desconectado y jugando.
+- Enlace con y sin sesión.
+- Copiar y Web Share.
+- Amigo, solicitud pendiente, silenciado y no amigo.
+- Serie 0–0, 1–0, 1–1 y terminada.
+- Teclado, lector de pantalla y móvil pequeño.
+- Insignia actualizada sin mover el foco.
+
+ORDEN DE IMPLEMENTACIÓN RECOMENDADO
+
+1. Inventariar invitaciones y mesas privadas actuales para reutilizar lo seguro.
+2. Definir estados y expiración.
+3. Crear migración, RLS y RPC de desafío simple.
+4. Probar aceptación simultánea y saldo.
+5. Integrar Amigos, lobby y Realtime.
+6. Crear ruta compartible y Web Share.
+7. Agregar H2H.
+8. Agregar entidad y flujo mejor de tres.
+9. Integrar postpartido y analítica.
+10. Ejecutar build, pruebas y flujo con dos sesiones reales.
+
+CRITERIOS DE ACEPTACIÓN
+
+- Un amigo puede desafiar a otro en pocos pasos.
+- Un enlace funciona para una persona que todavía no inició sesión.
+- Aceptar nunca crea mesas duplicadas ni cobra dos veces.
+- Una serie persiste entre recargas y termina correctamente al mejor de tres.
+- H2H coincide con partidas humanas terminadas.
+- Los desafíos no alteran la temporada competitiva.
+- Hay límites contra spam y preferencias de recepción.
+- La navegación móvil no incorpora más destinos principales.
+
+DEFINICIÓN DE TERMINADO
+
+Verificar con dos navegadores o sesiones: desafío dirigido, rechazo, aceptación,
+partida terminada, serie completa, enlace compartido, recarga y expiración. Deben
+pasar build, pruebas SQL de seguridad e idempotencia y prueba responsive.

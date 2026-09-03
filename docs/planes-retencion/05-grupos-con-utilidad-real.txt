@@ -1,0 +1,369 @@
+TRUCAZO — PLAN 5: GRUPOS CON UTILIDAD REAL
+==========================================
+
+ESTADO
+Documento de especificación. Todavía no implementado.
+
+PROPÓSITO DE ESTE ARCHIVO
+Convertir los grupos actuales —nombre, descripción, integrantes e invitaciones— en
+una razón concreta para jugar juntos, sin esperar a que exista 2x2 o 3x3.
+
+OBJETIVO DE PRODUCTO
+Crear compromiso social semanal. Cada integrante debe entender qué está intentando
+lograr el grupo, cuánto aportó personalmente y qué reconocimiento obtiene la
+comunidad cuando completa el objetivo.
+
+ALCANCE CERRADO DE LA PRIMERA VERSIÓN
+
+1. Perfil visual del grupo con escudo, nivel y experiencia.
+2. Una misión cooperativa semanal por grupo.
+3. Contribución individual visible.
+4. Ranking interno semanal y total.
+5. Ranking público de grupos.
+6. Recompensa cosmética o monedas moderadas para miembros elegibles.
+7. Actividad reciente basada en eventos del juego, no chat libre adicional.
+8. Administración básica y segura del grupo actual.
+
+FUERA DE ALCANCE
+
+- 2x2 y 3x3.
+- Torneos entre grupos.
+- Guerras de clanes.
+- Chat privado nuevo; se mantiene el chat global existente.
+- Donación o transferencia de monedas.
+- Tienda grupal.
+- Escudos creados subiendo imágenes.
+- Roles complejos aparte de líder e integrante.
+- Premios con valor real.
+
+DECISIÓN DE NOMENCLATURA
+
+Mantener “Grupo” en toda la primera versión. No alternar entre grupo, clan, club y
+equipo. Más adelante se podrá renombrar con datos de usuarios.
+
+EXPERIENCIA SIN GRUPO
+
+La pantalla actual permite crear o aceptar invitaciones. Mejorarla mostrando:
+
+- Beneficio concreto: “Completá objetivos semanales con amigos y aparezcan juntos en
+  el ranking”.
+- Vista previa de una misión grupal real.
+- CTA “Crear grupo”.
+- Invitaciones pendientes por encima del formulario.
+- Enlace para explorar ranking de grupos sin necesidad de crear uno.
+
+No prometer 2x2 o 3x3 dentro de la interfaz hasta que tenga fecha o esté disponible.
+
+PERFIL DEL GRUPO
+
+Encabezado:
+- Escudo generado con formas y colores predefinidos.
+- Nombre y descripción.
+- Nivel y barra de experiencia.
+- Cantidad de integrantes.
+- Puesto semanal si corresponde.
+
+Contenido:
+- Misión semanal.
+- Contribuciones.
+- Ranking interno.
+- Actividad reciente.
+- Integrantes y administración.
+
+En móvil debe resolverse dentro de Comunidad, sin sumar un nuevo ítem a la barra
+inferior.
+
+ESCUDO Y PERSONALIZACIÓN
+
+Primera versión segura:
+- Elegir una forma entre un catálogo pequeño.
+- Elegir color principal y secundario desde paleta aprobada.
+- Elegir un símbolo vectorial del catálogo.
+- El líder puede cambiarlo con un período de espera, por ejemplo una vez por semana.
+- No admitir uploads para evitar moderación de imágenes.
+- No usar emojis como iconos estructurales; usar SVG consistentes.
+- Validar combinaciones de contraste para que el símbolo se distinga.
+
+NIVEL Y EXPERIENCIA DEL GRUPO
+
+El grupo gana experiencia por acciones válidas de integrantes:
+- Terminar una partida: contribución pequeña.
+- Ganar una partida pública contra persona: contribución mayor.
+- Primera victoria contra un rival de Historia: contribución moderada.
+- Completar la misión semanal: bonus grupal.
+
+No cuentan:
+- Partidas manipuladas o no terminadas.
+- Repeticiones infinitas contra el mismo bot.
+- Acciones administrativas o mensajes.
+- Monedas gastadas.
+
+El nivel es reconocimiento visual. No debe dar ventaja competitiva. Desbloqueos
+posibles: colores de escudo, símbolos, marcos grupales o títulos.
+
+MISIÓN COOPERATIVA SEMANAL
+
+Cada grupo recibe una misión al comenzar su semana o al entrar por primera vez:
+
+Ejemplos iniciales:
+- Entre todos, terminen 25 partidas.
+- Entre todos, ganen 12 partidas válidas.
+- Que 4 integrantes distintos terminen al menos una partida.
+- Venzan por primera vez a 5 rivales de Historia entre todos.
+
+Reglas:
+- Usar fecha argentina.
+- La misión queda congelada durante la semana.
+- Mostrar progreso total y contribución de cada miembro.
+- Evitar objetivos imposibles para grupos pequeños: escalar meta por cantidad de
+  miembros activos al asignarla o usar bandas 1–3, 4–8, 9–20.
+- Nunca reducir progreso si alguien abandona el grupo.
+- Un nuevo integrante empieza a contribuir al unirse, sin apropiarse de recompensas
+  anteriores automáticamente.
+
+ELEGIBILIDAD PARA RECOMPENSA
+
+Para cobrar la recompensa semanal, un integrante debe:
+- Haber pertenecido al grupo antes de completarse la misión.
+- Haber realizado al menos una contribución válida esa semana.
+- Seguir en el grupo al momento de reclamar, salvo decisión futura distinta.
+
+La recompensa se entrega individualmente mediante una operación idempotente. No
+depositar un fondo común transferible. Mostrar por adelantado los requisitos.
+
+Recompensa inicial sugerida:
+- 75 monedas por integrante elegible.
+- Experiencia grupal.
+- Hito visual por cantidad de semanas completadas.
+
+Revisar economía antes de desplegar junto con el Plan 1 para evitar duplicar una
+cantidad excesiva de monedas semanales.
+
+RANKING INTERNO
+
+Dos vistas:
+
+Semana:
+- Contribución a la misión actual.
+- Partidas válidas.
+- Victorias válidas.
+
+Total:
+- Experiencia aportada históricamente desde la implementación.
+- Semanas en el grupo.
+- Sin convertir al líder automáticamente en primer puesto.
+
+El ranking es reconocimiento. No restar puntos por derrotas ni fomentar expulsar a
+quien juega peor.
+
+RANKING DE GRUPOS
+
+Orden principal sugerido:
+- Experiencia ganada durante la semana.
+- Desempate por cantidad de integrantes activos, favoreciendo al grupo con menos
+  integrantes para no premiar solo tamaño.
+
+Mostrar:
+- Puesto.
+- Escudo y nombre.
+- Nivel.
+- Experiencia semanal.
+- Integrantes activos.
+- Fila del grupo propio aunque quede fuera del top.
+
+No exponer lista completa de integrantes desde un ranking público si no es necesario.
+
+ACTIVIDAD RECIENTE
+
+Eventos automáticos, no texto libre:
+- “Ana ganó una partida competitiva”.
+- “El grupo alcanzó el nivel 4”.
+- “Marcos aportó el punto final de la misión semanal”.
+- “Se unió Lucía”.
+
+Límites:
+- Mostrar los últimos 20 eventos.
+- No incluir saldos, apuestas exactas ni ids.
+- Agrupar eventos repetidos para evitar ruido.
+- Permitir que el usuario entienda cuándo ocurrió con fecha relativa y fecha completa
+  accesible.
+
+ADMINISTRACIÓN
+
+Conservar:
+- Invitar amigos.
+- Expulsar como líder.
+- Salir.
+- Transferencia automática de liderazgo existente.
+- Eliminar grupo cuando corresponda.
+
+Agregar:
+- Cambiar descripción y escudo.
+- Silenciar avisos internos del grupo.
+- Confirmación específica antes de expulsar o eliminar.
+- Explicar qué pasa con progreso y recompensas antes de salir.
+
+No agregar permisos múltiples en v1.
+
+MODELO DE DATOS SUGERIDO
+
+groups, columnas nuevas posibles:
+- shield_shape, shield_symbol, primary_color y secondary_color.
+- level y experience_total.
+- shield_updated_at.
+
+group_weekly_challenges
+- id, group_id y week_start.
+- type, target y reward snapshot.
+- progress.
+- completed_at.
+- clave única por grupo y semana.
+
+group_member_weekly_contributions
+- challenge_id y profile_id.
+- progress.
+- games_completed y wins.
+- first_contribution_at y last_contribution_at.
+- reward_claimed_at.
+- clave única por desafío e integrante.
+
+group_experience_events
+- id, group_id, profile_id opcional y game_id opcional.
+- event_type y amount.
+- created_at.
+- clave idempotente para eventos derivados de partida.
+
+group_activity_events
+- id, group_id, actor_id opcional.
+- tipo y metadatos mínimos de presentación.
+- created_at.
+
+Evitar JSON sin control para datos sensibles. Si se usan metadatos, permitir solo
+campos predefinidos y construir el texto en la aplicación.
+
+LÓGICA DE SERVIDOR
+
+- Actualizar progreso desde el cierre autorizado de una partida.
+- Confirmar que el jugador pertenecía al grupo al ocurrir el evento.
+- Insertar evento idempotente por game_id, profile_id y tipo.
+- Actualizar contribución, progreso grupal y experiencia en transacción.
+- Crear desafío semanal perezosamente para no depender de cron.
+- Congelar tamaño/banda usada para calcular meta al crear el desafío.
+- RPC get_my_group_dashboard().
+- RPC claim_group_weekly_reward(challenge_id).
+- RPC get_group_leaderboard(week_start, page).
+- RPC update_group_identity(...) solo para líder.
+- Revisar y endurecer RPC existentes de crear, invitar, expulsar, salir y eliminar.
+- search_path fijo, RLS y sin escrituras directas.
+- Agregar migración nueva y actualizar schema.
+
+REGLAS AL CAMBIAR DE GRUPO
+
+- Un jugador solo pertenece a un grupo, como ahora.
+- La contribución histórica queda asociada al grupo original.
+- No puede cobrar una recompensa completada antes de unirse.
+- Si sale antes de reclamar, la primera versión pierde elegibilidad; esto debe estar
+  explicado antes de confirmar salida.
+- Establecer un período corto antes de contribuir a un segundo grupo en la misma
+  semana para evitar rotación oportunista.
+- No impedir indefinidamente jugar ni unirse; el límite afecta recompensas, no acceso.
+
+ACCESIBILIDAD Y UX
+
+- Progreso con texto y números además de color.
+- Cambios asíncronos anunciados como frases completas.
+- Escudos tienen nombre accesible o son decorativos junto al nombre visible.
+- Botones mínimo 44x44 px, foco visible y confirmación de acciones destructivas.
+- Modales mantienen y devuelven foco.
+- Ranking móvil usa filas/tarjetas sin scroll horizontal.
+- Actividad no se actualiza de forma que desplace el foco o la lectura.
+- Estados vacíos indican una acción posible.
+- No sobrecargar la barra móvil; todo vive dentro de Comunidad.
+
+ANALÍTICA
+
+- group_created.
+- group_joined.
+- group_dashboard_viewed.
+- group_challenge_progressed.
+- group_challenge_completed.
+- group_reward_claimed.
+- group_leaderboard_viewed.
+- group_identity_updated.
+- group_left.
+
+Métricas:
+- Porcentaje de grupos con dos o más integrantes activos.
+- Grupos que completan misión semanal.
+- Integrantes distintos que contribuyen.
+- Retorno semanal de miembros frente a jugadores sin grupo.
+- Concentración de aporte en una sola persona.
+- Creaciones, abandonos y expulsiones.
+- Inflación de monedas por recompensas.
+
+SEGURIDAD Y ABUSO
+
+- No confiar en progreso enviado por cliente.
+- RLS: solo miembros ven panel y contribución detallada.
+- Ranking público recibe campos mínimos mediante RPC.
+- Rate limit en invitaciones y cambios de identidad.
+- Paleta y símbolos provienen de allowlist.
+- Validar y moderar nombre/descripción como ya corresponda.
+- Recompensa idempotente y bloqueada por fila.
+- Evitar doble aporte al reintentar finish_game.
+- Registrar administración material: expulsión, liderazgo y eliminación.
+
+PRUEBAS OBLIGATORIAS
+
+Servidor:
+- Grupo pequeño y grande reciben metas correctas.
+- Una partida avanza una sola vez.
+- No miembro no ve panel privado.
+- Miembro nuevo no cobra progreso previo.
+- Salida antes de reclamar aplica la regla visible.
+- Reclamos simultáneos no duplican monedas.
+- Cambio de semana argentina crea un único desafío.
+- Empate del ranking usa el desempate definido.
+- Cambio de líder y eliminación no dejan datos inconsistentes.
+
+Interfaz:
+- Sin grupo, con invitación y con grupo.
+- Grupo de 1, 2 y 20 integrantes.
+- Misión en progreso, completada y reclamada.
+- Usuario elegible y no elegible con explicación.
+- Ranking propio dentro y fuera del top.
+- Actividad vacía y con eventos agrupados.
+- Editor de escudo con teclado y lector de pantalla.
+- 320 a 1440 px y movimiento reducido.
+
+ORDEN DE IMPLEMENTACIÓN RECOMENDADO
+
+1. Auditar grupos y RPC actuales sin reescribir lo que funciona.
+2. Definir experiencia, metas por tamaño y economía.
+3. Crear migración, RLS y funciones idempotentes.
+4. Agregar pruebas SQL.
+5. Integrar contribuciones con finish_game.
+6. Construir panel de grupo y misión semanal.
+7. Agregar ranking interno y público.
+8. Agregar escudo y actividad automática.
+9. Integrar analítica.
+10. Probar semana simulada, cambio de grupo y reclamos.
+11. Dar al dueño instrucciones exactas de despliegue en Supabase.
+
+CRITERIOS DE ACEPTACIÓN
+
+- Cada grupo recibe una misión semanal alcanzable según tamaño.
+- Todos ven progreso total y aporte individual correcto.
+- Solo integrantes elegibles cobran una vez.
+- El nivel y escudo no dan ventajas de juego.
+- Ranking interno y público tienen reglas entendibles.
+- La actividad refleja eventos reales sin exponer datos sensibles.
+- Salir, expulsar y cambiar liderazgo conservan integridad.
+- La función vive dentro de Comunidad y no sobrecarga navegación.
+- No se promete ni depende de 2x2 o 3x3.
+
+DEFINICIÓN DE TERMINADO
+
+Probar con al menos tres perfiles: crear grupo, invitar, contribuir, completar, cobrar,
+salir y cambiar liderazgo. Simular cambio semanal y doble reclamo. Deben pasar build,
+pruebas SQL de seguridad, prueba responsive y verificación manual completa.

@@ -1,0 +1,309 @@
+TRUCAZO — PLAN 3: POSTPARTIDO MEMORABLE
+========================================
+
+ESTADO
+Documento de especificación. Todavía no implementado.
+
+DECISIÓN DEL DUEÑO
+No incluir una sección automática de “momento de la partida”. No calcular ni mostrar
+remontadas, jugadas destacadas, mejor bluff ni resúmenes narrativos equivalentes.
+
+PROPÓSITO DE ESTE ARCHIVO
+Servir como especificación autónoma para mejorar el cierre de partidas online y de
+Modo Historia sin romper la revancha, las reseñas ni los flujos ya existentes.
+
+OBJETIVO DE PRODUCTO
+Hacer que el final de cada partida produzca claridad, satisfacción y una siguiente
+acción natural. El jugador debe entender qué pasó con su resultado, monedas,
+objetivos, temporada y relación con el rival sin quedar atrapado en una pantalla
+larga.
+
+ALCANCE CERRADO DE LA PRIMERA VERSIÓN
+
+1. Nuevo resumen final para PvP, bot y campaña.
+2. Resultado y marcador final prominentes.
+3. Cambio de monedas con saldo final.
+4. Progreso de objetivos diarios/semanales, si el Plan 1 está implementado.
+5. Cambio de rating/división, si el Plan 2 está implementado y la partida contó.
+6. Medallas recién obtenidas.
+7. Historial cara a cara básico contra un humano registrado.
+8. Acciones contextuales: revancha, agregar amigo, compartir y salir.
+9. Persistencia del resumen al recargar.
+10. Analítica del embudo postpartido.
+
+DEPENDENCIAS OPCIONALES
+
+- Si el Plan 1 no existe, ocultar el bloque de objetivos sin dejar espacio vacío.
+- Si el Plan 2 no existe, ocultar temporada/división.
+- Si el Plan 4 no existe, “Agregar amigo” puede usar el flujo social actual y el
+  historial cara a cara puede quedar para esa implementación.
+- Este plan debe mejorar el cierre actual aun sin ninguna de esas dependencias.
+
+FUERA DE ALCANCE
+
+- Replay completo de cartas.
+- Análisis estratégico automático.
+- Video, grabación o GIF de la partida.
+- Chat libre dentro del cierre.
+- Recompensas aleatorias.
+- Animaciones largas que demoren la revancha.
+- Nuevas reglas de juego.
+
+JERARQUÍA DEL CIERRE
+
+La pantalla debe responder, en este orden:
+
+1. ¿Gané, perdí o la partida fue anulada?
+2. ¿Cuál fue el marcador?
+3. ¿Qué cambió para mí?
+4. ¿Qué puedo hacer ahora?
+
+No mezclar todos los datos con el mismo peso visual.
+
+ESTRUCTURA VISUAL
+
+A. Encabezado
+
+- “Ganaste”, “Perdiste” o estado válido equivalente.
+- Marcador final completo, por ejemplo 30–24.
+- Nombre y avatar de ambos participantes.
+- Distinción clara entre persona, bot y rival de Historia.
+- Celebración moderada para victoria; cierre sobrio para derrota.
+
+B. Balance
+
+- Cambio de monedas con signo.
+- Saldo final.
+- Si no hubo movimiento de monedas, explicar por qué: campaña, partida amistosa,
+  anulación u otra condición real.
+- Nunca estimar el saldo en el cliente.
+
+C. Progreso
+
+Mostrar solamente bloques con información real:
+
+- Objetivos: barras que cambiaron en esta partida.
+- Temporada: rating anterior, delta, rating final o avance de ubicación.
+- División: promoción o descenso, si ocurrió.
+- Medallas: nombre y descripción de las recién ganadas.
+- Historia: rival vencido, puntos y recompensa de campaña ya existentes.
+
+No mostrar tarjetas vacías ni “próximamente”.
+
+D. Relación con el rival
+
+Para humanos registrados:
+- Historial total entre ambos: victorias propias y del rival.
+- Botón “Agregar amigo” si todavía no son amigos.
+- Estado “Solicitud enviada” si ya existe una solicitud.
+- Estado “Amigo” si ya lo son.
+
+No mostrar historial cara a cara contra bots ni mezclar partidas de campaña.
+
+E. Acciones
+
+Orden recomendado para PvP:
+
+- Acción principal: “Revancha”.
+- Secundaria: “Volver al lobby”.
+- Terciarias: “Agregar amigo” y “Compartir resultado”.
+
+Orden recomendado para campaña:
+
+- Acción principal: “Jugar de nuevo” o “Siguiente rival” cuando corresponda.
+- Secundaria: “Volver al mapa”.
+- Reseña conserva su lugar actual, pero no compite visualmente con continuar.
+
+REGLAS DE REVANCHA
+
+- Conservar el flujo actual de votos 0/2, 1/2 y 2/2.
+- Mostrar claramente quién pidió revancha.
+- No bloquear volver al lobby mientras se espera.
+- Si el rival sale o vence el plazo, cerrar el estado con un mensaje claro.
+- Evitar dos botones principales simultáneos.
+- Mantener escucha Realtime mientras la pantalla final está abierta.
+- Prevenir doble solicitud con botón deshabilitado y operación idempotente.
+
+COMPARTIR RESULTADO
+
+Primera versión:
+- Usar Web Share API cuando esté disponible.
+- Respaldo: copiar un texto y enlace al portapapeles.
+- Texto breve con resultado, marcador y marca Trucazo.
+- No incluir saldo, email, identificadores internos ni código de mesa.
+- La URL compartida debe llevar a una ruta pública segura, no a una partida privada.
+- Si se crea una imagen social más adelante, debe usar datos reales y no afirmar
+  estadísticas inexistentes.
+
+Ejemplo conceptual:
+“Le gané 30–24 a Nico en Trucazo. ¿Jugamos? https://www.trucazo.com.ar/”
+
+PERSISTENCIA DEL RESUMEN
+
+El resumen debe reconstruirse desde datos guardados, no desde estados temporales de
+React. Si el jugador recarga o vuelve con el botón Atrás debe ver los mismos deltas y
+recompensas.
+
+Opciones aceptables:
+- Guardar snapshots de cambios asociados a game_id.
+- Consultar registros idempotentes de monedas, rating, misiones y medallas.
+- Exponer una RPC agregadora que devuelva únicamente el resumen autorizado.
+
+No calcular “antes” restando valores actuales en el navegador, porque otras pestañas
+o partidas podrían haber cambiado el perfil.
+
+CONTRATO DE DATOS SUGERIDO
+
+Crear RPC get_postgame_summary(p_game_id) que valide que el usuario participó y
+devuelva un objeto estable con:
+
+- game_id, status y mode.
+- winner_id o resultado relativo al usuario.
+- final_score propio y rival.
+- datos públicos mínimos de ambos jugadores.
+- coins_before, coins_delta y coins_after cuando corresponda.
+- rematch_p1, rematch_p2, rematch_game_id y expiración.
+- nuevas medallas otorgadas por esta partida.
+- head_to_head wins/losses si el rival es humano.
+- objective_deltas opcionales.
+- season_delta opcional.
+- campaign_delta opcional.
+- friendship_state opcional.
+
+La RPC no devuelve manos, cartas ocultas, emails, flags de administración ni datos de
+otros usuarios. Debe funcionar únicamente para participantes y administradores que
+ya tengan autorización explícita.
+
+CAMBIOS DE DATOS POSIBLES
+
+Si los sistemas existentes no conservan snapshots suficientes, agregar una tabla
+postgame_events o result_rewards con:
+
+- game_id y profile_id como clave única.
+- coins_before/delta/after.
+- medallas_nuevas como dato auditable o relación normalizada.
+- objective_changes y season_change solo como snapshot de presentación, sin ser la
+  fuente de verdad principal.
+- created_at.
+
+La escritura ocurre dentro o inmediatamente después de finish_game con idempotencia.
+Nunca confiar en valores enviados por GameClient.
+
+COMPORTAMIENTO SEGÚN MODO
+
+PvP competitivo:
+- Resultado, marcador, monedas, temporada, objetivos, H2H, revancha, amigo, compartir.
+
+PvP amistoso o privado:
+- Resultado, marcador, monedas si aplican, objetivos permitidos, H2H, revancha,
+  amigo, compartir. Explicar que no cambia temporada.
+
+Bot del lobby:
+- Resultado, marcador, monedas y objetivos permitidos. Sin H2H social ni agregar
+  amigo. Revancha según soporte real.
+
+Modo Historia:
+- Resultado, marcador, recompensa, puntos de campaña, desbloqueos, objetivos y
+  acciones de campaña. Sin monedas estimadas ni ranking online.
+
+Invitado:
+- Resultado y acciones válidas.
+- Después de la acción principal, ofrecer guardar el progreso creando cuenta si el
+  sistema realmente puede conservar o transferir ese progreso.
+- No prometer conservación si no está implementada.
+
+ESTADOS DE ERROR
+
+- Resumen cargando: estructura estable o skeleton que no tape acciones.
+- Error parcial: mostrar resultado y acciones aunque falle un bloque secundario.
+- Error de revancha: mensaje junto al botón y opción de lobby disponible.
+- Rival desconectado: estado explícito.
+- Resumen no autorizado: volver al lobby, sin filtrar datos.
+- Partida aún no finalizada: mantener pantalla de juego o refrescar estado.
+
+ACCESIBILIDAD Y UX
+
+- Llevar el foco al título de resultado cuando aparece el cierre.
+- El orden de lectura coincide con la jerarquía visual.
+- “Ganaste” o “Perdiste” aparece como texto, no solo por color o sonido.
+- Botones con foco visible y área táctil mínima de 44x44 px.
+- Los cambios de revancha se anuncian mediante una sola región role=status con frase
+  completa: “Nico pidió revancha, falta tu confirmación”.
+- Las animaciones no mueven los botones mientras se intenta tocarlos.
+- Con prefers-reduced-motion se eliminan conteos y entradas largas.
+- El cierre cabe y permite scroll sin quedar escondido detrás de zonas seguras.
+- Una derrota no usa mensajes humillantes ni presión para recuperar monedas.
+
+ANALÍTICA
+
+- postgame_viewed.
+- rematch_requested.
+- rematch_accepted o rematch_started.
+- postgame_lobby_clicked.
+- postgame_friend_request_sent.
+- result_shared.
+- review_prompt_viewed y review_started, conservando medición existente si la hay.
+
+Propiedades permitidas: modo, resultado, partida competitiva sí/no, delta de división
+en categoría y tipo de CTA. No incluir nombre rival, texto compartido ni saldo.
+
+MÉTRICAS DE ÉXITO
+
+- Tasa de revancha iniciada.
+- Porcentaje que agrega al rival como amigo.
+- Porcentaje que comparte.
+- Tiempo hasta elegir la siguiente acción.
+- Salidas o cierres sin acción.
+- Error de carga del resumen.
+- Conversión de invitado a cuenta, si existe transferencia real.
+
+PRUEBAS OBLIGATORIAS
+
+Servidor:
+- Solo participantes acceden al resumen.
+- Recargar devuelve los mismos deltas.
+- Ninguna carta oculta se filtra.
+- Los cambios de monedas coinciden con registros reales.
+- Revancha simultánea no crea dos partidas.
+- H2H excluye bots y campaña.
+- Cada modo devuelve únicamente bloques aplicables.
+
+Interfaz:
+- Victoria, derrota y estado anulado.
+- PvP, bot, campaña, privado e invitado.
+- Con y sin objetivo, temporada, medalla o amigo.
+- Rival pide revancha primero; usuario pide primero; rival se va.
+- Error parcial sin perder acciones.
+- Compartir nativo y respaldo de copiar.
+- Teclado, lector de pantalla, movimiento reducido.
+- 320, 375, 414, 768, 1024 y 1440 px.
+
+ORDEN DE IMPLEMENTACIÓN RECOMENDADO
+
+1. Inventariar todos los datos que finish_game ya guarda.
+2. Definir contrato get_postgame_summary.
+3. Agregar snapshots faltantes mediante migración nueva.
+4. Crear pruebas de autorización e idempotencia.
+5. Separar el cierre actual en componentes pequeños por bloque.
+6. Implementar jerarquía y acciones de PvP.
+7. Implementar variante de campaña.
+8. Integrar objetivos y temporada de forma opcional.
+9. Agregar H2H, amistad y compartir.
+10. Agregar analítica y verificar flujo completo.
+
+CRITERIOS DE ACEPTACIÓN
+
+- El resultado y marcador se entienden en menos de dos segundos.
+- Monedas y progresos coinciden con el servidor aun después de recargar.
+- Revancha sigue funcionando y no bloquea volver al lobby.
+- El cierre se adapta correctamente a cada modo.
+- No aparecen bloques vacíos ni datos que no correspondan.
+- El jugador puede agregar al rival o compartir sin exponer datos privados.
+- La interfaz es accesible y no desplaza botones durante animaciones.
+- No se añadió ninguna sección de jugada o momento destacado.
+
+DEFINICIÓN DE TERMINADO
+
+Debe verificarse manualmente un final de cada modo, una revancha completa entre dos
+sesiones, una recarga del resumen y un error parcial. También deben pasar build,
+pruebas de seguridad y pruebas responsive antes de considerar terminado.

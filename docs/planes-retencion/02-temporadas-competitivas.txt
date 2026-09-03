@@ -1,0 +1,309 @@
+TRUCAZO — PLAN 2: TEMPORADAS COMPETITIVAS
+==========================================
+
+ESTADO
+Documento de especificación. Todavía no implementado.
+
+PROPÓSITO DE ESTE ARCHIVO
+Servir como documento autónomo para implementar una clasificación competitiva por
+temporadas sin reemplazar ni romper el ranking histórico actual.
+
+OBJETIVO DE PRODUCTO
+Darles a jugadores nuevos y veteranos una meta competitiva alcanzable cada mes. El
+ranking vitalicio por victorias debe conservarse como historial, mientras una nueva
+clasificación estacional mide rendimiento reciente y crea ciclos de regreso.
+
+PROMESA AL JUGADOR
+“Competí este mes, subí de división y ganá una recompensa que demuestre hasta dónde
+llegaste.”
+
+ALCANCE CERRADO DE LA PRIMERA VERSIÓN
+
+1. Temporadas mensuales con fecha argentina de inicio y fin.
+2. Clasificación individual para partidas públicas 1 contra 1 entre humanos.
+3. Puntaje de habilidad tipo Elo calculado por el servidor.
+4. Cinco partidas de ubicación al comienzo de cada temporada.
+5. Divisiones visibles.
+6. Ranking estacional general y ranking entre amigos.
+7. Recompensa cosmética de temporada, sin ventaja de juego.
+8. Historial de temporadas terminadas en el perfil.
+9. El ranking histórico actual continúa disponible.
+
+FUERA DE ALCANCE EN ESTA VERSIÓN
+
+- 2x2 y 3x3.
+- Torneos eliminatorios.
+- Emparejamiento obligatorio por Elo.
+- Descenso por inactividad diaria.
+- Premios con valor real.
+- Compra de puntaje o protecciones.
+- Reinicio o eliminación de estadísticas históricas.
+- Ranking de Modo Historia, que continúa separado.
+
+QUÉ PARTIDAS CUENTAN
+
+Cuenta para temporada:
+- Mesa pública.
+- Ambos participantes son humanos registrados.
+- Partida terminada válidamente.
+- Formato 1 contra 1.
+
+No cuenta:
+- Partida contra bot, incluso si el bot llenó una mesa pública.
+- Modo Historia.
+- Mesa privada o desafío amistoso.
+- Invitado sin perfil persistente.
+- Partida anulada, incompleta o abandonada antes de cumplir la condición válida que
+  defina el servidor.
+
+La interfaz debe avisar antes de entrar si una mesa es “Competitiva” o “Amistosa”.
+Nunca cambiar retroactivamente el carácter de una partida después de empezarla.
+
+SISTEMA DE PUNTAJE PROPUESTO
+
+- Rating inicial interno: 1000.
+- Cinco partidas de ubicación.
+- K más alto durante ubicación para llegar rápido al nivel apropiado.
+- K normal después de ubicación.
+- Victoria suma y derrota resta según diferencia de rating.
+- El cálculo usa valores anteriores de ambos jugadores dentro de una transacción.
+- Guardar rating_before, delta y rating_after para auditoría.
+- No mostrar fórmulas complejas durante la partida; mostrar cambio exacto al final.
+
+Valores iniciales para validar con simulaciones antes de desplegar:
+- K de ubicación: 40.
+- K normal: 24.
+- Rating mínimo visible: 0.
+- Sin bonus artificial por racha en la primera versión.
+
+DIVISIONES PROPUESTAS
+
+- Baraja: 0 a 899.
+- Envido: 900 a 1049.
+- Truco: 1050 a 1199.
+- Retruco: 1200 a 1349.
+- Vale Cuatro: 1350 o más.
+
+Los límites deben vivir en una única fuente de verdad del servidor o configuración
+compartida. Antes de fijarlos definitivamente, ejecutar una simulación con población
+pequeña para evitar que casi todos queden en la misma división.
+
+TEMPORADA Y CIERRE
+
+- Una temporada tiene slug, nombre, starts_at, ends_at y estado.
+- Las fechas se muestran en America/Argentina/Buenos_Aires.
+- La temporada activa se decide por datos del servidor.
+- El último rating confirmado antes de ends_at determina la posición final.
+- Al cerrar, guardar puesto, división máxima/final, rating final y recompensa.
+- No depender de que el jugador esté conectado durante el cierre.
+- La siguiente temporada empieza con un reinicio suave, no desde cero absoluto.
+- Reinicio sugerido: acercar parcialmente el rating a 1000 para mantener equilibrio.
+
+RECOMPENSAS
+
+Primera versión:
+- Un marco o medalla visual por división final.
+- Un título de perfil con temporada y año.
+- Sin monedas competitivas hasta comprobar que no incentivan arreglar partidas.
+- Las recompensas se asignan una sola vez al finalizar la temporada.
+- El jugador conserva el cosmético aunque baje en otra temporada.
+
+EXPERIENCIA DEL LOBBY
+
+Agregar un bloque compacto “Temporada actual” que muestre:
+- Nombre y tiempo restante.
+- División o “Ubicación 2/5”.
+- Rating actual después de ubicarse.
+- Cambio respecto de la partida anterior.
+- Próxima división y puntos que faltan.
+- CTA “Ver temporada”.
+
+No ocultar “Jugar ya”. El bloque competitivo debe informar y motivar, no impedir el
+acceso al juego.
+
+PANTALLA DE TEMPORADA
+
+Secciones:
+
+1. Mi estado
+- División, rating, posición y partidas de ubicación.
+- Progreso hacia la siguiente división.
+- Mejor división alcanzada en la temporada.
+
+2. Clasificación
+- Top general paginado o limitado.
+- Fila propia siempre visible aunque quede fuera del top.
+- Victorias, derrotas, partidas y rating.
+- No ordenar por victorias: ordenar por rating y desempate definido.
+
+3. Amigos
+- Misma información limitada a amigos.
+- Estado vacío útil: “Agregá amigos para comparar su temporada”.
+
+4. Recompensas
+- Mostrar qué recibe cada división.
+- Marcar la recompensa actualmente asegurada.
+- No simular cofres ni probabilidades.
+
+5. Reglas claras
+- Qué partidas cuentan.
+- Cómo se gana o pierde puntaje en lenguaje simple.
+- Fecha de cierre.
+
+CIERRE DE PARTIDA
+
+Cuando la partida fue competitiva:
+- Mostrar rating anterior, cambio con signo y rating nuevo.
+- Mostrar cambio de división si ocurrió.
+- Mostrar avance de ubicación si todavía no terminó.
+- Si no cuenta, decir brevemente “Partida amistosa: no modifica tu temporada”.
+- El dato debe venir del servidor y sobrevivir a recargar la pantalla.
+
+MODELO DE DATOS SUGERIDO
+
+competitive_seasons
+- id, slug y nombre.
+- starts_at y ends_at.
+- status: scheduled, active, finalizing, finished.
+- parámetros congelados de rating y reinicio.
+- configuración de divisiones o versión asociada.
+
+player_season_stats
+- season_id y profile_id como clave única.
+- rating.
+- placement_games.
+- games_played, wins, losses.
+- peak_rating y peak_division.
+- last_competitive_game_at.
+- final_rank, final_rating y final_division una vez cerrada.
+- reward_granted_at.
+
+season_rating_events
+- id, season_id y game_id.
+- profile_id y opponent_id.
+- rating_before, rating_delta y rating_after.
+- expected_score o datos suficientes para auditar.
+- created_at.
+- clave única por game_id y profile_id.
+
+season_rewards
+- season_id, division y recompensa cosmética.
+- snapshot del nombre y presentación.
+
+No exponer opponent_id innecesariamente en lecturas públicas. Crear vistas o RPC con
+los campos exactos que necesita cada pantalla.
+
+LÓGICA DE SERVIDOR
+
+- Integrar la actualización en el flujo autorizado de finalización de partida.
+- Bloquear filas de ambos participantes antes de calcular.
+- Crear las estadísticas de temporada perezosamente si todavía no existen.
+- Verificar que la partida cumple todas las condiciones competitivas.
+- Insertar ambos rating_events y actualizar ambos perfiles en una transacción.
+- Hacer el proceso idempotente usando game_id.
+- Crear RPC get_current_season_summary().
+- Crear RPC get_season_leaderboard(season, alcance, página).
+- Crear función administrativa o job seguro para finalizar temporada y entregar
+  recompensas.
+- El cliente nunca envía rating, delta, resultado ni división.
+- Actualizar schema y agregar una migración nueva.
+
+ANTI-ABUSO INICIAL
+
+- Las partidas repetidas contra la misma persona cuentan normalmente para rating,
+  pero registrar frecuencia para detectar arreglos.
+- No aplicar límites secretos. Si se adopta una regla, debe ser pública.
+- Alertar al administrador cuando dos cuentas concentran una proporción anormal de
+  sus partidas entre sí.
+- No castigar automáticamente sin datos suficientes.
+- Bots y cuentas administrativas quedan excluidos.
+- Mantener trazabilidad completa de cada cambio de rating.
+
+RELACIÓN CON EL RANKING ACTUAL
+
+- Renombrar visualmente el actual como “Histórico” o “Más ganadores”.
+- Agregar pestañas o navegación clara: Temporada / Amigos / Histórico.
+- El ranking de Argentina del Modo Historia conserva su identidad y ruta propia.
+- No mezclar puntos de campaña, victorias vitalicias y rating estacional.
+
+ACCESIBILIDAD Y UX
+
+- No comunicar división solo por color: nombre, icono vectorial y texto.
+- Tablas adaptadas a tarjetas en móvil, sin scroll horizontal obligatorio.
+- Foco visible y controles de al menos 44x44 px.
+- Cambios asíncronos con estados de carga estables.
+- La fila propia debe identificarse con “vos”, no únicamente con un borde dorado.
+- Explicar por qué una partida no contó.
+- Respetar movimiento reducido en promociones de división.
+
+ANALÍTICA
+
+- season_page_viewed.
+- placement_game_completed.
+- placement_completed.
+- rating_changed.
+- division_promoted.
+- division_demoted.
+- season_reward_viewed.
+- season_reward_granted.
+
+Métricas principales:
+- Participación en temporada entre jugadores activos.
+- Finalización de las cinco ubicaciones.
+- Partidas competitivas por jugador.
+- Retorno semanal de participantes frente a no participantes.
+- Distribución por divisiones.
+- Tiempo de espera y tasa de partida contra bot.
+- Concentración de partidas entre pares de cuentas.
+
+PRUEBAS OBLIGATORIAS
+
+Base de datos:
+- Victoria esperada e inesperada producen deltas correctos.
+- Los dos deltas se calculan con ratings anteriores.
+- La misma partida no se procesa dos veces.
+- Bot, campaña y privada no modifican rating.
+- El cierre congela posiciones y entrega una sola recompensa.
+- Un usuario no altera sus estadísticas ni las de otro.
+- Cambio de mes y zona horaria funcionan correctamente.
+- Dos partidas terminando simultáneamente no corrompen el rating.
+
+Interfaz:
+- Ubicación 0/5 a 5/5.
+- Promoción y descenso.
+- Jugador fuera del top.
+- Sin amigos y con amigos.
+- Temporada programada, activa, finalizando y terminada.
+- 320 a 1440 px, teclado y lector de pantalla.
+- Recarga del postpartido conserva el delta mostrado.
+
+ORDEN DE IMPLEMENTACIÓN RECOMENDADO
+
+1. Simular Elo y divisiones con población pequeña.
+2. Definir exactamente qué partidas son competitivas.
+3. Crear migración, RLS, rating events y RPC.
+4. Agregar pruebas SQL e idempotencia.
+5. Integrar con finish_game.
+6. Crear pantalla de temporada y ranking de amigos.
+7. Agregar resumen del lobby.
+8. Integrar cambio de rating al postpartido.
+9. Implementar cierre y recompensas.
+10. Ejecutar build, pruebas y cierre simulado.
+11. Dar al dueño instrucciones paso a paso para Supabase.
+
+CRITERIOS DE ACEPTACIÓN
+
+- Solo partidas públicas humanas válidas cambian rating.
+- El jugador completa cinco ubicaciones y obtiene una división.
+- Cada cambio queda auditado y no se duplica.
+- Se puede ver ranking general, amigos y posición propia.
+- El ranking histórico sigue funcionando.
+- La temporada puede cerrarse sin borrar datos ni depender del navegador.
+- Las recompensas son cosméticas y se entregan una sola vez.
+- La distribución de divisiones fue simulada y documentada.
+
+DEFINICIÓN DE TERMINADO
+
+La función no está terminada hasta probar una temporada corta completa en entorno de
+prueba: creación, ubicaciones, cambios de rating, promoción, cierre, recompensa e
+inicio de la siguiente, además de build y pruebas de seguridad.
