@@ -11,7 +11,7 @@ import { Button, Panel, Input, Modal, Coins, Logo, Alert, Toggle, Avatar, cn } f
 import { useCommunity } from '@/lib/useCommunity'
 import FriendsPanel from '@/components/FriendsPanel'
 import ChatGlobal from '@/components/ChatGlobal'
-import ObjectivesSummary from '@/components/objectives/ObjectivesSummary'
+import ObjectivesFloatingButton from '@/components/objectives/ObjectivesFloatingButton'
 import type { ObjectivesData } from '@/lib/objectives'
 
 interface Props {
@@ -19,7 +19,7 @@ interface Props {
   initialTables: Table[]
   activeGameId: string | null
   myMedal: string
-  objectivesEnabled: boolean
+  isGuest: boolean
   initialObjectives: ObjectivesData | null
 }
 
@@ -32,7 +32,7 @@ export default function LobbyClient({
   initialTables,
   activeGameId,
   myMedal,
-  objectivesEnabled,
+  isGuest,
   initialObjectives,
 }: Props) {
   const router = useRouter()
@@ -339,7 +339,7 @@ export default function LobbyClient({
 
   if (createdCode) {
     return (
-      <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-6">
+      <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-6 p-6">
         <Panel className="w-full max-w-sm p-8 text-center flex flex-col gap-5 animate-fade-up">
           <div className="flex flex-col gap-1">
             <span className="text-xs font-semibold uppercase tracking-widest text-gold">
@@ -363,7 +363,7 @@ export default function LobbyClient({
   }
 
   return (
-    <div className="min-h-screen lg:flex">
+    <div className="min-h-[100dvh] lg:flex">
       {/* Menú lateral (solo compu) */}
       <aside className="hidden lg:flex lg:flex-col w-56 shrink-0 border-r border-line bg-surface/40 p-4 gap-1 sticky top-0 h-screen">
         <div className="px-2 py-3">
@@ -450,7 +450,7 @@ export default function LobbyClient({
           <Coins amount={coins} size="sm" />
         </div>
 
-        <main className="flex flex-col gap-5 px-4 sm:px-6 pt-4 pb-24 lg:pt-6 lg:pb-10 w-full max-w-4xl mx-auto xl:max-w-none xl:mx-0">
+        <main className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 lg:mx-0 lg:max-w-none lg:pb-28 lg:pt-6 xl:mx-0">
           {error && <Alert>{error}</Alert>}
 
           {/* Volver a la partida en curso */}
@@ -466,9 +466,11 @@ export default function LobbyClient({
             </Panel>
           )}
 
-          {objectivesEnabled && (
-            <ObjectivesSummary initialData={initialObjectives} onCoinsChange={setCoins} />
-          )}
+          <ObjectivesFloatingButton
+            initialData={initialObjectives}
+            isGuest={isGuest}
+            onCoinsChange={setCoins}
+          />
 
           {/* Anti-quiebra: si te quedaste sin monedas para jugar, reclamá el bonus */}
           {coins < 10 && (
@@ -716,7 +718,7 @@ export default function LobbyClient({
           acceso principal; chat y amigos viven juntos dentro de Comunidad. */}
       <nav
         aria-label="Navegación principal"
-        className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex min-h-[4.25rem] items-stretch border-t border-line bg-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
+        className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 flex min-h-[calc(4.25rem+env(safe-area-inset-bottom))] items-stretch border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         <BottomTab href="/lobby" icon={<HomeIcon size={22} />} label="Home" active />
         <BottomTab href="/ranking" icon={<RankIcon size={22} />} label="Ranking" />

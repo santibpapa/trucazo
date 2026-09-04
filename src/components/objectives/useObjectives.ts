@@ -5,9 +5,13 @@ import { createClient } from '@/lib/supabase/client'
 import { trackFirstParty } from '@/lib/analytics/client'
 import type { ObjectiveKind, ObjectivesData } from '@/lib/objectives'
 
-export function useObjectives(initialData: ObjectivesData | null, gameId: string | null = null) {
+export function useObjectives(
+  initialData: ObjectivesData | null,
+  gameId: string | null = null,
+  enabled = true,
+) {
   const [data, setData] = useState<ObjectivesData | null>(initialData)
-  const [loading, setLoading] = useState(!initialData)
+  const [loading, setLoading] = useState(enabled && !initialData)
   const [claiming, setClaiming] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [statusMessage, setStatusMessage] = useState('')
@@ -16,6 +20,7 @@ export function useObjectives(initialData: ObjectivesData | null, gameId: string
   useEffect(() => { dataRef.current = data }, [data])
 
   const refresh = useCallback(async () => {
+    if (!enabled) return
     const supabase = createClient()
     if (!dataRef.current) setLoading(true)
     const { data: fresh, error: readError } = await supabase.rpc('get_my_objectives', {
@@ -28,13 +33,14 @@ export function useObjectives(initialData: ObjectivesData | null, gameId: string
       setError('')
     }
     setLoading(false)
-  }, [gameId])
+  }, [enabled, gameId])
 
   useEffect(() => {
-    if (!initialData) void refresh()
-  }, [initialData, refresh])
+    if (enabled && !initialData) void refresh()
+  }, [enabled, initialData, refresh])
 
   useEffect(() => {
+    if (!enabled) return
     const onFocus = () => {
       if (document.visibilityState === 'visible') void refresh()
     }
@@ -44,7 +50,7 @@ export function useObjectives(initialData: ObjectivesData | null, gameId: string
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onFocus)
     }
-  }, [refresh])
+  }, [enabled, refresh])
 
   const claim = useCallback(async (type: ObjectiveKind, identifier: string) => {
     if (claiming) return

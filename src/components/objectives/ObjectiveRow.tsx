@@ -14,6 +14,7 @@ interface Props {
   objective: RowObjective
   compact?: boolean
   claiming?: boolean
+  locked?: boolean
   previousProgress?: number
   onClaim?: (type: 'daily' | 'weekly', identifier: string) => void
 }
@@ -22,6 +23,7 @@ export default function ObjectiveRow({
   objective,
   compact = false,
   claiming = false,
+  locked = false,
   previousProgress,
   onClaim,
 }: Props) {
@@ -31,9 +33,39 @@ export default function ObjectiveRow({
   const percent = Math.min(100, Math.round((shownProgress / objective.target) * 100))
 
   useEffect(() => {
+    if (locked) return
     const frame = requestAnimationFrame(() => setShownProgress(progress))
     return () => cancelAnimationFrame(frame)
-  }, [progress])
+  }, [locked, progress])
+
+  if (locked) {
+    return (
+      <div
+        aria-disabled="true"
+        className="rounded-xl border border-white/10 bg-white/[0.035] px-2.5 py-2 grayscale shadow-[inset_0_0_18px_rgba(0,0,0,0.72),0_5px_12px_rgba(0,0,0,0.48)]"
+      >
+        <div className="flex items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-muted"
+          >
+            <LockIcon size={17} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-sm font-semibold leading-tight text-muted">{objective.name}</p>
+              <span className="shrink-0 text-xs font-bold text-muted">
+                {objective.reward} monedas
+              </span>
+            </div>
+            {objective.description && (
+              <p className="mt-0.5 text-xs leading-snug text-muted">{objective.description}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={cn(
@@ -93,5 +125,14 @@ export default function ObjectiveRow({
         )}
       </div>
     </div>
+  )
+}
+
+function LockIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="5" y="10" width="14" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   )
 }

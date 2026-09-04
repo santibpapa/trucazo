@@ -22,8 +22,11 @@
       radial-gradient(1100px 720px at 82% -12%, rgba(201, 162, 75, 0.12), transparent 60%),
       radial-gradient(900px 640px at -8% 112%, rgba(140, 40, 45, 0.18), transparent 55%),
       radial-gradient(140% 120% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.45) 100%);
-    background-attachment: fixed;
+    /* El fondo fijo compite con las barras flotantes por la capa de composición
+       en celulares y puede hacerlas parpadear al cambiar el viewport. */
+    background-attachment: scroll;
     min-height: 100vh;
+    min-height: 100dvh;
     font-feature-settings: "ss01", "cv01";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
@@ -34,6 +37,12 @@
     padding-top: env(safe-area-inset-top);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
+  }
+}
+
+@media (min-width: 1024px) {
+  body {
+    background-attachment: fixed;
   }
 }
 
@@ -64,6 +73,14 @@
       0 8px 18px rgba(0, 0, 0, 0.55);
     animation: campaign-nav-breathe 2.8s ease-in-out infinite;
   }
+
+  /* Mantiene la barra en su propia capa cuando Safari o Chrome móvil muestran
+     y ocultan sus controles durante el scroll. */
+  .mobile-bottom-nav {
+    isolation: isolate;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
 }
 
 @keyframes campaign-nav-breathe {
@@ -83,6 +100,45 @@
   }
 }
 
+/* El cofre de objetivos flota sin ocupar lugar en el lobby. Cuando todavía hay
+   progreso pendiente, llama la atención con una sacudida breve y espaciada. */
+@keyframes objectives-chest-shake {
+  0%, 82%, 100% { transform: rotate(0deg) translateX(0); }
+  86% { transform: rotate(-5deg) translateX(-2px); }
+  89% { transform: rotate(5deg) translateX(2px); }
+  92% { transform: rotate(-3deg) translateX(-1px); }
+  95% { transform: rotate(3deg) translateX(1px); }
+}
+
+@keyframes objectives-chest-glow {
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+    box-shadow: 0 0 18px rgba(201, 162, 75, 0.55);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+    box-shadow: 0 0 34px rgba(239, 202, 104, 0.88);
+  }
+}
+
+.objectives-chest-shake {
+  transform-origin: 50% 72%;
+  animation: objectives-chest-shake 3.6s ease-in-out infinite;
+}
+
+.objectives-chest-glow {
+  animation: objectives-chest-glow 2.4s ease-in-out infinite;
+}
+
+.objectives-chest-pending:hover .objectives-chest-shake,
+.objectives-chest-pending:focus-visible .objectives-chest-shake,
+.objectives-chest-pending:hover .objectives-chest-glow,
+.objectives-chest-pending:focus-visible .objectives-chest-glow {
+  animation-play-state: paused;
+}
+
 /* Respeta a quien prefiere menos movimiento */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -91,5 +147,10 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .objectives-chest-shake,
+  .objectives-chest-glow {
+    animation: none !important;
   }
 }
