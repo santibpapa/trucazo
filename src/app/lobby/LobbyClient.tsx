@@ -11,19 +11,30 @@ import { Button, Panel, Input, Modal, Coins, Logo, Alert, Toggle, Avatar, cn } f
 import { useCommunity } from '@/lib/useCommunity'
 import FriendsPanel from '@/components/FriendsPanel'
 import ChatGlobal from '@/components/ChatGlobal'
+import ObjectivesSummary from '@/components/objectives/ObjectivesSummary'
+import type { ObjectivesData } from '@/lib/objectives'
 
 interface Props {
   profile: Profile
   initialTables: Table[]
   activeGameId: string | null
   myMedal: string
+  objectivesEnabled: boolean
+  initialObjectives: ObjectivesData | null
 }
 
 // "Jugar ya": mesa pública, apuesta fija y partida a 30. Un solo toque y a jugar.
 const JUGAR_YA_APUESTA = 50
 const JUGAR_YA_PUNTOS = 30
 
-export default function LobbyClient({ profile, initialTables, activeGameId, myMedal }: Props) {
+export default function LobbyClient({
+  profile,
+  initialTables,
+  activeGameId,
+  myMedal,
+  objectivesEnabled,
+  initialObjectives,
+}: Props) {
   const router = useRouter()
   const [tables, setTables] = useState<Table[]>(initialTables)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -453,6 +464,10 @@ export default function LobbyClient({ profile, initialTables, activeGameId, myMe
                 Volver a la partida
               </Button>
             </Panel>
+          )}
+
+          {objectivesEnabled && (
+            <ObjectivesSummary initialData={initialObjectives} onCoinsChange={setCoins} />
           )}
 
           {/* Anti-quiebra: si te quedaste sin monedas para jugar, reclamá el bonus */}

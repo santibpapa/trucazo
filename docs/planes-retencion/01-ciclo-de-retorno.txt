@@ -2,7 +2,16 @@ TRUCAZO — PLAN 1: CICLO DE RETORNO
 ===================================
 
 ESTADO
-Documento de especificación. Todavía no implementado.
+Implementado en el repositorio el 4 de septiembre de 2026.
+Pendiente de aplicar la migración en Supabase y publicar el frontend.
+
+IMPLEMENTACIÓN
+- Migración: supabase/migrations/20260904150348_ciclo_retorno.sql
+- Prueba integral: supabase/tests/ciclo_retorno.sql
+- Catálogo: 22 misiones activas sin repetición exacta en días consecutivos
+- Pantalla de detalle: /objetivos
+- Resumen: lobby y cierre de cada partida válida
+- Instrucciones de publicación: docs/ciclo-de-retorno-despliegue.md
 
 PROPÓSITO DE ESTE ARCHIVO
 Este archivo debe poder entregarse completo en una sesión futura para implementar
@@ -103,23 +112,23 @@ E. Cambio de día o semana
 
 CATÁLOGO INICIAL DE MISIONES
 
-Las tres misiones diarias se eligen de categorías diferentes para evitar repetición:
+Las tres misiones diarias se eligen de categorías diferentes. El catálogo contiene
+22 variantes y excluye automáticamente las usadas el día anterior:
 
 Participación:
-- Terminá 1 partida.
-- Terminá 3 partidas.
+- Terminá 1, 2, 3 o 4 partidas.
 
 Competencia:
-- Ganá 1 partida contra una persona.
-- Jugá 2 partidas públicas contra personas.
+- Ganá 1, 2 o 3 partidas contra personas.
+- Jugá 1, 2 o 3 partidas públicas contra personas.
 
 Historia:
-- Jugá 1 duelo del Modo Historia.
-- Ganá 1 duelo del Modo Historia.
+- Jugá 1, 2 o 3 duelos del Modo Historia.
+- Ganá 1, 2 o 3 duelos del Modo Historia.
 
 Social:
-- Jugá 1 partida con un amigo mediante invitación.
-- Aceptá o pedí una revancha y terminá esa partida.
+- Jugá 1, 2 o 3 partidas privadas con amigos.
+- Terminá 1, 2 o 3 partidas de revancha.
 
 No incluir inicialmente misiones como “ganá un envido” o “ganá con vale cuatro” si
 el servidor todavía no conserva de forma inequívoca esos eventos. Primero se debe

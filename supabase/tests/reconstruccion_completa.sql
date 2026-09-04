@@ -25,7 +25,7 @@ begin
   select count(*) into n_tablas
     from pg_tables where schemaname = 'public';
 
-  -- Los 6 triggers del juego. Uno de ellos (el que crea el perfil al
+  -- Los 7 triggers del juego. Uno de ellos (el que crea el perfil al
   -- registrarse) cuelga de auth.users, que está en otro schema.
   select count(*) into n_triggers
     from pg_trigger t
@@ -33,22 +33,23 @@ begin
    where not t.tgisinternal
      and t.tgname in ('trg_award_medals', 'trg_award_barrida', 'trg_award_on_history',
                       'trg_force_profile_defaults', 'trg_touch_turn_start',
-                      'on_auth_user_created');
+                      'trg_record_objectives', 'on_auth_user_created');
 
   select count(*) into n_salones  from public.salons;
   select count(*) into n_medallas from public.medals;
   select count(*) into n_rivales  from public.campaign_rivals;
 
-  if n_tablas < 28 then
-    faltan := array_append(faltan, format('tablas: %s (esperaba 28 o más)', n_tablas));
+  if n_tablas < 36 then
+    faltan := array_append(faltan, format('tablas: %s (esperaba 36 o más)', n_tablas));
   end if;
-  if n_triggers < 6 then
+  if n_triggers < 7 then
     faltan := array_append(faltan, format(
-      'triggers: %s de 6. Faltan: %s',
+      'triggers: %s de 7. Faltan: %s',
       n_triggers,
       (select string_agg(esperado, ', ')
          from unnest(array['trg_award_medals', 'trg_award_barrida', 'trg_award_on_history',
                            'trg_force_profile_defaults', 'trg_touch_turn_start',
+                           'trg_record_objectives',
                            'on_auth_user_created']) esperado
         where not exists (select 1 from pg_trigger t
                            where t.tgname = esperado and not t.tgisinternal))));

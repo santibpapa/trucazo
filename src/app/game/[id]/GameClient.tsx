@@ -15,6 +15,7 @@ import { getFrameTheme } from '@/lib/marcos'
 import { getMedal } from '@/lib/medallas'
 import { track } from '@vercel/analytics'
 import { trackFirstParty } from '@/lib/analytics/client'
+import ObjectiveProgressDelta from '@/components/objectives/ObjectiveProgressDelta'
 
 interface Props {
   game: Game
@@ -1079,6 +1080,8 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               : `${opponentUsername} te ganó esta vez. Volvé a intentarlo, le vas a encontrar la vuelta.`}
           </p>
 
+          <ObjectiveProgressDelta gameId={game.id} />
+
           {actionError && <p className="text-sm text-negative">{actionError}</p>}
 
           <div className="w-full flex flex-col gap-2">
@@ -1144,6 +1147,8 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               {won ? '+' : '−'}{net.toLocaleString('es-AR')}
             </div>
           )}
+
+          {!voided && <ObjectiveProgressDelta gameId={game.id} />}
 
           {actionError && <p className="text-sm text-negative">{actionError}</p>}
 

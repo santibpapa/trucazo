@@ -77,6 +77,30 @@ create table if not exists public.chat_messages (
   created_at timestamptz not null default now()
 );
 
+-- Objetivos: catálogo diario configurable y asignaciones privadas por jugador.
+create table if not exists public.daily_mission_templates (
+  slug text not null,
+  name text not null,
+  description text not null,
+  event_type text not null,
+  target_value integer not null,
+  reward_amount integer not null,
+  category text not null,
+  difficulty text not null,
+  allowed_modes text[] not null default '{}',
+  active boolean not null default true
+);
+
+create table if not exists public.daily_mission_assignments (
+  profile_id uuid not null,
+  local_date date not null,
+  template_slug text not null,
+  progress integer not null default 0,
+  completed_at timestamptz,
+  claimed_at timestamptz,
+  reward_amount_snapshot integer not null
+);
+
 create table if not exists public.feedback (
   id uuid not null default gen_random_uuid(),
   user_id uuid,
@@ -197,6 +221,19 @@ create table if not exists public.news (
   created_at      timestamptz not null default now()
 );
 
+-- Una fila por jugador/partida: impide duplicar progreso por reintentos y
+-- permite mostrar en el cierre exactamente qué cambió.
+create table if not exists public.objective_game_events (
+  game_id uuid not null,
+  profile_id uuid not null,
+  mode text not null,
+  won boolean not null,
+  opponent_id uuid,
+  progress_delta jsonb not null default '[]'::jsonb,
+  streak_event text not null default 'unchanged',
+  processed_at timestamptz not null default now()
+);
+
 create table if not exists public.profiles (
   id uuid not null,
   username text not null,
@@ -213,6 +250,16 @@ create table if not exists public.profiles (
   active_medal text not null default 'ninguno',
   active_accessory text not null default 'ninguno',
   avatar_url text
+);
+
+create table if not exists public.profile_activity_streaks (
+  profile_id uuid not null,
+  current_streak_days integer not null default 0,
+  longest_streak_days integer not null default 0,
+  last_active_local_date date,
+  protection_week_start date,
+  protection_used_at timestamptz,
+  updated_at timestamptz not null default now()
 );
 
 -- Tienda: catálogo de salones (fondos de la mesa de juego)
@@ -283,6 +330,42 @@ create table if not exists public.profile_accessories (
 create table if not exists public.user_presence (
   user_id      uuid not null,
   last_seen_at timestamptz not null default now()
+);
+
+create table if not exists public.weekly_challenge_templates (
+  slug text not null,
+  name text not null,
+  description text not null,
+  event_type text not null,
+  target_value integer not null,
+  reward_amount integer not null,
+  active boolean not null default true
+);
+
+create table if not exists public.weekly_challenges (
+  week_start date not null,
+  template_slug text not null,
+  name_snapshot text not null,
+  description_snapshot text not null,
+  event_type_snapshot text not null,
+  target_value_snapshot integer not null,
+  reward_amount_snapshot integer not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.weekly_challenge_progress (
+  profile_id uuid not null,
+  week_start date not null,
+  progress integer not null default 0,
+  completed_at timestamptz,
+  claimed_at timestamptz
+);
+
+create table if not exists public.weekly_challenge_uniques (
+  profile_id uuid not null,
+  week_start date not null,
+  unique_key uuid not null,
+  created_at timestamptz not null default now()
 );
 
 create table if not exists public.tables (
