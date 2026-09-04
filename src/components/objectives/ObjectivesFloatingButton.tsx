@@ -169,16 +169,9 @@ export default function ObjectivesFloatingButton({ initialData, isGuest, onCoins
         title={isGuest ? 'Misiones y desafío' : 'Misiones de hoy'}
         panelClassName="!max-w-md !gap-3 !p-4"
         showCloseButton={isGuest}
+        centered
       >
-        {isGuest ? (
-          <div className="rounded-xl border border-gold/25 bg-gold/5 p-3">
-            <p className="font-semibold text-cream">Desbloqueá tus recompensas</p>
-            <p className="mt-1 text-sm leading-relaxed text-muted">
-              Ingresá con tu cuenta o registrate y empezá a reclamar las recompensas
-              de las misiones. Así también podemos guardar tu progreso.
-            </p>
-          </div>
-        ) : (
+        {!isGuest && (
           <p className="text-sm leading-relaxed text-muted">
             Completá estas metas jugando partidas válidas. El progreso se actualiza
             automáticamente y las misiones cambian cada día.
@@ -186,10 +179,25 @@ export default function ObjectivesFloatingButton({ initialData, isGuest, onCoins
         )}
 
         {isGuest ? (
-          <div className="grid gap-2">
-            {GUEST_OBJECTIVES.map(objective => (
-              <ObjectiveRow key={objective.identifier} objective={objective} locked />
-            ))}
+          <div className="relative isolate">
+            <div
+              className="pointer-events-none absolute inset-0 z-10 rounded-xl bg-black/55 shadow-[inset_0_0_42px_rgba(0,0,0,0.92)]"
+              aria-hidden="true"
+            />
+            <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-4">
+              <div className="w-full max-w-xs rounded-2xl border border-gold/35 bg-surface px-4 py-3 text-center shadow-[0_18px_40px_rgba(0,0,0,0.9)]">
+                <p className="font-semibold text-cream">Desbloqueá tus recompensas</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted">
+                  Ingresá con tu cuenta o registrate para guardar tu progreso y
+                  empezar a reclamar las recompensas de las misiones.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-2" aria-label="Misiones bloqueadas">
+              {GUEST_OBJECTIVES.map(objective => (
+                <ObjectiveRow key={objective.identifier} objective={objective} locked />
+              ))}
+            </div>
           </div>
         ) : loading && !data ? (
           <div className="grid gap-3" aria-busy="true" aria-label="Cargando misiones">

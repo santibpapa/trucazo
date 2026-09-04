@@ -42,7 +42,7 @@ export default function ObjectiveRow({
     return (
       <div
         aria-disabled="true"
-        className="rounded-xl border border-white/10 bg-white/[0.035] px-2.5 py-2 grayscale"
+        className="rounded-xl border border-white/10 bg-white/[0.035] px-2.5 py-2 grayscale shadow-[inset_0_0_18px_rgba(0,0,0,0.72),0_5px_12px_rgba(0,0,0,0.48)]"
       >
         <div className="flex items-center gap-2.5">
           <span

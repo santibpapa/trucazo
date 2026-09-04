@@ -10,6 +10,7 @@ interface ModalProps {
   title?: string
   panelClassName?: string
   showCloseButton?: boolean
+  centered?: boolean
   children: React.ReactNode
 }
 
@@ -20,6 +21,7 @@ export default function Modal({
   title,
   panelClassName,
   showCloseButton = false,
+  centered = false,
   children,
 }: ModalProps) {
   const titleId = useId()
@@ -34,7 +36,10 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-2 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4"
+      className={cn(
+        'fixed inset-0 z-50 flex justify-center bg-black/60 p-2 backdrop-blur-sm animate-fade-in sm:p-4',
+        centered ? 'items-center' : 'items-end sm:items-center',
+      )}
       onClick={onClose}
     >
       <Panel
