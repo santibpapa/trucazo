@@ -41,7 +41,7 @@ export default function ObjectivesFloatingButton({ initialData, onCoinsChange }:
 
   return (
     <>
-      <div className="pointer-events-none fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-3 z-30 lg:bottom-6 lg:right-6 xl:right-[21.5rem]">
+      <div className="pointer-events-none fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-3 z-30 [transform:translate3d(0,0,0)] lg:bottom-6 lg:right-6 xl:right-[21.5rem]">
         <button
           type="button"
           aria-label={label}
