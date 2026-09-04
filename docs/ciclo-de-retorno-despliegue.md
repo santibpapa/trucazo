@@ -31,7 +31,8 @@ cofre flotante del lobby.
 
 1. Entrá con una cuenta registrada y abrí el lobby.
 2. Confirmá que aparezca el cofre flotante sin empujar las mesas hacia abajo.
-3. Abrí el cofre y revisá las tres misiones, el desafío semanal, las recompensas y la racha.
+3. Abrí el cofre y revisá el nombre, la descripción, el progreso y la recompensa
+   de las tres misiones diarias. Usá **Ver desafío y racha** para abrir el detalle.
 4. Terminá una partida real. El cierre debe mostrar el bloque **Objetivos** sin
    tapar **Revancha** ni **Volver al lobby**.
 5. Si una misión quedó lista, tocá **Reclamar** y comprobá que el saldo aumente.

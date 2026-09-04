@@ -68,8 +68,10 @@ EXPERIENCIA COMPLETA
 A. Entrada al lobby
 
 - Mostrar un cofre flotante que no ocupe espacio ni desplace las mesas.
-- El cofre abre la pantalla de objetivos y tiene un nombre accesible para lectores
-  de pantalla.
+- El cofre abre una ventana con las tres misiones diarias, nombre, descripción
+  breve, progreso y recompensa; tiene un nombre accesible para lectores de pantalla.
+- La ventana permite reclamar y ofrece un acceso secundario al desafío semanal,
+  la racha y el detalle completo.
 - Mientras haya misiones diarias incompletas, mostrar brillo y una sacudida breve y
   espaciada; detener la animación con prefers-reduced-motion.
 - Si hay recompensas listas, mostrar su cantidad en una insignia y dejar el cofre
