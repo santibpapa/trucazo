@@ -14,6 +14,7 @@ interface Props {
   objective: RowObjective
   compact?: boolean
   claiming?: boolean
+  locked?: boolean
   previousProgress?: number
   onClaim?: (type: 'daily' | 'weekly', identifier: string) => void
 }
@@ -22,13 +23,14 @@ export default function ObjectiveRow({
   objective,
   compact = false,
   claiming = false,
+  locked = false,
   previousProgress,
   onClaim,
 }: Props) {
   const progress = 'progress' in objective ? objective.progress : objective.current
   const [shownProgress, setShownProgress] = useState(previousProgress ?? progress)
   const status = objective.status ?? (objective.completed ? 'ready' : 'in_progress')
-  const percent = Math.min(100, Math.round((shownProgress / objective.target) * 100))
+  const percent = locked ? 0 : Math.min(100, Math.round((shownProgress / objective.target) * 100))
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setShownProgress(progress))
@@ -36,19 +38,31 @@ export default function ObjectiveRow({
   }, [progress])
 
   return (
-    <div className={cn(
-      'rounded-xl border px-3.5 py-3 text-left',
-      objective.type === 'weekly' ? 'border-gold/35 bg-gold/5' : 'border-line bg-surface2/70',
-    )}>
+    <div
+      aria-disabled={locked || undefined}
+      className={cn(
+        'rounded-xl border px-3.5 py-3 text-left',
+        locked
+          ? 'border-white/10 bg-white/[0.035] grayscale'
+          : objective.type === 'weekly'
+            ? 'border-gold/35 bg-gold/5'
+            : 'border-line bg-surface2/70',
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-semibold leading-tight text-cream">{objective.name}</p>
+          <p className={cn('font-semibold leading-tight', locked ? 'text-muted' : 'text-cream')}>
+            {objective.name}
+          </p>
           {!compact && objective.description && (
             <p className="mt-1 text-sm leading-snug text-muted">{objective.description}</p>
           )}
         </div>
-        <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-gold">
-          <CoinIcon size={13} /> {objective.reward}
+        <span className={cn(
+          'inline-flex shrink-0 items-center gap-1 text-xs font-bold',
+          locked ? 'text-muted' : 'text-gold',
+        )}>
+          {locked ? <LockIcon /> : <CoinIcon size={13} />} {objective.reward}
         </span>
       </div>
 
@@ -64,7 +78,7 @@ export default function ObjectiveRow({
           <div
             className={cn(
               'h-full rounded-full transition-[width] duration-700 ease-out',
-              status === 'claimed' ? 'bg-positive/65' : 'bg-gold',
+              locked ? 'bg-subtle/40' : status === 'claimed' ? 'bg-positive/65' : 'bg-gold',
             )}
             style={{ width: `${percent}%` }}
           />
@@ -77,11 +91,23 @@ export default function ObjectiveRow({
       <div className="mt-2 flex min-h-5 items-center justify-between gap-2">
         <span className={cn(
           'text-xs font-medium',
-          status === 'claimed' ? 'text-positive' : status === 'ready' ? 'text-gold' : 'text-subtle',
+          locked
+            ? 'text-muted'
+            : status === 'claimed'
+              ? 'text-positive'
+              : status === 'ready'
+                ? 'text-gold'
+                : 'text-subtle',
         )}>
-          {status === 'claimed' ? 'Reclamada' : status === 'ready' ? 'Lista para reclamar' : objective.ends_label}
+          {locked
+            ? 'Iniciá sesión para desbloquear'
+            : status === 'claimed'
+              ? 'Reclamada'
+              : status === 'ready'
+                ? 'Lista para reclamar'
+                : objective.ends_label}
         </span>
-        {status === 'ready' && onClaim && (
+        {!locked && status === 'ready' && onClaim && (
           <Button
             size="sm"
             className="min-h-11 !px-3 !py-1.5"
@@ -93,5 +119,14 @@ export default function ObjectiveRow({
         )}
       </div>
     </div>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="5" y="10" width="14" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   )
 }

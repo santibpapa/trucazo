@@ -5,25 +5,80 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Button, Modal, buttonClass, cn } from '@/components/ui'
 import { trackFirstParty } from '@/lib/analytics/client'
-import type { ObjectivesData } from '@/lib/objectives'
+import type { Objective, ObjectivesData } from '@/lib/objectives'
 import ObjectiveRow from './ObjectiveRow'
 import { useObjectives } from './useObjectives'
 
 interface Props {
   initialData: ObjectivesData | null
+  isGuest: boolean
   onCoinsChange: (coins: number) => void
 }
 
-export default function ObjectivesFloatingButton({ initialData, onCoinsChange }: Props) {
+const GUEST_OBJECTIVES: Objective[] = [
+  {
+    type: 'daily',
+    identifier: 'guest_finish_1',
+    name: 'Primera del día',
+    description: 'Terminá 1 partida válida.',
+    category: 'participation',
+    difficulty: 'easy',
+    progress: 0,
+    target: 1,
+    reward: 20,
+    completed_at: null,
+    claimed_at: null,
+    status: 'in_progress',
+    ends_label: 'Se renueva cada día',
+  },
+  {
+    type: 'daily',
+    identifier: 'guest_win_human_1',
+    name: 'Duelo ganado',
+    description: 'Ganá 1 partida contra una persona.',
+    category: 'competition',
+    difficulty: 'competitive',
+    progress: 0,
+    target: 1,
+    reward: 40,
+    completed_at: null,
+    claimed_at: null,
+    status: 'in_progress',
+    ends_label: 'Se renueva cada día',
+  },
+  {
+    type: 'daily',
+    identifier: 'guest_campaign_play_2',
+    name: 'Camino de provincias',
+    description: 'Jugá 2 duelos del Modo Historia.',
+    category: 'history',
+    difficulty: 'easy',
+    progress: 0,
+    target: 2,
+    reward: 25,
+    completed_at: null,
+    claimed_at: null,
+    status: 'in_progress',
+    ends_label: 'Se renueva cada día',
+  },
+]
+
+export default function ObjectivesFloatingButton({ initialData, isGuest, onCoinsChange }: Props) {
   const [open, setOpen] = useState(false)
-  const { data, loading, claiming, error, statusMessage, refresh, claim } = useObjectives(initialData)
+  const { data, loading, claiming, error, statusMessage, refresh, claim } = useObjectives(
+    initialData,
+    null,
+    !isGuest,
+  )
 
   const closeModal = useCallback(() => setOpen(false), [])
   const openModal = useCallback(() => {
     setOpen(true)
-    trackFirstParty('objectives_viewed', { surface: 'lobby_floating_chest' })
-    if (!data) void refresh()
-  }, [data, refresh])
+    trackFirstParty('objectives_viewed', {
+      surface: isGuest ? 'lobby_guest_chest' : 'lobby_floating_chest',
+    })
+    if (!isGuest && !data) void refresh()
+  }, [data, isGuest, refresh])
 
   useEffect(() => {
     if (data) onCoinsChange(data.coins)
@@ -32,8 +87,10 @@ export default function ObjectivesFloatingButton({ initialData, onCoinsChange }:
   const objectives = data ? [...data.daily, data.weekly] : []
   const incompleteCount = data?.daily.filter(objective => objective.status === 'in_progress').length ?? 0
   const readyCount = objectives.filter(objective => objective.status === 'ready').length
-  const hasIncomplete = incompleteCount > 0
-  const label = readyCount > 0
+  const hasIncomplete = isGuest || incompleteCount > 0
+  const label = isGuest
+    ? 'Abrir misiones bloqueadas. Iniciá sesión para guardar tu progreso.'
+    : readyCount > 0
     ? `${readyCount} ${readyCount === 1 ? 'recompensa lista' : 'recompensas listas'}. Abrir objetivos.`
     : hasIncomplete
       ? `${incompleteCount} ${incompleteCount === 1 ? 'objetivo pendiente' : 'objetivos pendientes'}. Abrir objetivos.`
@@ -92,12 +149,28 @@ export default function ObjectivesFloatingButton({ initialData, onCoinsChange }:
       </div>
 
       <Modal open={open} onClose={closeModal} title="Misiones de hoy">
-        <p className="text-sm leading-relaxed text-muted">
-          Completá estas metas jugando partidas válidas. El progreso se actualiza
-          automáticamente y las misiones cambian cada día.
-        </p>
+        {isGuest ? (
+          <div className="rounded-xl border border-gold/25 bg-gold/5 p-4">
+            <p className="font-semibold text-cream">Desbloqueá tus recompensas</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted">
+              Ingresá con tu cuenta o registrate y empezá a reclamar las recompensas
+              de las misiones. Así también podemos guardar tu progreso.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm leading-relaxed text-muted">
+            Completá estas metas jugando partidas válidas. El progreso se actualiza
+            automáticamente y las misiones cambian cada día.
+          </p>
+        )}
 
-        {loading && !data ? (
+        {isGuest ? (
+          <div className="grid max-h-[32dvh] gap-3 overflow-y-auto overscroll-contain pr-1">
+            {GUEST_OBJECTIVES.map(objective => (
+              <ObjectiveRow key={objective.identifier} objective={objective} locked />
+            ))}
+          </div>
+        ) : loading && !data ? (
           <div className="grid gap-3" aria-busy="true" aria-label="Cargando misiones">
             {[0, 1, 2].map(item => (
               <div key={item} className="h-28 animate-pulse rounded-xl bg-surface2" />
@@ -120,26 +193,56 @@ export default function ObjectivesFloatingButton({ initialData, onCoinsChange }:
           </div>
         )}
 
-        {error && data ? <p className="text-sm text-negative" role="alert">{error}</p> : null}
+        {!isGuest && error && data
+          ? <p className="text-sm text-negative" role="alert">{error}</p>
+          : null}
 
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button variant="ghost" onClick={closeModal} autoFocus>
-            Cerrar
-          </Button>
-          {!data ? (
-            <Button onClick={() => void refresh()} disabled={loading}>
-              {loading ? 'Cargando…' : 'Reintentar'}
-            </Button>
-          ) : (
-            <Link
-              href="/objetivos"
+        {isGuest ? (
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                href="/login"
+                onClick={closeModal}
+                className={buttonClass('secondary', 'md', true, 'min-h-11 px-3')}
+              >
+                Iniciar sesión
+              </Link>
+              <Link
+                href="/register"
+                onClick={closeModal}
+                className={buttonClass('primary', 'md', true, 'min-h-11 px-3')}
+              >
+                Registrarme
+              </Link>
+            </div>
+            <button
+              type="button"
               onClick={closeModal}
-              className={buttonClass('primary', 'md', false, 'min-h-11')}
+              className="min-h-11 rounded-lg text-sm font-semibold text-muted transition-colors hover:text-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
             >
-              Ver desafío y racha
-            </Link>
-          )}
-        </div>
+              Seguir como invitado
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="ghost" onClick={closeModal} autoFocus>
+              Cerrar
+            </Button>
+            {!data ? (
+              <Button onClick={() => void refresh()} disabled={loading}>
+                {loading ? 'Cargando…' : 'Reintentar'}
+              </Button>
+            ) : (
+              <Link
+                href="/objetivos"
+                onClick={closeModal}
+                className={buttonClass('primary', 'md', false, 'min-h-11')}
+              >
+                Ver desafío y racha
+              </Link>
+            )}
+          </div>
+        )}
 
         <p className="sr-only" role="status" aria-live="polite">{statusMessage}</p>
       </Modal>

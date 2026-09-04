@@ -81,7 +81,7 @@ export default async function LobbyPage() {
       initialTables={tables || []}
       activeGameId={activeGame?.id ?? null}
       myMedal={(myMedal as string | null) ?? 'ninguno'}
-      objectivesEnabled={!user.is_anonymous}
+      isGuest={user.is_anonymous === true}
       initialObjectives={(objectives as ObjectivesData | null) ?? null}
     />
   )

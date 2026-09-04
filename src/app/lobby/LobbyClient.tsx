@@ -19,7 +19,7 @@ interface Props {
   initialTables: Table[]
   activeGameId: string | null
   myMedal: string
-  objectivesEnabled: boolean
+  isGuest: boolean
   initialObjectives: ObjectivesData | null
 }
 
@@ -32,7 +32,7 @@ export default function LobbyClient({
   initialTables,
   activeGameId,
   myMedal,
-  objectivesEnabled,
+  isGuest,
   initialObjectives,
 }: Props) {
   const router = useRouter()
@@ -466,9 +466,11 @@ export default function LobbyClient({
             </Panel>
           )}
 
-          {objectivesEnabled && (
-            <ObjectivesFloatingButton initialData={initialObjectives} onCoinsChange={setCoins} />
-          )}
+          <ObjectivesFloatingButton
+            initialData={initialObjectives}
+            isGuest={isGuest}
+            onCoinsChange={setCoins}
+          />
 
           {/* Anti-quiebra: si te quedaste sin monedas para jugar, reclamá el bonus */}
           {coins < 10 && (
