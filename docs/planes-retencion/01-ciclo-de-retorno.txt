@@ -70,9 +70,10 @@ A. Entrada al lobby
 - Mostrar un cofre flotante que no ocupe espacio ni desplace las mesas.
 - El cofre abre una ventana con las tres misiones diarias, nombre, descripción
   breve, progreso y recompensa; tiene un nombre accesible para lectores de pantalla.
-- Para invitados, el cofre también aparece: muestra tres misiones de ejemplo en
-  gris y bloqueadas, e invita a iniciar sesión o registrarse para guardar progreso
-  y reclamar recompensas. No llama a las RPC de objetivos hasta iniciar sesión.
+- Para invitados, el cofre también aparece: muestra las tres misiones diarias y
+  un desafío semanal de ejemplo, todos compactos, grises y bloqueados, sin scroll
+  interno. Invita a iniciar sesión o registrarse para guardar progreso y reclamar
+  recompensas. No llama a las RPC de objetivos hasta iniciar sesión.
 - La ventana permite reclamar y ofrece un acceso secundario al desafío semanal,
   la racha y el detalle completo.
 - Mientras haya misiones diarias incompletas, mostrar brillo y una sacudida breve y

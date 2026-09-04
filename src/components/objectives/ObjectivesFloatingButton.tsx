@@ -61,6 +61,21 @@ const GUEST_OBJECTIVES: Objective[] = [
     status: 'in_progress',
     ends_label: 'Se renueva cada día',
   },
+  {
+    type: 'weekly',
+    identifier: 'guest_weekly_finish_10',
+    name: 'Diez partidas',
+    description: 'Terminá 10 partidas válidas esta semana.',
+    category: 'weekly',
+    difficulty: 'weekly',
+    progress: 0,
+    target: 10,
+    reward: 150,
+    completed_at: null,
+    claimed_at: null,
+    status: 'in_progress',
+    ends_label: 'Se renueva cada semana',
+  },
 ]
 
 export default function ObjectivesFloatingButton({ initialData, isGuest, onCoinsChange }: Props) {
@@ -148,9 +163,15 @@ export default function ObjectivesFloatingButton({ initialData, isGuest, onCoins
         </button>
       </div>
 
-      <Modal open={open} onClose={closeModal} title="Misiones de hoy">
+      <Modal
+        open={open}
+        onClose={closeModal}
+        title={isGuest ? 'Misiones y desafío' : 'Misiones de hoy'}
+        panelClassName="!max-w-md !gap-3 !p-4"
+        showCloseButton={isGuest}
+      >
         {isGuest ? (
-          <div className="rounded-xl border border-gold/25 bg-gold/5 p-4">
+          <div className="rounded-xl border border-gold/25 bg-gold/5 p-3">
             <p className="font-semibold text-cream">Desbloqueá tus recompensas</p>
             <p className="mt-1 text-sm leading-relaxed text-muted">
               Ingresá con tu cuenta o registrate y empezá a reclamar las recompensas
@@ -165,7 +186,7 @@ export default function ObjectivesFloatingButton({ initialData, isGuest, onCoins
         )}
 
         {isGuest ? (
-          <div className="grid max-h-[32dvh] gap-3 overflow-y-auto overscroll-contain pr-1">
+          <div className="grid gap-2">
             {GUEST_OBJECTIVES.map(objective => (
               <ObjectiveRow key={objective.identifier} objective={objective} locked />
             ))}
@@ -177,7 +198,7 @@ export default function ObjectivesFloatingButton({ initialData, isGuest, onCoins
             ))}
           </div>
         ) : data ? (
-          <div className="grid max-h-[42dvh] gap-3 overflow-y-auto pr-1 sm:max-h-[min(58dvh,30rem)]">
+          <div className="grid gap-3">
             {data.daily.map(objective => (
               <ObjectiveRow
                 key={objective.identifier}
@@ -198,30 +219,21 @@ export default function ObjectivesFloatingButton({ initialData, isGuest, onCoins
           : null}
 
         {isGuest ? (
-          <div className="flex flex-col gap-2">
-            <div className="grid grid-cols-2 gap-2">
-              <Link
-                href="/login"
-                onClick={closeModal}
-                className={buttonClass('secondary', 'md', true, 'min-h-11 px-3')}
-              >
-                Iniciar sesión
-              </Link>
-              <Link
-                href="/register"
-                onClick={closeModal}
-                className={buttonClass('primary', 'md', true, 'min-h-11 px-3')}
-              >
-                Registrarme
-              </Link>
-            </div>
-            <button
-              type="button"
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              href="/login"
               onClick={closeModal}
-              className="min-h-11 rounded-lg text-sm font-semibold text-muted transition-colors hover:text-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+              className={buttonClass('secondary', 'md', true, 'min-h-11 px-3')}
             >
-              Seguir como invitado
-            </button>
+              Iniciar sesión
+            </Link>
+            <Link
+              href="/register"
+              onClick={closeModal}
+              className={buttonClass('primary', 'md', true, 'min-h-11 px-3')}
+            >
+              Registrarme
+            </Link>
           </div>
         ) : (
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
