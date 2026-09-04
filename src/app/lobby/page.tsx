@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import LobbyClient from './LobbyClient'
+import type { ObjectivesData } from '@/lib/objectives'
 
 export default async function LobbyPage() {
   const supabase = await createClient()
@@ -50,7 +51,7 @@ export default async function LobbyPage() {
   // Partida en curso del usuario (la RLS de games ya limita a las suyas).
   // Los duelos del modo historia no cuentan acá: son práctica, no una partida
   // apostada para retomar, y no deben quedar colgados como "partida en curso".
-  const [{ data: tables }, { data: activeGame }, { data: myMedal }] = await Promise.all([
+  const [{ data: tables }, { data: activeGame }, { data: myMedal }, { data: objectives }] = await Promise.all([
     supabase
       .from('tables')
       .select('*')
@@ -67,6 +68,11 @@ export default async function LobbyPage() {
       .maybeSingle(),
     // Medalla destacada del usuario, ya validada (si era "viva" y la perdió, vuelve 'ninguno').
     supabase.rpc('active_medal_for', { p_uid: user.id }),
+    // Además de leer, esta RPC crea de manera segura las tres asignaciones del día
+    // cuando es la primera visita. Si la migración aún no se aplicó, el lobby igual abre.
+    user.is_anonymous
+      ? Promise.resolve({ data: null, error: null })
+      : supabase.rpc('get_my_objectives', { p_game_id: null }),
   ])
 
   return (
@@ -75,6 +81,8 @@ export default async function LobbyPage() {
       initialTables={tables || []}
       activeGameId={activeGame?.id ?? null}
       myMedal={(myMedal as string | null) ?? 'ninguno'}
+      objectivesEnabled={!user.is_anonymous}
+      initialObjectives={(objectives as ObjectivesData | null) ?? null}
     />
   )
 }

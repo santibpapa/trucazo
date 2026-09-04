@@ -16,7 +16,7 @@ PGDATABASE=trucazo_prueba scripts/rebuild-db.sh
 ```
 
 Termina en 0 si salió entera. Al final comprueba solo que no falte nada: las
-tablas, los 6 triggers y los catálogos con datos adentro.
+tablas, los 7 triggers y los catálogos con datos adentro.
 
 ⚠️ Es para bases de **prueba**. Nunca lo apuntes a producción.
 

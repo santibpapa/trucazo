@@ -11,7 +11,12 @@ import { isTrustedAnalyticsRequest } from '@/lib/analytics/request'
 export const runtime = 'nodejs'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const EVENTS = new Set(['page_view', 'guest_session_started', 'register_completed', 'game_started'])
+const EVENTS = new Set([
+  'page_view', 'guest_session_started', 'register_completed', 'game_started',
+  'objectives_viewed', 'objective_progressed', 'objective_completed',
+  'objective_reward_claimed', 'weekly_challenge_completed',
+  'streak_continued', 'streak_protection_used',
+])
 
 type Payload = {
   eventId?: unknown

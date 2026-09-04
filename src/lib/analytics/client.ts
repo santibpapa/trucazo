@@ -5,6 +5,13 @@ export type AnalyticsEvent =
   | 'guest_session_started'
   | 'register_completed'
   | 'game_started'
+  | 'objectives_viewed'
+  | 'objective_progressed'
+  | 'objective_completed'
+  | 'objective_reward_claimed'
+  | 'weekly_challenge_completed'
+  | 'streak_continued'
+  | 'streak_protection_used'
 
 type StoredSession = { id: string; lastSeen: number }
 

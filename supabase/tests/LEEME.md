@@ -11,6 +11,11 @@ formas de darse de alta (invitado, registro, Google y nombre repetido) creen UN
 solo perfil, e intenta abusar de las reseñas y del aviso de mesa. Si algo falla,
 los archivos cortan con error.
 
+`ciclo_retorno.sql` prueba las misiones y el desafío semanal: catálogo de 22
+variantes, rotación sin repetición consecutiva, progreso único por partida,
+reclamo idempotente, privacidad, clasificación de modos, fecha argentina y una
+sola protección de racha por semana.
+
 Sirve para que los agujeros que se cerraron no vuelvan a abrirse sin que nadie se
 dé cuenta.
 
@@ -23,6 +28,7 @@ y partidas de mentira; al final deshace todo, pero igual):
 psql -f supabase/tests/seguridad_pr1.sql
 psql -f supabase/tests/seguridad_privilegios_funciones.sql
 psql -f supabase/tests/seguridad_pr2.sql
+psql -f supabase/tests/ciclo_retorno.sql
 ```
 
 Termina en 0 si está todo bien y en distinto de 0 si encontró algo, así que sirve

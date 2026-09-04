@@ -22,6 +22,8 @@ alter table public.campaign_provinces enable row level security;
 alter table public.campaign_rivals enable row level security;
 alter table public.campaign_style enable row level security;
 alter table public.chat_messages enable row level security;
+alter table public.daily_mission_templates enable row level security;
+alter table public.daily_mission_assignments enable row level security;
 alter table public.feedback enable row level security;
 alter table public.friendships enable row level security;
 alter table public.game_hands enable row level security;
@@ -33,7 +35,9 @@ alter table public.group_invites enable row level security;
 alter table public.game_presence enable row level security;
 alter table public.games enable row level security;
 alter table public.news enable row level security;
+alter table public.objective_game_events enable row level security;
 alter table public.profiles enable row level security;
+alter table public.profile_activity_streaks enable row level security;
 alter table public.profile_salons enable row level security;
 alter table public.salons enable row level security;
 alter table public.profile_frames enable row level security;
@@ -44,6 +48,10 @@ alter table public.profile_accessories enable row level security;
 alter table public.accessories enable row level security;
 alter table public.tables enable row level security;
 alter table public.user_presence enable row level security;
+alter table public.weekly_challenge_templates enable row level security;
+alter table public.weekly_challenges enable row level security;
+alter table public.weekly_challenge_progress enable row level security;
+alter table public.weekly_challenge_uniques enable row level security;
 
 -- ---- Claves primarias (van PRIMERO) ----
 -- Tienen que estar antes de cualquier llave foránea: una foránea exige que la
@@ -58,6 +66,8 @@ alter table public.campaign_rivals add constraint campaign_rivals_pkey PRIMARY K
 alter table public.campaign_style add constraint campaign_style_pkey PRIMARY KEY (user_id);
 alter table public.feedback add constraint feedback_pkey PRIMARY KEY (id);
 alter table public.chat_messages add constraint chat_messages_pkey PRIMARY KEY (id);
+alter table public.daily_mission_templates add constraint daily_mission_templates_pkey PRIMARY KEY (slug);
+alter table public.daily_mission_assignments add constraint daily_mission_assignments_pkey PRIMARY KEY (profile_id, local_date, template_slug);
 alter table public.friendships add constraint friendships_pkey PRIMARY KEY (id);
 alter table public.game_hands add constraint game_hands_pkey PRIMARY KEY (game_id, player_id);
 alter table public.game_history add constraint game_history_pkey PRIMARY KEY (id);
@@ -66,9 +76,11 @@ alter table public.groups add constraint groups_pkey PRIMARY KEY (id);
 alter table public.group_members add constraint group_members_pkey PRIMARY KEY (user_id);
 alter table public.group_invites add constraint group_invites_pkey PRIMARY KEY (id);
 alter table public.news add constraint news_pkey PRIMARY KEY (id);
+alter table public.objective_game_events add constraint objective_game_events_pkey PRIMARY KEY (game_id, profile_id);
 alter table public.game_presence add constraint game_presence_pkey PRIMARY KEY (game_id, player_id);
 alter table public.games add constraint games_pkey PRIMARY KEY (id);
 alter table public.profiles add constraint profiles_pkey PRIMARY KEY (id);
+alter table public.profile_activity_streaks add constraint profile_activity_streaks_pkey PRIMARY KEY (profile_id);
 alter table public.salons add constraint salons_pkey PRIMARY KEY (slug);
 alter table public.profile_salons add constraint profile_salons_pkey PRIMARY KEY (profile_id, salon_slug);
 alter table public.frames add constraint frames_pkey PRIMARY KEY (slug);
@@ -78,6 +90,10 @@ alter table public.profile_medals add constraint profile_medals_pkey PRIMARY KEY
 alter table public.accessories add constraint accessories_pkey PRIMARY KEY (slug);
 alter table public.profile_accessories add constraint profile_accessories_pkey PRIMARY KEY (profile_id, accessory_slug);
 alter table public.user_presence add constraint user_presence_pkey PRIMARY KEY (user_id);
+alter table public.weekly_challenge_templates add constraint weekly_challenge_templates_pkey PRIMARY KEY (slug);
+alter table public.weekly_challenges add constraint weekly_challenges_pkey PRIMARY KEY (week_start);
+alter table public.weekly_challenge_progress add constraint weekly_challenge_progress_pkey PRIMARY KEY (profile_id, week_start);
+alter table public.weekly_challenge_uniques add constraint weekly_challenge_uniques_pkey PRIMARY KEY (profile_id, week_start, unique_key);
 alter table public.tables add constraint tables_pkey PRIMARY KEY (id);
 
 create index if not exists bot_decisions_created_at_idx on public.bot_decisions (created_at);
@@ -96,6 +112,15 @@ alter table public.feedback add constraint feedback_rating_aesthetics_check CHEC
 alter table public.feedback add constraint feedback_rating_general_check CHECK (((rating_general >= 1) AND (rating_general <= 5)));
 alter table public.feedback add constraint feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE SET NULL;
 alter table public.chat_messages add constraint chat_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.daily_mission_templates add constraint daily_mission_templates_event_type_check CHECK (event_type = ANY (ARRAY['game_finished','human_game_won','public_human_game','campaign_game','campaign_game_won','friend_game','rematch_game']));
+alter table public.daily_mission_templates add constraint daily_mission_templates_target_check CHECK (target_value > 0);
+alter table public.daily_mission_templates add constraint daily_mission_templates_reward_check CHECK (reward_amount between 1 and 90);
+alter table public.daily_mission_templates add constraint daily_mission_templates_category_check CHECK (category = ANY (ARRAY['participation','competition','history','social']));
+alter table public.daily_mission_templates add constraint daily_mission_templates_difficulty_check CHECK (difficulty = ANY (ARRAY['easy','medium','competitive']));
+alter table public.daily_mission_assignments add constraint daily_mission_assignments_profile_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.daily_mission_assignments add constraint daily_mission_assignments_template_fkey FOREIGN KEY (template_slug) REFERENCES daily_mission_templates(slug);
+alter table public.daily_mission_assignments add constraint daily_mission_assignments_progress_check CHECK (progress >= 0);
+alter table public.daily_mission_assignments add constraint daily_mission_assignments_reward_check CHECK (reward_amount_snapshot between 1 and 90);
 alter table public.friendships add constraint friendships_requester_id_fkey FOREIGN KEY (requester_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.friendships add constraint friendships_addressee_id_fkey FOREIGN KEY (addressee_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.friendships add constraint friendships_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text])));
@@ -124,8 +149,17 @@ alter table public.games add constraint games_status_check CHECK ((status = ANY 
 alter table public.games add constraint games_target_score_chk CHECK ((target_score = ANY (ARRAY[15, 30])));
 alter table public.games add constraint games_time_limit_chk CHECK ((time_limit = ANY (ARRAY[15, 30])));
 alter table public.games add constraint games_winner_id_fkey FOREIGN KEY (winner_id) REFERENCES profiles(id);
+alter table public.objective_game_events add constraint objective_game_events_game_fkey FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE;
+alter table public.objective_game_events add constraint objective_game_events_profile_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.objective_game_events add constraint objective_game_events_opponent_fkey FOREIGN KEY (opponent_id) REFERENCES profiles(id) ON DELETE SET NULL;
+alter table public.objective_game_events add constraint objective_game_events_mode_check CHECK (mode = ANY (ARRAY['persona','bot','historia','privada','amigo','revancha']));
+alter table public.objective_game_events add constraint objective_game_events_delta_check CHECK (jsonb_typeof(progress_delta) = 'array');
+alter table public.objective_game_events add constraint objective_game_events_streak_check CHECK (streak_event = ANY (ARRAY['started','continued','protection_used','reset','unchanged']));
 alter table public.profiles add constraint profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
 alter table public.profiles add constraint profiles_username_key UNIQUE (username);
+alter table public.profile_activity_streaks add constraint profile_activity_streaks_profile_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.profile_activity_streaks add constraint profile_activity_streaks_current_check CHECK (current_streak_days >= 0);
+alter table public.profile_activity_streaks add constraint profile_activity_streaks_longest_check CHECK (longest_streak_days >= 0);
 alter table public.salons add constraint salons_price_check CHECK ((price >= 0));
 alter table public.profile_salons add constraint profile_salons_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.profile_salons add constraint profile_salons_salon_slug_fkey FOREIGN KEY (salon_slug) REFERENCES salons(slug) ON DELETE CASCADE;
@@ -138,6 +172,16 @@ alter table public.accessories add constraint accessories_price_check CHECK ((pr
 alter table public.profile_accessories add constraint profile_accessories_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.profile_accessories add constraint profile_accessories_accessory_slug_fkey FOREIGN KEY (accessory_slug) REFERENCES accessories(slug) ON DELETE CASCADE;
 alter table public.user_presence add constraint user_presence_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.weekly_challenge_templates add constraint weekly_challenge_templates_event_check CHECK (event_type = ANY (ARRAY['game_finished','game_won','campaign_unique_first_win','human_unique_opponent']));
+alter table public.weekly_challenge_templates add constraint weekly_challenge_templates_target_check CHECK (target_value > 0);
+alter table public.weekly_challenge_templates add constraint weekly_challenge_templates_reward_check CHECK (reward_amount > 0);
+alter table public.weekly_challenges add constraint weekly_challenges_template_fkey FOREIGN KEY (template_slug) REFERENCES weekly_challenge_templates(slug);
+alter table public.weekly_challenges add constraint weekly_challenges_target_check CHECK (target_value_snapshot > 0);
+alter table public.weekly_challenges add constraint weekly_challenges_reward_check CHECK (reward_amount_snapshot > 0);
+alter table public.weekly_challenge_progress add constraint weekly_challenge_progress_profile_fkey FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE;
+alter table public.weekly_challenge_progress add constraint weekly_challenge_progress_week_fkey FOREIGN KEY (week_start) REFERENCES weekly_challenges(week_start) ON DELETE CASCADE;
+alter table public.weekly_challenge_progress add constraint weekly_challenge_progress_value_check CHECK (progress >= 0);
+alter table public.weekly_challenge_uniques add constraint weekly_challenge_uniques_progress_fkey FOREIGN KEY (profile_id, week_start) REFERENCES weekly_challenge_progress(profile_id, week_start) ON DELETE CASCADE;
 alter table public.tables add constraint tables_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.tables add constraint tables_opponent_id_fkey FOREIGN KEY (opponent_id) REFERENCES profiles(id) ON DELETE CASCADE;
 alter table public.tables add constraint tables_status_check CHECK ((status = ANY (ARRAY['waiting'::text, 'playing'::text, 'finished'::text])));
@@ -149,6 +193,10 @@ create policy "rivales visibles para todos" on public.campaign_rivals for SELECT
 create policy "provincias visibles para todos" on public.campaign_provinces for SELECT to anon, authenticated using (true);
 create policy "ver mi estilo" on public.campaign_style for SELECT to authenticated using ((auth.uid() = user_id));
 create policy "ver mi progreso" on public.campaign_progress for SELECT to authenticated using ((auth.uid() = user_id));
+create policy "ver mis misiones diarias" on public.daily_mission_assignments for SELECT to authenticated using (((select auth.uid()) = profile_id));
+create policy "ver mi desafio semanal" on public.weekly_challenge_progress for SELECT to authenticated using (((select auth.uid()) = profile_id));
+create policy "ver mi racha" on public.profile_activity_streaks for SELECT to authenticated using (((select auth.uid()) = profile_id));
+create policy "ver mis avances por partida" on public.objective_game_events for SELECT to authenticated using (((select auth.uid()) = profile_id));
 create policy "Las mesas son visibles para todos" on public.tables for SELECT to public using (true);
 create policy "Los jugadores pueden ver su partida" on public.games for SELECT to public using (((auth.uid() = player1_id) OR (auth.uid() = player2_id)));
 create policy "Los perfiles son visibles para todos" on public.profiles for SELECT to public using (true);
@@ -187,6 +235,24 @@ CREATE UNIQUE INDEX game_invites_one_per_inviter ON public.game_invites USING bt
 CREATE INDEX chat_messages_created_idx ON public.chat_messages USING btree (created_at);
 CREATE INDEX group_members_group_idx ON public.group_members USING btree (group_id);
 CREATE INDEX news_created_idx ON public.news USING btree (created_at DESC);
+CREATE INDEX daily_mission_assignments_profile_date_idx ON public.daily_mission_assignments (profile_id, local_date DESC);
+CREATE INDEX weekly_challenge_progress_profile_week_idx ON public.weekly_challenge_progress (profile_id, week_start DESC);
+CREATE INDEX objective_game_events_profile_time_idx ON public.objective_game_events (profile_id, processed_at DESC);
+
+-- Objetivos: el navegador sólo puede leer sus filas. Las escrituras y premios
+-- pasan por funciones security definer; los catálogos y auxiliares no se exponen.
+revoke all on table public.daily_mission_templates from public, anon, authenticated;
+revoke all on table public.daily_mission_assignments from public, anon, authenticated;
+revoke all on table public.weekly_challenge_templates from public, anon, authenticated;
+revoke all on table public.weekly_challenges from public, anon, authenticated;
+revoke all on table public.weekly_challenge_progress from public, anon, authenticated;
+revoke all on table public.weekly_challenge_uniques from public, anon, authenticated;
+revoke all on table public.profile_activity_streaks from public, anon, authenticated;
+revoke all on table public.objective_game_events from public, anon, authenticated;
+grant select on table public.daily_mission_assignments to authenticated;
+grant select on table public.weekly_challenge_progress to authenticated;
+grant select on table public.profile_activity_streaks to authenticated;
+grant select on table public.objective_game_events to authenticated;
 
 -- Realtime: game_invites, chat_messages y group_invites publican cambios (avisos
 -- en vivo; respetan la RLS de SELECT, que debe ser `to public`). games y tables

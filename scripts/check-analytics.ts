@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import {
   classifyAcquisition,
   describeUserAgent,
@@ -60,4 +61,25 @@ assert.equal(isTrustedAnalyticsRequest({
   fetchSite: null,
 }), false)
 
-console.log('Analítica: atribución, dispositivos y filtro de bots correctos.')
+const objectiveEvents = [
+  'objectives_viewed',
+  'objective_progressed',
+  'objective_completed',
+  'objective_reward_claimed',
+  'weekly_challenge_completed',
+  'streak_continued',
+  'streak_protection_used',
+]
+const clientSource = readFileSync(new URL('../src/lib/analytics/client.ts', import.meta.url), 'utf8')
+const routeSource = readFileSync(new URL('../src/app/api/analytics/route.ts', import.meta.url), 'utf8')
+const migrationSource = readFileSync(
+  new URL('../supabase/migrations/20260904150348_ciclo_retorno.sql', import.meta.url),
+  'utf8',
+)
+for (const eventName of objectiveEvents) {
+  assert.ok(clientSource.includes(`'${eventName}'`), `${eventName} falta en el cliente`)
+  assert.ok(routeSource.includes(`'${eventName}'`), `${eventName} falta en la API`)
+  assert.ok(migrationSource.includes(`'${eventName}'`), `${eventName} falta en la base`)
+}
+
+console.log('Analítica: atribución, dispositivos, bots y eventos de objetivos correctos.')
