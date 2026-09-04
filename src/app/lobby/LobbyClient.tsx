@@ -11,7 +11,7 @@ import { Button, Panel, Input, Modal, Coins, Logo, Alert, Toggle, Avatar, cn } f
 import { useCommunity } from '@/lib/useCommunity'
 import FriendsPanel from '@/components/FriendsPanel'
 import ChatGlobal from '@/components/ChatGlobal'
-import ObjectivesSummary from '@/components/objectives/ObjectivesSummary'
+import ObjectivesFloatingButton from '@/components/objectives/ObjectivesFloatingButton'
 import type { ObjectivesData } from '@/lib/objectives'
 
 interface Props {
@@ -450,7 +450,7 @@ export default function LobbyClient({
           <Coins amount={coins} size="sm" />
         </div>
 
-        <main className="flex flex-col gap-5 px-4 sm:px-6 pt-4 pb-24 lg:pt-6 lg:pb-10 w-full max-w-4xl mx-auto xl:max-w-none xl:mx-0">
+        <main className="flex flex-col gap-5 px-4 sm:px-6 pt-4 pb-44 lg:pt-6 lg:pb-28 w-full max-w-4xl mx-auto xl:max-w-none xl:mx-0">
           {error && <Alert>{error}</Alert>}
 
           {/* Volver a la partida en curso */}
@@ -467,7 +467,7 @@ export default function LobbyClient({
           )}
 
           {objectivesEnabled && (
-            <ObjectivesSummary initialData={initialObjectives} onCoinsChange={setCoins} />
+            <ObjectivesFloatingButton initialData={initialObjectives} onCoinsChange={setCoins} />
           )}
 
           {/* Anti-quiebra: si te quedaste sin monedas para jugar, reclamá el bonus */}

@@ -83,6 +83,45 @@
   }
 }
 
+/* El cofre de objetivos flota sin ocupar lugar en el lobby. Cuando todavía hay
+   progreso pendiente, llama la atención con una sacudida breve y espaciada. */
+@keyframes objectives-chest-shake {
+  0%, 82%, 100% { transform: rotate(0deg) translateX(0); }
+  86% { transform: rotate(-5deg) translateX(-2px); }
+  89% { transform: rotate(5deg) translateX(2px); }
+  92% { transform: rotate(-3deg) translateX(-1px); }
+  95% { transform: rotate(3deg) translateX(1px); }
+}
+
+@keyframes objectives-chest-glow {
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+    box-shadow: 0 0 18px rgba(201, 162, 75, 0.55);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+    box-shadow: 0 0 34px rgba(239, 202, 104, 0.88);
+  }
+}
+
+.objectives-chest-shake {
+  transform-origin: 50% 72%;
+  animation: objectives-chest-shake 3.6s ease-in-out infinite;
+}
+
+.objectives-chest-glow {
+  animation: objectives-chest-glow 2.4s ease-in-out infinite;
+}
+
+.objectives-chest-pending:hover .objectives-chest-shake,
+.objectives-chest-pending:focus-visible .objectives-chest-shake,
+.objectives-chest-pending:hover .objectives-chest-glow,
+.objectives-chest-pending:focus-visible .objectives-chest-glow {
+  animation-play-state: paused;
+}
+
 /* Respeta a quien prefiere menos movimiento */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -91,5 +130,10 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .objectives-chest-shake,
+  .objectives-chest-glow {
+    animation: none !important;
   }
 }

@@ -24,14 +24,14 @@ base local de prueba.
 ## 2. Publicar el frontend
 
 Después de que la migración termine bien, publicá la rama o fusioná su Pull
-Request como hacés normalmente. Vercel construirá la pantalla `/objetivos` y la
-tarjeta nueva del lobby.
+Request como hacés normalmente. Vercel construirá la pantalla `/objetivos` y el
+cofre flotante del lobby.
 
 ## 3. Comprobación manual corta
 
 1. Entrá con una cuenta registrada y abrí el lobby.
-2. Confirmá que aparezcan exactamente tres misiones diarias y un desafío semanal.
-3. Abrí **Ver objetivos** y revisá progreso, recompensa y racha.
+2. Confirmá que aparezca el cofre flotante sin empujar las mesas hacia abajo.
+3. Abrí el cofre y revisá las tres misiones, el desafío semanal, las recompensas y la racha.
 4. Terminá una partida real. El cierre debe mostrar el bloque **Objetivos** sin
    tapar **Revancha** ni **Volver al lobby**.
 5. Si una misión quedó lista, tocá **Reclamar** y comprobá que el saldo aumente.

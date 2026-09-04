@@ -10,7 +10,7 @@ IMPLEMENTACIÓN
 - Prueba integral: supabase/tests/ciclo_retorno.sql
 - Catálogo: 22 misiones activas sin repetición exacta en días consecutivos
 - Pantalla de detalle: /objetivos
-- Resumen: lobby y cierre de cada partida válida
+- Acceso flotante en el lobby y resumen al cerrar cada partida válida
 - Instrucciones de publicación: docs/ciclo-de-retorno-despliegue.md
 
 PROPÓSITO DE ESTE ARCHIVO
@@ -24,10 +24,11 @@ debe premiar actividad y variedad, no obligar a ganar continuamente ni castigar 
 forma agresiva un día de ausencia.
 
 RESULTADO ESPERADO PARA EL JUGADOR
-Al entrar al lobby ve tres misiones del día y un desafío semanal. Después de cada
-partida ve cuánto avanzó. Cuando completa una misión puede reclamar su recompensa.
-El día siguiente recibe objetivos nuevos. Una racha semanal reconoce la constancia,
-pero incluye una protección para no perderla por una única ausencia.
+Al entrar al lobby ve un cofre flotante que abre sus tres misiones del día y el
+desafío semanal sin desplazar las mesas. Después de cada partida ve cuánto avanzó.
+Cuando completa una misión puede reclamar su recompensa. El día siguiente recibe
+objetivos nuevos. Una racha semanal reconoce la constancia, pero incluye una
+protección para no perderla por una única ausencia.
 
 ALCANCE CERRADO DE LA PRIMERA VERSIÓN
 
@@ -36,7 +37,7 @@ ALCANCE CERRADO DE LA PRIMERA VERSIÓN
 3. Progreso calculado exclusivamente en el servidor.
 4. Recompensas en monedas ficticias, con un límite diario.
 5. Racha de días activos con una protección recuperable por semana.
-6. Resumen compacto en el lobby y detalle en una pantalla o modal de objetivos.
+6. Cofre flotante en el lobby y detalle en una pantalla de objetivos.
 7. Avance visible en el cierre de la partida.
 8. Eventos de analítica para medir uso y retorno.
 
@@ -66,13 +67,14 @@ EXPERIENCIA COMPLETA
 
 A. Entrada al lobby
 
-- Debajo del aviso de partida en curso y antes del banner de Historia, mostrar una
-  tarjeta compacta llamada “Objetivos de hoy”.
-- Mostrar las tres misiones con descripción corta, progreso y estado.
-- La tarjeta no debe ocupar más de una pantalla completa en un teléfono pequeño.
-- Si una recompensa está lista, el CTA principal dice “Reclamar”.
-- Si ninguna está lista, el CTA secundario dice “Ver objetivos”.
-- Mostrar el desafío semanal como una cuarta fila visualmente diferenciada.
+- Mostrar un cofre flotante que no ocupe espacio ni desplace las mesas.
+- El cofre abre la pantalla de objetivos y tiene un nombre accesible para lectores
+  de pantalla.
+- Mientras haya misiones diarias incompletas, mostrar brillo y una sacudida breve y
+  espaciada; detener la animación con prefers-reduced-motion.
+- Si hay recompensas listas, mostrar su cantidad en una insignia y dejar el cofre
+  quieto cuando ya no queden objetivos incompletos.
+- En escritorio, evitar que el acceso tape el panel lateral de comunidad.
 
 B. Detalle de objetivos
 
@@ -240,7 +242,7 @@ FRONTEND
 
 Componentes sugeridos:
 
-- ObjectivesSummary: tarjeta compacta del lobby.
+- ObjectivesFloatingButton: cofre flotante del lobby.
 - ObjectivesPanel o página /objetivos: detalle completo.
 - ObjectiveRow: descripción, progreso y recompensa.
 - ObjectiveProgressDelta: bloque reutilizable para el cierre de partida.
@@ -315,7 +317,7 @@ Interfaz:
 - Funciona solo con teclado.
 - Los lectores de pantalla reciben cambios de estado entendibles.
 - Con movimiento reducido no hay animaciones largas.
-- La tarjeta no desplaza bruscamente el lobby al cargar.
+- El cofre no ocupa espacio ni desplaza el lobby al cargar.
 - El botón de revancha permanece accesible aunque se complete una misión.
 
 ORDEN DE IMPLEMENTACIÓN RECOMENDADO
@@ -338,7 +340,7 @@ CRITERIOS DE ACEPTACIÓN
 - Cada recompensa puede cobrarse una sola vez.
 - El saldo mostrado coincide con la base después del reclamo.
 - La racha usa fecha argentina y aplica correctamente una protección semanal.
-- El progreso aparece tanto en lobby como después de la partida.
+- El acceso a objetivos aparece en el lobby y el progreso después de la partida.
 - La experiencia no bloquea jugar, revancha ni volver al lobby.
 - No hay regresiones en monedas, Historia, PvP, bots o invitados.
 - La implementación queda documentada y verificable con pruebas.
