@@ -52,6 +52,35 @@
     transform-style: preserve-3d;
     perspective: 800px;
   }
+
+  /* El acceso central a Campaña conserva un halo visible aun cuando el usuario
+     pide menos movimiento; la animación solo respira suavemente. */
+  .campaign-nav-glow {
+    background: linear-gradient(145deg, #f3db89 0%, #c9a24b 48%, #7c5520 100%);
+    box-shadow:
+      0 0 0 1px rgba(239, 215, 137, 0.45),
+      0 0 14px rgba(201, 162, 75, 0.75),
+      0 0 30px rgba(157, 71, 36, 0.45),
+      0 8px 18px rgba(0, 0, 0, 0.55);
+    animation: campaign-nav-breathe 2.8s ease-in-out infinite;
+  }
+}
+
+@keyframes campaign-nav-breathe {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(239, 215, 137, 0.4),
+      0 0 12px rgba(201, 162, 75, 0.62),
+      0 0 24px rgba(157, 71, 36, 0.34),
+      0 8px 18px rgba(0, 0, 0, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(255, 232, 153, 0.62),
+      0 0 20px rgba(224, 181, 80, 0.9),
+      0 0 38px rgba(157, 71, 36, 0.56),
+      0 8px 18px rgba(0, 0, 0, 0.55);
+  }
 }
 
 /* Respeta a quien prefiere menos movimiento */

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { Profile, Table } from '@/lib/types'
 import { generatePrivateCode } from '@/lib/tables'
@@ -38,10 +39,9 @@ export default function LobbyClient({ profile, initialTables, activeGameId, myMe
   const [createdCode, setCreatedCode] = useState('')
   const [createdTableId, setCreatedTableId] = useState('')
   const [coins, setCoins] = useState(profile.coins)
-  // Amigos: presencia, solicitudes e invitaciones (para el panel rápido flotante)
+  // Amigos: presencia, solicitudes e invitaciones para el panel social de escritorio
+  // y la insignia de Comunidad en la navegación móvil.
   const community = useCommunity(profile.id)
-  const [friendsOpen, setFriendsOpen] = useState(false)
-  const [chatOpen, setChatOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const friendsBadge =
     (community.data?.incoming.length ?? 0) + (community.data?.invites_in.length ?? 0)
@@ -455,31 +455,6 @@ export default function LobbyClient({ profile, initialTables, activeGameId, myMe
             </Panel>
           )}
 
-          {/* Cartel grande: Modo Historia (imagen de fondo + texto encima) */}
-          <Link href="/historia" className="block group">
-            <div className="relative overflow-hidden rounded-2xl border border-gold/40 shadow-[0_6px_18px_-7px_rgba(201,162,75,0.4)] h-48 sm:h-56 bg-surface2 bg-[url('/lobby/banner-historia.webp')] bg-cover bg-left sm:bg-center transition-transform duration-200 group-hover:-translate-y-0.5">
-              {/* Oscurecido. Celular: parejo (texto centrado). Compu: más fuerte a la derecha. */}
-              <div className="absolute inset-0 bg-black/45 sm:hidden" />
-              <div className="absolute inset-0 hidden sm:block bg-gradient-to-r from-black/10 via-black/25 to-black/75" />
-              {/* Texto y botón. Celular: centrado. Compu: a la derecha. */}
-              <div className="relative h-full flex flex-col justify-center items-center text-center sm:items-end sm:text-right p-5 sm:p-7">
-                <div className="sm:max-w-xs">
-                  <span className="text-xs font-bold uppercase tracking-widest text-gold">Modo Historia</span>
-                  <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-cream leading-tight [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]">
-                    Jugá la campaña
-                  </h2>
-                  <p className="text-sm text-cream/85 mt-1 [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
-                    Ganale a todos y convertite en el mejor jugador de Argentina.
-                  </p>
-                  <span className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-gold px-6 py-3 font-semibold text-ink shadow-gold transition-colors group-hover:bg-gold-600">
-                    Jugar
-                    <ChevronRightIcon className="text-ink" />
-                  </span>
-                </div>
-              </div>
-            </div>
-          </Link>
-
           {/* Anti-quiebra: si te quedaste sin monedas para jugar, reclamá el bonus */}
           {coins < 10 && (
             <Panel className="p-4 flex items-center justify-between gap-3 border-gold/40 bg-gold/5">
@@ -722,54 +697,20 @@ export default function LobbyClient({ profile, initialTables, activeGameId, myMe
         </div>
       </Modal>
 
-      {/* Panel rápido de amigos: se abre desde 'Amigos' en la barra de abajo (solo
-          celular). El fondo invisible cierra al tocar afuera. */}
-      {friendsOpen && (
-        <>
-          <div className="fixed inset-0 z-30 lg:hidden" onClick={() => setFriendsOpen(false)} />
-          <Panel className="lg:hidden fixed inset-x-3 bottom-[4.75rem] z-40 max-h-[68dvh] overflow-y-auto p-4 shadow-lift animate-fade-up">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-display font-bold text-cream">Amigos</h3>
-              <Link
-                href="/comunidad"
-                onClick={() => setFriendsOpen(false)}
-                className="text-xs font-semibold text-gold hover:text-gold-600 transition-colors"
-              >
-                Abrir Comunidad →
-              </Link>
-            </div>
-            <FriendsPanel c={community} compact />
-          </Panel>
-        </>
-      )}
-
-      {/* Chat global: se abre desde 'Chat' en la barra de abajo (solo celular). */}
-      {chatOpen && (
-        <>
-          <div className="fixed inset-0 z-30 lg:hidden" onClick={() => setChatOpen(false)} />
-          <Panel className="lg:hidden fixed inset-x-3 bottom-[4.75rem] z-40 p-4 shadow-lift animate-fade-up">
-            <ChatGlobal myId={profile.id} isAdmin={!!profile.is_admin} />
-          </Panel>
-        </>
-      )}
-
-      {/* Barra de navegación inferior (solo celular): fondo vino, activo en dorado */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch border-t border-line bg-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+      {/* Barra móvil: cinco destinos. Campaña ocupa el centro y se eleva como
+          acceso principal; chat y amigos viven juntos dentro de Comunidad. */}
+      <nav
+        aria-label="Navegación principal"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex min-h-[4.25rem] items-stretch border-t border-line bg-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
+      >
         <BottomTab href="/lobby" icon={<HomeIcon size={22} />} label="Home" active />
         <BottomTab href="/ranking" icon={<RankIcon size={22} />} label="Ranking" />
+        <CampaignBottomTab />
         <BottomTab href="/tienda" icon={<StoreIcon size={22} />} label="Tienda" />
-        <BottomTab href="/comunidad" icon={<GlobeIcon />} label="Comunidad" />
         <BottomTab
-          onClick={() => { setChatOpen(o => !o); setFriendsOpen(false) }}
-          icon={<ChatIcon />}
-          label="Chat"
-          active={chatOpen}
-        />
-        <BottomTab
-          onClick={() => { setFriendsOpen(o => !o); setChatOpen(false) }}
+          href="/comunidad"
           icon={<UsersIcon size={22} />}
-          label="Amigos"
-          active={friendsOpen}
+          label="Comunidad"
           badge={friendsBadge}
         />
       </nav>
@@ -855,21 +796,32 @@ function RankIcon({ size = 18 }: { size?: number }) {
   )
 }
 
-function GlobeIcon({ size = 22 }: { size?: number }) {
+function CampaignBottomTab() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18" />
-      <path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z" />
-    </svg>
-  )
-}
-
-function ChatIcon({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-    </svg>
+    <Link
+      href="/historia"
+      aria-label="Abrir Modo Campaña"
+      className="group relative min-w-0 flex-1 focus-visible:outline-none"
+    >
+      <span className="absolute left-1/2 -top-7 flex -translate-x-1/2 flex-col items-center gap-0.5">
+        <span className="campaign-nav-glow relative block h-[4.25rem] w-[4.25rem] rounded-full p-[3px] transition-transform duration-200 group-hover:-translate-y-0.5 group-active:scale-95 group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-gold">
+          <span className="relative block h-full w-full overflow-hidden rounded-full border border-gold/80 bg-surface2 shadow-[inset_0_0_0_1px_rgba(255,239,177,0.2)]">
+            <Image
+              src="/lobby/campana-nav.webp"
+              alt=""
+              fill
+              sizes="68px"
+              className="object-cover"
+              aria-hidden="true"
+            />
+            <span className="absolute inset-0 rounded-full bg-gradient-to-t from-black/30 via-transparent to-gold/10" />
+          </span>
+        </span>
+        <span className="whitespace-nowrap text-[10px] font-bold text-gold [text-shadow:0_1px_4px_rgba(0,0,0,0.9)]">
+          Campaña
+        </span>
+      </span>
+    </Link>
   )
 }
 
@@ -879,7 +831,7 @@ function BottomTab({
   href?: string; onClick?: () => void; icon: React.ReactNode; label: string; active?: boolean; badge?: number
 }) {
   const inner = (
-    <span className={cn('flex flex-col items-center justify-center gap-0.5 pt-2 pb-1.5', active ? 'text-gold' : 'text-muted')}>
+    <span className={cn('flex h-full flex-col items-center justify-center gap-0.5 pt-2 pb-1.5', active ? 'text-gold' : 'text-muted')}>
       <span className="relative">
         {icon}
         {badge > 0 && (
@@ -929,14 +881,6 @@ function UsersIcon({ size = 18, className }: { size?: number; className?: string
       <circle cx="9" cy="7" r="4" />
       <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  )
-}
-
-function ChevronRightIcon({ className }: { className?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={cn('text-subtle shrink-0', className)}>
-      <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }

@@ -1,0 +1,341 @@
+TRUCAZO — PLAN 1: CICLO DE RETORNO
+===================================
+
+ESTADO
+Documento de especificación. Todavía no implementado.
+
+PROPÓSITO DE ESTE ARCHIVO
+Este archivo debe poder entregarse completo en una sesión futura para implementar
+el punto 1 sin depender de la conversación original.
+
+OBJETIVO DE PRODUCTO
+Conseguir que cada jugador registrado encuentre un objetivo corto al entrar,
+progrese al jugar y tenga una razón clara para volver al día siguiente. El sistema
+debe premiar actividad y variedad, no obligar a ganar continuamente ni castigar de
+forma agresiva un día de ausencia.
+
+RESULTADO ESPERADO PARA EL JUGADOR
+Al entrar al lobby ve tres misiones del día y un desafío semanal. Después de cada
+partida ve cuánto avanzó. Cuando completa una misión puede reclamar su recompensa.
+El día siguiente recibe objetivos nuevos. Una racha semanal reconoce la constancia,
+pero incluye una protección para no perderla por una única ausencia.
+
+ALCANCE CERRADO DE LA PRIMERA VERSIÓN
+
+1. Tres misiones diarias por jugador.
+2. Un desafío semanal compartido por todos los jugadores.
+3. Progreso calculado exclusivamente en el servidor.
+4. Recompensas en monedas ficticias, con un límite diario.
+5. Racha de días activos con una protección recuperable por semana.
+6. Resumen compacto en el lobby y detalle en una pantalla o modal de objetivos.
+7. Avance visible en el cierre de la partida.
+8. Eventos de analítica para medir uso y retorno.
+
+FUERA DE ALCANCE EN ESTA VERSIÓN
+
+- Cofres aleatorios, ruletas, probabilidades ocultas o cajas sorpresa.
+- Monedas pagas, publicidad o premios con valor real.
+- Notificaciones push automáticas.
+- Objetivos que requieran 2x2 o 3x3.
+- Pase de batalla.
+- Misiones creadas manualmente desde un panel de administración.
+- Misiones que puedan obligar al jugador a arruinar una partida, abandonar o jugar
+  de una manera antideportiva.
+
+PRINCIPIOS DE DISEÑO
+
+- Siempre debe existir progreso por participar; no todas las misiones exigen ganar.
+- El jugador debe entender qué tiene que hacer, cuánto avanzó y qué recibe.
+- La recompensa se acredita una sola vez y de forma atómica.
+- Una partida contra un bot puede contar para objetivos de práctica, pero no para
+  objetivos competitivos identificados como “contra personas”.
+- Las partidas anuladas, abandonadas de inmediato o manipuladas no cuentan.
+- No usar miedo a perder (“te quedan 3 minutos”) como presión principal.
+- La interfaz debe seguir el estilo vino, crema y dorado actual.
+
+EXPERIENCIA COMPLETA
+
+A. Entrada al lobby
+
+- Debajo del aviso de partida en curso y antes del banner de Historia, mostrar una
+  tarjeta compacta llamada “Objetivos de hoy”.
+- Mostrar las tres misiones con descripción corta, progreso y estado.
+- La tarjeta no debe ocupar más de una pantalla completa en un teléfono pequeño.
+- Si una recompensa está lista, el CTA principal dice “Reclamar”.
+- Si ninguna está lista, el CTA secundario dice “Ver objetivos”.
+- Mostrar el desafío semanal como una cuarta fila visualmente diferenciada.
+
+B. Detalle de objetivos
+
+Cada misión muestra:
+
+- Nombre breve.
+- Explicación concreta.
+- Progreso numérico, por ejemplo 2/3.
+- Barra de progreso.
+- Recompensa exacta.
+- Tiempo natural restante: “Termina hoy” o “Termina el domingo”.
+- Estado: en progreso, lista para reclamar o reclamada.
+
+C. Después de una partida
+
+- Si hubo avance, mostrar “Objetivos” dentro del resumen final.
+- Animar la barra desde el valor anterior al nuevo valor.
+- Si se completó una misión, mostrar una confirmación breve y no bloquear los botones
+  de revancha o salida.
+- Respetar prefers-reduced-motion: en ese caso actualizar sin animación extensa.
+- Si el progreso no pudo cargarse, el cierre de la partida debe seguir funcionando.
+
+D. Reclamo
+
+- Reclamar desde el lobby o desde el resumen de la partida.
+- El botón entra en estado de carga y no admite doble toque.
+- El servidor acredita la recompensa y marca el reclamo en una sola operación.
+- Mostrar “Recompensa recibida” y el saldo nuevo.
+- Si ya fue reclamada desde otra pestaña, refrescar el estado sin duplicar monedas.
+
+E. Cambio de día o semana
+
+- Usar la zona horaria America/Argentina/Buenos_Aires para los límites visibles.
+- Si la pantalla queda abierta durante el cambio de día, refrescar al recuperar foco
+  o en la siguiente acción del usuario.
+- Nunca confiar en la fecha del dispositivo del jugador.
+
+CATÁLOGO INICIAL DE MISIONES
+
+Las tres misiones diarias se eligen de categorías diferentes para evitar repetición:
+
+Participación:
+- Terminá 1 partida.
+- Terminá 3 partidas.
+
+Competencia:
+- Ganá 1 partida contra una persona.
+- Jugá 2 partidas públicas contra personas.
+
+Historia:
+- Jugá 1 duelo del Modo Historia.
+- Ganá 1 duelo del Modo Historia.
+
+Social:
+- Jugá 1 partida con un amigo mediante invitación.
+- Aceptá o pedí una revancha y terminá esa partida.
+
+No incluir inicialmente misiones como “ganá un envido” o “ganá con vale cuatro” si
+el servidor todavía no conserva de forma inequívoca esos eventos. Primero se debe
+garantizar una fuente de verdad auditable.
+
+DESAFÍOS SEMANALES INICIALES
+
+- Terminá 10 partidas válidas.
+- Ganá 5 partidas entre cualquier modo permitido.
+- Vencé por primera vez a 2 rivales distintos de Historia.
+- Jugá con 3 rivales humanos diferentes.
+
+ECONOMÍA PROPUESTA PARA LA PRIMERA VERSIÓN
+
+- Misión diaria fácil: 20 monedas.
+- Misión diaria media: 30 monedas.
+- Misión diaria competitiva: 40 monedas.
+- Desafío semanal: 150 monedas.
+- Tope ordinario: 90 monedas diarias más el premio semanal.
+- Estos valores deben quedar configurados en la base, no repetidos en componentes.
+- Antes de desplegar, comparar estas entradas con apuestas, premios de Historia,
+  precios de la tienda y bonus anti-quiebra para evitar inflación.
+
+RACHA SALUDABLE
+
+- Un día cuenta como activo al terminar al menos una partida válida.
+- La racha se expresa en días, pero la recompensa importante se entrega por semanas
+  con actividad, no por cadenas interminables.
+- Cada jugador recibe una protección semanal automática.
+- Si falta un día, la protección conserva la racha y queda consumida.
+- Si falta otro día en la misma semana, la racha se reinicia sin quitar recompensas
+  ya obtenidas.
+- No vender protecciones ni usar mensajes culpabilizantes.
+
+MODELO DE DATOS SUGERIDO
+
+Crear una migración nueva; nunca editar migraciones aplicadas.
+
+daily_mission_templates
+- id o slug estable.
+- nombre y descripción.
+- tipo de evento medible.
+- objetivo numérico.
+- recompensa.
+- categoría.
+- modos permitidos.
+- activa.
+
+daily_mission_assignments
+- profile_id.
+- local_date.
+- template_id.
+- progreso.
+- completed_at.
+- claimed_at.
+- reward_amount_snapshot.
+- clave única por jugador, fecha y misión.
+
+weekly_challenges
+- week_start.
+- template_id o campos congelados del desafío.
+- objetivo y recompensa como snapshot.
+- estado activo/finalizado.
+
+weekly_challenge_progress
+- profile_id y week_start.
+- progreso, completed_at y claimed_at.
+
+profile_activity_streaks
+- profile_id.
+- current_streak_days.
+- longest_streak_days.
+- last_active_local_date.
+- protection_week_start.
+- protection_used_at.
+
+Las tablas de progreso son privadas. Cada jugador solo puede leer sus filas. Las
+escrituras y recompensas pasan únicamente por funciones security definer.
+
+LÓGICA DE SERVIDOR
+
+- Crear una función interna que reciba un evento de juego validado y actualice las
+  misiones relevantes.
+- Llamarla desde el mismo flujo autorizado que finaliza una partida, después de
+  confirmar que la partida terminó de verdad.
+- Usar identificadores de partida procesada o una restricción equivalente para que
+  un reintento de red no duplique progreso.
+- Crear RPC get_my_objectives() para devolver misiones, progreso, racha y saldo.
+- Crear RPC claim_objective_reward(tipo, identificador) que bloquee la fila, valide
+  cumplimiento, acredite monedas y marque claimed_at en una transacción.
+- No permitir que el cliente envíe “sumame uno”, “completé” ni el monto del premio.
+- Diferenciar humano, bot, campaña, mesa pública, privada y revancha usando datos del
+  servidor, no parámetros del navegador.
+- Actualizar supabase/schema además de agregar la migración incremental.
+
+ASIGNACIÓN DE MISIONES
+
+Para la primera versión, evitar un cron obligatorio:
+
+- get_my_objectives() crea perezosamente las asignaciones del día si no existen.
+- La selección debe ser determinista para un jugador y una fecha o quedar grabada al
+  primer acceso; nunca debe cambiar al refrescar.
+- Siempre asignar una misión de participación.
+- No asignar una misión social a quien todavía no tiene amigos, salvo que la acción
+  pueda completarse sin depender de que otro acepte.
+- No asignar una misión de Historia si el modo no está disponible para ese perfil.
+
+FRONTEND
+
+Componentes sugeridos:
+
+- ObjectivesSummary: tarjeta compacta del lobby.
+- ObjectivesPanel o página /objetivos: detalle completo.
+- ObjectiveRow: descripción, progreso y recompensa.
+- ObjectiveProgressDelta: bloque reutilizable para el cierre de partida.
+
+Reutilizar Button, Panel, Coins, Alert y tokens de globals.css. No crear otro sistema
+visual. Los controles táctiles deben medir al menos 44x44 px, tener foco visible y
+estado de carga. El progreso no puede depender solamente del color: acompañarlo con
+texto y números. Los cambios asíncronos deben anunciar una frase completa mediante
+role=status, por ejemplo “Misión Partida del día completada”, no un número suelto.
+
+ESTADOS QUE DEBEN ESTAR DISEÑADOS
+
+- Cargando sin parpadeos.
+- Tres misiones en progreso.
+- Una o más listas para reclamar.
+- Todas reclamadas.
+- Error de lectura.
+- Error de reclamo.
+- Día cambiado.
+- Sin conexión temporal.
+- Actualización simultánea desde otra pestaña.
+
+ANALÍTICA
+
+Agregar eventos de primera parte, sin información sensible:
+
+- objectives_viewed.
+- objective_progressed.
+- objective_completed.
+- objective_reward_claimed.
+- weekly_challenge_completed.
+- streak_continued.
+- streak_protection_used.
+
+Propiedades útiles: tipo de misión, objetivo, modo de juego y días de racha. No enviar
+nombre de usuario, mensajes, código de mesa ni id crudo de otra persona.
+
+MÉTRICAS DE ÉXITO
+
+- Porcentaje de jugadores activos que miran sus objetivos.
+- Porcentaje que completa al menos una misión.
+- Porcentaje que reclama una recompensa.
+- Partidas por jugador activo.
+- Retorno al día siguiente y a los 7 días.
+- Inflación media de monedas por jugador.
+- Abandonos de partida, para comprobar que las misiones no los incentivan.
+
+SEGURIDAD Y ABUSO
+
+- RLS en todas las tablas nuevas.
+- Revocar escrituras directas a authenticated y anon.
+- search_path fijo en funciones security definer.
+- Reclamos idempotentes.
+- Excluir partidas que no llegaron a un estado final válido.
+- Definir un mínimo razonable de duración solo si los datos muestran abuso; no usar
+  un número arbitrario que penalice partidas legítimas.
+- Probar dos pestañas reclamando a la vez.
+
+PRUEBAS OBLIGATORIAS
+
+Base de datos:
+- Una partida válida avanza una sola vez.
+- Un reintento no duplica progreso.
+- Un reclamo doble acredita una sola recompensa.
+- Un usuario no puede leer ni reclamar objetivos ajenos.
+- Bot, humano, campaña y privada se clasifican correctamente.
+- El cambio de fecha argentina asigna el día correcto.
+- La protección de racha se consume una sola vez por semana.
+
+Interfaz:
+- Funciona a 320, 375, 414, 768, 1024 y 1440 px.
+- Funciona solo con teclado.
+- Los lectores de pantalla reciben cambios de estado entendibles.
+- Con movimiento reducido no hay animaciones largas.
+- La tarjeta no desplaza bruscamente el lobby al cargar.
+- El botón de revancha permanece accesible aunque se complete una misión.
+
+ORDEN DE IMPLEMENTACIÓN RECOMENDADO
+
+1. Revisar economía y eventos disponibles en finish_game.
+2. Crear migración, tablas, RLS y RPC.
+3. Agregar pruebas SQL de seguridad e idempotencia.
+4. Integrar actualización de progreso al cierre de partida.
+5. Crear detalle de objetivos.
+6. Crear resumen del lobby.
+7. Integrar avance en el cierre de partida.
+8. Agregar analítica.
+9. Ejecutar lint, build, pruebas SQL y flujo manual completo.
+10. Entregar al dueño pasos exactos para pegar la migración en Supabase.
+
+CRITERIOS DE ACEPTACIÓN
+
+- Un jugador ve exactamente tres misiones diarias coherentes y un desafío semanal.
+- El progreso solo cambia por partidas válidas confirmadas por el servidor.
+- Cada recompensa puede cobrarse una sola vez.
+- El saldo mostrado coincide con la base después del reclamo.
+- La racha usa fecha argentina y aplica correctamente una protección semanal.
+- El progreso aparece tanto en lobby como después de la partida.
+- La experiencia no bloquea jugar, revancha ni volver al lobby.
+- No hay regresiones en monedas, Historia, PvP, bots o invitados.
+- La implementación queda documentada y verificable con pruebas.
+
+DEFINICIÓN DE TERMINADO
+
+No considerar terminado por “verse bien”. Deben pasar build, pruebas de seguridad,
+prueba de reclamo simultáneo, prueba en móvil y verificación manual de una partida
+que avance, complete y cobre una misión.
