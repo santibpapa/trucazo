@@ -9,7 +9,8 @@ import { Panel, Button, CoinIcon } from '@/components/ui'
 import PlayingCard from '@/components/game/PlayingCard'
 import CardBack from '@/components/game/CardBack'
 import { playSound, isMuted, setMuted } from '@/lib/sounds'
-import { getSalonTheme } from '@/lib/salones'
+import { SalonBackground, SalonTable } from '@/components/game/SalonScene'
+import styles from '@/components/game/salon.module.css'
 import { fraseDelBot, type MomentoFrase } from '@/lib/botFrases'
 import { getFrameTheme } from '@/lib/marcos'
 import { getMedal } from '@/lib/medallas'
@@ -90,9 +91,7 @@ function SeatAvatar({ slug, imageUrl, name, active, frame, medal }: { slug?: str
   const [imgFailed, setImgFailed] = useState(false)
   // El rival de campaña usa su ilustración (slug); el resto, su foto de perfil.
   const src = slug ? `/personajes/${slug}.webp` : imageUrl || null
-  // Marco comprado en la Tienda. En el asiento (cuadrado) lo dibujamos como borde
-  // fijo (sin girar) para no deformar la forma; el brillo giratorio queda para los
-  // avatares redondos (perfil, lobby, amigos).
+  // Marco comprado en la Tienda, alrededor del retrato de cada jugador.
   const theme = getFrameTheme(frame)
 
   const face =
@@ -111,17 +110,16 @@ function SeatAvatar({ slug, imageUrl, name, active, frame, medal }: { slug?: str
 
   const leather = 'linear-gradient(180deg, #3a2224 0%, #2a1517 100%)'
 
-  // Con marco: aro de degradado como borde y la foto embutida adentro.
-  // Sin marco: el asiento clásico (borde dorado cuando le toca actuar).
+  // El marco comprado conserva su aro alrededor del retrato circular.
   const box = theme ? (
     <div
-      className={`shrink-0 w-12 h-12 rounded-xl overflow-hidden transition-shadow relative ${
+      className={`shrink-0 overflow-hidden transition-shadow relative ${styles.avatar} ${
         active ? 'ring-1 ring-gold/60 animate-pulse-glow' : ''
       }`}
       style={{ background: theme.ring, boxShadow: active ? undefined : theme.glow }}
     >
       <div
-        className="absolute inset-[3px] rounded-[9px] overflow-hidden flex items-center justify-center"
+        className={`absolute inset-[3px] overflow-hidden flex items-center justify-center ${styles.avatarInner}`}
         style={{ background: leather }}
       >
         {face}
@@ -129,7 +127,7 @@ function SeatAvatar({ slug, imageUrl, name, active, frame, medal }: { slug?: str
     </div>
   ) : (
     <div
-      className={`shrink-0 w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center border transition-shadow ${
+      className={`shrink-0 overflow-hidden flex items-center justify-center transition-shadow ${styles.avatar} ${
         active ? 'border-gold ring-1 ring-gold/60 animate-pulse-glow' : 'border-line'
       }`}
       style={{ background: leather }}
@@ -143,7 +141,7 @@ function SeatAvatar({ slug, imageUrl, name, active, frame, medal }: { slug?: str
 
   // Pin de la medalla destacada en la esquina del asiento.
   return (
-    <div className="relative shrink-0 w-12 h-12">
+    <div className="relative shrink-0">
       {box}
       <span
         aria-hidden="true"
@@ -211,7 +209,7 @@ function MesaButton({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: MesaTone }) {
   return (
     <button
-      className={`w-full h-11 px-4 rounded-full inline-flex items-center justify-center gap-2 text-sm font-semibold select-none transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 ${MESA_TONES[tone]} ${className ?? ''}`}
+      className={`w-full h-11 px-4 inline-flex items-center justify-center gap-2 text-sm font-semibold select-none transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 ${MESA_TONES[tone]} ${styles.action} ${className ?? ''}`}
       {...props}
     />
   )
@@ -1195,99 +1193,26 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   // El abanico del rival descuenta también las cartas que bajó por el envido
   const oppRevealedCount = envidoReveal && !revealIsMine ? envidoReveal.cards.length : 0
   const oppCardsLeft = Math.max(0, 3 - game.played_cards.filter(pc => pc.player_id === opponentId).length - oppRevealedCount)
-  // Colores de la mesa según el salón elegido (madera, filete y paño)
-  const salonTheme = getSalonTheme(salonSlug)
-
   return (
-    <main className="fixed inset-0 overflow-hidden">
-      {/* Fondo: salón del club. Base de degradados cálidos (lámparas + penumbra)
-          y, encima, la foto del salón elegido (public/mesa/{slug}.webp) si existe.
-          Cierra una viñeta. */}
-      <div
-        aria-hidden
-        className="absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(42% 20% at 10% 8%, rgba(255,196,120,0.13), transparent 70%),' +
-            'radial-gradient(42% 20% at 90% 8%, rgba(255,196,120,0.13), transparent 70%),' +
-            'linear-gradient(180deg, #271315 0%, #1A0F10 45%, #0f0809 100%)',
-        }}
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('/mesa/${salonSlug}.webp')` }}
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0"
-        style={{ background: 'radial-gradient(120% 100% at 50% 42%, transparent 50%, rgba(0,0,0,0.6) 100%)' }}
-      />
-
-      <div className="relative h-full flex flex-col p-2 sm:p-3 gap-2 max-w-lg md:max-w-2xl mx-auto w-full">
-      {/* Marcador: panel de cuero con marco dorado. El aro dorado y el relojito
-          acompañan al jugador que tiene que actuar. */}
-      <div
-        className="shrink-0 rounded-2xl border border-gold/35 px-3 py-2"
-        style={{
-          background: 'linear-gradient(180deg, #2b1517 0%, #1d0e10 100%)',
-          boxShadow:
-            'inset 0 0 0 1px rgba(201,162,75,0.15), inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 38px -12px rgba(0,0,0,0.7)',
-        }}
-      >
-        <div className="flex items-center justify-between gap-1.5">
-          <div className="flex-1 flex items-center gap-1.5 min-w-0">
-            <SeatAvatar slug={campaignRivalSlug} imageUrl={opponentAvatarUrl} name={opponentUsername} active={!meActive} frame={opponentFrame} medal={opponentMedal} />
-            <div className="flex-1 flex flex-col gap-0.5 min-w-0">
-              <span className="block w-full truncate text-[11px] leading-tight text-muted">{opponentUsername}</span>
-              <span className="font-display text-2xl font-extrabold text-cream tabular leading-none">{opponentScore}</span>
-            </div>
+    <main className={styles.game}>
+      <SalonBackground slug={salonSlug} />
+      <div className={styles.shell}>
+      <div className={styles.brand} aria-label="Trucazo">TRUCAZO</div>
+      <div className={styles.scoreboard} aria-label="Marcador">
+        <div className={styles.scoreRow}>
+          <div className={styles.scorePlayer}>
+            <span className={styles.scoreName}>{myUsername} (vos)</span>
+            <span className={styles.scoreValue}>{myScore}</span>
           </div>
-          <div className="flex flex-col items-center gap-0.5 px-1 shrink-0">
-            {game.bet > 0 && (
-              <span className="inline-flex items-center gap-1 font-display font-bold text-gold tabular text-sm">
-                <CoinIcon size={13} />{game.bet}
-              </span>
-            )}
-            <span className="text-[9px] uppercase tracking-widest text-subtle whitespace-nowrap">
-              {game.bet > 0 ? `Pozo · a ${game.target_score}` : `Duelo a ${game.target_score}`}
-            </span>
-            <span className="text-[10px] text-muted whitespace-nowrap">
-              Mano: <b className="text-cream font-semibold">{isMano ? 'Vos' : 'Rival'}</b>
-            </span>
+          <div className={styles.scoreDetail}>
+            <span>A {game.target_score}</span>
+            {game.bet > 0 && <span className="inline-flex items-center gap-1"><CoinIcon size={12} />{game.bet}</span>}
+            <small>{game.bet > 0 ? 'Pozo · ' : ''}Mano: {isMano ? 'vos' : 'rival'}</small>
           </div>
-          <div className="flex-1 flex items-center justify-end gap-1.5 min-w-0">
-            <div className="flex-1 flex flex-col gap-0.5 min-w-0 text-right">
-              <span className="block w-full truncate text-[11px] leading-tight text-gold">{myUsername} (vos)</span>
-              <span className="font-display text-2xl font-extrabold text-cream tabular leading-none">{myScore}</span>
-            </div>
-            <SeatAvatar imageUrl={myAvatarUrl} name={myUsername} active={meActive} frame={myFrame} medal={myMedal} />
+          <div className={styles.scorePlayer}>
+            <span className={styles.scoreName}>{opponentUsername}</span>
+            <span className={styles.scoreValue}>{opponentScore}</span>
           </div>
-        </div>
-      </div>
-
-      {/* Estado del turno: pastilla compacta flotante */}
-      {/* Alto FIJO (h-9): el cartel cambia de estilo según el turno pero su
-          contenedor no cambia de alto, así la mesa (que toma "lo que queda") no
-          se reajusta en cada jugada. */}
-      <div className="relative z-30 shrink-0 h-9 flex items-center justify-center">
-        <div
-          className={`rounded-full border transition-colors text-center ${
-            meActive
-              ? 'px-5 py-1.5 text-sm font-bold border-gold-700 bg-gold text-ink animate-pulse-glow'
-              : 'px-4 py-1 text-xs font-semibold border-line/70 bg-black/45 text-muted backdrop-blur-sm'
-          }`}
-        >
-          {game.awaiting_deal ? 'Fin de la mano…' :
-           hasPendingEnvido ? `Te cantaron ${ENVIDO_LABEL[game.envido_state.status] ?? 'envido'} — respondé` :
-           hasPendingTruco ? `Te cantaron ${TRUCO_LABEL[game.truco_state.status] ?? 'truco'} — respondé` :
-           isDeclaring ? (myDeclareTurn ? 'Tu turno — decí tu tanto' : `Turno de ${opponentUsername}`) :
-           isMyTurn ? 'Tu turno' : `Turno de ${opponentUsername}`}
-          {!game.awaiting_deal && secondsLeft != null && (
-            <span className={`ml-2 tabular ${secondsLeft <= 5 ? 'text-negative font-bold' : 'opacity-80'}`}>
-              ⏱ {secondsLeft}s
-            </span>
-          )}
         </div>
       </div>
 
@@ -1305,53 +1230,25 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         </div>
       )}
 
-      {/* Zona de juego. La mesa ovalada vive acá adentro, anclada a esta zona:
-          crece o se achica con ella, así las cartas siempre quedan sobre el paño
-          y nunca pisan los botones de abajo. */}
-      <div className="relative flex-1 min-h-0 flex flex-col pt-14 sm:pt-0 sm:justify-center">
-        {/* Bloque de la mesa: en celular toma el alto que queda entre la franja de
-            salón (pt de arriba) y la fila de la mano (abajo, con alto propio); como
-            todos esos altos son fijos, la mesa NUNCA cambia de tamaño. En compu
-            (sm+) llena la zona como antes y la mano flota encima. */}
-        <div className="relative w-full min-h-0 flex-1 sm:flex-none sm:h-full p-1 sm:p-2 flex flex-col">
-        {/* Mesa ovalada: madera con filete dorado y paño bordó */}
-        <div aria-hidden className="absolute -top-2 -bottom-12 left-1/2 -translate-x-1/2 w-[min(135vw,950px)]">
-          <div
-            className="absolute inset-0 rounded-[50%]"
-            style={{
-              background: salonTheme.rim,
-              boxShadow:
-                '0 40px 90px -24px rgba(0,0,0,0.85), inset 0 2px 5px rgba(255,255,255,0.10), inset 0 -10px 26px rgba(0,0,0,0.5)',
-            }}
-          />
-          <div
-            className="absolute rounded-[50%]"
-            style={{
-              inset: '4%',
-              border: `2px solid ${salonTheme.inlay}`,
-              boxShadow: `0 0 14px ${salonTheme.inlayGlow}, inset 0 0 10px ${salonTheme.inlayGlow}`,
-            }}
-          />
-          <div
-            className="absolute rounded-[50%]"
-            style={{
-              inset: '6.5%',
-              background: salonTheme.felt,
-              boxShadow: 'inset 0 14px 44px rgba(0,0,0,0.6), inset 0 -10px 30px rgba(0,0,0,0.45)',
-            }}
-          />
-        </div>
-
+      {/* Cada fila reserva su lugar: los cantos y el reparto no mueven la mesa. */}
+      <div className={styles.stage}>
+        <SalonTable slug={salonSlug} />
+        <div className={styles.tablePlay}>
+          <div className={`${styles.seat} ${styles.opponentSeat}`}>
+            <SeatAvatar slug={campaignRivalSlug} imageUrl={opponentAvatarUrl} name={opponentUsername} active={!meActive} frame={opponentFrame} medal={opponentMedal} />
+            <span className={styles.seatName}>{opponentUsername}</span>
+          </div>
         {/* Accesorios sobre el paño: el del rival a la izquierda (debajo de sus
             cartas) y el mío a la derecha, en los costados para no pisar cartas. */}
         <TableAccessory slug={opponentAccessory} who="opponent" />
         <TableAccessory slug={myAccessory} who="me" />
 
+        <div className={styles.toolbar}>
         {/* Silenciar / activar sonidos */}
         <button
           onClick={toggleMute}
           aria-label={muted ? 'Activar sonido' : 'Silenciar'}
-          className="absolute top-2 right-14 z-30 w-11 h-11 rounded-full border border-gold/30 bg-black/55 backdrop-blur flex items-center justify-center text-muted hover:text-gold hover:border-gold transition-colors"
+          className={styles.toolButton}
         >
           {muted ? <SoundOffIcon /> : <SoundOnIcon />}
         </button>
@@ -1359,11 +1256,13 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         {/* Chat rápido: botón + bandeja de emotes */}
         <button
           onClick={() => setEmoteTray(v => !v)}
-          aria-label="Emotes"
-          className="absolute top-2 right-2 z-30 w-11 h-11 rounded-full border border-gold/30 bg-black/55 backdrop-blur flex items-center justify-center text-muted hover:text-gold hover:border-gold transition-colors"
+          aria-label="Chat rápido"
+          aria-expanded={emoteTray}
+          className={styles.toolButton}
         >
           <ChatIcon />
         </button>
+        </div>
         {emoteTray && (
           <div className="absolute top-12 right-2 z-30 flex flex-wrap justify-end gap-1.5 max-w-[15rem] rounded-2xl border border-line bg-base/95 backdrop-blur p-2 shadow-lift animate-scale-in">
             {EMOTES.map(e => {
@@ -1444,7 +1343,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         {/* Mazo: pila de dorsos de la que "salen" las cartas al repartir. En
             celular va más abajo, bien sobre el paño (arriba quedaba fuera del
             óvalo, que en la mesa achatada ya no llega a esa esquina). */}
-        <div className="pointer-events-none absolute top-24 sm:top-2 right-2 z-20" aria-hidden="true">
+        <div className={styles.deck} aria-hidden="true">
           <div className="relative w-7 sm:w-9 aspect-[11/17] drop-shadow-md">
             <CardBack className="absolute inset-0 translate-x-[3px] -translate-y-[3px] opacity-60" />
             <CardBack className="absolute inset-0 translate-x-[1.5px] -translate-y-[1.5px] opacity-80" />
@@ -1455,7 +1354,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         {/* Cartas del oponente boca abajo, en abanico (no conocemos sus cartas,
             solo cuántas le quedan). Alto fijo: cuando se queda sin cartas la fila
             no colapsa y nada de la mesa se mueve. */}
-        <div className="relative shrink-0 min-h-20 sm:min-h-[5.6rem] flex justify-center -space-x-3 -mt-1.5 sm:mt-0 sm:pt-0.5">
+        <div className={styles.opponentHand}>
           {[...Array(oppCardsLeft)].map((_, i) => {
             const mid = (oppCardsLeft - 1) / 2
             return (
@@ -1468,7 +1367,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
                   transformOrigin: '50% -30%',
                 }}
               >
-                <CardBack className="w-12 sm:w-14 aspect-[11/17]" />
+                <CardBack className={styles.back} />
               </div>
             )
           })}
@@ -1478,7 +1377,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             así la fila nunca se re-centra y cada carta cae en un lugar fijo y se
             queda ahí (mesa real). Se centra en el espacio entre el abanico del
             rival y la mano (que ya no se superpone: tiene su propia fila). */}
-        <div className="relative z-10 flex-1 min-h-0 flex justify-center gap-2 sm:gap-8 items-center py-1">
+        <div className={styles.rounds}>
           {[1, 2, 3].map(roundNum => {
             const roundCards = game.played_cards.filter(pc => pc.round === roundNum)
             const myRoundCard = roundCards.find(pc => pc.player_id === currentUserId)
@@ -1510,7 +1409,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
 
             return (
               <div key={roundNum} className="flex flex-col items-center">
-                <div className="relative w-24 h-[9.25rem] sm:w-28 sm:h-44">
+                <div className={styles.roundSlot}>
                   {opponentRoundCard && (
                     <PlayingCard
                       card={opponentRoundCard.card}
@@ -1518,7 +1417,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
                       // La sombra va inline (box-shadow) y no como filtro drop-shadow:
                       // el filtro es caro en celulares y hacía perder cuadros del flip.
                       style={{ '--fromY': '-50px', boxShadow: '0 12px 20px -6px rgba(0,0,0,0.55)' } as React.CSSProperties}
-                      className={`absolute w-20 sm:w-24 ${oppCardCls}`}
+                      className={`absolute ${styles.playedCard} ${oppCardCls}`}
                     />
                   )}
                   {/* Mi carta entra desde la dirección de mi mano (abajo), en su lugar real. */}
@@ -1527,7 +1426,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
                       card={myRoundCard.card}
                       flip
                       style={{ '--fromY': '70px', boxShadow: '0 12px 20px -6px rgba(0,0,0,0.55)' } as React.CSSProperties}
-                      className={`absolute w-20 sm:w-24 ${myCardCls}`}
+                      className={`absolute ${styles.playedCard} ${myCardCls}`}
                     />
                   )}
                   {/* Carta del envido revelada: entra desde el lado del que la muestra */}
@@ -1536,7 +1435,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
                       card={revealCard}
                       flip
                       style={{ '--fromY': revealIsMine ? '70px' : '-50px', boxShadow: '0 12px 20px -6px rgba(0,0,0,0.55)' } as React.CSSProperties}
-                      className={`absolute w-20 sm:w-24 z-10 ${revealIsMine ? 'top-6 left-3 sm:top-7 sm:left-4' : 'top-0 left-0'}`}
+                      className={`absolute ${styles.playedCard} z-10 ${revealIsMine ? 'top-6 left-3 sm:top-7 sm:left-4' : 'top-0 left-0'}`}
                     />
                   )}
                 </div>
@@ -1546,11 +1445,8 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         </div>
         </div>
 
-        {/* Mis cartas, en abanico. En celular es una fila con alto PROPIO debajo
-            del bloque de la mesa (imposible que tape las cartas jugadas) y pegada
-            a los botones; el alto fijo evita saltos cuando quedan menos cartas.
-            En compu (sm+) flota abajo como siempre. */}
-        <div className="relative z-20 shrink-0 h-[8.75rem] translate-y-3 flex justify-center items-end -space-x-1.5 sm:absolute sm:inset-x-0 sm:bottom-1 sm:h-auto sm:translate-y-0">
+        {/* La mano tiene su propia fila, separada de las tres rondas jugadas. */}
+        <div className={styles.hand}>
           {myCards.map((card, i) => {
             const mid = (myCards.length - 1) / 2
             return (
@@ -1577,11 +1473,34 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
                   } as React.CSSProperties}
                   onClick={() => playCard(card)}
                   disabled={!isMyTurn || loading || !!myPlayedCard || hasPendingEnvido || hasPendingTruco || isDeclaring}
-                  className="w-24 sm:w-28"
+                  className={styles.handCard}
                 />
               </div>
             )
           })}
+        </div>
+        <div className={`${styles.seat} ${styles.mySeat}`}>
+          <SeatAvatar imageUrl={myAvatarUrl} name={myUsername} active={meActive} frame={myFrame} medal={myMedal} />
+          <span className={styles.seatName}>{myUsername}</span>
+        </div>
+      </div>
+
+      {/* Estado y reloj debajo de la mano, con espacio reservado para los cantos. */}
+      <div className={styles.turn}>
+        <div
+          role="status"
+          className={`${styles.turnLabel} ${meActive ? styles.turnActive : ''}`}
+        >
+          {game.awaiting_deal ? 'Fin de la mano…' :
+           hasPendingEnvido ? `Te cantaron ${ENVIDO_LABEL[game.envido_state.status] ?? 'envido'} — respondé` :
+           hasPendingTruco ? `Te cantaron ${TRUCO_LABEL[game.truco_state.status] ?? 'truco'} — respondé` :
+           isDeclaring ? (myDeclareTurn ? 'Tu turno — decí tu tanto' : `Turno de ${opponentUsername}`) :
+           isMyTurn ? 'Tu turno' : `Turno de ${opponentUsername}`}
+          {!game.awaiting_deal && secondsLeft != null && (
+            <span className={`ml-2 tabular ${secondsLeft <= 5 ? 'text-negative font-bold' : 'opacity-80'}`}>
+              ⏱ {secondsLeft}s
+            </span>
+          )}
         </div>
       </div>
 
@@ -1589,7 +1508,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
           Alto FIJO (el del caso más alto: responder truco + envido va primero),
           con el contenido anclado abajo: aparezcan los botones que aparezcan, la
           mesa no cambia de tamaño ni se mueve nada. */}
-      <div className="relative z-30 shrink-0 h-[8.25rem] flex flex-col justify-end gap-1">
+      <div className={styles.actions}>
         {/* Responder envido */}
         {hasPendingEnvido && (
           <div className="flex flex-col gap-2">
@@ -1672,7 +1591,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               </MesaButton>
             )}
             <MesaButton tone="ghost" className={canSingTruco ? 'h-11' : 'h-10'} onClick={irseAlMazo} disabled={loading}>
-              Irse al mazo
+              Ir al mazo
             </MesaButton>
           </div>
         )}
