@@ -8,6 +8,7 @@ import { createDeck, getCardImage, getEnvidoPoints, type Card } from '@/lib/truc
 import { Panel, Button, CoinIcon } from '@/components/ui'
 import PlayingCard from '@/components/game/PlayingCard'
 import CardBack from '@/components/game/CardBack'
+import { TableCard, useCardFlight } from '@/components/game/CardMotion'
 import { playSound, isMuted, setMuted } from '@/lib/sounds'
 import { SalonBackground, SalonTable } from '@/components/game/SalonScene'
 import styles from '@/components/game/salon.module.css'
@@ -220,6 +221,8 @@ function MesaButton({
 export default function GameClient({ game: initialGame, currentUserId, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory, opponentIsBot = false }: Props) {
   const router = useRouter()
   const [game, setGame] = useState<Game>(initialGame)
+  const cardFlight = useCardFlight(game.hand_number)
+  const initialCardKeys = useRef(new Set(initialGame.played_cards.map(pc => `${initialGame.hand_number}:${pc.player_id}:${pc.round}`)))
   const [myHand, setMyHand] = useState<Card[]>(initialMyHand)
   const [loading, setLoading] = useState(false)
   // Segundos que le quedan al jugador de turno (reloj por jugada)
@@ -1236,7 +1239,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
       )}
 
       {/* Cada fila reserva su lugar: los cantos y el reparto no mueven la mesa. */}
-      <div className={styles.stage}>
+      <div className={styles.stage} ref={cardFlight.stageRef} data-card-stage>
         <SalonTable slug={salonSlug} />
         <div className={styles.tablePlay}>
           <div className={`${styles.seat} ${styles.opponentSeat}`}>
@@ -1359,7 +1362,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         {/* Cartas del oponente boca abajo, en abanico (no conocemos sus cartas,
             solo cuántas le quedan). Alto fijo: cuando se queda sin cartas la fila
             no colapsa y nada de la mesa se mueve. */}
-        <div className={styles.opponentHand}>
+        <div className={styles.opponentHand} data-card-hand="opponent">
           {[...Array(oppCardsLeft)].map((_, i) => {
             const mid = (oppCardsLeft - 1) / 2
             return (
@@ -1391,56 +1394,49 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             // Carta del envido revelada que "cae" en esta ronda (como jugada normal)
             const revealCard = revealByRound.get(roundNum)
 
-            // La carta ganadora va encima; en parda (empate) van parejas a la misma altura
-            const isTie = roundResult ? roundResult.winner_id === null : false
+            // La carta ganadora va encima; en parda se mantiene el orden visual.
             const myCardOnTop = roundResult
               ? roundResult.winner_id === currentUserId
               : false
 
-            let oppCardCls: string
-            let myCardCls: string
-            // Tu carta SIEMPRE va abajo-derecha; la del rival SIEMPRE arriba-izquierda.
-            // La ganadora queda encima (z-10). Así se distingue quién ganó la ronda.
-            if (isTie) {
-              oppCardCls = 'top-1 left-0 sm:top-2 z-0'
-              myCardCls = 'top-1 left-3 sm:top-2 sm:left-4 z-0'
-            } else if (myCardOnTop) {
-              oppCardCls = 'top-0 left-0 z-0'
-              myCardCls = 'top-6 left-3 sm:top-7 sm:left-4 z-10'
-            } else {
-              oppCardCls = 'top-0 left-0 z-10'
-              myCardCls = 'top-6 left-3 sm:top-7 sm:left-4 z-0'
-            }
+            // Posiciones definitivas desde el inicio, incluso en una parda.
+            // El resultado solo cambia cuál queda encima, nunca sus coordenadas.
+            const oppCardCls = `top-0 left-0 ${myCardOnTop ? 'z-0' : 'z-10'}`
+            const myCardCls = `top-6 left-3 ${myCardOnTop ? 'z-10' : 'z-0'}`
+            const myMotionKey = `${game.hand_number}:${currentUserId}:${roundNum}`
+            const oppMotionKey = `${game.hand_number}:${opponentId}:${roundNum}`
 
             return (
-              <div key={roundNum} className="flex flex-col items-center" data-empty={!myRoundCard && !opponentRoundCard && !revealCard}>
+              <div key={roundNum} className="flex flex-col items-center">
                 <div className={styles.roundSlot}>
-                  {opponentRoundCard && (
-                    <PlayingCard
-                      card={opponentRoundCard.card}
-                      flip
-                      // La sombra va inline (box-shadow) y no como filtro drop-shadow:
-                      // el filtro es caro en celulares y hacía perder cuadros del flip.
-                      style={{ '--fromY': '-50px', boxShadow: '0 12px 20px -6px rgba(0,0,0,0.55)' } as React.CSSProperties}
-                      className={`absolute ${styles.playedCard} ${oppCardCls}`}
-                    />
-                  )}
+                  <div data-card-target={`${roundNum}-opponent`} className={`absolute ${styles.playedCard} ${oppCardCls}`}>
+                    {opponentRoundCard && (
+                      <TableCard
+                        card={opponentRoundCard.card}
+                        owner="opponent"
+                        motionKey={oppMotionKey}
+                        animate={!initialCardKeys.current.has(oppMotionKey)}
+                      />
+                    )}
+                  </div>
                   {/* Mi carta entra desde la dirección de mi mano (abajo), en su lugar real. */}
-                  {myRoundCard && (
-                    <PlayingCard
-                      card={myRoundCard.card}
-                      flip
-                      style={{ '--fromY': '70px', boxShadow: '0 12px 20px -6px rgba(0,0,0,0.55)' } as React.CSSProperties}
-                      className={`absolute ${styles.playedCard} ${myCardCls}`}
-                    />
-                  )}
+                  <div data-card-target={`${roundNum}-me`} className={`absolute ${styles.playedCard} ${myCardCls}`}>
+                    {myRoundCard && (
+                      <TableCard
+                        card={myRoundCard.card}
+                        owner="me"
+                        motionKey={myMotionKey}
+                        animate={!initialCardKeys.current.has(myMotionKey)}
+                      />
+                    )}
+                  </div>
                   {/* Carta del envido revelada: entra desde el lado del que la muestra */}
                   {revealCard && (
                     <PlayingCard
                       card={revealCard}
                       flip
                       style={{ '--fromY': revealIsMine ? '70px' : '-50px', boxShadow: '0 12px 20px -6px rgba(0,0,0,0.55)' } as React.CSSProperties}
-                      className={`absolute ${styles.playedCard} z-10 ${revealIsMine ? 'top-6 left-3 sm:top-7 sm:left-4' : 'top-0 left-0'}`}
+                      className={`absolute ${styles.playedCard} z-10 ${revealIsMine ? 'top-6 left-3' : 'top-0 left-0'}`}
                     />
                   )}
                 </div>
@@ -1451,7 +1447,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
         </div>
 
         {/* La mano tiene su propia fila, separada de las tres rondas jugadas. */}
-        <div className={styles.hand}>
+        <div className={styles.hand} data-card-hand="me">
           {myCards.map((card, i) => {
             const mid = (myCards.length - 1) / 2
             return (
@@ -1476,7 +1472,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
                     animationDelay: `${i * 110}ms`,
                     ...DEAL_ORIGINS[Math.min(i, DEAL_ORIGINS.length - 1)],
                   } as React.CSSProperties}
-                  onClick={() => playCard(card)}
+                  onClick={e => { void cardFlight.play(e.currentTarget, game.round_number, () => playCard(card)) }}
                   disabled={!isMyTurn || loading || !!myPlayedCard || hasPendingEnvido || hasPendingTruco || isDeclaring}
                   className={styles.handCard}
                 />
