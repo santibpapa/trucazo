@@ -56,3 +56,20 @@ los controles habituales de RPC y simulación de truco.
 
 La preview mantiene las conexiones que tenga configuradas ese proyecto Vercel;
 las compras y partidas reales siguen utilizando su backend configurado.
+
+## Corrección del Quincho a partir de la referencia aprobada
+
+El Quincho utiliza ahora quincho-reference.webp (212 KB), una edición de la
+referencia para quitar interfaz, cartas y retratos conservando la escena y la
+mesa. El fondo completo mantiene el mate, la parrilla, el paño texturado y el
+borde ancho. No se superpone la mesa genérica a esta escena.
+
+El marcador compacto, los retratos y las acciones se acomodan a esa composición.
+La primera ronda se muestra centrada; las siguientes se ordenan de izquierda a
+derecha. En pantallas bajas se permite desplazar para alcanzar todos los botones.
+Se revisaron el turno propio, la respuesta al truco, la tercera ronda y el visor
+de la tienda con datos ficticios. No se hicieron compras ni partidas reales.
+
+Esta corrección se limita al Quincho. Las ilustraciones de cartas, dorsos y
+avatares siguen siendo las del juego, no las ilustraciones del boceto. Los demás
+salones conservan su presentación anterior dentro del PR.

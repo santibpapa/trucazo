@@ -6,6 +6,8 @@ export interface SalonTheme {
   scene: string
   felt: string
   edge: string
+  /** Escena completa derivada de la referencia aprobada, incluida la mesa. */
+  integratedTable?: boolean
 }
 
 export const SALON_THEMES: Record<string, SalonTheme> = {
@@ -26,7 +28,8 @@ export const SALON_THEMES: Record<string, SalonTheme> = {
   quincho: {
     name: 'Quincho',
     description: 'La parrilla encendida, ladrillo a la vista y paño terracota.',
-    scene: '/mesa/club/quincho.webp',
+    scene: '/mesa/club/quincho-reference.webp',
+    integratedTable: true,
     felt: 'radial-gradient(ellipse at 50% 35%, #723d2b, #3d1d16 85%)',
     edge: '#623d28',
   },

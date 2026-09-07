@@ -19,7 +19,7 @@ export default function SalonPreview({ slug, onClose }: { slug: string; onClose:
   }, [])
 
   return (
-    <dialog ref={dialog} onClose={() => { if (dialog.current && !dialog.current.open) onClose() }} aria-labelledby="salon-preview-title" className={styles.previewDialog}>
+    <dialog ref={dialog} onClose={() => { if (dialog.current && !dialog.current.open) onClose() }} aria-labelledby="salon-preview-title" className={`${styles.previewDialog} ${theme.integratedTable ? styles.reference : ''}`}>
       <SalonBackground slug={slug} />
       <div className={styles.previewContent}>
         <header className="relative z-10 flex items-start justify-between gap-3">

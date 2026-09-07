@@ -11,6 +11,7 @@ import CardBack from '@/components/game/CardBack'
 import { playSound, isMuted, setMuted } from '@/lib/sounds'
 import { SalonBackground, SalonTable } from '@/components/game/SalonScene'
 import styles from '@/components/game/salon.module.css'
+import { getSalonTheme } from '@/lib/salones'
 import { fraseDelBot, type MomentoFrase } from '@/lib/botFrases'
 import { getFrameTheme } from '@/lib/marcos'
 import { getMedal } from '@/lib/medallas'
@@ -209,6 +210,7 @@ function MesaButton({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: MesaTone }) {
   return (
     <button
+      data-tone={tone}
       className={`w-full h-11 px-4 inline-flex items-center justify-center gap-2 text-sm font-semibold select-none transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 ${MESA_TONES[tone]} ${styles.action} ${className ?? ''}`}
       {...props}
     />
@@ -1194,10 +1196,13 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
   const oppRevealedCount = envidoReveal && !revealIsMine ? envidoReveal.cards.length : 0
   const oppCardsLeft = Math.max(0, 3 - game.played_cards.filter(pc => pc.player_id === opponentId).length - oppRevealedCount)
   return (
-    <main className={styles.game}>
-      <SalonBackground slug={salonSlug} />
+    <main className={`${styles.game} ${getSalonTheme(salonSlug).integratedTable ? styles.reference : ''}`}>
+      {!getSalonTheme(salonSlug).integratedTable && <SalonBackground slug={salonSlug} />}
       <div className={styles.shell}>
-      <div className={styles.brand} aria-label="Trucazo">TRUCAZO</div>
+      {getSalonTheme(salonSlug).integratedTable && <SalonBackground slug={salonSlug} />}
+      <div className={styles.brand} aria-label="Trucazo">TRUCAZO
+        {getSalonTheme(salonSlug).integratedTable && <span className={styles.salonName}>{getSalonTheme(salonSlug).name}</span>}
+      </div>
       <div className={styles.scoreboard} aria-label="Marcador">
         <div className={styles.scoreRow}>
           <div className={styles.scorePlayer}>
@@ -1408,7 +1413,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             }
 
             return (
-              <div key={roundNum} className="flex flex-col items-center">
+              <div key={roundNum} className="flex flex-col items-center" data-empty={!myRoundCard && !opponentRoundCard && !revealCard}>
                 <div className={styles.roundSlot}>
                   {opponentRoundCard && (
                     <PlayingCard
