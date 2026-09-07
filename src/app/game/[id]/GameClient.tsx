@@ -1409,7 +1409,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             return (
               <div key={roundNum} className="flex flex-col items-center">
                 <div className={styles.roundSlot}>
-                  <div data-card-target={`${roundNum}-opponent`} className={`absolute ${styles.playedCard} ${oppCardCls}`}>
+                  <div data-card-target={`${roundNum}-opponent`} data-card-rank={opponentRoundCard?.card.rank} className={`absolute ${styles.playedCard} ${oppCardCls}`}>
                     {opponentRoundCard && (
                       <TableCard
                         card={opponentRoundCard.card}
@@ -1472,7 +1472,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
                     animationDelay: `${i * 110}ms`,
                     ...DEAL_ORIGINS[Math.min(i, DEAL_ORIGINS.length - 1)],
                   } as React.CSSProperties}
-                  onClick={e => { void cardFlight.play(e.currentTarget, game.round_number, () => playCard(card)) }}
+                  onClick={e => { void cardFlight.play(e.currentTarget, game.round_number, card, () => playCard(card)) }}
                   disabled={!isMyTurn || loading || !!myPlayedCard || hasPendingEnvido || hasPendingTruco || isDeclaring}
                   className={styles.handCard}
                 />

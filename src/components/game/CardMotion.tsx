@@ -21,7 +21,7 @@ export function useCardFlight(handNumber: number) {
   const cleanupRef = useRef<(() => void) | null>(null)
   useEffect(() => () => cleanupRef.current?.(), [handNumber])
 
-  async function play(source: HTMLButtonElement, round: number, action: () => Promise<void>) {
+  async function play(source: HTMLButtonElement, round: number, card: Card, action: () => Promise<void>) {
     const stage = stageRef.current
     const target = stage?.querySelector<HTMLElement>(`[data-card-target="${round}-me"]`)
     const image = source.querySelector('img')
@@ -31,20 +31,28 @@ export function useCardFlight(handNumber: number) {
     const from = source.getBoundingClientRect()
     const to = target.getBoundingClientRect()
     if (!from.width || !to.width) return action()
+    const opponent = stage.querySelector<HTMLElement>(`[data-card-target="${round}-opponent"]`)
+    const previousLayer = target.style.zIndex
+    // Solo anticipa la capa visual con los rangos ya conocidos, no el resultado
+    // de la ronda. Puntajes, turnos y validación siguen exclusivamente en la RPC.
+    if (opponent?.dataset.cardRank) {
+      target.style.zIndex = card.rank < Number(opponent.dataset.cardRank) ? '20' : '0'
+    }
     const flight = document.createElement('div')
     const picture = image.cloneNode(true) as HTMLImageElement
     flight.setAttribute('aria-hidden', 'true')
     flight.dataset.cardFlight = ''
     Object.assign(flight.style, {
-      position: 'fixed', left: to.left + 'px', top: to.top + 'px',
-      width: to.width + 'px', height: to.height + 'px', zIndex: '100',
-      pointerEvents: 'none', borderRadius: getComputedStyle(source).borderRadius,
-      overflow: 'hidden', boxShadow: '0 10px 20px -6px #0009',
+      position: 'absolute', left: '0', top: '0',
+      width: '100%', height: '100%',
+      pointerEvents: 'none', borderRadius: '0',
+      overflow: 'hidden', boxShadow: getComputedStyle(source).boxShadow,
     })
     picture.removeAttribute('class')
     Object.assign(picture.style, { width: '100%', height: '100%', display: 'block', filter: getComputedStyle(image).filter })
     flight.append(picture)
-    document.body.append(flight)
+    // Comparte el contexto de capas del destino durante todo el recorrido.
+    target.append(flight)
     stage.dataset.flyingRound = String(round)
     const matrix = new DOMMatrixReadOnly(getComputedStyle(source.parentElement!).transform)
     const angle = Math.atan2(matrix.b, matrix.a) * 180 / Math.PI
@@ -56,6 +64,7 @@ export function useCardFlight(handNumber: number) {
     const cleanup = () => {
       animation.cancel()
       flight.remove()
+      target.style.zIndex = previousLayer
       delete stage.dataset.flyingRound
       if (cleanupRef.current === cleanup) cleanupRef.current = null
     }
@@ -97,5 +106,5 @@ export function TableCard({ card, owner, motionKey, animate }: {
     ), timing)
     return () => animation.cancel()
   }, [motionKey, owner, animate])
-  return <div ref={ref}><PlayingCard card={card} className="rounded-[4px]" /></div>
+  return <div ref={ref} data-table-card><PlayingCard card={card} /></div>
 }

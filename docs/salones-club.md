@@ -103,3 +103,16 @@ simulada de 700 ms, seis destinos con coordenadas idénticas antes y después,
 pardas sin desplazamiento, y error de RPC que devuelve las tres cartas a la mano
 sin dejar una carta flotante. Revisadas las separaciones y controles en 320×568,
 375×667 y 390×844. Datos ficticios; sin partidas ni compras en producción.
+
+### Esquinas rectas y capas sincronizadas
+
+Las cartas y los dorsos ya no aplican redondeo CSS, tampoco en el Quincho.
+La copia animada vive dentro de su destino, no por encima de toda la pantalla.
+Para la jugada propia se anticipa únicamente la capa visual con los rangos ya
+conocidos: una perdedora no tapa temporalmente a la ganadora. La RPC sigue
+siendo la única autoridad sobre resultados, turnos y puntos. Al confirmar o
+rechazar se limpia la copia y se restaura la capa controlada por React.
+
+Se comprobaron en navegador las capas de ganadora, perdedora y parda durante
+el recorrido y después de la confirmación, simulando 1800 ms de demora.
+Los frentes de la mano y la mesa tienen `border-radius: 0px`.

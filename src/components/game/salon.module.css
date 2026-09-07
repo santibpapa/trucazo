@@ -189,7 +189,6 @@
 .reference .mySeat { flex-basis: 73px; margin-top: 0; }
 .reference .mySeat .avatar { width: 58px; height: 58px; }
 .reference .hand { gap: 7px; }
-.reference .handCard, .reference .playedCard { border-radius: 4px; }
 .reference .handCard img, .reference .playedCard img { filter: sepia(.28) saturate(.8) brightness(.96); }
 .reference .opponentHand > div + div { margin-left: 4px; }
 .reference .toolbar { top: 0; bottom: auto; right: 0; }
@@ -239,9 +238,9 @@
 .game .opponentHand, .game .back { --back-width: min(7cqh, 50px); }
 .game .rounds { min-height: 0; }
 .game [data-card-target] { aspect-ratio: 600 / 925; }
-.game [data-flying-round='1'] [data-card-target='1-me'] > div,
-.game [data-flying-round='2'] [data-card-target='2-me'] > div,
-.game [data-flying-round='3'] [data-card-target='3-me'] > div { visibility: hidden; }
+.game [data-flying-round='1'] [data-card-target='1-me'] > [data-table-card],
+.game [data-flying-round='2'] [data-card-target='2-me'] > [data-table-card],
+.game [data-flying-round='3'] [data-card-target='3-me'] > [data-table-card] { visibility: hidden; }
 @media (min-height: 641px) and (max-height: 740px) {
   .game .tablePlay { padding-top: calc(8cqh + 17px); }
   .game .avatar, .game .mySeat .avatar { width: 8cqh; height: 8cqh; }
