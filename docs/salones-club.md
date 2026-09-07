@@ -104,9 +104,10 @@ pardas sin desplazamiento, y error de RPC que devuelve las tres cartas a la mano
 sin dejar una carta flotante. Revisadas las separaciones y controles en 320×568,
 375×667 y 390×844. Datos ficticios; sin partidas ni compras en producción.
 
-### Esquinas rectas y capas sincronizadas
+### Redondeo mínimo y capas sincronizadas
 
-Las cartas y los dorsos ya no aplican redondeo CSS, tampoco en el Quincho.
+Las cartas y los dorsos usan un radio mínimo de 2 px, también en el Quincho,
+para ocultar el pequeño borde oscuro de las ilustraciones en las esquinas.
 La copia animada vive dentro de su destino, no por encima de toda la pantalla.
 Para la jugada propia se anticipa únicamente la capa visual con los rangos ya
 conocidos: una perdedora no tapa temporalmente a la ganadora. La RPC sigue
@@ -115,4 +116,21 @@ rechazar se limpia la copia y se restaura la capa controlada por React.
 
 Se comprobaron en navegador las capas de ganadora, perdedora y parda durante
 el recorrido y después de la confirmación, simulando 1800 ms de demora.
-Los frentes de la mano y la mesa tienen `border-radius: 0px`.
+La copia en movimiento conserva el mismo radio que la carta en la mano.
+
+## Mesas al volver de la tienda
+
+El lobby ya no condiciona la lectura de mesas al número que devuelve
+`ensure_lobby_tables`: cero indica que no creó mesas, no que no existan.
+Se consulta la lista pública actual al entrar y al conectar/reconectar Realtime.
+Las respuestas viejas o posteriores a salir no reemplazan la lista; los errores
+de lectura conservan lo que ya se mostraba. Cada entrada usa un canal propio
+para no reutilizar uno que todavía se está cerrando.
+
+No es una condición exclusiva de la preview: la navegación puede reutilizar
+datos viejos también en producción. Se aplica igual a invitados y registrados,
+sin cambios en compras, autenticación, RLS ni SQL.
+
+Regresión incluida en CI: `node --import tsx scripts/check-lobby-tables.ts`.
+Cubre lista inicial vacía con mesas existentes y reposición cero, reconexión,
+respuestas fuera de orden, errores y salida/vuelta rápida.

@@ -45,7 +45,7 @@ export function useCardFlight(handNumber: number) {
     Object.assign(flight.style, {
       position: 'absolute', left: '0', top: '0',
       width: '100%', height: '100%',
-      pointerEvents: 'none', borderRadius: '0',
+      pointerEvents: 'none', borderRadius: getComputedStyle(source).borderRadius,
       overflow: 'hidden', boxShadow: getComputedStyle(source).boxShadow,
     })
     picture.removeAttribute('class')

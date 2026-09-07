@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
+import { subscribeLobbyTables } from '@/lib/lobby-tables'
 import { Profile, Table } from '@/lib/types'
 import { generatePrivateCode } from '@/lib/tables'
 import { Button, Panel, Input, Modal, Coins, Logo, Alert, Toggle, Avatar, cn } from '@/components/ui'
@@ -81,63 +82,9 @@ export default function LobbyClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tables])
 
-  // Que el lobby no se vea vacío: si quedan pocas mesas esperando, el servidor
-  // abre un par con los jugadores de la casa. Si ya hay mesas de gente de
-  // verdad, no hace nada (y ahí no refrescamos la lista al pedo).
-  useEffect(() => {
-    let cancelado = false
-    supabase.rpc('ensure_lobby_tables').then(({ data }) => {
-      if (cancelado || !data) return
-      supabase
-        .from('tables')
-        .select('*')
-        .eq('status', 'waiting')
-        .eq('is_private', false)
-        .order('created_at', { ascending: false })
-        .then(({ data: rows }) => {
-          if (!cancelado && rows) setTables(rows as Table[])
-        })
-    })
-    return () => { cancelado = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Tiempo real
-  useEffect(() => {
-    const channel = supabase
-      .channel('tables-changes')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'tables',
-      }, (payload) => {
-        const newTable = payload.new as Table
-        if (!newTable.is_private && newTable.status === 'waiting') {
-          setTables(prev => {
-            if (prev.find(t => t.id === newTable.id)) return prev
-            return [newTable, ...prev]
-          })
-        }
-      })
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'tables',
-      }, (payload) => {
-        const updated = payload.new as Table
-        setTables(prev => prev.filter(t => t.id !== updated.id || updated.status === 'waiting'))
-      })
-      .on('postgres_changes', {
-        event: 'DELETE',
-        schema: 'public',
-        table: 'tables',
-      }, (payload) => {
-        setTables(prev => prev.filter(t => t.id !== payload.old.id))
-      })
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [])
+  // Volver de la tienda debe traer la lista actual, no depender de la caché
+  // de navegación ni de que justo se cree una mesa nueva en tiempo real.
+  useEffect(() => subscribeLobbyTables(supabase, setTables), [supabase])
 
   useEffect(() => {
     const interval = setInterval(async () => {

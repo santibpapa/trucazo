@@ -5,7 +5,7 @@ export default function CardBack({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'rounded-none border border-gold/30 shadow-card overflow-hidden',
+        'rounded-[2px] border border-gold/30 shadow-card overflow-hidden',
         'flex items-center justify-center',
         className,
       )}
