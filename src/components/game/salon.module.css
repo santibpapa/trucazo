@@ -214,3 +214,36 @@
   .reference .mySeat .avatar { width: 52px; height: 52px; }
   .reference .mySeat { flex-basis: 67px; }
 }
+
+/* La partida siempre ocupa el área visible, también con las barras de Safari.
+   Las cartas y los asientos se calculan sobre el espacio REAL de la mesa,
+   después de reservar marcador y controles: no sobre un alto mínimo fijo. */
+.game { overflow: hidden; }
+.game .shell { height: 100dvh; min-height: 0; }
+.game .stage {
+  min-height: 0;
+  container-type: size;
+}
+.game .tablePlay {
+  min-height: 0;
+  padding-top: calc(min(10cqh, 54px) + 17px);
+}
+.game .avatar, .game .mySeat .avatar {
+  width: min(10cqh, 54px);
+  height: min(10cqh, 54px);
+}
+.game .mySeat { flex: 0 0 calc(min(10cqh, 54px) + 18px); margin-top: 0; }
+.game .opponentSeat { top: 0; }
+.game .seatName { font-size: 14px; line-height: 18px; }
+.game .hand, .game .handCard { --hand-width: min(16cqh, 22vw, 96px); }
+.game .rounds, .game .roundSlot, .game .playedCard { --played-width: min(11cqh, 18vw, 74px); }
+.game .opponentHand, .game .back { --back-width: min(7cqh, 50px); }
+.game .rounds { min-height: 0; }
+@media (max-height: 640px) {
+  .game .brand { flex-basis: 31px; font-size: 21px; }
+  .game .scoreboard { padding-block: 2px; }
+  .game .scoreValue { font-size: 24px; }
+  .game .turnLabel { font-size: 13px; padding-block: 3px; }
+  .game .action { font-size: 14px; }
+  .game .action[data-tone='gold'] { font-size: 20px; }
+}

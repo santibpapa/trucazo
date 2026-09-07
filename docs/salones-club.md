@@ -29,8 +29,8 @@ Revertir el PR restaura la presentación anterior sin migrar compras.
 - `SalonScene` comparte estos elementos entre partida y tienda. El fondo conserva
   el ancho de la escena en móvil, para no perder los objetos laterales.
 - CSS aislado en `salon.module.css`. Filas estables para rival, tres rondas,
-  mano, jugador, estado y respuestas. En pantallas muy bajas se permite desplazar
-  verticalmente para alcanzar todos los controles.
+  mano, jugador, estado y respuestas. La partida entra en el alto visible sin
+  desplazamiento; cartas y asientos se adaptan al espacio restante de la mesa.
 - El visor usa un diálogo nativo (foco, Escape y cierre), se carga a demanda y
   no compra, equipa ni crea partidas.
 
@@ -66,10 +66,18 @@ borde ancho. No se superpone la mesa genérica a esta escena.
 
 El marcador compacto, los retratos y las acciones se acomodan a esa composición.
 La primera ronda se muestra centrada; las siguientes se ordenan de izquierda a
-derecha. En pantallas bajas se permite desplazar para alcanzar todos los botones.
+derecha. Los controles permanecen visibles sin desplazar la partida.
 Se revisaron el turno propio, la respuesta al truco, la tercera ronda y el visor
 de la tienda con datos ficticios. No se hicieron compras ni partidas reales.
 
 Esta corrección se limita al Quincho. Las ilustraciones de cartas, dorsos y
 avatares siguen siendo las del juego, no las ilustraciones del boceto. Los demás
 salones conservan su presentación anterior dentro del PR.
+
+## Regla de una sola pantalla
+
+El ajuste sin scroll se aplica a todos los salones. El contenedor usa 100dvh
+(alto visible con las barras del navegador) y las medidas de cartas y asientos
+dependen del espacio de mesa que queda después del marcador y los controles.
+No se reducen los botones de respuesta de 44 px ni se ocultan opciones.
+La tienda y sus diálogos conservan su desplazamiento normal.

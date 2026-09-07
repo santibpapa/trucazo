@@ -105,3 +105,6 @@ El dueño del proyecto **no escribe código**: define el qué y el por qué, no 
 
 ## Diseño y estética
 Prioridad alta: todo pulido y simple de entender. UI limpia, sin texto denso.
+- La partida debe entrar completa en una sola pantalla, sin deslizar. Adaptar
+  mesa, cartas y avatares al alto disponible; nunca resolverlo cortando controles
+  ni agregando scroll. Verificar también los cantos con más opciones.
