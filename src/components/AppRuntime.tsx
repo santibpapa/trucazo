@@ -17,7 +17,6 @@ const APP_PATHS = [
   '/comunidad',
   '/historia',
   '/game',
-  '/objetivos',
   '/resena',
 ]
 

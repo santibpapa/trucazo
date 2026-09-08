@@ -26,6 +26,11 @@ const nextConfig = {
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }]
   },
+  // La página de Objetivos se dio de baja: todo vive en la ventana del cofre
+  // del lobby. Quien tenga el link guardado cae en el lobby.
+  async redirects() {
+    return [{ source: '/objetivos', destination: '/lobby', permanent: true }]
+  },
 }
 
 export default nextConfig
