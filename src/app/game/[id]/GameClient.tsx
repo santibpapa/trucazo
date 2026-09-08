@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Game } from '@/lib/types'
 import { createDeck, getCardImage, getEnvidoPoints, type Card } from '@/lib/truco'
-import { Panel, Button, CoinIcon } from '@/components/ui'
+import { Panel, Button, CoinIcon, Avatar } from '@/components/ui'
 import PlayingCard from '@/components/game/PlayingCard'
 import CardBack from '@/components/game/CardBack'
 import { TableCard, useCardFlight } from '@/components/game/CardMotion'
@@ -1123,50 +1123,117 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
     const oppVote = isPlayer1 ? game.rematch_p2 : game.rematch_p1
     const rematchCount = (game.rematch_p1 ? 1 : 0) + (game.rematch_p2 ? 1 : 0)
     const someoneWantsRematch = rematchCount > 0
+    // Mis cartas de la última mano (las que me quedaron + las que jugué), en
+    // abanico sobre la escena. Si no llegaron, van dorsos.
+    const lastHand: (Card | null)[] = [
+      ...myCards,
+      ...game.played_cards.filter(pc => pc.player_id === currentUserId).map(pc => pc.card),
+    ].slice(0, 3)
+    while (lastHand.length < 3) lastHand.push(null)
+    const fan = [
+      'translateX(-50%) rotate(-18deg) translateX(-24px)',
+      'translateX(-50%) translateY(-8px)',
+      'translateX(-50%) rotate(18deg) translateX(24px)',
+    ]
+    const serif = { fontFamily: "Georgia, 'Times New Roman', serif" }
     return (
-      <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-6">
-        <Panel className="w-full max-w-sm p-8 text-center flex flex-col items-center gap-5 animate-scale-in">
-          <div
-            className={`w-16 h-16 rounded-full flex items-center justify-center ${
-              voided ? 'bg-surface2 text-muted' : won ? 'bg-gold/15 text-gold shadow-gold-ring' : 'bg-negative/15 text-negative'
-            }`}
-          >
-            {voided ? <FlagIcon /> : won ? <TrophyIcon /> : <FlagIcon />}
-          </div>
-          <h2 className="font-display text-3xl font-extrabold text-cream">
-            {voided ? 'Partida anulada' : won ? '¡Ganaste!' : 'Perdiste'}
-          </h2>
-          {voided ? (
-            <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface2 px-4 py-2 font-display font-bold text-muted">
-              <CoinIcon size={18} />
-              Apuesta reembolsada
+      <main className="relative min-h-dvh overflow-hidden bg-[#1a100d]">
+        {/* El salón queda de fondo, desenfocado y oscurecido: seguís en la mesa */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 scale-105 bg-[#211712] bg-top bg-no-repeat blur-[2px] saturate-[.85]"
+          style={{ backgroundImage: `url('${getSalonTheme(salonSlug).scene}')`, backgroundSize: '100% auto' }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(180deg, rgba(16,11,8,.55) 0%, rgba(16,11,8,.35) 26%, rgba(16,11,8,.72) 52%, #1a100d 64%)' }}
+        />
+
+        <div className="relative mx-auto flex min-h-dvh w-full max-w-[540px] flex-col">
+          {/* Escena: cartas, resultado, marcador y monedas */}
+          <section className="flex flex-1 flex-col items-center justify-center gap-3 px-5 pb-2 pt-12 text-center animate-fade-up">
+            <div className="relative h-24 w-36" aria-hidden="true">
+              {lastHand.map((c, i) => (
+                <div
+                  key={i}
+                  className={`absolute bottom-0 left-1/2 w-[62px] origin-bottom ${i === 1 ? 'z-10' : ''} ${won ? '' : 'brightness-[.55] saturate-50'}`}
+                  style={{ transform: fan[i] }}
+                >
+                  {c ? <PlayingCard card={c} /> : <CardBack className="w-full aspect-[600/925]" />}
+                </div>
+              ))}
             </div>
-          ) : (
-            <div
-              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 font-display font-bold ${
-                won
-                  ? 'border-positive/40 bg-positive/10 text-positive'
-                  : 'border-negative/40 bg-negative/10 text-negative'
-              }`}
-            >
-              <CoinIcon size={18} />
-              {won ? '+' : '−'}{net.toLocaleString('es-AR')}
+
+            <div>
+              {won ? (
+                <h2
+                  className="text-5xl font-bold leading-none bg-clip-text text-transparent"
+                  style={{
+                    ...serif,
+                    backgroundImage: 'linear-gradient(180deg, #F3DB89 0%, #C9A24B 55%, #A98532 100%)',
+                    filter: 'drop-shadow(0 0 18px rgba(201,162,75,0.45))',
+                  }}
+                >
+                  ¡Ganaste!
+                </h2>
+              ) : (
+                <h2 className="text-5xl font-bold leading-none text-cream" style={serif}>
+                  {voided ? 'Partida anulada' : 'Perdiste'}
+                </h2>
+              )}
+              <p className="mt-2 text-sm font-medium text-muted">
+                {voided ? (
+                  'Los dos abandonaron la mesa.'
+                ) : won ? (
+                  <>Le ganaste a <b className="font-semibold text-cream">{opponentUsername}</b> {myScore} a {opponentScore}</>
+                ) : (
+                  <><b className="font-semibold text-cream">{opponentUsername}</b> te ganó {opponentScore} a {myScore}</>
+                )}
+              </p>
             </div>
-          )}
 
-          {!voided && !isGuest && <ObjectiveProgressDelta gameId={game.id} />}
+            <div className="flex items-center gap-2.5 tabular">
+              <span className={`inline-flex items-center gap-2 rounded-full border bg-surface/85 px-3 py-1.5 text-sm font-bold ${!voided && won ? 'border-gold/50 shadow-gold-ring' : 'border-line'}`}>
+                <Avatar url={myAvatarUrl} name={myUsername} size={24} />
+                <span className={!voided && won ? 'text-lg text-gold' : ''}>{myScore}</span>
+              </span>
+              <span className={`inline-flex items-center gap-2 rounded-full border bg-surface/85 px-3 py-1.5 text-sm font-bold ${!voided && !won ? 'border-gold/50 shadow-gold-ring' : 'border-line'}`}>
+                <Avatar url={opponentAvatarUrl} name={opponentUsername} size={24} />
+                <span className={!voided && !won ? 'text-lg text-gold' : ''}>{opponentScore}</span>
+              </span>
+            </div>
 
-          {actionError && <p className="text-sm text-negative">{actionError}</p>}
+            {voided ? (
+              <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface2 px-4 py-2 font-display font-bold text-muted">
+                <CoinIcon size={18} />
+                Apuesta reembolsada
+              </div>
+            ) : (
+              <div
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 font-display text-lg font-bold tabular ${
+                  won
+                    ? 'border-positive/40 bg-positive/10 text-positive'
+                    : 'border-negative/40 bg-negative/10 text-negative'
+                }`}
+              >
+                <CoinIcon size={18} />
+                {won ? '+' : '−'}{net.toLocaleString('es-AR')}
+              </div>
+            )}
+          </section>
 
-          {/* Cuadro de revancha: se ilumina si alguno la pidió y muestra el conteo */}
-          <div
-            className={`w-full rounded-2xl border p-3 flex flex-col gap-3 transition-colors ${
-              someoneWantsRematch ? 'border-gold bg-gold/10 shadow-gold-ring' : 'border-line bg-surface2'
-            }`}
-          >
+          {/* Panel inferior: objetivos, revancha y salidas */}
+          <section className="relative flex flex-col gap-2.5 rounded-t-[26px] border-t border-line bg-surface px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3.5 shadow-lift animate-fade-up">
+            <div aria-hidden="true" className="mx-auto -mt-1 h-1 w-10 rounded-full bg-line" />
+
+            {!voided && <ObjectiveProgressDelta gameId={game.id} isGuest={isGuest} />}
+
             {showThanks && (
               <p className="text-xs font-semibold text-gold text-center">¡Gracias por tu reseña! 🌟</p>
             )}
+            {actionError && <p className="text-sm text-negative text-center">{actionError}</p>}
+
             {someoneWantsRematch && (
               <p className="text-sm font-semibold text-gold flex items-center justify-center gap-2">
                 {myVote && !oppVote ? 'Esperando a tu rival…'
@@ -1175,26 +1242,19 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
                 <span className="rounded-full bg-gold/20 px-2 py-0.5 text-xs tabular">{rematchCount}/2</span>
               </p>
             )}
+            <Button variant="primary" size="md" fullWidth onClick={requestRematch} disabled={loading || myVote}>
+              {myVote ? 'Revancha pedida' : 'Revancha'}
+            </Button>
             <div className="flex gap-2">
               <Button variant="ghost" size="sm" fullWidth onClick={goToLobby} disabled={loading}>
                 Volver al lobby
               </Button>
-              <Button variant="primary" size="sm" fullWidth onClick={requestRematch} disabled={loading || myVote}>
-                {myVote ? 'Revancha pedida' : 'Revancha'}
-              </Button>
-            </div>
-
-            {/* Pedido de reseña */}
-            <div className="flex flex-col items-center gap-2 border-t border-line/60 pt-3">
-              <p className="text-xs text-muted text-center">¿Nos podrás ayudar con una breve reseña del juego?</p>
-              <Button variant="secondary" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
+              <Button variant="ghost" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
                 Dejar reseña
               </Button>
             </div>
-          </div>
-
-          {!voided && isGuest && <ObjectiveProgressDelta gameId={game.id} isGuest />}
-        </Panel>
+          </section>
+        </div>
       </main>
     )
   }
