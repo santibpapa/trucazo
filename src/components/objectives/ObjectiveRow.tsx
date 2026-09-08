@@ -36,7 +36,7 @@ export default function ObjectiveRow({
   useEffect(() => {
     const frame = requestAnimationFrame(() => setShownProgress(progress))
     return () => cancelAnimationFrame(frame)
-  }, [locked, progress])
+  }, [progress])
 
   return (
     <div className={cn(
