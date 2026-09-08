@@ -78,26 +78,32 @@ export default function ObjectiveProgressDelta({ gameId, isGuest = false }: { ga
 
   if (!data || data.recent_progress.length === 0) return null
 
+  // Sobre el paño de la mesa: cada misión es un naipe blanco, apenas torcido.
   return (
-    <section className="w-full rounded-2xl border border-gold/30 bg-gold/5 p-3 text-left" aria-labelledby="game-objectives-title">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 id="game-objectives-title" className="font-display font-bold text-cream">Objetivos</h3>
-        <span className="text-xs font-semibold text-gold">Avance de esta partida</span>
-      </div>
-      <div className="grid gap-2">
-        {data.recent_progress.map(delta => {
+    <section className="w-full" aria-labelledby="game-objectives-title">
+      <h3 id="game-objectives-title" className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[.1em] text-cream/60">
+        Objetivos de esta partida
+      </h3>
+      <div className="flex flex-wrap justify-center gap-3">
+        {data.recent_progress.map((delta, i) => {
           const current = delta.type === 'weekly'
             ? data.weekly
             : data.daily.find(item => item.identifier === delta.identifier)
           return (
-            <ObjectiveRow
+            <div
               key={`${delta.type}:${delta.identifier}`}
-              objective={current ?? delta}
-              compact
-              previousProgress={delta.previous}
-              claiming={claiming === `${delta.type}:${delta.identifier}`}
-              onClaim={claim}
-            />
+              className="w-[calc(50%-6px)] max-w-[170px]"
+              style={{ transform: `rotate(${i % 2 === 0 ? -3 : 2}deg)` }}
+            >
+              <ObjectiveRow
+                objective={current ?? delta}
+                compact
+                naipe
+                previousProgress={delta.previous}
+                claiming={claiming === `${delta.type}:${delta.identifier}`}
+                onClaim={claim}
+              />
+            </div>
           )
         })}
       </div>

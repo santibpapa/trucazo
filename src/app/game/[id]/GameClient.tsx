@@ -1097,10 +1097,10 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
           {won ? 'Jugar de nuevo' : 'Revancha'}
         </Button>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" fullWidth onClick={() => router.push('/historia')} disabled={loading}>
+          <Button variant="ghost" size="sm" fullWidth className="border-cream/25" onClick={() => router.push('/historia')} disabled={loading}>
             Volver al modo historia
           </Button>
-          <Button variant="ghost" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
+          <Button variant="ghost" size="sm" fullWidth className="border-cream/25" onClick={() => router.push(`/resena?game=${game.id}`)}>
             Dejar reseña
           </Button>
         </div>
@@ -1156,7 +1156,7 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
         {actionError && <p className="text-sm text-negative text-center">{actionError}</p>}
 
         {someoneWantsRematch && (
-          <p className="text-sm font-semibold text-gold flex items-center justify-center gap-2">
+          <p className="text-sm font-semibold text-gold-600 flex items-center justify-center gap-2">
             {myVote && !oppVote ? 'Esperando a tu rival…'
               : oppVote && !myVote ? `${opponentUsername} quiere revancha`
               : '¡Revancha!'}
@@ -1167,10 +1167,10 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
           {myVote ? 'Revancha pedida' : 'Revancha'}
         </Button>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" fullWidth onClick={goToLobby} disabled={loading}>
+          <Button variant="ghost" size="sm" fullWidth className="border-cream/25" onClick={goToLobby} disabled={loading}>
             Volver al lobby
           </Button>
-          <Button variant="ghost" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
+          <Button variant="ghost" size="sm" fullWidth className="border-cream/25" onClick={() => router.push(`/resena?game=${game.id}`)}>
             Dejar reseña
           </Button>
         </div>
@@ -1642,6 +1642,7 @@ function FinishScreen({ won, salonSlug, hand, title, subtitle, note, me, opponen
     'translateX(-50%) rotate(18deg) translateX(24px)',
   ]
   const serif = { fontFamily: "Georgia, 'Times New Roman', serif" }
+  const theme = getSalonTheme(salonSlug)
   const chip = (p: typeof me) => (
     <span className={`inline-flex items-center gap-2 rounded-full border bg-surface/85 px-3 py-1.5 text-sm font-bold ${p.highlight ? 'border-gold/50 shadow-gold-ring' : 'border-line'}`}>
       <Avatar url={p.url} name={p.name} size={24} />
@@ -1654,7 +1655,7 @@ function FinishScreen({ won, salonSlug, hand, title, subtitle, note, me, opponen
       <div
         aria-hidden="true"
         className="absolute inset-0 scale-105 bg-[#211712] bg-cover bg-center blur-[2px] saturate-[.85]"
-        style={{ backgroundImage: `url('${getSalonTheme(salonSlug).scene}')` }}
+        style={{ backgroundImage: `url('${theme.scene}')` }}
       />
       <div
         aria-hidden="true"
@@ -1704,9 +1705,16 @@ function FinishScreen({ won, salonSlug, hand, title, subtitle, note, me, opponen
           {extra}
         </section>
 
-        {/* Panel inferior: objetivos y acciones */}
-        <section className="relative flex flex-col gap-2.5 rounded-t-[26px] border-t border-line bg-surface px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3.5 shadow-lift animate-fade-up">
-          <div aria-hidden="true" className="mx-auto -mt-1 h-1 w-10 rounded-full bg-line" />
+        {/* La mesa: el paño del salón entra desde abajo. Encima, las misiones
+            como naipes; los botones, apoyados en el borde. */}
+        <section
+          className="relative -mx-[10%] flex flex-col gap-2.5 px-[calc(10%+1rem)] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 shadow-[inset_0_14px_30px_rgba(0,0,0,0.55),0_-10px_30px_rgba(0,0,0,0.6)] animate-fade-up"
+          style={{
+            background: theme.felt,
+            borderTop: `7px solid ${theme.edge}`,
+            borderRadius: '50% 50% 0 0 / 70px 70px 0 0',
+          }}
+        >
           {children}
         </section>
       </div>
