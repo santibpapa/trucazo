@@ -171,3 +171,11 @@ alter default privileges in schema public
   grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public
   grant all on sequences to anon, authenticated, service_role;
+
+-- pg_net local: captura solo IDs ficticios, sin red. Producción usa la extensión real.
+create schema if not exists net;
+create or replace function net.http_post(
+  url text, body jsonb default '{}'::jsonb, params jsonb default '{}'::jsonb,
+  headers jsonb default '{"Content-Type":"application/json"}'::jsonb,
+  timeout_milliseconds integer default 2000
+) returns bigint language sql as $$ select 1::bigint $$;
