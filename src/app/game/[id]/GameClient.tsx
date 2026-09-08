@@ -1653,8 +1653,8 @@ function FinishScreen({ won, salonSlug, hand, title, subtitle, note, me, opponen
       {/* El salón queda de fondo, desenfocado y oscurecido: seguís en la mesa */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 scale-105 bg-[#211712] bg-top bg-no-repeat blur-[2px] saturate-[.85]"
-        style={{ backgroundImage: `url('${getSalonTheme(salonSlug).scene}')`, backgroundSize: '100% auto' }}
+        className="absolute inset-0 scale-105 bg-[#211712] bg-cover bg-center blur-[2px] saturate-[.85]"
+        style={{ backgroundImage: `url('${getSalonTheme(salonSlug).scene}')` }}
       />
       <div
         aria-hidden="true"
