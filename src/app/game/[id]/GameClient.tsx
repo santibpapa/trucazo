@@ -23,6 +23,7 @@ import ObjectiveProgressDelta from '@/components/objectives/ObjectiveProgressDel
 interface Props {
   game: Game
   currentUserId: string
+  isGuest?: boolean
   myHand: Card[]
   // Modo historia: slug del rival, para mostrar su ilustración en la mesa.
   campaignRivalSlug?: string | null
@@ -218,7 +219,7 @@ function MesaButton({
   )
 }
 
-export default function GameClient({ game: initialGame, currentUserId, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory, opponentIsBot = false }: Props) {
+export default function GameClient({ game: initialGame, currentUserId, isGuest = false, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory, opponentIsBot = false }: Props) {
   const router = useRouter()
   const [game, setGame] = useState<Game>(initialGame)
   const cardFlight = useCardFlight(game.hand_number)
@@ -1083,7 +1084,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               : `${opponentUsername} te ganó esta vez. Volvé a intentarlo, le vas a encontrar la vuelta.`}
           </p>
 
-          <ObjectiveProgressDelta gameId={game.id} />
+          {!isGuest && <ObjectiveProgressDelta gameId={game.id} />}
 
           {actionError && <p className="text-sm text-negative">{actionError}</p>}
 
@@ -1095,6 +1096,8 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               Volver al modo historia
             </Button>
           </div>
+
+          {isGuest && <ObjectiveProgressDelta gameId={game.id} isGuest />}
 
           {/* Pedido de reseña (temporal: por ahora aparece apenas termina cada partida) */}
           <div className="w-full flex flex-col items-center gap-2 border-t border-line/60 pt-4">
@@ -1151,7 +1154,7 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
             </div>
           )}
 
-          {!voided && <ObjectiveProgressDelta gameId={game.id} />}
+          {!voided && !isGuest && <ObjectiveProgressDelta gameId={game.id} />}
 
           {actionError && <p className="text-sm text-negative">{actionError}</p>}
 
@@ -1189,6 +1192,8 @@ export default function GameClient({ game: initialGame, currentUserId, myHand: i
               </Button>
             </div>
           </div>
+
+          {!voided && isGuest && <ObjectiveProgressDelta gameId={game.id} isGuest />}
         </Panel>
       </main>
     )
