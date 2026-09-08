@@ -70,9 +70,25 @@ Los controles permanecen visibles sin desplazar la partida.
 Se revisaron el turno propio, la respuesta al truco, la tercera ronda y el visor
 de la tienda con datos ficticios. No se hicieron compras ni partidas reales.
 
-Esta corrección se limita al Quincho. Las ilustraciones de cartas, dorsos y
-avatares siguen siendo las del juego, no las ilustraciones del boceto. Los demás
-salones conservan su presentación anterior dentro del PR.
+El mismo tratamiento se aplica también al Cafetín porteño, Peña norteña,
+Bodegón y Refugio patagónico: cada escena se edita directamente desde su boceto
+aprobado para quitar cartas, retratos, textos y botones. Conserva su propia mesa,
+paño, borde y ambiente. Los cinco salones usan `integratedTable: true`, que activa
+la presentación del Quincho tanto en partida como en el visor de tienda.
+Club de barrio conserva su presentación anterior dentro del PR.
+
+Los cuatro fondos nuevos usan WebP con pérdida (121–153 KB por escena),
+941 px de ancho y proporción vertical equivalente al Quincho. Las ilustraciones
+de cartas, dorsos y avatares siguen siendo los elementos reales del juego.
+Los tamaños, esquinas de 6 px, destinos y animaciones aprobados no cambian.
+
+Validación de esta extensión: Cafetín a 390×844, Peña a 320×568 con las seis
+respuestas al truco, Bodegón a 375×667 con tres rondas y Refugio a 390×844 con
+respuesta al envido. En todos, alto de contenido igual al alto visible.
+Visor de Refugio comprobado con apertura y cierre por Escape. Build de Next
+(incluye tipos y lint) correcto, con las advertencias de hooks preexistentes.
+Los datos y rutas locales de prueba quedaron fuera del despliegue.
+Prompts y procedencia del arte: [salones-art-prompts.md](salones-art-prompts.md).
 
 ## Regla de una sola pantalla
 
@@ -106,7 +122,7 @@ sin dejar una carta flotante. Revisadas las separaciones y controles en 320×568
 
 ### Redondeo mínimo y capas sincronizadas
 
-Las cartas y los dorsos usan un radio mínimo de 2 px, también en el Quincho,
+Las cartas y los dorsos usan un radio de 6 px, también en el Quincho,
 para ocultar el pequeño borde oscuro de las ilustraciones en las esquinas.
 La copia animada vive dentro de su destino, no por encima de toda la pantalla.
 Para la jugada propia se anticipa únicamente la capa visual con los rangos ya
