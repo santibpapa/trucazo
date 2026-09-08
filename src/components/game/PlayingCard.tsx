@@ -46,8 +46,8 @@ export default function PlayingCard({
   )
 
   // La carta WebP ya es completa (fondo blanco). El alto lo define la imagen
-  // (h-auto), y el redondeo de esquinas lo da el overflow-hidden.
-  const surface = 'rounded-xl overflow-hidden shadow-card'
+  // (h-auto), con un recorte mínimo para disimular el borde de la ilustración.
+  const surface = 'rounded-[6px] overflow-hidden shadow-card'
 
   if (interactive) {
     return (

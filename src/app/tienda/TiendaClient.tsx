@@ -2,10 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import type { Salon, Frame, Accessory } from '@/lib/types'
 import { Panel, Button, Coins, CoinIcon, Alert, Avatar } from '@/components/ui'
-import { getSalonTheme } from '@/lib/salones'
+import { SALON_THEMES } from '@/lib/salones'
+import { SalonBackground, SalonTable } from '@/components/game/SalonScene'
+
+const SalonPreview = dynamic(() => import('@/components/game/SalonPreview'), { ssr: false })
 
 interface Props {
   initialCoins: number
@@ -45,6 +49,7 @@ export default function TiendaClient({
   const [ownedAccessories, setOwnedAccessories] = useState<string[]>(initialOwnedAccessories)
   const [busy, setBusy] = useState<string | null>(null) // slug de la acción en curso
   const [error, setError] = useState('')
+  const [previewSalon, setPreviewSalon] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -162,6 +167,8 @@ export default function TiendaClient({
 
       {error && <Alert>{error}</Alert>}
 
+      {previewSalon && <SalonPreview slug={previewSalon} onClose={() => setPreviewSalon(null)} />}
+
       {/* Salones */}
       <section className="flex flex-col gap-3">
         <div>
@@ -177,7 +184,10 @@ export default function TiendaClient({
           </Panel>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-            {salons.map(s => {
+            {salons.map(original => {
+              // La presentación se renueva sin cambiar el slug/precio comprado.
+              const theme = SALON_THEMES[original.slug]
+              const s = theme ? { ...original, name: theme.name, description: theme.description } : original
               const mine = salonOwned(s)
               const inUse = activeSalon === s.slug
               const canAfford = coins >= s.price
@@ -188,20 +198,23 @@ export default function TiendaClient({
                     inUse ? 'border-gold shadow-gold-ring' : ''
                   }`}
                 >
-                  {/* Vista previa: la foto del salón; si falta, el paño de SU mesa */}
-                  <div
-                    className="relative aspect-[4/3] bg-cover bg-center"
-                    style={{
-                      backgroundColor: '#241214',
-                      backgroundImage: `url('/mesa/${s.slug}.webp'), ${getSalonTheme(s.slug).felt}`,
-                    }}
+                  <button
+                    type="button"
+                    className="relative aspect-[4/3] overflow-hidden text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold"
+                    onClick={() => setPreviewSalon(s.slug)}
+                    aria-label={`Ver mesa: ${s.name}`}
                   >
+                    <SalonBackground slug={s.slug} />
+                    <div className="absolute inset-x-[10%] top-[28%] bottom-[-20%]">
+                      <SalonTable slug={s.slug} />
+                    </div>
+                    <span className="absolute bottom-2 left-2 rounded-md border border-gold/40 bg-black/80 px-2 py-1 text-xs text-cream">Ver mesa</span>
                     {inUse && (
                       <span className="absolute top-2 right-2 rounded-full bg-gold px-2.5 py-0.5 text-[11px] font-bold text-ink shadow-gold">
                         En uso
                       </span>
                     )}
-                  </div>
+                  </button>
 
                   <div className="flex-1 flex flex-col gap-1.5 p-3">
                     <h3 className="font-display font-bold text-cream leading-tight">{s.name}</h3>

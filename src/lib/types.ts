@@ -20,7 +20,7 @@ export interface Profile {
 }
 
 // Tienda: un salón del catálogo (fondo de la mesa de juego).
-// Su imagen es /mesa/{slug}.webp
+// Presentación y arte: src/lib/salones.ts. El slug conserva la compra.
 export interface Salon {
   slug: string
   name: string
