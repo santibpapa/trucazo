@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Game } from '@/lib/types'
 import { createDeck, getCardImage, getEnvidoPoints, type Card } from '@/lib/truco'
-import { Panel, Button, CoinIcon } from '@/components/ui'
+import { Button, CoinIcon, Avatar } from '@/components/ui'
 import PlayingCard from '@/components/game/PlayingCard'
 import CardBack from '@/components/game/CardBack'
 import { TableCard, useCardFlight } from '@/components/game/CardMotion'
@@ -1039,78 +1039,72 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
     }
   }
 
+  // Mis cartas de la última mano (las que me quedaron + las que jugué), para
+  // el abanico de la pantalla de fin. Si no llegaron, van dorsos.
+  const lastHandCards: (Card | null)[] = [
+    ...myCards,
+    ...game.played_cards.filter(pc => pc.player_id === currentUserId).map(pc => pc.card),
+  ].slice(0, 3)
+  while (lastHandCards.length < 3) lastHandCards.push(null)
+
   // Modo historia: fin del duelo. El bot no pide revancha ni se mueven monedas
   // del pozo; ofrecemos jugar de nuevo o volver a la galería.
   if (game.status === 'finished' && isCampaign && showFinish) {
     const won = game.winner_id === currentUserId
     return (
-      <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-6">
-        <Panel className="w-full max-w-sm p-8 text-center flex flex-col items-center gap-5 animate-scale-in">
-          <div
-            className={`w-16 h-16 rounded-full flex items-center justify-center ${
-              won ? 'bg-gold/15 text-gold shadow-gold-ring' : 'bg-negative/15 text-negative'
-            }`}
-          >
-            {won ? <TrophyIcon /> : <FlagIcon />}
-          </div>
-          <h2 className="font-display text-3xl font-extrabold text-cream">
-            {won ? '¡Ganaste!' : 'Perdiste'}
-          </h2>
-
-          {/* Premios del duelo: puntos de ranking (si ganó algo) y monedas (solo
-              la primera vez que vencés a este rival). */}
-          {won && (game.campaign_points_earned > 0 || game.campaign_reward > 0) && (
-            <div className="flex items-center gap-2">
-              {game.campaign_points_earned > 0 && (
-                <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 font-display font-bold text-gold shadow-gold-ring animate-scale-in">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M12 2l2.9 6.26 6.6.7-4.9 4.5 1.35 6.54L12 16.77 6.05 20l1.35-6.54-4.9-4.5 6.6-.7L12 2z" />
-                  </svg>
-                  +{game.campaign_points_earned.toLocaleString('es-AR')} pts
-                </div>
-              )}
-              {game.campaign_reward > 0 && (
-                <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 font-display font-bold text-gold shadow-gold-ring animate-scale-in">
-                  <CoinIcon size={18} />
-                  +{game.campaign_reward.toLocaleString('es-AR')}
-                </div>
-              )}
-            </div>
-          )}
-
-          <p className="text-sm text-muted">
-            {won
-              ? `Le ganaste a ${opponentUsername}. Mirá el mapa: capaz se abrió algo nuevo.`
-              : `${opponentUsername} te ganó esta vez. Volvé a intentarlo, le vas a encontrar la vuelta.`}
-          </p>
-
-          {!isGuest && <ObjectiveProgressDelta gameId={game.id} />}
-
-          {actionError && <p className="text-sm text-negative">{actionError}</p>}
-
-          <div className="w-full flex flex-col gap-2">
-            <Button variant="primary" size="md" fullWidth onClick={playAgainCampaign} disabled={loading}>
-              {won ? 'Jugar de nuevo' : 'Revancha'}
-            </Button>
-            <Button variant="ghost" size="md" fullWidth onClick={() => router.push('/historia')} disabled={loading}>
-              Volver al modo historia
-            </Button>
-          </div>
-
-          {isGuest && <ObjectiveProgressDelta gameId={game.id} isGuest />}
-
-          {/* Pedido de reseña (temporal: por ahora aparece apenas termina cada partida) */}
-          <div className="w-full flex flex-col items-center gap-2 border-t border-line/60 pt-4">
-            {showThanks && (
-              <p className="text-xs font-semibold text-gold text-center">¡Gracias por tu reseña! 🌟</p>
+      <FinishScreen
+        won={won}
+        salonSlug={salonSlug}
+        hand={lastHandCards}
+        title={won ? '¡Ganaste!' : 'Perdiste'}
+        subtitle={won
+          ? <>Le ganaste a <b className="font-semibold text-cream">{opponentUsername}</b> {myScore} a {opponentScore}</>
+          : <><b className="font-semibold text-cream">{opponentUsername}</b> te ganó {opponentScore} a {myScore}</>}
+        note={won
+          ? 'Mirá el mapa: capaz se abrió algo nuevo.'
+          : 'Volvé a intentarlo, le vas a encontrar la vuelta.'}
+        me={{ url: myAvatarUrl, name: myUsername, score: myScore, highlight: won }}
+        opponent={{ url: campaignRivalSlug ? `/personajes/${campaignRivalSlug}.webp` : opponentAvatarUrl, name: opponentUsername, score: opponentScore, highlight: !won }}
+        extra={won && (game.campaign_points_earned > 0 || game.campaign_reward > 0) && (
+          // Premios del duelo: puntos de ranking (si ganó algo) y monedas (solo
+          // la primera vez que vencés a este rival).
+          <div className="flex items-center gap-2">
+            {game.campaign_points_earned > 0 && (
+              <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 font-display font-bold text-gold shadow-gold-ring animate-scale-in">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2l2.9 6.26 6.6.7-4.9 4.5 1.35 6.54L12 16.77 6.05 20l1.35-6.54-4.9-4.5 6.6-.7L12 2z" />
+                </svg>
+                +{game.campaign_points_earned.toLocaleString('es-AR')} pts
+              </div>
             )}
-            <p className="text-xs text-muted text-center">¿Nos podrás ayudar con una breve reseña del juego?</p>
-            <Button variant="secondary" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
-              Dejar reseña
-            </Button>
+            {game.campaign_reward > 0 && (
+              <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 font-display font-bold text-gold shadow-gold-ring animate-scale-in">
+                <CoinIcon size={18} />
+                +{game.campaign_reward.toLocaleString('es-AR')}
+              </div>
+            )}
           </div>
-        </Panel>
-      </main>
+        )}
+      >
+        <ObjectiveProgressDelta gameId={game.id} isGuest={isGuest} />
+
+        {showThanks && (
+          <p className="text-xs font-semibold text-gold text-center">¡Gracias por tu reseña! 🌟</p>
+        )}
+        {actionError && <p className="text-sm text-negative text-center">{actionError}</p>}
+
+        <Button variant="primary" size="md" fullWidth onClick={playAgainCampaign} disabled={loading}>
+          {won ? 'Jugar de nuevo' : 'Revancha'}
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" fullWidth onClick={() => router.push('/historia')} disabled={loading}>
+            Volver al modo historia
+          </Button>
+          <Button variant="secondary" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
+            Dejar reseña
+          </Button>
+        </div>
+      </FinishScreen>
     )
   }
 
@@ -1124,78 +1118,63 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
     const rematchCount = (game.rematch_p1 ? 1 : 0) + (game.rematch_p2 ? 1 : 0)
     const someoneWantsRematch = rematchCount > 0
     return (
-      <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-6">
-        <Panel className="w-full max-w-sm p-8 text-center flex flex-col items-center gap-5 animate-scale-in">
+      <FinishScreen
+        won={won}
+        salonSlug={salonSlug}
+        hand={lastHandCards}
+        title={voided ? 'Partida anulada' : won ? '¡Ganaste!' : 'Perdiste'}
+        subtitle={voided
+          ? 'Los dos abandonaron la mesa.'
+          : won
+            ? <>Le ganaste a <b className="font-semibold text-cream">{opponentUsername}</b> {myScore} a {opponentScore}</>
+            : <><b className="font-semibold text-cream">{opponentUsername}</b> te ganó {opponentScore} a {myScore}</>}
+        me={{ url: myAvatarUrl, name: myUsername, score: myScore, highlight: !voided && won }}
+        opponent={{ url: opponentAvatarUrl, name: opponentUsername, score: opponentScore, highlight: !voided && !won }}
+        extra={voided ? (
+          <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface2 px-4 py-2 font-display font-bold text-muted">
+            <CoinIcon size={18} />
+            Apuesta reembolsada
+          </div>
+        ) : (
           <div
-            className={`w-16 h-16 rounded-full flex items-center justify-center ${
-              voided ? 'bg-surface2 text-muted' : won ? 'bg-gold/15 text-gold shadow-gold-ring' : 'bg-negative/15 text-negative'
+            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 font-display text-lg font-bold tabular ${
+              won
+                ? 'border-positive/40 bg-positive/10 text-positive'
+                : 'border-negative/40 bg-negative/10 text-negative'
             }`}
           >
-            {voided ? <FlagIcon /> : won ? <TrophyIcon /> : <FlagIcon />}
+            <CoinIcon size={18} />
+            {won ? '+' : '−'}{net.toLocaleString('es-AR')}
           </div>
-          <h2 className="font-display text-3xl font-extrabold text-cream">
-            {voided ? 'Partida anulada' : won ? '¡Ganaste!' : 'Perdiste'}
-          </h2>
-          {voided ? (
-            <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface2 px-4 py-2 font-display font-bold text-muted">
-              <CoinIcon size={18} />
-              Apuesta reembolsada
-            </div>
-          ) : (
-            <div
-              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 font-display font-bold ${
-                won
-                  ? 'border-positive/40 bg-positive/10 text-positive'
-                  : 'border-negative/40 bg-negative/10 text-negative'
-              }`}
-            >
-              <CoinIcon size={18} />
-              {won ? '+' : '−'}{net.toLocaleString('es-AR')}
-            </div>
-          )}
+        )}
+      >
+        {!voided && <ObjectiveProgressDelta gameId={game.id} isGuest={isGuest} />}
 
-          {!voided && !isGuest && <ObjectiveProgressDelta gameId={game.id} />}
+        {showThanks && (
+          <p className="text-xs font-semibold text-gold text-center">¡Gracias por tu reseña! 🌟</p>
+        )}
+        {actionError && <p className="text-sm text-negative text-center">{actionError}</p>}
 
-          {actionError && <p className="text-sm text-negative">{actionError}</p>}
-
-          {/* Cuadro de revancha: se ilumina si alguno la pidió y muestra el conteo */}
-          <div
-            className={`w-full rounded-2xl border p-3 flex flex-col gap-3 transition-colors ${
-              someoneWantsRematch ? 'border-gold bg-gold/10 shadow-gold-ring' : 'border-line bg-surface2'
-            }`}
-          >
-            {showThanks && (
-              <p className="text-xs font-semibold text-gold text-center">¡Gracias por tu reseña! 🌟</p>
-            )}
-            {someoneWantsRematch && (
-              <p className="text-sm font-semibold text-gold flex items-center justify-center gap-2">
-                {myVote && !oppVote ? 'Esperando a tu rival…'
-                  : oppVote && !myVote ? `${opponentUsername} quiere revancha`
-                  : '¡Revancha!'}
-                <span className="rounded-full bg-gold/20 px-2 py-0.5 text-xs tabular">{rematchCount}/2</span>
-              </p>
-            )}
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" fullWidth onClick={goToLobby} disabled={loading}>
-                Volver al lobby
-              </Button>
-              <Button variant="primary" size="sm" fullWidth onClick={requestRematch} disabled={loading || myVote}>
-                {myVote ? 'Revancha pedida' : 'Revancha'}
-              </Button>
-            </div>
-
-            {/* Pedido de reseña */}
-            <div className="flex flex-col items-center gap-2 border-t border-line/60 pt-3">
-              <p className="text-xs text-muted text-center">¿Nos podrás ayudar con una breve reseña del juego?</p>
-              <Button variant="secondary" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
-                Dejar reseña
-              </Button>
-            </div>
-          </div>
-
-          {!voided && isGuest && <ObjectiveProgressDelta gameId={game.id} isGuest />}
-        </Panel>
-      </main>
+        {someoneWantsRematch && (
+          <p className="text-sm font-semibold text-gold-600 flex items-center justify-center gap-2">
+            {myVote && !oppVote ? 'Esperando a tu rival…'
+              : oppVote && !myVote ? `${opponentUsername} quiere revancha`
+              : '¡Revancha!'}
+            <span className="rounded-full bg-gold/20 px-2 py-0.5 text-xs tabular">{rematchCount}/2</span>
+          </p>
+        )}
+        <Button variant="primary" size="md" fullWidth onClick={requestRematch} disabled={loading || myVote}>
+          {myVote ? 'Revancha pedida' : 'Revancha'}
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" fullWidth onClick={goToLobby} disabled={loading}>
+            Volver al lobby
+          </Button>
+          <Button variant="secondary" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
+            Dejar reseña
+          </Button>
+        </div>
+      </FinishScreen>
     )
   }
 
@@ -1640,21 +1619,107 @@ function SoundOffIcon() {
   )
 }
 
-function TrophyIcon() {
+/** Pantalla de fin de partida "sobre la mesa": el salón queda de fondo,
+ *  desenfocado, con las cartas de la última mano en abanico, el resultado en
+ *  letra grande, el marcador con avatares y lo que se ganó/perdió. Abajo, un
+ *  panel con los objetivos y las acciones (children). Compartida por el 1v1
+ *  online y el Modo Historia. */
+function FinishScreen({ won, salonSlug, hand, title, subtitle, note, me, opponent, extra, children }: {
+  won: boolean
+  salonSlug?: string
+  hand: (Card | null)[]
+  title: string
+  subtitle: React.ReactNode
+  note?: string
+  me: { url?: string | null; name: string; score: number; highlight: boolean }
+  opponent: { url?: string | null; name: string; score: number; highlight: boolean }
+  extra?: React.ReactNode
+  children: React.ReactNode
+}) {
+  const fan = [
+    'translateX(-50%) rotate(-18deg) translateX(-24px)',
+    'translateX(-50%) translateY(-8px)',
+    'translateX(-50%) rotate(18deg) translateX(24px)',
+  ]
+  const serif = { fontFamily: "Georgia, 'Times New Roman', serif" }
+  const theme = getSalonTheme(salonSlug)
+  const chip = (p: typeof me) => (
+    <span className={`inline-flex items-center gap-2 rounded-full border bg-surface/85 px-3 py-1.5 text-sm font-bold ${p.highlight ? 'border-gold/50 shadow-gold-ring' : 'border-line'}`}>
+      <Avatar url={p.url} name={p.name} size={24} />
+      <span className={p.highlight ? 'text-lg text-gold' : ''}>{p.score}</span>
+    </span>
+  )
   return (
-    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M7 4h10v3a5 5 0 0 1-10 0V4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M7 5H4v1a3 3 0 0 0 3 3M17 5h3v1a3 3 0 0 1-3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M12 12v4m-3 4h6m-5 0 .5-4m4.5 4-.5-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <main className="relative min-h-dvh overflow-hidden bg-[#1a100d]">
+      {/* El salón queda de fondo, desenfocado y oscurecido: seguís en la mesa */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 scale-105 bg-[#211712] bg-cover bg-center blur-[2px] saturate-[.85]"
+        style={{ backgroundImage: `url('${theme.scene}')` }}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0"
+        style={{ background: 'linear-gradient(180deg, rgba(16,11,8,.55) 0%, rgba(16,11,8,.35) 26%, rgba(16,11,8,.72) 52%, #1a100d 64%)' }}
+      />
+
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-[540px] flex-col">
+        {/* Escena: cartas, resultado, marcador y premios */}
+        <section className="flex flex-1 flex-col items-center justify-center gap-3 px-5 pb-2 pt-12 text-center animate-fade-up">
+          <div className="relative h-24 w-36" aria-hidden="true">
+            {hand.map((c, i) => (
+              <div
+                key={i}
+                className={`absolute bottom-0 left-1/2 w-[62px] origin-bottom ${i === 1 ? 'z-10' : ''} ${won ? '' : 'brightness-[.55] saturate-50'}`}
+                style={{ transform: fan[i] }}
+              >
+                {c ? <PlayingCard card={c} /> : <CardBack className="w-full aspect-[600/925]" />}
+              </div>
+            ))}
+          </div>
+
+          <div>
+            {won ? (
+              <h2
+                className="text-5xl font-bold leading-none bg-clip-text text-transparent"
+                style={{
+                  ...serif,
+                  backgroundImage: 'linear-gradient(180deg, #F3DB89 0%, #C9A24B 55%, #A98532 100%)',
+                  filter: 'drop-shadow(0 0 18px rgba(201,162,75,0.45))',
+                }}
+              >
+                {title}
+              </h2>
+            ) : (
+              <h2 className="text-5xl font-bold leading-none text-cream" style={serif}>{title}</h2>
+            )}
+            <p className="mt-2 text-sm font-medium text-muted">{subtitle}</p>
+            {note && <p className="mt-1 text-xs text-subtle">{note}</p>}
+          </div>
+
+          <div className="flex items-center gap-2.5 tabular">
+            {chip(me)}
+            {chip(opponent)}
+          </div>
+
+          {extra}
+        </section>
+
+        {/* La mesa: el paño del salón entra desde abajo. Encima, las misiones
+            como naipes; los botones, apoyados en el borde. */}
+        <section
+          className="relative -mx-[10%] flex flex-col gap-2.5 px-[calc(10%+1rem)] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 shadow-[inset_0_14px_30px_rgba(0,0,0,0.55),0_-10px_30px_rgba(0,0,0,0.6)] animate-fade-up"
+          style={{
+            background: theme.felt,
+            borderTop: `7px solid ${theme.edge}`,
+            borderRadius: '50% 50% 0 0 / 70px 70px 0 0',
+          }}
+        >
+          {children}
+        </section>
+      </div>
+    </main>
   )
 }
 
-function FlagIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M6 21V4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M6 5h11l-2 3.5L17 12H6" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-    </svg>
-  )
-}
+
