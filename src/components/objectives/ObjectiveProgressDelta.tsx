@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { trackFirstParty } from '@/lib/analytics/client'
 import { buttonClass } from '@/components/ui'
-import GuestObjectivesLocked from './GuestObjectivesLocked'
 import ObjectiveRow from './ObjectiveRow'
 import { useObjectives } from './useObjectives'
 
@@ -41,12 +40,30 @@ export default function ObjectiveProgressDelta({ gameId, isGuest = false }: { ga
 
   if (isGuest) {
     return (
-      <section className="w-full rounded-2xl border border-gold/30 bg-gold/5 p-3 text-left" aria-labelledby="game-objectives-title">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 id="game-objectives-title" className="font-display font-bold text-cream">Objetivos</h3>
-          <span className="text-xs font-semibold text-muted">Misiones bloqueadas</span>
+      <section
+        className="w-full rounded-2xl border border-white/10 bg-white/[0.035] p-3 text-left shadow-[inset_0_0_24px_rgba(0,0,0,0.45)]"
+        aria-labelledby="game-objectives-title"
+      >
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden="true"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-muted"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <rect x="5" y="10" width="14" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <h3 id="game-objectives-title" className="font-display font-bold text-cream">Objetivos</h3>
+              <span className="text-xs font-semibold text-muted">Bloqueados</span>
+            </div>
+            <p className="mt-0.5 text-xs leading-snug text-muted">
+              Iniciá sesión para que tus próximas partidas sumen progreso y recompensas.
+            </p>
+          </div>
         </div>
-        <GuestObjectivesLocked message="Iniciá sesión o registrate para que tus próximas partidas sumen progreso y puedas reclamar recompensas." />
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Link href="/login" className={buttonClass('secondary', 'sm', true, 'min-h-11 px-2')}>
             Iniciar sesión
