@@ -1097,10 +1097,10 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
           {won ? 'Jugar de nuevo' : 'Revancha'}
         </Button>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" fullWidth className="border-cream/25" onClick={() => router.push('/historia')} disabled={loading}>
+          <Button variant="secondary" size="sm" fullWidth onClick={() => router.push('/historia')} disabled={loading}>
             Volver al modo historia
           </Button>
-          <Button variant="ghost" size="sm" fullWidth className="border-cream/25" onClick={() => router.push(`/resena?game=${game.id}`)}>
+          <Button variant="secondary" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
             Dejar reseña
           </Button>
         </div>
@@ -1167,10 +1167,10 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
           {myVote ? 'Revancha pedida' : 'Revancha'}
         </Button>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" fullWidth className="border-cream/25" onClick={goToLobby} disabled={loading}>
+          <Button variant="secondary" size="sm" fullWidth onClick={goToLobby} disabled={loading}>
             Volver al lobby
           </Button>
-          <Button variant="ghost" size="sm" fullWidth className="border-cream/25" onClick={() => router.push(`/resena?game=${game.id}`)}>
+          <Button variant="secondary" size="sm" fullWidth onClick={() => router.push(`/resena?game=${game.id}`)}>
             Dejar reseña
           </Button>
         </div>
