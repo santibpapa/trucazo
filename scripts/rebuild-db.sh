@@ -37,6 +37,8 @@ drop schema if exists public  cascade;
 drop schema if exists auth    cascade;
 drop schema if exists storage cascade;
 drop schema if exists cron    cascade;
+drop schema if exists email_internal cascade;
+drop schema if exists net cascade;
 create schema public;
 
 -- Tirar los schemas NO borra los "permisos por defecto" (qué privilegios nacen
@@ -175,6 +177,7 @@ grant usage on schema public to anon, authenticated, service_role;
 grant all on all tables in schema public to anon, authenticated, service_role;
 grant all on all sequences in schema public to anon, authenticated, service_role;
 revoke all on public.bot_decisions from anon, authenticated;
+revoke all on public.news_email_campaign, public.news_email_jobs from anon, authenticated;
 SQL
 
 echo
