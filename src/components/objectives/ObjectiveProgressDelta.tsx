@@ -1,12 +1,15 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { trackFirstParty } from '@/lib/analytics/client'
+import { buttonClass } from '@/components/ui'
+import GuestObjectivesLocked from './GuestObjectivesLocked'
 import ObjectiveRow from './ObjectiveRow'
 import { useObjectives } from './useObjectives'
 
-export default function ObjectiveProgressDelta({ gameId }: { gameId: string }) {
-  const { data, claiming, error, statusMessage, claim } = useObjectives(null, gameId)
+export default function ObjectiveProgressDelta({ gameId, isGuest = false }: { gameId: string; isGuest?: boolean }) {
+  const { data, claiming, error, statusMessage, claim } = useObjectives(null, gameId, !isGuest)
   const trackedGame = useRef<string | null>(null)
 
   useEffect(() => {
@@ -35,6 +38,26 @@ export default function ObjectiveProgressDelta({ gameId }: { gameId: string }) {
       trackFirstParty('streak_protection_used', { streak_days: data.streak.current_days })
     }
   }, [data, gameId])
+
+  if (isGuest) {
+    return (
+      <section className="w-full rounded-2xl border border-gold/30 bg-gold/5 p-3 text-left" aria-labelledby="game-objectives-title">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h3 id="game-objectives-title" className="font-display font-bold text-cream">Objetivos</h3>
+          <span className="text-xs font-semibold text-muted">Misiones bloqueadas</span>
+        </div>
+        <GuestObjectivesLocked message="Iniciá sesión o registrate para que tus próximas partidas sumen progreso y puedas reclamar recompensas." />
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Link href="/login" className={buttonClass('secondary', 'sm', true, 'min-h-11 px-2')}>
+            Iniciar sesión
+          </Link>
+          <Link href="/register" className={buttonClass('primary', 'sm', true, 'min-h-11 px-2')}>
+            Registrarme
+          </Link>
+        </div>
+      </section>
+    )
+  }
 
   if (!data || data.recent_progress.length === 0) return null
 

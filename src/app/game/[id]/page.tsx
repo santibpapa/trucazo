@@ -126,6 +126,7 @@ export default async function GamePage({ params }: { params: { id: string } }) {
     <GameClient
       game={game}
       currentUserId={user.id}
+      isGuest={user.is_anonymous === true}
       myHand={myHand}
       campaignRivalSlug={campaignRivalSlug}
       salonSlug={salonSlug}
