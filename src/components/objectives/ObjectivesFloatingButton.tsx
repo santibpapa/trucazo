@@ -5,7 +5,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Button, CoinIcon, Modal, buttonClass, cn } from '@/components/ui'
 import { trackFirstParty } from '@/lib/analytics/client'
-import type { Objective, ObjectivesData } from '@/lib/objectives'
+import type { ObjectivesData } from '@/lib/objectives'
+import { ChestRow, WeeklyRow } from './ChestRow'
 import GuestObjectivesLocked from './GuestObjectivesLocked'
 import { useObjectives } from './useObjectives'
 
@@ -104,16 +105,18 @@ export default function ObjectivesFloatingButton({ initialData, isGuest, onCoins
       <Modal
         open={open}
         onClose={closeModal}
-        title={isGuest ? 'Misiones y desafío' : undefined}
-        ariaLabel="Misiones de hoy"
-        panelClassName={cn('!max-w-md', isGuest ? '!gap-3 !p-4' : '!gap-0 !p-0 overflow-hidden')}
+        ariaLabel={isGuest ? 'Misiones y desafío' : 'Misiones de hoy'}
+        panelClassName="!max-w-md !gap-0 !p-0 overflow-hidden"
         showCloseButton
         centered
       >
         {isGuest ? (
           <>
-            <GuestObjectivesLocked message="Ingresá con tu cuenta o registrate para guardar tu progreso y empezar a reclamar las recompensas de las misiones." />
-            <div className="grid grid-cols-2 gap-2">
+            <ChestLid title="Misiones y desafío">
+              <p className="mt-1.5 text-xs text-muted">Ingresá con tu cuenta para que tus partidas sumen progreso y cobrar las recompensas.</p>
+            </ChestLid>
+            <GuestObjectivesLocked />
+            <div className="grid grid-cols-2 gap-2 p-3 pt-0">
               <Link
                 href="/login"
                 onClick={closeModal}
@@ -132,26 +135,7 @@ export default function ObjectivesFloatingButton({ initialData, isGuest, onCoins
           </>
         ) : (
           <>
-            {/* La tapa del cofre: qué queda por ganar hoy, racha y saldo */}
-            <div
-              className="border-b border-line px-4 pb-3 pt-5 text-center"
-              style={{
-                background:
-                  'radial-gradient(ellipse at 50% 120%, rgba(201,162,75,0.35), transparent 60%), linear-gradient(180deg, #2c1a1c, #241517)',
-              }}
-            >
-              <Image
-                src="/objetivos/cofre-misiones.webp"
-                alt=""
-                aria-hidden="true"
-                width={84}
-                height={84}
-                sizes="84px"
-                className="mx-auto h-[84px] w-[84px] select-none object-contain drop-shadow-[0_10px_14px_rgba(0,0,0,0.6)]"
-              />
-              <h2 className="mt-1 text-2xl font-bold leading-none text-cream" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
-                Misiones de hoy
-              </h2>
+            <ChestLid title="Misiones de hoy">
               {data && (
                 <>
                   <p className="mt-1.5 text-xs text-muted">
@@ -169,7 +153,7 @@ export default function ObjectivesFloatingButton({ initialData, isGuest, onCoins
                   </div>
                 </>
               )}
-            </div>
+            </ChestLid>
 
             {loading && !data ? (
               <div className="grid gap-2 p-3" aria-busy="true" aria-label="Cargando misiones">
@@ -190,49 +174,7 @@ export default function ObjectivesFloatingButton({ initialData, isGuest, onCoins
                   ))}
                 </div>
 
-                {/* Desafío semanal: el mismo para toda la comunidad, termina el domingo */}
-                <div
-                  className="mx-3 mb-3 grid grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-gold/40 px-3 py-2.5"
-                  style={{ background: 'linear-gradient(90deg, rgba(201,162,75,0.12), transparent)' }}
-                >
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-gold">Desafío semanal</p>
-                    <p className="mt-0.5 truncate text-sm font-bold text-cream">
-                      {data.weekly.name} · <span className="tabular">{Math.min(data.weekly.progress, data.weekly.target)}/{data.weekly.target}</span>
-                    </p>
-                    <div
-                      className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-base"
-                      role="progressbar"
-                      aria-label={`Progreso de ${data.weekly.name}`}
-                      aria-valuemin={0}
-                      aria-valuemax={data.weekly.target}
-                      aria-valuenow={Math.min(data.weekly.progress, data.weekly.target)}
-                    >
-                      <div
-                        className={cn('h-full rounded-full', data.weekly.status === 'claimed' ? 'bg-positive/65' : 'bg-gold')}
-                        style={{ width: `${Math.min(100, Math.round((data.weekly.progress / data.weekly.target) * 100))}%` }}
-                      />
-                    </div>
-                    <p className={cn('mt-1 text-[10px] font-semibold', data.weekly.status === 'claimed' ? 'text-positive' : data.weekly.status === 'ready' ? 'text-gold' : 'text-subtle')}>
-                      {data.weekly.status === 'claimed' ? 'Reclamada' : data.weekly.status === 'ready' ? 'Lista para reclamar' : data.weekly.ends_label}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1.5">
-                    {data.weekly.status === 'ready' && (
-                      <Button
-                        size="sm"
-                        className="min-h-11 !px-3 !py-1.5"
-                        disabled={claiming === `weekly:${data.weekly.identifier}`}
-                        onClick={() => claim('weekly', data.weekly.identifier)}
-                      >
-                        {claiming === `weekly:${data.weekly.identifier}` ? 'Reclamando…' : 'Reclamar'}
-                      </Button>
-                    )}
-                    <span className="inline-flex items-center gap-1 text-xs font-extrabold tabular text-gold">
-                      <CoinIcon size={12} />{data.weekly.reward}
-                    </span>
-                  </div>
-                </div>
+                <WeeklyRow objective={data.weekly} claiming={claiming === `weekly:${data.weekly.identifier}`} onClaim={claim} />
               </>
             ) : (
               <div className="p-3">
@@ -255,68 +197,30 @@ export default function ObjectivesFloatingButton({ initialData, isGuest, onCoins
   )
 }
 
-/** Una misión adentro del cofre: a la derecha, su pila de monedas (una por
- *  partida de la meta) que se va llenando con el avance; si está lista, el
- *  botón para cobrarla. */
-function ChestRow({
-  objective,
-  claiming,
-  onClaim,
-}: {
-  objective: Objective
-  claiming: boolean
-  onClaim: (type: 'daily' | 'weekly', identifier: string) => void
-}) {
-  const done = Math.min(objective.progress, objective.target)
-  const status = objective.status
+
+/** La tapa del cofre: la imagen, el título y lo que cada ventana quiera contar debajo. */
+function ChestLid({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <div
-      className={cn(
-        'grid grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border px-3 py-2.5',
-        status === 'ready'
-          ? 'border-gold/60 bg-gold/[0.08] shadow-[inset_0_0_0_1px_rgba(201,162,75,0.35),0_0_22px_rgba(201,162,75,0.25)]'
-          : 'border-line bg-surface2',
-        status === 'claimed' && 'opacity-55',
-      )}
+      className="border-b border-line px-4 pb-3 pt-5 text-center"
+      style={{
+        background:
+          'radial-gradient(ellipse at 50% 120%, rgba(201,162,75,0.35), transparent 60%), linear-gradient(180deg, #2c1a1c, #241517)',
+      }}
     >
-      <div className="min-w-0">
-        <p className="text-sm font-bold leading-tight text-cream">{objective.name}</p>
-        <p className="mt-0.5 text-xs leading-snug text-muted">{objective.description}</p>
-        <p className={cn('mt-1 text-[10px] font-semibold', status === 'claimed' ? 'text-positive' : status === 'ready' ? 'text-gold' : 'text-subtle')}>
-          {status === 'claimed'
-            ? 'Reclamada'
-            : <><span className="tabular">{done}/{objective.target}</span> · {status === 'ready' ? 'Lista para reclamar' : objective.ends_label}</>}
-        </p>
-      </div>
-      <div className="flex flex-col items-end gap-1.5">
-        {status === 'ready' ? (
-          <Button
-            size="sm"
-            className="min-h-11 !px-3 !py-1.5"
-            disabled={claiming}
-            onClick={() => onClaim(objective.type, objective.identifier)}
-          >
-            {claiming ? 'Reclamando…' : 'Reclamar'}
-          </Button>
-        ) : (
-          <div className="flex flex-col-reverse items-center" aria-hidden="true">
-            {Array.from({ length: Math.min(objective.target, 5) }, (_, i) => (
-              <span
-                key={i}
-                className={cn(
-                  'block h-2 w-7 rounded-full border -mt-[3px] first:mt-0',
-                  i < done
-                    ? 'border-[#6B4E16] bg-gradient-to-b from-[#E0BE68] to-gold-700 shadow-[0_1px_0_#6B4E16]'
-                    : 'border-gold/50 bg-transparent',
-                )}
-              />
-            ))}
-          </div>
-        )}
-        <span className="inline-flex items-center gap-1 text-xs font-extrabold tabular text-gold">
-          <CoinIcon size={12} />{objective.reward}
-        </span>
-      </div>
+      <Image
+        src="/objetivos/cofre-misiones.webp"
+        alt=""
+        aria-hidden="true"
+        width={84}
+        height={84}
+        sizes="84px"
+        className="mx-auto h-[84px] w-[84px] select-none object-contain drop-shadow-[0_10px_14px_rgba(0,0,0,0.6)]"
+      />
+      <h2 className="mt-1 text-2xl font-bold leading-none text-cream" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+        {title}
+      </h2>
+      {children}
     </div>
   )
 }
