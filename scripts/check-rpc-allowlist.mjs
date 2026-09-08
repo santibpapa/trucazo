@@ -13,7 +13,7 @@ const migrationsRoot = join(root, 'supabase/migrations')
 const baseAllowlistFile = '20260815_seguridad_6_privilegios_por_defecto.sql'
 const serverOnlyPaths = new Map([
   ['src/app/api/login-usuario/route.ts', new Set(['get_login_email'])],
-  ['src/app/api/email/cron/route.ts', new Set([
+  ['src/lib/email/process.ts', new Set([
     'email_recipient_activity',
     'claim_email_deliveries',
   ])],
