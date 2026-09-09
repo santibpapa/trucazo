@@ -8,6 +8,8 @@ interface ModalProps {
   open: boolean
   onClose: () => void
   title?: string
+  /** Nombre accesible cuando la ventana dibuja su propio encabezado (sin title). */
+  ariaLabel?: string
   panelClassName?: string
   showCloseButton?: boolean
   centered?: boolean
@@ -19,6 +21,7 @@ export default function Modal({
   open,
   onClose,
   title,
+  ariaLabel,
   panelClassName,
   showCloseButton = false,
   centered = false,
@@ -46,6 +49,7 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
+        aria-label={!title ? ariaLabel : undefined}
         className={cn('relative flex w-full max-w-sm flex-col gap-5 p-6 animate-scale-in', panelClassName)}
         onClick={(e) => e.stopPropagation()}
       >

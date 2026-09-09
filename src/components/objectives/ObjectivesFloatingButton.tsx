@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Button, Modal, buttonClass, cn } from '@/components/ui'
+import { Button, CoinIcon, Modal, buttonClass, cn } from '@/components/ui'
 import { trackFirstParty } from '@/lib/analytics/client'
 import type { ObjectivesData } from '@/lib/objectives'
+import { ChestRow, WeeklyRow } from './ChestRow'
 import GuestObjectivesLocked from './GuestObjectivesLocked'
-import ObjectiveRow from './ObjectiveRow'
 import { useObjectives } from './useObjectives'
 
 interface Props {
@@ -41,6 +41,7 @@ export default function ObjectivesFloatingButton({ initialData, isGuest, onCoins
   const incompleteCount = data?.daily.filter(objective => objective.status === 'in_progress').length ?? 0
   const readyCount = objectives.filter(objective => objective.status === 'ready').length
   const hasIncomplete = isGuest || incompleteCount > 0
+  const pendingReward = data?.daily.filter(o => o.status !== 'claimed').reduce((sum, o) => sum + o.reward, 0) ?? 0
   const label = isGuest
     ? 'Abrir misiones bloqueadas. Iniciá sesión para guardar tu progreso.'
     : readyCount > 0
@@ -104,87 +105,122 @@ export default function ObjectivesFloatingButton({ initialData, isGuest, onCoins
       <Modal
         open={open}
         onClose={closeModal}
-        title={isGuest ? 'Misiones y desafío' : 'Misiones de hoy'}
-        panelClassName="!max-w-md !gap-3 !p-4"
-        showCloseButton={isGuest}
+        ariaLabel={isGuest ? 'Misiones y desafío' : 'Misiones de hoy'}
+        panelClassName="!max-w-md !gap-0 !p-0 overflow-hidden"
+        showCloseButton
         centered
       >
-        {!isGuest && (
-          <p className="text-sm leading-relaxed text-muted">
-            Completá estas metas jugando partidas válidas. El progreso se actualiza
-            automáticamente y las misiones cambian cada día.
-          </p>
-        )}
-
         {isGuest ? (
-          <GuestObjectivesLocked message="Ingresá con tu cuenta o registrate para guardar tu progreso y empezar a reclamar las recompensas de las misiones." />
-        ) : loading && !data ? (
-          <div className="grid gap-3" aria-busy="true" aria-label="Cargando misiones">
-            {[0, 1, 2].map(item => (
-              <div key={item} className="h-28 animate-pulse rounded-xl bg-surface2" />
-            ))}
-          </div>
-        ) : data ? (
-          <div className="grid gap-3">
-            {data.daily.map(objective => (
-              <ObjectiveRow
-                key={objective.identifier}
-                objective={objective}
-                claiming={claiming === `daily:${objective.identifier}`}
-                onClaim={claim}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-line bg-surface2 p-4 text-sm text-muted" role="alert">
-            {error || 'No pudimos cargar las misiones. Podés reintentar sin cerrar esta ventana.'}
-          </div>
-        )}
-
-        {!isGuest && error && data
-          ? <p className="text-sm text-negative" role="alert">{error}</p>
-          : null}
-
-        {isGuest ? (
-          <div className="grid grid-cols-2 gap-2">
-            <Link
-              href="/login"
-              onClick={closeModal}
-              className={buttonClass('secondary', 'md', true, 'min-h-11 px-3')}
-            >
-              Iniciar sesión
-            </Link>
-            <Link
-              href="/register"
-              onClick={closeModal}
-              className={buttonClass('primary', 'md', true, 'min-h-11 px-3')}
-            >
-              Registrarme
-            </Link>
-          </div>
-        ) : (
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="ghost" onClick={closeModal} autoFocus>
-              Cerrar
-            </Button>
-            {!data ? (
-              <Button onClick={() => void refresh()} disabled={loading}>
-                {loading ? 'Cargando…' : 'Reintentar'}
-              </Button>
-            ) : (
+          <>
+            <ChestLid title="Misiones y desafío">
+              <p className="mt-1.5 text-xs text-muted">Ingresá con tu cuenta para que tus partidas sumen progreso y cobrar las recompensas.</p>
+            </ChestLid>
+            <GuestObjectivesLocked />
+            <div className="grid grid-cols-2 gap-2 p-3 pt-0">
               <Link
-                href="/objetivos"
+                href="/login"
                 onClick={closeModal}
-                className={buttonClass('primary', 'md', false, 'min-h-11')}
+                className={buttonClass('secondary', 'md', true, 'min-h-11 px-3')}
               >
-                Ver desafío y racha
+                Iniciar sesión
               </Link>
+              <Link
+                href="/register"
+                onClick={closeModal}
+                className={buttonClass('primary', 'md', true, 'min-h-11 px-3')}
+              >
+                Registrarme
+              </Link>
+            </div>
+          </>
+        ) : (
+          <>
+            <ChestLid title="Misiones de hoy">
+              {data && (
+                <>
+                  <p className="mt-1.5 text-xs text-muted">
+                    {pendingReward > 0
+                      ? <>Te quedan <b className="font-extrabold text-gold">{pendingReward.toLocaleString('es-AR')} monedas</b> por ganar hoy</>
+                      : 'Ya cobraste todo lo de hoy. Mañana hay misiones nuevas.'}
+                  </p>
+                  <div className="mt-2.5 flex justify-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-black/25 px-2.5 py-1 text-[11px] font-bold text-cream">
+                      Racha <em className="not-italic text-gold">{data.streak.current_days} {data.streak.current_days === 1 ? 'día' : 'días'}</em>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-black/25 px-2.5 py-1 text-[11px] font-bold text-cream">
+                      Saldo <em className="not-italic tabular text-gold inline-flex items-center gap-1"><CoinIcon size={12} />{data.coins.toLocaleString('es-AR')}</em>
+                    </span>
+                  </div>
+                </>
+              )}
+            </ChestLid>
+
+            {loading && !data ? (
+              <div className="grid gap-2 p-3" aria-busy="true" aria-label="Cargando misiones">
+                {[0, 1, 2].map(item => (
+                  <div key={item} className="h-20 animate-pulse rounded-2xl bg-surface2" />
+                ))}
+              </div>
+            ) : data ? (
+              <>
+                <div className="grid gap-2 p-3">
+                  {data.daily.map(objective => (
+                    <ChestRow
+                      key={objective.identifier}
+                      objective={objective}
+                      claiming={claiming === `daily:${objective.identifier}`}
+                      onClaim={claim}
+                    />
+                  ))}
+                </div>
+
+                <WeeklyRow objective={data.weekly} claiming={claiming === `weekly:${data.weekly.identifier}`} onClaim={claim} />
+              </>
+            ) : (
+              <div className="p-3">
+                <div className="rounded-xl border border-line bg-surface2 p-4 text-sm text-muted" role="alert">
+                  {error || 'No pudimos cargar las misiones. Podés reintentar sin cerrar esta ventana.'}
+                </div>
+                <Button className="mt-3" fullWidth onClick={() => void refresh()} disabled={loading}>
+                  {loading ? 'Cargando…' : 'Reintentar'}
+                </Button>
+              </div>
             )}
-          </div>
+
+            {error && data ? <p className="px-3 pb-3 text-sm text-negative" role="alert">{error}</p> : null}
+          </>
         )}
 
         <p className="sr-only" role="status" aria-live="polite">{statusMessage}</p>
       </Modal>
     </>
+  )
+}
+
+
+/** La tapa del cofre: la imagen, el título y lo que cada ventana quiera contar debajo. */
+function ChestLid({ title, children }: { title: string; children?: React.ReactNode }) {
+  return (
+    <div
+      className="border-b border-line px-4 pb-3 pt-5 text-center"
+      style={{
+        background:
+          'radial-gradient(ellipse at 50% 120%, rgba(201,162,75,0.35), transparent 60%), linear-gradient(180deg, #2c1a1c, #241517)',
+      }}
+    >
+      <Image
+        src="/objetivos/cofre-misiones.webp"
+        alt=""
+        aria-hidden="true"
+        width={84}
+        height={84}
+        sizes="84px"
+        className="mx-auto h-[84px] w-[84px] select-none object-contain drop-shadow-[0_10px_14px_rgba(0,0,0,0.6)]"
+      />
+      <h2 className="mt-1 text-2xl font-bold leading-none text-cream" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+        {title}
+      </h2>
+      {children}
+    </div>
   )
 }

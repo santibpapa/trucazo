@@ -1,7 +1,7 @@
 'use client'
 
 import type { Objective } from '@/lib/objectives'
-import ObjectiveRow from './ObjectiveRow'
+import { ChestRow, WeeklyRow } from './ChestRow'
 
 const GUEST_OBJECTIVES: Objective[] = [
   {
@@ -66,23 +66,32 @@ const GUEST_OBJECTIVES: Objective[] = [
   },
 ]
 
-export default function GuestObjectivesLocked({ message }: { message: string }) {
+const noop = () => {}
+
+/** Misiones de ejemplo, apagadas bajo un velo, para mostrarle al invitado qué
+ *  se gana con una cuenta. Las filas son las mismas del cofre real. */
+export default function GuestObjectivesLocked() {
+  const daily = GUEST_OBJECTIVES.filter(objective => objective.type === 'daily')
+  const weekly = GUEST_OBJECTIVES.find(objective => objective.type === 'weekly')!
   return (
     <div className="relative isolate">
       <div
-        className="pointer-events-none absolute inset-0 z-10 rounded-xl bg-black/55 shadow-[inset_0_0_42px_rgba(0,0,0,0.92)]"
+        className="pointer-events-none absolute inset-0 z-10 bg-black/55 shadow-[inset_0_0_42px_rgba(0,0,0,0.92)]"
         aria-hidden="true"
       />
       <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-4">
         <div className="w-full max-w-xs rounded-2xl border border-gold/35 bg-surface px-4 py-3 text-center shadow-[0_18px_40px_rgba(0,0,0,0.9)]">
           <p className="font-semibold text-cream">Desbloqueá tus recompensas</p>
-          <p className="mt-1 text-sm leading-relaxed text-muted">{message}</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted">Registrate o iniciá sesión y estas misiones empiezan a contar desde tu próxima partida.</p>
         </div>
       </div>
-      <div className="grid gap-2" aria-label="Misiones bloqueadas">
-        {GUEST_OBJECTIVES.map(objective => (
-          <ObjectiveRow key={objective.identifier} objective={objective} locked />
-        ))}
+      <div aria-label="Misiones bloqueadas">
+        <div className="grid gap-2 p-3">
+          {daily.map(objective => (
+            <ChestRow key={objective.identifier} objective={objective} claiming={false} onClaim={noop} />
+          ))}
+        </div>
+        <WeeklyRow objective={weekly} claiming={false} onClaim={noop} />
       </div>
     </div>
   )
