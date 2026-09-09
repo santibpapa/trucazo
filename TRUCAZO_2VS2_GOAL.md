@@ -9,12 +9,11 @@ lanzar a producción sin autorización del dueño.**
 
 - Base auditada: `master`, commit `708162b0aec85b3053702978045a7f19c0932c23`.
 - Rama de trabajo: `codex/2vs2`.
-- Etapa 1: relevamiento y propuesta documentados en
-  [docs/2vs2-auditoria.md](docs/2vs2-auditoria.md). Registradas las respuestas del
-  dueño a D1–D5. Faltan Q1–Q3: empate de tanto, disponibilidad del botón mazo y
-  liquidación del envido al irse al mazo.
-- Etapas 2–7: pendientes. Todavía no hay código funcional 2vs2, migraciones ni
-  preview 2vs2. Este primer cambio es documental.
+- Etapa 1 completada: diagnóstico y todas las decisiones D1–D5 y Q1–Q3 confirmadas.
+- Backend de etapas 2–4 y 6 implementado; suite SQL ejecutada en base descartable
+  PGlite con todas las migraciones. Pruebas concurrentes agregadas a CI.
+- Interfaz/lobby implementados en el espacio de trabajo; build y tipos pasan.
+- Pendiente: verificación visual, CI nativo, preview aislada y revisión final.
 - No se modificó la base de producción ni se enviaron comunicaciones.
 
 ## Decisiones del dueño que ya están confirmadas
@@ -34,10 +33,13 @@ lanzar a producción sin autorización del dueño.**
   compromete al equipo, incluido “no quiero”. Humano con prioridad sobre su bot.
 - El envido se declara en orden de mesa desde la mano. El primero debe cantar su
   tanto; los siguientes dicen “son buenas” si tienen menos o “tengo X” si superan
-  el mayor tanto declarado. Caso de igualdad pendiente Q1.
+  el mayor tanto declarado. Si igualan, “son buenas”.
 - **Irse al mazo, en cualquier situación, termina la mano para los cuatro y la
   gana el otro equipo.** También vale para el mazo automático por tiempo. Esta
   corrección posterior reemplaza la idea inicial de que el compañero continuara.
+- El botón mazo solo está habilitado en el turno propio. Se conserva el envido
+  resuelto; si estaba querido pero sin resolver, el contrario cobra ese envido;
+  si estaba sin aceptar, cobra el rechazo. Eso se suma a la mano.
 - Si cada equipo ganó una ronda y la tercera es parda, gana el equipo que ganó la
   primera. “Baza” significa ronda de cartas dentro de una mano.
 - Apuesta B por asiento, pozo 4B y pago 2B a cada ganador. Sin agregar estadísticas,
@@ -49,7 +51,7 @@ lanzar a producción sin autorización del dueño.**
 ## Etapas y criterios de aceptación
 
 1. **Auditoría y reglas.** Diagnóstico técnico, tabla de reglas, propuesta de
-   implementación y resolución de Q1–Q3 restantes. Distinguir comportamiento del código de
+   implementación con Q1–Q3 confirmadas. Distinguir comportamiento del código de
    reglas propuestas; no corregir de paso el 1vs1.
 2. **Mesas, asientos y equipos.** Creación e ingreso a mesas públicas y privadas;
    elección y cambio de asiento libre mientras esperan; gestión de bots con
@@ -91,18 +93,6 @@ lanzar a producción sin autorización del dueño.**
 
 ## Continuación
 
-Registrar las respuestas del dueño a Q1–Q3 en el diagnóstico antes de implementar
-las reglas afectadas. D1, D3 y D4 ya están resueltas; no volver a consultarlas.
-Actualizar el estado de cada etapa con evidencia, nunca
-marcar una etapa completa porque exista solamente su interfaz o sus tipos.
-
-Antes de tocar archivos compartidos, refrescar `master` y revisar el estado del
-[PR #56](https://github.com/santibpapa/trucazo/pull/56), que al auditar seguía abierto
-y modifica la presentación de Club de barrio. No incorporarlo ni mergearlo
-automáticamente.
-
-Seguir `AGENTS.md`: cambios SQL mediante migraciones NUEVAS; no editar las ya
-aplicadas. Probar con una base aislada. La reconstrucción local usa
-`scripts/rebuild-db.sh`; una preview del frontend por sí sola no instala el
-backend. Documentar la configuración necesaria antes de presentar la preview
-como funcional.
+Ejecutar CI contra PostgreSQL nativo, verificar toda la interfaz en navegador y
+preparar una preview con base aislada de producción. Mantener el PR en borrador
+hasta completar esas verificaciones. No hacer merge ni lanzamiento.

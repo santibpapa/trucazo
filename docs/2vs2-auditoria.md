@@ -11,8 +11,8 @@ Actualización tras las respuestas del dueño: D1, D3 y D4 confirmadas. D2 y D5
 corregidas: irse al mazo SIEMPRE termina la mano para el equipo, también si es por
 tiempo; no existe retiro individual con continuación del compañero. La declaración
 de envido sigue el orden de mesa desde la mano y los botones dependen del tanto.
-Solo faltan los detalles Q1–Q3 indicados abajo. No iniciar implementación antes de
-resolverlos, conforme al pedido de aclarar las dudas primero.
+Q1–Q3 también quedaron confirmadas: igualdad es “son buenas”, mazo solo en el
+turno propio y liquidación del envido según Q3. Se inició la implementación.
 
 ## Diagnóstico
 
@@ -86,9 +86,9 @@ intermedia: se revisaron también las migraciones, en el orden usado por
 | Falta envido | Objetivo menos mayor puntaje actual; sin regla separada de malas/buenas | Usar puntajes de los dos equipos en el mismo helper | Derivado |
 | Envido primero | Suspende truco y su respuesta hasta terminar el tanto | Guardar explícitamente la acción de cartas suspendida y el canto de truco pendiente | Derivado |
 | Respuestas | Un rival responde | Cualquier compañero del equipo requerido puede responder; la primera respuesta válida compromete al equipo, con prioridad humana sobre el bot | **D1 confirmada** |
-| Declaración | “Tengo” calcula el tanto real; “son buenas” no revela; mano declara primero | Orden de mesa desde mano; el primero debe declarar su tanto, los otros solo dicen “tengo X” si superan el mayor declarado; nunca sumar tantos de compañeros | **D2 confirmada; igualdad en Q1** |
-| Son buenas | Cede el envido al rival | Disponible cuando el tanto individual es inferior al mayor declarado; el compañero conserva su turno de declaración | **D2 confirmada; igualdad en Q1** |
-| Irse al mazo | Cierra mano; si declara, cede también envido | El mazo de cualquiera, manual o por tiempo, termina inmediatamente la mano completa; gana el equipo contrario | **Confirmado; controles Q2 y tantos Q3** |
+| Declaración | “Tengo” calcula el tanto real; “son buenas” no revela; mano declara primero | Orden de mesa desde mano; el primero debe declarar su tanto, los otros solo dicen “tengo X” si superan el mayor declarado; nunca sumar tantos de compañeros | **Confirmado, incluida Q1** |
+| Son buenas | Cede el envido al rival | Disponible cuando el tanto individual es inferior al mayor declarado; el compañero conserva su turno de declaración | **Confirmado, incluida Q1** |
+| Irse al mazo | Cierra mano; si declara, cede también envido | El mazo de cualquiera, manual o por tiempo, termina inmediatamente la mano completa; gana el equipo contrario | **Confirmado, incluidas Q2 y Q3** |
 | Cartas justificativas de envido | Al cierre de mano se muestran las necesarias del ganador si no estaban jugadas | Conservar únicamente esa revelación reglamentaria. No revelar otras manos por pertenecer al equipo ni por finalizar partida | Derivado |
 | Puntuación | Puntajes p1/p2; llegar al objetivo termina | Un puntaje por equipo; toda concesión en una transacción y como máximo una vez por evento | Confirmado |
 | Revancha | Existe para personas y bots | Resultado por equipo y vuelta al lobby; sin revancha 2vs2 | Confirmado |
@@ -119,8 +119,7 @@ declarar en su turno. Irse al mazo sí termina la mano para todos, en cualquier
 fase. Esta última regla reemplaza expresamente la propuesta inicial de retiro
 individual y el requisito inicial de que el compañero continuara.
 
-Falta decidir el caso de igualdad (Q1), cuándo está habilitado mazo (Q2) y qué
-puntos del envido se conceden o conservan cuando ocurre (Q3).
+Q1–Q3 quedan resueltas en el apartado siguiente.
 
 ### D3 — Tercera ronda parda: confirmada
 
@@ -183,30 +182,22 @@ mano por mazo automático; no limitar la consecuencia al rechazo del canto.
 Atribuir el vencimiento al responsable indicado por servidor (humano si hay
 prioridad humana; de lo contrario primero del equipo en orden de mano).
 Vencimiento al declarar también cierra la mano. Su liquidación de envido queda en
-Q3. Cancelar si todos los humanos están ausentes más de 10 min; los bots no cuentan
+Q3 confirmada. Cancelar si todos los humanos están ausentes más de 10 min; los bots no cuentan
 como presencia humana.
 
 No deducir abandono de un evento transitorio de Realtime ni agregar sustitución
 automática por bots.
 
-### Aclaraciones restantes Q1–Q3
+### Aclaraciones Q1–Q3 confirmadas
 
-1. **Q1 — Igualdad de tantos.** Propuesta: si el tanto iguala el mayor ya
-   declarado, solo se ofrece “son buenas”; conserva prioridad quien lo declaró
-   primero según el orden desde mano. Ejemplo: 27 seguido de otro 27.
-2. **Q2 — Disponibilidad de mazo.** Ya está confirmado que SIEMPRE pierde la mano
-   todo el equipo. Falta saber si se puede pulsar aun cuando le toca actuar a otro
-   jugador, incluyendo un canto o declaración en curso. “En cualquier situación”
-   definió la consecuencia, pero no distingue explícitamente el permiso del botón.
-3. **Q3 — Envido al cerrar por mazo.** Propuesta: conservar el envido ya
-   adjudicado; si fue querido y no se resolvió, el equipo rival cobra ese envido
-   además de la mano; si solo estaba cantado sin respuesta, cobra el valor de
-   rechazo además de la mano. Antes de cantar envido no se agrega ningún punto
-   de envido. Confirmar esta liquidación y, en el caso sin respuesta, que se aplica
-   igual aunque quien se vaya al mazo pertenezca al equipo que lo había cantado.
-
-Estas preguntas completan la regla; no vuelven a abrir las respuestas por equipo,
-el mazo de equipo, la tercera ronda parda ni las apuestas ya confirmadas.
+1. **Q1 — Igualdad.** Si iguala el mayor tanto declarado, solo “son buenas”.
+   Conserva prioridad quien declaró primero desde mano.
+2. **Q2 — Mazo.** Solo en el turno propio de jugar, responder o declarar.
+   Siempre termina toda la mano y la gana el equipo contrario.
+3. **Q3 — Envido al mazo.** Conservar puntos ya adjudicados. Querido y pendiente:
+   el contrario cobra ese envido más la mano. Cantado sin aceptar: el contrario
+   cobra el rechazo más la mano, incluso si quien se retira lo había cantado.
+   Sin canto no hay puntos extra de envido.
 
 ## Propuesta de implementación
 
@@ -331,9 +322,13 @@ Realizado en esta auditoría:
 - Consulta del changelog y documentación de Supabase sobre RLS y Postgres Changes;
   la propuesta no requiere modificar el schema interno `realtime`.
 
-Pendiente: motor 2vs2, migraciones y todas sus pruebas. No se reconstruyó una base
-Postgres durante esta etapa ni se verificó una preview funcional. El objetivo
-general sigue abierto.
+Actualización de implementación: se agregó la migración
+`20260909211038_team_2vs2.sql`, con motor, mesas, bots, presencia y barrido.
+La suite `supabase/tests/team_games.sql` pasó contra PGlite tras reconstruir la
+base y aplicar el historial. Cubre ambas metas, ambos relojes y las cinco
+composiciones, privacidad, mazo, declaraciones y pagos. La carrera entre conexiones
+independientes se incorpora a CI en `team_concurrency.sh`; falta su ejecución en
+PostgreSQL nativo y la verificación de navegador/preview. El objetivo sigue abierto.
 
 Las pruebas de entrega deberán incluir:
 

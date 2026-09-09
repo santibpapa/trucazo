@@ -177,6 +177,8 @@ grant usage on schema public to anon, authenticated, service_role;
 grant all on all tables in schema public to anon, authenticated, service_role;
 grant all on all sequences in schema public to anon, authenticated, service_role;
 revoke all on public.bot_decisions from anon, authenticated;
+revoke all on public.team_tables, public.team_seats, public.team_games, public.team_hands from anon, authenticated;
+grant select on public.team_tables, public.team_seats, public.team_games, public.team_hands to authenticated;
 revoke all on public.news_email_campaign, public.news_email_jobs from anon, authenticated;
 SQL
 
