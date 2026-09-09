@@ -7,6 +7,13 @@ Este documento entrega el relevamiento de la etapa 1. Distingue hechos del códi
 adaptaciones propuestas y decisiones pendientes. No certifica el estado aplicado
 en el Supabase de producción: no se ejecutaron consultas ni cambios allí.
 
+Actualización tras las respuestas del dueño: D1, D3 y D4 confirmadas. D2 y D5
+corregidas: irse al mazo SIEMPRE termina la mano para el equipo, también si es por
+tiempo; no existe retiro individual con continuación del compañero. La declaración
+de envido sigue el orden de mesa desde la mano y los botones dependen del tanto.
+Solo faltan los detalles Q1–Q3 indicados abajo. No iniciar implementación antes de
+resolverlos, conforme al pedido de aclarar las dudas primero.
+
 ## Diagnóstico
 
 El 2vs2 requiere un motor de equipos. El modelo actual no representa una cantidad
@@ -44,7 +51,7 @@ intermedia: se revisaron también las migraciones, en el orden usado por
 | Envido | `20260706_campana_4_estilo_reputacion.sql`, `20260707_envido_reveal_mazo_declarando.sql`, `20260622_target_score.sql` | Canto y respuesta entre dos; diálogo mano/pie; calcula tantos en servidor. Se pueden reutilizar cálculo individual y valores de cadenas. |
 | Truco | `supabase/migrations/20260709_envido_va_primero.sql` | Guarda un cantante, asigna un rival y reconstruye el turno entre dos. El envido pendiente tiene prioridad. |
 | Nueva mano | `supabase/migrations/20260706_campana_4_estilo_reputacion.sql`: `advance_hand` | Alterna mano entre p1/p2, limpia la ronda y reparte dos manos. |
-| Mazo | `20260707_envido_reveal_ganador_al_mazo.sql`, `20260707_envido_reveal_mazo_declarando.sql` | Siempre cierra la mano para ambos. En parejas debe distinguir retiro individual de pérdida del equipo. |
+| Mazo | `20260707_envido_reveal_ganador_al_mazo.sql`, `20260707_envido_reveal_mazo_declarando.sql` | Siempre cierra la mano para ambos. El dueño confirmó que en parejas también cierra la mano completa y gana el otro equipo. |
 | Bots | `supabase/migrations/20260815_bots_lobby.sql`: `bot_step` | Encuentra un bot y un humano; solo consulta la mano del bot y jugadas públicas para elegir cartas. No representa compañero ni dos rivales. |
 | Asignación de bots | `20260815_bots_lobby.sql`, `20260815_seguridad_5_lobby_carrera.sql` | Hay tres bots globales de lobby, asignados con bloqueo. No garantiza tres bots disponibles para cada mesa 2vs2. |
 | Presencia y abandono | `20260702_comunidad_1_amigos.sql`, `20260620_forfeit_claim_server.sql`, `20260707_envido_reveal_mazo_declarando.sql` | Presencia por jugador; abandono concede victoria al rival; tercer mazo automático termina la partida. |
@@ -61,95 +68,93 @@ intermedia: se revisaron también las migraciones, en el orden usado por
 
 | Tema | 1vs1 observado | Adaptación propuesta a 2vs2 | Estado |
 |---|---|---|---|
-| Opciones | 15/30 puntos, sin flor, 15/30 s, mesa pública/privada, monedas ficticias | Conservar objetivo, sin flor, reloj y privacidad; resolver economía en D4 | Parcialmente confirmado |
+| Opciones | 15/30 puntos, sin flor, 15/30 s, mesa pública/privada, monedas ficticias | Conservar objetivo, sin flor, reloj, privacidad y apuestas según D4 | Confirmado |
 | Equipos | Dos personas independientes | Asientos 0/2 y 1/3 | Confirmado |
 | Elección | Creador y rival fijos | Elegir/cambiar un asiento libre antes del inicio; no mover a otra persona | Confirmado + permiso propuesto |
 | Gestión | Creador cancela; bot automático en públicas | Solo creador agrega/quita bots, cancela e inicia con cuatro puestos ocupados; cada persona puede irse antes del comienzo | Propuesta técnica |
 | Reparto | Tres cartas por persona; un mazo mezclado en servidor | Mezclar una sola vez y repartir doce cartas únicas, tres a cada asiento | Derivado |
 | Primera mano | Empieza el creador | Empieza el asiento 0; rota 0→1→2→3→0 en cada mano, también si lo ocupa un bot | Propuesta de adaptación |
-| Orden | Alterna entre p1/p2 | Recorrer los asientos en ese orden, desde quien abre, omitiendo retirados | Derivado |
+| Orden | Alterna entre p1/p2 | Recorrer los cuatro asientos en ese orden, desde quien abre; un mazo termina la mano, no se omite a una persona para seguir jugando | Confirmado |
 | Baza | Compara dos cartas | Comparar todas las cartas de participantes activos; la mayor fuerza (menor `rank`) compartida solamente por compañeros gana para ese equipo; compartida entre equipos produce parda | Propuesta de adaptación |
-| Salida siguiente | Ganador, o mano original si hubo parda | Sale el autor de la carta ganadora; si hay dos ganadoras del mismo equipo, el primero en el orden de esa baza; tras parda sale quien abrió, o su siguiente activo si se retiró | Propuesta de adaptación |
+| Salida siguiente | Ganador, o mano original si hubo parda | Sale el autor de la carta ganadora; si hay dos ganadoras del mismo equipo, el primero en el orden de esa ronda; tras parda sale quien abrió | Propuesta de adaptación |
 | Dos bazas | Dos victorias cierran; victoria+parda o parda+victoria cierran | Conservar, contando victorias por equipo | Derivado |
 | Dos primeras pardas | Se juega la tercera | Gana el equipo de la tercera; si vuelve a ser parda, equipo de la mano | Derivado |
-| Una baza por equipo y tercera parda | `play_card` devuelve mano original, aunque haya perdido la primera | Proponer victoria del equipo que ganó la primera; no cambiar el 1vs1 en este trabajo | **D3** |
+| Una ronda por equipo y tercera parda | `play_card` devuelve mano original, aunque haya perdido la primera | Gana el equipo que ganó la primera; no cambiar el 1vs1 en este trabajo | **D3 confirmada** |
 | Truco | 1 sin cantar; querido vale 2/3/4; no querido vale valor pedido menos 1 | Valores compartidos; derecho al siguiente aumento pertenece al equipo que aceptó, no solo a la persona | Derivado + **D1** para responsables |
 | Inicio de cantos | En su turno; envido también ante truco pendiente antes de haber jugado su carta | Mantener restricción por participante activo; el compañero no hereda el derecho a jugar carta ajena | Propuesta de adaptación |
 | Cadena de envido | Hasta dos envidos; real después de envido; falta después de envido/real; también apertura directa con real/falta | Conservar cadena y valores; aumentos alternan entre equipos | Derivado |
 | Falta envido | Objetivo menos mayor puntaje actual; sin regla separada de malas/buenas | Usar puntajes de los dos equipos en el mismo helper | Derivado |
 | Envido primero | Suspende truco y su respuesta hasta terminar el tanto | Guardar explícitamente la acción de cartas suspendida y el canto de truco pendiente | Derivado |
-| Respuestas | Un rival responde | D1 propone que cualquier compañero activo del equipo requerido responda y que la primera respuesta válida comprometa al equipo | **D1** |
-| Declaración | “Tengo” calcula el tanto real; “son buenas” no revela; mano declara primero | Declaración individual en orden desde mano; nunca sumar tantos de compañeros; mayor tanto declarado gana para su equipo; empates por cercanía a mano | **D2** |
-| Son buenas | Cede el envido al rival | Cede solo la declaración individual; el compañero conserva su oportunidad; no cerrar antes de sus declaraciones elegibles | **D2** |
-| Irse al mazo | Cierra mano; si declara, cede también envido | Retira solamente a esa persona de cartas; el compañero sigue. Cartas ya jugadas siguen públicas y conservan su efecto en bazas; carta pendiente del retirado se omite. Si ambos se retiran, pierde el equipo | Propuesta de adaptación; envido en **D2** |
+| Respuestas | Un rival responde | Cualquier compañero del equipo requerido puede responder; la primera respuesta válida compromete al equipo, con prioridad humana sobre el bot | **D1 confirmada** |
+| Declaración | “Tengo” calcula el tanto real; “son buenas” no revela; mano declara primero | Orden de mesa desde mano; el primero debe declarar su tanto, los otros solo dicen “tengo X” si superan el mayor declarado; nunca sumar tantos de compañeros | **D2 confirmada; igualdad en Q1** |
+| Son buenas | Cede el envido al rival | Disponible cuando el tanto individual es inferior al mayor declarado; el compañero conserva su turno de declaración | **D2 confirmada; igualdad en Q1** |
+| Irse al mazo | Cierra mano; si declara, cede también envido | El mazo de cualquiera, manual o por tiempo, termina inmediatamente la mano completa; gana el equipo contrario | **Confirmado; controles Q2 y tantos Q3** |
 | Cartas justificativas de envido | Al cierre de mano se muestran las necesarias del ganador si no estaban jugadas | Conservar únicamente esa revelación reglamentaria. No revelar otras manos por pertenecer al equipo ni por finalizar partida | Derivado |
 | Puntuación | Puntajes p1/p2; llegar al objetivo termina | Un puntaje por equipo; toda concesión en una transacción y como máximo una vez por evento | Confirmado |
 | Revancha | Existe para personas y bots | Resultado por equipo y vuelta al lobby; sin revancha 2vs2 | Confirmado |
-| Desconexión | No se reemplaza por bot; tiempo de turno y tercer timeout | Política pendiente D5; refresh conserva identidad y asiento | **D5** |
+| Desconexión | No se reemplaza por bot; tiempo de turno y tercer timeout | Conservar 15/30 s, tercer vencimiento y ausencia de sustitución; corregir mazo automático para que cierre la mano completa | **D5 con corrección del dueño** |
 
 ### D1 — Quién responde por el equipo
 
-Propuesta: cualquier compañero activo del equipo requerido puede aceptar,
+Confirmado por el dueño: cualquier compañero del equipo requerido puede aceptar,
 rechazar o aumentar. La primera respuesta válida que confirma el servidor vale
 para todo el equipo, incluido “no quiero”. Las posteriores no pueden modificar
-ese canto. Un jugador que se fue al mazo no responde por su compañero.
+ese canto. Si cualquiera se fue al mazo, la mano ya terminó y no admite respuestas.
 
-Esto requiere confirmación: otra opción es que responda solamente el pie de cada
-equipo. El 1vs1 no permite decidir entre ambas. Para equipos humano+bot se propone
-que el humano tenga prioridad mientras pueda responder; el bot no debe rechazar
-por él durante ese plazo. Para dos bots responde uno elegido por orden de mano.
+En equipos humano+bot tiene prioridad el humano mientras pueda responder; el bot
+no debe rechazar por él durante ese plazo. Para dos bots responde uno elegido por
+orden de mano.
 Los cantos nuevos conservan la restricción de turno del 1vs1.
 
-### D2 — Declaración de envido y retiro individual
+### D2 — Declaración de envido y mazo de equipo
 
-Propuesta: conservar “tengo”, “son buenas” y “me voy al mazo”, con declaración de
-cada participante elegible en orden desde la mano. El primer declarante debe dar
-su tanto o retirarse; los demás pueden declarar o decir “son buenas”. “Tengo”
-siempre revela el valor real calculado en servidor, nunca un valor elegido.
+El dueño precisó que los tantos se cantan en el mismo orden de la mesa, empezando
+por la mano. El primero debe cantar su tanto. Los siguientes tienen “son buenas”
+si su tanto es inferior, o “tengo X” si supera el mayor tanto declarado. No es una
+elección libre de ocultar un tanto mayor ni de declarar uno menor. El servidor
+calcula el valor real; nadie envía un número arbitrario ni suma al compañero.
 
-“Son buenas” descarta solamente a quien lo dice. Retirarse descarta su declaración
-pendiente y sus cartas futuras; no descarta al compañero. Si ya declaró antes de
-retirarse, su tanto permanece en la comparación. El servidor espera a que todos
-los elegibles tengan oportunidad o que ambos integrantes de un equipo hayan
-concedido/abandonado el envido. No publica los tantos de quienes no declararon.
+“Son buenas” no termina la mano ni descarta la oportunidad del compañero de
+declarar en su turno. Irse al mazo sí termina la mano para todos, en cualquier
+fase. Esta última regla reemplaza expresamente la propuesta inicial de retiro
+individual y el requisito inicial de que el compañero continuara.
 
-Al quedarse un equipo sin jugadores activos para las cartas, pierde la mano; un
-envido ya adjudicado se conserva. Si además seguía pendiente su respuesta al
-envido, se aplica el valor de rechazo; si el envido estaba querido/declarando y
-el equipo abandona por completo, se concede el valor aceptado al rival. Esta
-adaptación cambia las consecuencias del mazo individual y necesita acuerdo.
+Falta decidir el caso de igualdad (Q1), cuándo está habilitado mazo (Q2) y qué
+puntos del envido se conceden o conservan cuando ocurre (Q3).
 
-### D3 — Caso de parda que no conviene heredar silenciosamente
+### D3 — Tercera ronda parda: confirmada
+
+“Baza” significa ronda de cartas dentro de una mano. El dueño confirmó que si
+cada equipo ganó una ronda y la tercera es parda, gana el que ganó la primera.
 
 Ejemplo concreto: asiento 0 es mano; equipo 1/3 gana la primera; equipo 0/2 gana
 la segunda; la tercera es parda.
 
 - Trasladar literalmente `play_card` da la mano al equipo 0/2.
-- La propuesta para 2vs2 da la mano al equipo 1/3, que ganó la primera.
+- La regla confirmada para 2vs2 da la mano al equipo 1/3, que ganó la primera.
 
 El hallazgo sale de la rama `num_results = 3` de `play_card` y también existe en
 la reproducción TypeScript de `scripts/sim.ts`. Es una lectura de la lógica,
-no una prueba ejecutada contra el SQL de producción. Confirmar cuál corresponde
-antes de implementar; no corregir el 1vs1 incidentalmente.
+no una prueba ejecutada contra el SQL de producción. La decisión para 2vs2 ya está
+cerrada; no volver a consultarla ni corregir el 1vs1 incidentalmente.
 
-### D4 — Apuestas frente al alcance sin recompensas nuevas
+### D4 — Apuestas confirmadas
 
-Existe una ambigüedad entre “mantener las opciones del 1vs1” y excluir la nueva
-integración con recompensas. El 1vs1 siempre apuesta al menos 10 monedas y cobra
-un pozo; ese pago no se puede reutilizar literalmente para dos ganadores.
+El dueño confirmó mantener apuestas por jugador y repartir el pozo entre los dos
+ganadores. Esto resuelve la ambigüedad inicial con la exclusión de recompensas
+nuevas. El 1vs1 siempre apuesta al menos 10 monedas y cobra un pozo; ese pago no
+se puede reutilizar literalmente para dos ganadores.
 
-Si las apuestas están incluidas: propuesta de aporte B por asiento, pozo 4B y
+Regla confirmada: aporte B por asiento, pozo 4B y
 cobro 2B para cada ganador (ganancia neta B), sin estadísticas, ranking ni
 misiones. Bots con aportes virtuales como en el 1vs1; no depender de las tres
 cuentas-bot globales. Registrar cobros y devoluciones una sola vez por
 participante; cambiar de asiento no vuelve a cobrar. Cancelar/retiro previo
 reembolsa a todos los aportantes correspondientes.
 
-Si las apuestas están excluidas: 2vs2 sin movimientos de monedas y sin mínimo de
-saldo. Esto es una excepción expresa a las opciones actuales. No implementarla
-sin la decisión del dueño. Si se mantienen apuestas, revisar también los
-triggers de medallas por cambio de saldo para no generar premios adicionales
-fuera de alcance.
+Ejemplo: cuatro aportes de 50 dan un pozo de 200; cada ganador recibe 100.
+Revisar también los triggers de medallas por cambio de saldo para no generar
+premios adicionales fuera de alcance.
 
 ### D5 — Tiempo, desconexión y abandono
 
@@ -165,21 +170,43 @@ Política actual comprobada por lectura:
 - El barrido cancela y devuelve apuestas si ambos faltan más de 10 min; el cron
   se configura aparte. Las mesas esperando se limpian a los 15 min desde creación.
 
-Propuesta conservadora para confirmar: mantener 15/30 segundos por acción;
-vencer un turno de cartas retira a esa persona de la mano y el compañero sigue;
-al tercer vencimiento del mismo jugador pierde todo su equipo, sin sustitución
-por bot. Reconectar no borra el contador. Abandono explícito de partida también
-produce derrota de su equipo y se explica en el control antes de ejecutarlo.
+La respuesta del dueño corrige la consecuencia del mazo: vencer un turno cierra
+la mano completa y la gana el otro equipo. No continuar con el compañero.
+Se conserva el resto de la política planteada: 15/30 segundos por acción, tercer
+vencimiento acumulado del mismo jugador pierde la partida para su equipo, sin
+sustitución por bot. Reconectar no borra el contador; mazo manual no suma faltas.
+Abandono explícito de partida produce derrota de su equipo y se explica en el
+control antes de ejecutarlo.
 
-Si nadie elegible responde un canto por equipo en el plazo, rechazarlo una sola
-vez; atribuir el vencimiento al responsable indicado por servidor (humano si hay
-prioridad humana; de lo contrario primer activo del equipo en orden de mano).
-Vencimiento al declarar aplica el retiro individual de D2. Cancelar si todos los
-humanos están ausentes más de 10 min; los bots no cuentan como presencia humana.
+Si nadie elegible responde un canto por equipo en el plazo, también se cierra la
+mano por mazo automático; no limitar la consecuencia al rechazo del canto.
+Atribuir el vencimiento al responsable indicado por servidor (humano si hay
+prioridad humana; de lo contrario primero del equipo en orden de mano).
+Vencimiento al declarar también cierra la mano. Su liquidación de envido queda en
+Q3. Cancelar si todos los humanos están ausentes más de 10 min; los bots no cuentan
+como presencia humana.
 
-Si se prefiere una espera especial por desconexión o un reemplazo, definir su
-plazo y consecuencias antes de implementar. No deducir abandono de un evento
-transitorio de Realtime ni reemplazar sin confirmación.
+No deducir abandono de un evento transitorio de Realtime ni agregar sustitución
+automática por bots.
+
+### Aclaraciones restantes Q1–Q3
+
+1. **Q1 — Igualdad de tantos.** Propuesta: si el tanto iguala el mayor ya
+   declarado, solo se ofrece “son buenas”; conserva prioridad quien lo declaró
+   primero según el orden desde mano. Ejemplo: 27 seguido de otro 27.
+2. **Q2 — Disponibilidad de mazo.** Ya está confirmado que SIEMPRE pierde la mano
+   todo el equipo. Falta saber si se puede pulsar aun cuando le toca actuar a otro
+   jugador, incluyendo un canto o declaración en curso. “En cualquier situación”
+   definió la consecuencia, pero no distingue explícitamente el permiso del botón.
+3. **Q3 — Envido al cerrar por mazo.** Propuesta: conservar el envido ya
+   adjudicado; si fue querido y no se resolvió, el equipo rival cobra ese envido
+   además de la mano; si solo estaba cantado sin respuesta, cobra el valor de
+   rechazo además de la mano. Antes de cantar envido no se agrega ningún punto
+   de envido. Confirmar esta liquidación y, en el caso sin respuesta, que se aplica
+   igual aunque quien se vaya al mazo pertenezca al equipo que lo había cantado.
+
+Estas preguntas completan la regla; no vuelven a abrir las respuestas por equipo,
+el mazo de equipo, la tercera ronda parda ni las apuestas ya confirmadas.
 
 ## Propuesta de implementación
 
@@ -199,7 +226,7 @@ para representar equipos ni duplicar el cierre individual para cada ganador.
 - Un lock de mesa serializa cambio de asiento, ingreso, bots, salida e inicio.
   Revalidar cuatro ocupantes y permisos dentro de ese lock.
 - Estado con turno de cartas separado del equipo que debe responder, autor del
-  canto, turno de declaración, retirados, resultados, marcador, mano y versión.
+  canto, turno de declaración, motivo del cierre, resultados, marcador, mano y versión.
 - Mutaciones reciben identificador de solicitud y versión esperada; el servidor
   autoriza primero y guarda el efecto de cada solicitud. Una respuesta vieja no
   puede aceptar el canto siguiente ni jugar la misma carta en otra mano.
@@ -225,7 +252,7 @@ la base de preview antes de entregar.
 
 Reutilizar los helpers de fuerza y envido que aceptan una mano. La entrada de la
 decisión debe contener exclusivamente la mano propia, cartas ya públicas,
-marcador, cantos, orden y retirados. El bot ahorra una carta fuerte si su equipo
+marcador, cantos y orden. El bot ahorra una carta fuerte si su equipo
 ya asegura la baza; si todavía falta un rival, evalúa que puede superar al
 compañero sin conocer sus cartas. Distinguir asegurar una baza de estar ganándola
 momentáneamente.
@@ -262,8 +289,8 @@ diagnóstico no significa que exista aún una prueba de compatibilidad del 2vs2.
 | Sistema | Tratamiento necesario dentro del alcance |
 |---|---|
 | Historial/estadísticas/ranking/misiones/fama | No llamar `finish_game`, `_record_objective_game` ni registrar victorias individuales ficticias. Pruebas de ausencia de efectos después de cierre y reintentos. |
-| Medallas | Revisar triggers de `games`, historial y especialmente `profiles.coins` si D4 mantiene apuestas. No disparar premios nuevos accidentalmente. |
-| Monedas | Solo lo que se confirme en D4; contabilidad idempotente y reembolsos explícitos. |
+| Medallas | Revisar triggers de `games`, historial y especialmente `profiles.coins` porque D4 mantiene apuestas. No disparar premios nuevos accidentalmente. |
+| Monedas | Aporte y reparto confirmados en D4; contabilidad idempotente y reembolsos explícitos. |
 | Recuperación desde lobby | Buscar participación real 2vs2 para los cuatro asientos, no solo creador. |
 | Bots del lobby y barridos 1vs1 | Mantenerlos funcionando; los bots y la limpieza de equipos no consumen sus puestos ni reutilizan sus reembolsos. |
 | Emails de reactivación | `email_recipient_activity` solo mira `games`/`game_history`. Registrar actividad real 2vs2 en esa lectura al integrar, sin campañas ni envíos nuevos, para no llamar “nunca jugó” a quien sí jugó. |
@@ -272,7 +299,7 @@ diagnóstico no significa que exista aún una prueba de compatibilidad del 2vs2.
 
 ### PRs, migraciones y preview
 
-1. Este PR: auditoría, propuestas D1–D5 y registro del objetivo.
+1. Este PR: auditoría, decisiones D1–D5 actualizadas, aclaraciones Q1–Q3 y registro del objetivo.
 2. Mesas/asientos: backend con permisos y pruebas; UI de elección e integración
    en lobby. No exponer inicio sin el motor funcional.
 3. Motor/bots: transacciones, reglas acordadas y pruebas SQL/concurrencia.
@@ -313,13 +340,13 @@ Las pruebas de entrega deberán incluir:
 - Las cinco combinaciones de personas/bots indicadas en el objetivo, con partidas
   completas a 15 y 30 y ambos relojes.
 - Las combinaciones de bazas, incluidas las dos primeras pardas, empate entre
-  compañeros, tercera parda, retiro antes/después de tirar y equipo sin activos.
+  compañeros, tercera parda y mazo antes/después de tirar que cierra la mano para todos.
 - Todas las cadenas de envido y truco; tanto por persona, prioridad de mano,
   respuesta compartida, truco suspendido y objetivo alcanzado durante envido.
 - Reintentos, simultaneidad con conexiones independientes y solicitudes de una
   versión/mano anterior; una sola concesión de puntos/cobro/cierre.
 - Permisos positivos y negativos como usuarios reales: terceros, compañeros,
-  bots, dueño y personas retiradas. Comprobar ocultamiento de manos por consulta
+  bots, dueño y acciones recibidas luego del mazo. Comprobar ocultamiento de manos por consulta
   directa, RPC y Realtime; no basta un error por falta general de permisos.
 - Recargar cada asiento, reconectar, cerrar pestañas, vencimientos, cancelar antes
   del inicio y ausencia total. Bots pendientes no actúan luego del cierre.

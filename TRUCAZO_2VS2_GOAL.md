@@ -10,8 +10,9 @@ lanzar a producción sin autorización del dueño.**
 - Base auditada: `master`, commit `708162b0aec85b3053702978045a7f19c0932c23`.
 - Rama de trabajo: `codex/2vs2`.
 - Etapa 1: relevamiento y propuesta documentados en
-  [docs/2vs2-auditoria.md](docs/2vs2-auditoria.md). La definición de reglas espera
-  las decisiones D1–D5 de ese documento.
+  [docs/2vs2-auditoria.md](docs/2vs2-auditoria.md). Registradas las respuestas del
+  dueño a D1–D5. Faltan Q1–Q3: empate de tanto, disponibilidad del botón mazo y
+  liquidación del envido al irse al mazo.
 - Etapas 2–7: pendientes. Todavía no hay código funcional 2vs2, migraciones ni
   preview 2vs2. Este primer cambio es documental.
 - No se modificó la base de producción ni se enviaron comunicaciones.
@@ -29,6 +30,18 @@ lanzar a producción sin autorización del dueño.**
 - Toda la partida en pantalla en celular, sin scroll ni controles cortados.
 - Cada cliente ve únicamente sus cartas privadas; el bot tampoco conoce cartas
   privadas del compañero ni de los rivales.
+- Cualquiera de los compañeros puede responder; la primera respuesta válida
+  compromete al equipo, incluido “no quiero”. Humano con prioridad sobre su bot.
+- El envido se declara en orden de mesa desde la mano. El primero debe cantar su
+  tanto; los siguientes dicen “son buenas” si tienen menos o “tengo X” si superan
+  el mayor tanto declarado. Caso de igualdad pendiente Q1.
+- **Irse al mazo, en cualquier situación, termina la mano para los cuatro y la
+  gana el otro equipo.** También vale para el mazo automático por tiempo. Esta
+  corrección posterior reemplaza la idea inicial de que el compañero continuara.
+- Si cada equipo ganó una ronda y la tercera es parda, gana el equipo que ganó la
+  primera. “Baza” significa ronda de cartas dentro de una mano.
+- Apuesta B por asiento, pozo 4B y pago 2B a cada ganador. Sin agregar estadísticas,
+  ranking, misiones ni recompensas adicionales.
 - Sin comunicación privada, señas, invitaciones nuevas, revancha 2vs2, modo
   historia por parejas, integración nueva con rankings/estadísticas/misiones/
   recompensas ni rediseño general.
@@ -36,14 +49,14 @@ lanzar a producción sin autorización del dueño.**
 ## Etapas y criterios de aceptación
 
 1. **Auditoría y reglas.** Diagnóstico técnico, tabla de reglas, propuesta de
-   implementación y resolución de D1–D5. Distinguir comportamiento del código de
+   implementación y resolución de Q1–Q3 restantes. Distinguir comportamiento del código de
    reglas propuestas; no corregir de paso el 1vs1.
 2. **Mesas, asientos y equipos.** Creación e ingreso a mesas públicas y privadas;
    elección y cambio de asiento libre mientras esperan; gestión de bots con
    permisos del servidor; comienzo únicamente con los cuatro puestos ocupados.
    Probar ocupación concurrente, permisos, salida y cancelación.
 3. **Motor por equipos.** Tres cartas diferentes por participante; orden de
-   cuatro asientos; bazas, pardas, mazo individual, envido, truco y puntuación por
+   cuatro asientos; rondas, pardas, mazo que cierra la mano, envido, truco y puntuación por
    equipo; cierre idempotente. Todas las reglas y validaciones en Postgres.
 4. **Bots.** Decisiones a partir de mano propia e información pública; conciencia
    del equipo; cantos y respuestas según las reglas acordadas; ninguna acción
@@ -68,7 +81,7 @@ lanzar a producción sin autorización del dueño.**
 | Dos personas rivales y dos bots | Pendiente |
 | Una persona y tres bots | Pendiente |
 | Envido y truco: aumentos, rechazo, respuestas simultáneas | Pendiente |
-| Empates y compañeros al mazo | Pendiente |
+| Empates y mazo de cualquiera que cierra la mano | Pendiente |
 | Recarga, reconexión, timeout y abandono | Pendiente |
 | Resultado por equipo y vuelta al lobby | Pendiente |
 | Celulares de 320–430 px, alturas reducidas y escritorio | Pendiente |
@@ -78,8 +91,9 @@ lanzar a producción sin autorización del dueño.**
 
 ## Continuación
 
-Registrar las respuestas del dueño a D1–D5 en el diagnóstico antes de implementar
-las reglas afectadas. Actualizar el estado de cada etapa con evidencia, nunca
+Registrar las respuestas del dueño a Q1–Q3 en el diagnóstico antes de implementar
+las reglas afectadas. D1, D3 y D4 ya están resueltas; no volver a consultarlas.
+Actualizar el estado de cada etapa con evidencia, nunca
 marcar una etapa completa porque exista solamente su interfaz o sus tipos.
 
 Antes de tocar archivos compartidos, refrescar `master` y revisar el estado del
