@@ -1183,12 +1183,12 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
   const oppRevealedCount = envidoReveal && !revealIsMine ? envidoReveal.cards.length : 0
   const oppCardsLeft = Math.max(0, 3 - game.played_cards.filter(pc => pc.player_id === opponentId).length - oppRevealedCount)
   return (
-    <main className={`${styles.game} ${getSalonTheme(salonSlug).integratedTable ? styles.reference : ''}`}>
-      {!getSalonTheme(salonSlug).integratedTable && <SalonBackground slug={salonSlug} />}
+    <main className={`${styles.game} ${styles.reference}`}>
       <div className={styles.shell}>
-      {getSalonTheme(salonSlug).integratedTable && <SalonBackground slug={salonSlug} />}
+      <SalonBackground slug={salonSlug} />
+      <SalonTable slug={salonSlug} />
       <div className={styles.brand} aria-label="Trucazo">TRUCAZO
-        {getSalonTheme(salonSlug).integratedTable && <span className={styles.salonName}>{getSalonTheme(salonSlug).name}</span>}
+        <span className={styles.salonName}>{getSalonTheme(salonSlug).name}</span>
       </div>
       <div className={styles.scoreboard} aria-label="Marcador">
         <div className={styles.scoreRow}>
@@ -1224,7 +1224,6 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
 
       {/* Cada fila reserva su lugar: los cantos y el reparto no mueven la mesa. */}
       <div className={styles.stage} ref={cardFlight.stageRef} data-card-stage>
-        <SalonTable slug={salonSlug} />
         <div className={styles.tablePlay}>
           <div className={`${styles.seat} ${styles.opponentSeat}`}>
             <SeatAvatar slug={campaignRivalSlug} imageUrl={opponentAvatarUrl} name={opponentUsername} active={!meActive} frame={opponentFrame} medal={opponentMedal} />
