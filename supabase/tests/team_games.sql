@@ -255,4 +255,37 @@ declare t uuid:=pg_temp.fixture(array[0]); g public.team_games; i integer; s jso
   perform pg_temp.check((select count(*)=1 from public.team_seats where table_id=t and user_id is not null),'no reemplaza persona');
 end $$;
 
+-- Prioridad humana, igualdad de tanto y conservación de cartas al ganar compañero.
+do $$
+declare t uuid:=pg_temp.fixture(array[0,3]); g public.team_games; choice jsonb; h jsonb; first_choice jsonb; i integer; expected integer; begin
+  perform pg_temp.act(t,0,'envido');
+  select * into g from public.team_games where id=t;
+  perform pg_temp.check(team_internal.actor(g)=3,'humano responde antes que compañero bot');
+  update public.team_games set action_started_at=clock_timestamp()-interval '3 seconds' where id=t;
+  perform pg_temp.act(t,0,'tick');
+  perform pg_temp.check((select envido->>'status'='pending' from public.team_games where id=t),'bot no responde por humano');
+  t:=pg_temp.fixture();
+  -- Empate de 27; gana el primer declarante desde mano (asiento 2).
+  update public.team_games set mano=2,turn=2 where id=t;
+  update public.team_hands set cards='[{"suit":"oro","value":7,"rank":4},{"suit":"oro","value":10,"rank":10},{"suit":"basto","value":4,"rank":14}]' where table_id=t;
+  perform pg_temp.act(t,2,'envido'); perform pg_temp.act(t,3,'envido_yes');
+  perform pg_temp.act(t,2,'tengo');
+  foreach i in array array[3,0,1] loop
+    select * into g from public.team_games where id=t;
+    perform pg_temp.check('son_buenas'=any(team_internal.legal(g,i)) and not('tengo'=any(team_internal.legal(g,i))),'igualdad solo permite son buenas');
+    perform pg_temp.act(t,i,'son_buenas');
+  end loop;
+  perform pg_temp.check((select scores=array[2,0] and (envido->>'high_seat')::int=2 from public.team_games where id=t),'igualdad conserva prioridad desde mano');
+  select * into g from public.team_games where id=t;
+  g.envido:='{"status":"resolved"}'; g.truco:='{"status":"accepted","value":2,"team":0}'; g.turn:=2;
+  g.played:='[{"seat":0,"round":1,"card":{"rank":1}},{"seat":1,"round":1,"card":{"rank":8}},{"seat":3,"round":1,"card":{"rank":9}}]';
+  h:='[{"suit":"oro","value":7,"rank":4},{"suit":"basto","value":4,"rank":14}]';
+  choice:=team_internal.bot_choice(g,2,h,array['play'],0.42);
+  perform pg_temp.check((choice->'card'->>'rank')::int=14,'bot guarda la buena cuando compañero gana');
+  first_choice:=choice;
+  update public.team_hands set cards='[]' where table_id=t and seat<>2;
+  choice:=team_internal.bot_choice(g,2,h,array['play'],0.42);
+  perform pg_temp.check(first_choice=choice,'cartas ocultas no alteran decisión del bot');
+end $$;
+
 rollback;
