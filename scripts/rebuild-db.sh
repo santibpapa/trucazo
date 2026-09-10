@@ -38,6 +38,7 @@ drop schema if exists auth    cascade;
 drop schema if exists storage cascade;
 drop schema if exists cron    cascade;
 drop schema if exists email_internal cascade;
+drop schema if exists team_internal cascade;
 drop schema if exists net cascade;
 create schema public;
 

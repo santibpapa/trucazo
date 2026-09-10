@@ -113,6 +113,24 @@ declare t uuid:=pg_temp.fixture(); s jsonb; v bigint; i integer; p integer; high
   perform pg_temp.check(g.awaiting_deal and g.scores[best%2+1]>=2 and g.last_hand_winner=1,'mazo conserva envido resuelto');
 end $$;
 
+-- El envido interrumpe el truco sin perder el turno ni aceptar el truco.
+do $$
+declare t uuid:=pg_temp.fixture(); g public.team_games; i integer; a text[]; begin
+  perform pg_temp.act(t,0,'truco'); perform pg_temp.act(t,1,'envido');
+  select * into g from public.team_games where id=t;
+  perform pg_temp.check(g.truco->>'status'='pending' and g.envido->>'status'='pending','envido suspende truco');
+  perform pg_temp.act(t,0,'envido_yes');
+  for i in 0..3 loop
+    select * into g from public.team_games where id=t; a:=team_internal.legal(g,i);
+    perform pg_temp.act(t,i,case when 'tengo'=any(a) then 'tengo' else 'son_buenas' end);
+  end loop;
+  select * into g from public.team_games where id=t;
+  perform pg_temp.check(team_internal.actor(g)=1 and 'truco_yes'=any(team_internal.legal(g,3)),'se recupera respuesta del truco');
+  perform pg_temp.act(t,3,'truco_yes');
+  select * into g from public.team_games where id=t;
+  perform pg_temp.check(g.turn=0 and 'play'=any(team_internal.legal(g,0)),'recupera turno original después del truco');
+end $$;
+
 -- Mazo en todos los estados: sin canto, pendiente, aceptado, truco subido.
 do $$
 declare t uuid; kind text; g public.team_games; actor integer; expected integer; begin
@@ -204,6 +222,7 @@ begin
   for combination in 1..10 loop
     humans:=case (combination-1)%5+1 when 1 then array[0] when 2 then array[0,2] when 3 then array[0,1] when 4 then array[0,1,2] else array[0,1,2,3] end;
     t:=pg_temp.fixture(humans,true,case when combination>5 then 30 else 15 end,case when combination>5 then 15 else 30 end); n:=0;
+    delete from public.profile_medals where profile_id in (select user_id from public.team_seats where table_id=t);
     select count(*) into before_medals from public.profile_medals;
     loop
       select * into g from public.team_games where id=t;
@@ -224,6 +243,7 @@ begin
       from public.team_seats s join public.profiles p on p.id=s.user_id where s.table_id=t),'pago 2B por ganador');
     perform pg_temp.act(t,humans[1],'tick');
     perform pg_temp.check((select count(*)=before_medals from public.profile_medals),'no entrega medallas');
+    perform pg_temp.check((select bool_and(p.games_won=0 and p.games_played=0) from public.team_seats s join public.profiles p on p.id=s.user_id where s.table_id=t),'no modifica estadísticas 1vs1');
   end loop;
   perform pg_temp.check((select count(*)=before_history from public.game_history),'no escribe estadísticas 1vs1');
 end $$;
