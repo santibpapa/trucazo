@@ -93,7 +93,8 @@ jobs:
             if curl --fail --silent http://127.0.0.1:3000/login > /dev/null; then break; fi
             sleep 1
           done
-          curl --fail --silent "$NEXT_PUBLIC_SITE_URL/login" > /dev/null
+          # La dirección recién asignada puede tardar en aparecer en DNS.
+          curl --fail --silent --show-error --retry 15 --retry-all-errors --retry-delay 2 --retry-max-time 60 --connect-timeout 5 --max-time 10 "$NEXT_PUBLIC_SITE_URL/login" > /dev/null
           echo "Preview de prueba: $NEXT_PUBLIC_SITE_URL" >> "$GITHUB_STEP_SUMMARY"
           echo 'Ingresar como invitado. Base vacía independiente, sin datos ni emails de producción. Expira en 90 minutos; al reiniciar se borran las partidas.' >> "$GITHUB_STEP_SUMMARY"
       - name: 'Verificar partida online: ${{ steps.tunnel.outputs.url }}'
