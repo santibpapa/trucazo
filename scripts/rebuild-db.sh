@@ -21,6 +21,13 @@ cd "$(dirname "$0")/.."
 
 PSQL=(psql -v ON_ERROR_STOP=1 --quiet --no-psqlrc)
 
+# La preview usa Auth/Realtime reales del CLI, en un runner desechable.
+# Nunca permitir este modo contra un proyecto remoto ni con borrado previo.
+if [ "${TRUCAZO_PREVIEW_STACK:-0}" = 1 ]; then
+  [ "${GITHUB_ACTIONS:-}" = true ] && [ "${PGHOST:-}" = 127.0.0.1 ] \
+    && [ "${PGPORT:-}" = 54322 ] && [ "${TRUCAZO_REBUILD_RESET:-0}" = 0 ] || exit 1
+fi
+
 # ------------------------------------------------------------
 # Esto es "desde cero": la base tiene que estar vacía
 # ------------------------------------------------------------
@@ -82,7 +89,16 @@ fi
 SALTEADAS=(20260620_stale_games_cron.sql)
 
 echo "==> 1/5  Andamiaje de Supabase (roles, auth, storage, permisos)"
-"${PSQL[@]}" -f supabase/schema/00_supabase_local.sql
+if [ "${TRUCAZO_PREVIEW_STACK:-0}" = 1 ]; then
+  "${PSQL[@]}" <<'SQL'
+create extension if not exists pgcrypto with schema extensions;
+create extension if not exists pg_cron;
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+SQL
+else
+  "${PSQL[@]}" -f supabase/schema/00_supabase_local.sql
+fi
 
 echo "==> 2/5  Tablas"
 "${PSQL[@]}" -f supabase/schema/tables.sql
@@ -164,7 +180,18 @@ for f in supabase/migrations/*.sql; do
   # -o /dev/null tira el resultado de los select sueltos (los cron.schedule y
   # demás) para que el registro del CI quede legible. Los errores siguen yendo a
   # stderr y ON_ERROR_STOP los sigue haciendo cortar.
+  if [ "${TRUCAZO_PREVIEW_STACK:-0}" = 1 ] && [ "$base" = 20260908160027_immediate_news_campaign.sql ]; then
+    # La foto puede contener novedades: nunca despachar sus emails desde la copia.
+    "${PSQL[@]}" -c 'update public.news set email_enabled = false;'
+  fi
   "${PSQL[@]}" -o /dev/null -f "$f"
+  if [ "${TRUCAZO_PREVIEW_STACK:-0}" = 1 ] && [ "$base" = 20260908160027_immediate_news_campaign.sql ]; then
+    "${PSQL[@]}" <<'SQL'
+update public.news_email_campaign set is_active = false;
+select cron.unschedule('trucazo-news-email-retry');
+alter table public.news disable trigger queue_news_email;
+SQL
+  fi
   total=$((total + 1))
 done
 echo "     $total migraciones aplicadas"
@@ -182,6 +209,19 @@ revoke all on public.team_tables, public.team_seats, public.team_games, public.t
 grant select on public.team_tables, public.team_seats, public.team_games, public.team_hands to authenticated;
 revoke all on public.news_email_campaign, public.news_email_jobs from anon, authenticated;
 SQL
+
+if [ "${TRUCAZO_PREVIEW_STACK:-0}" = 1 ]; then
+  "${PSQL[@]}" <<'SQL'
+do $$ declare t text; begin
+  foreach t in array array['tables','games'] loop
+    if not exists (select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename=t) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end $$;
+notify pgrst, 'reload schema';
+SQL
+fi
 
 echo
 echo "==> Control: ¿quedó todo?"

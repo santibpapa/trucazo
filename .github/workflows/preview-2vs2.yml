@@ -1,0 +1,103 @@
+# Sesión temporal de QA: runner estándar gratuito de un repositorio público.
+# Sin secretos de cuenta, despliegue de producción, artifacts ni cachés de la DB.
+name: Preview temporal 2vs2
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/preview-2vs2.yml'
+      - 'scripts/preview-*'
+      - 'scripts/rebuild-db.sh'
+      - 'supabase/**'
+      - 'src/**'
+      - 'package*.json'
+permissions:
+  contents: read
+concurrency:
+  group: preview-2vs2-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  preview:
+    if: >-
+      github.event.repository.private == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.head_ref == 'codex/2vs2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_ENABLE_2VS2: 'true'
+      PGHOST: 127.0.0.1
+      PGPORT: '54322'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      TRUCAZO_PREVIEW_STACK: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.117.0
+      - name: Preparar herramientas y configuración aislada
+        run: |
+          npm ci
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client
+          supabase --help
+          supabase init --help
+          supabase start --help
+          supabase status --help
+          mkdir -p "$RUNNER_TEMP/trucazo-preview"
+          supabase init --workdir "$RUNNER_TEMP/trucazo-preview"
+          python3 scripts/preview-stack-config.py
+      - name: Iniciar Auth, Postgres y Realtime locales
+        run: |
+          umask 077
+          supabase start --workdir "$RUNNER_TEMP/trucazo-preview" > "$RUNNER_TEMP/stack.log" 2>&1 || {
+            # El log puede contener claves de la copia: mostrar solo el diagnóstico.
+            rg -i 'error|failed|unhealthy' "$RUNNER_TEMP/stack.log" | sed -E 's/eyJ[A-Za-z0-9_.-]+/[JWT]/g'
+            exit 1
+          }
+          supabase status --workdir "$RUNNER_TEMP/trucazo-preview" -o env > "$RUNNER_TEMP/stack.env"
+          source "$RUNNER_TEMP/stack.env"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          scripts/rebuild-db.sh
+          psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/team_games.sql
+          supabase/tests/team_concurrency.sh
+      - name: Abrir enlace temporal de QA
+        id: tunnel
+        run: |
+          curl --fail --silent --show-error --location https://github.com/cloudflare/cloudflared/releases/download/2026.9.0/cloudflared-linux-amd64 -o "$RUNNER_TEMP/cloudflared"
+          echo "53b7a7a5420d188758d24341294acb0d1bca54296548ac05e38811a694ac6134  $RUNNER_TEMP/cloudflared" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/cloudflared"
+          node scripts/preview-proxy.cjs > "$RUNNER_TEMP/proxy.log" 2>&1 &
+          "$RUNNER_TEMP/cloudflared" tunnel --url http://127.0.0.1:4173 --no-autoupdate > "$RUNNER_TEMP/tunnel.log" 2>&1 &
+          for attempt in $(seq 1 60); do
+            PREVIEW_URL=$(rg -o 'https://[a-z0-9-]+\.trycloudflare\.com' "$RUNNER_TEMP/tunnel.log" | head -1 || true)
+            if [ -n "$PREVIEW_URL" ]; then break; fi
+            sleep 1
+          done
+          test -n "$PREVIEW_URL"
+          echo "url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$PREVIEW_URL/supabase" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SITE_URL=$PREVIEW_URL" >> "$GITHUB_ENV"
+      - name: Compilar e iniciar la aplicación
+        run: |
+          npm run build
+          npm run start -- --hostname 127.0.0.1 > "$RUNNER_TEMP/next.log" 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/login > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent "$NEXT_PUBLIC_SITE_URL/login" > /dev/null
+          echo "Preview de prueba: $NEXT_PUBLIC_SITE_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Ingresar como invitado. Base vacía independiente, sin datos ni emails de producción. Expira en 90 minutos; al reiniciar se borran las partidas.' >> "$GITHUB_STEP_SUMMARY"
+      - name: 'Probar durante 90 minutos: ${{ steps.tunnel.outputs.url }}'
+        run: sleep 5400
+      - name: Apagar y borrar la copia
+        if: always()
+        run: supabase stop --workdir "$RUNNER_TEMP/trucazo-preview" --no-backup
