@@ -90,6 +90,9 @@ while (snapshot.table.status === 'playing' && Date.now() < deadline) {
 assert.equal(snapshot.table.status, 'finished', 'La partida debe terminar sin bloqueos')
 assert.equal(snapshot.game.finish_reason, 'points')
 assert.ok(played >= 8, 'Se jugaron rondas completas antes de los cantos')
+// La API local puede cerrar antes de que Realtime procese su primer lote WAL.
+const realtimeDeadline = Date.now() + 15000
+while (events === 0 && Date.now() < realtimeDeadline) await wait(100)
 assert.ok(events > 0, 'Realtime entregó cambios por WebSocket a otro participante')
 for (let seat = 0; seat < 4; seat++) {
   const final = await rpc(clients[seat], 'team_snapshot', { p_table_id: id })
