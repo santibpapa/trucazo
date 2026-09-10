@@ -236,8 +236,8 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
         </div>
         {g.reveal && g.awaiting_deal && <div className={styles.reveal}><span>{member(g.reveal.seat)?.username}: {g.reveal.points} en mesa</span><div>{g.reveal.cards.map(c => <div key={`${c.suit}-${c.value}`}><PlayingCard card={c} /></div>)}</div></div>}
         <div className={styles.hand} aria-label="Tus cartas">{state.hand.map(c => <button key={`${g.hand_number}-${c.suit}-${c.value}`} aria-label={`Jugar ${c.value} de ${c.suit}`} disabled={busy || !state.legal.includes('play')} onClick={() => { void act('play', undefined, c) }}><PlayingCard card={c} /></button>)}</div>
-        {g.announcement && <div className={styles.announcement} key={g.announcement.at} role="status"><strong>{member(g.announcement.seat)?.username}</strong>: {g.announcement.text}</div>}
       </section>
+      <div className={styles.callout}>{g.announcement && <div className={styles.announcement} key={g.announcement.at} role="status"><strong>{member(g.announcement.seat)?.username}:</strong><span>{g.announcement.text}</span></div>}</div>
       <div className={styles.status} role="status"><span>{connected ? status : 'Reconectando…'}</span>{!g.awaiting_deal && <strong>{seconds}s</strong>}</div>
       <div className={styles.actions} aria-label="Acciones de la partida">
         {state.legal.filter(a => a !== 'play').map(a => <Button key={a} className={salon.action} variant={a === 'mazo' || a.endsWith('_no') ? 'ghost' : a.endsWith('_yes') ? 'positive' : 'secondary'} disabled={busy} onClick={() => { void act(a) }}>{a === 'tengo' ? `Tengo ${tanto}` : labels[a]}</Button>)}

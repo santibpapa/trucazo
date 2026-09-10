@@ -98,3 +98,59 @@ for (let seat = 0; seat < 4; seat++) {
 }
 await clients[1].removeChannel(channel)
 console.log(`OK: 4 invitados, cartas privadas, recarga, ${played} cartas jugadas, ${events} eventos Realtime y resultado compartido.`)
+
+async function checkWithBots(humanSeats) {
+  const people = new Map()
+  for (const seat of humanSeats) {
+    const client = makeClient()
+    const { error } = await client.auth.signInAnonymously()
+    assert.equal(error, null, error?.message)
+    people.set(seat, client)
+  }
+  const owner = people.get(0)
+  let state = await rpc(owner, 'team_create', {
+    p_request_id: randomUUID(), p_name: `Online ${humanSeats.join('-')} + bots`,
+    p_bet: 10, p_target_score: 15, p_time_limit: 30, p_is_private: false,
+  })
+  const tableId = state.table.id
+  const action = async (client, name, seat = null, card = null) => {
+    state = await rpc(client, 'team_action', {
+      p_table_id: tableId, p_request_id: randomUUID(), p_version: state.table.version,
+      p_action: name, p_seat: seat, p_card: card,
+    })
+  }
+  for (const seat of humanSeats) {
+    const client = people.get(seat)
+    if (seat) state = await rpc(client, 'team_join', { p_request_id: randomUUID(), p_table_id: tableId })
+    await action(client, 'seat', seat)
+  }
+  for (let seat = 0; seat < 4; seat++) if (!people.has(seat)) await action(owner, 'add_bot', seat)
+  await action(owner, 'start')
+  const until = Date.now() + 480000
+  while (state.table.status === 'playing' && Date.now() < until) {
+    if (state.game.awaiting_deal || state.actor_is_bot) {
+      await wait(state.game.awaiting_deal ? 2600 : 1350)
+      await action(owner, 'tick')
+      continue
+    }
+    const client = people.get(state.actor)
+    assert.ok(client, 'El turno humano pertenece a un participante')
+    state = await rpc(client, 'team_snapshot', { p_table_id: tableId })
+    const priorities = ['tengo', 'son_buenas', 'envido_yes', 'truco_yes',
+      ...(state.game.hand_number > 1 ? ['falta_envido', 'truco'] : []), 'play']
+    const name = priorities.find(a => state.legal.includes(a))
+    assert.ok(name, `Sin acción humana: ${humanSeats}`)
+    await action(client, name, null, name === 'play' ? state.hand[0] : null)
+  }
+  assert.equal(state.table.status, 'finished', `Bloqueo con humanos en ${humanSeats}`)
+  assert.equal(state.game.finish_reason, 'points', 'Debe terminar por puntos, sin timeouts artificiales')
+  for (const [seat, client] of people) {
+    const final = await rpc(client, 'team_snapshot', { p_table_id: tableId })
+    assert.equal(final.my_seat, seat)
+    assert.deepEqual(final.game.scores, state.game.scores)
+    assert.equal(final.game.winner_team, state.game.winner_team)
+  }
+  console.log(`OK online: humanos ${humanSeats.join('/')} y ${4-humanSeats.length} bots, resultado ${state.game.scores.join('-')}.`)
+}
+// Mesas independientes: cada una usa invitados propios y el bot del servidor.
+await Promise.all([[0], [0, 2], [0, 1], [0, 1, 2]].map(checkWithBots))
