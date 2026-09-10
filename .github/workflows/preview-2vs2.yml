@@ -46,7 +46,7 @@ jobs:
         run: |
           npm ci
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends postgresql-client
+          sudo apt-get install -y --no-install-recommends postgresql-client ripgrep
           supabase --help
           supabase init --help
           supabase start --help
@@ -96,6 +96,8 @@ jobs:
           curl --fail --silent "$NEXT_PUBLIC_SITE_URL/login" > /dev/null
           echo "Preview de prueba: $NEXT_PUBLIC_SITE_URL" >> "$GITHUB_STEP_SUMMARY"
           echo 'Ingresar como invitado. Base vacía independiente, sin datos ni emails de producción. Expira en 90 minutos; al reiniciar se borran las partidas.' >> "$GITHUB_STEP_SUMMARY"
+      - name: 'Verificar partida online: ${{ steps.tunnel.outputs.url }}'
+        run: node scripts/preview-online-check.mjs
       - name: 'Probar durante 90 minutos: ${{ steps.tunnel.outputs.url }}'
         run: sleep 5400
       - name: Apagar y borrar la copia

@@ -36,7 +36,7 @@ anonymous_users = 100
 enabled = true
 [studio]
 enabled = false
-[inbucket]
+[local_smtp]
 enabled = false
 [storage]
 enabled = true
