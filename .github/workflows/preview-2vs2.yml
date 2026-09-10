@@ -94,7 +94,12 @@ jobs:
             sleep 1
           done
           # La dirección recién asignada puede tardar en aparecer en DNS.
-          curl --fail --silent --show-error --retry 15 --retry-all-errors --retry-delay 2 --retry-max-time 60 --connect-timeout 5 --max-time 10 "$NEXT_PUBLIC_SITE_URL/login" > /dev/null
+          curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 3 --retry-max-time 120 --connect-timeout 5 --max-time 10 "$NEXT_PUBLIC_SITE_URL/login" > /dev/null || {
+            cat "$RUNNER_TEMP/tunnel.log"
+            cat "$RUNNER_TEMP/proxy.log"
+            cat "$RUNNER_TEMP/next.log"
+            exit 1
+          }
           echo "Preview de prueba: $NEXT_PUBLIC_SITE_URL" >> "$GITHUB_STEP_SUMMARY"
           echo 'Ingresar como invitado. Base vacía independiente, sin datos ni emails de producción. Expira en 90 minutos; al reiniciar se borran las partidas.' >> "$GITHUB_STEP_SUMMARY"
       - name: 'Verificar partida online: ${{ steps.tunnel.outputs.url }}'
