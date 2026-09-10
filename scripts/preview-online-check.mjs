@@ -3,9 +3,9 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+const url = process.env.TRUCAZO_PREVIEW_API_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
 assert.equal(process.env.GITHUB_ACTIONS, 'true')
-assert.match(url ?? '', /^https:\/\/[a-z0-9-]+\.trycloudflare\.com\/supabase$/)
+assert.ok(url === 'http://127.0.0.1:4173/supabase' || /^https:\/\/[a-z0-9-]+\.trycloudflare\.com\/supabase$/.test(url ?? ''))
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const makeClient = () => createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms))

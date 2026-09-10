@@ -85,7 +85,7 @@ jobs:
           echo "url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
           echo "NEXT_PUBLIC_SUPABASE_URL=$PREVIEW_URL/supabase" >> "$GITHUB_ENV"
           echo "NEXT_PUBLIC_SITE_URL=$PREVIEW_URL" >> "$GITHUB_ENV"
-      - name: Compilar e iniciar la aplicación
+      - name: 'Compilar e iniciar: ${{ steps.tunnel.outputs.url }}'
         run: |
           npm run build
           npm run start -- --hostname 127.0.0.1 > "$RUNNER_TEMP/next.log" 2>&1 &
@@ -93,7 +93,15 @@ jobs:
             if curl --fail --silent http://127.0.0.1:3000/login > /dev/null; then break; fi
             sleep 1
           done
-          # La dirección recién asignada puede tardar en aparecer en DNS.
+          curl --fail --silent --show-error http://127.0.0.1:4173/login > /dev/null
+      - name: Verificar las cinco composiciones por Auth, API y Realtime
+        env:
+          TRUCAZO_PREVIEW_API_URL: http://127.0.0.1:4173/supabase
+        run: node scripts/preview-online-check.mjs
+      - name: 'Comprobar acceso público: ${{ steps.tunnel.outputs.url }}'
+        continue-on-error: true
+        run: |
+          # Un fallo externo no borra antes de tiempo la copia ya verificada.
           curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 3 --retry-max-time 120 --connect-timeout 5 --max-time 10 "$NEXT_PUBLIC_SITE_URL/login" > /dev/null || {
             cat "$RUNNER_TEMP/tunnel.log"
             cat "$RUNNER_TEMP/proxy.log"
@@ -102,8 +110,6 @@ jobs:
           }
           echo "Preview de prueba: $NEXT_PUBLIC_SITE_URL" >> "$GITHUB_STEP_SUMMARY"
           echo 'Ingresar como invitado. Base vacía independiente, sin datos ni emails de producción. Expira en 90 minutos; al reiniciar se borran las partidas.' >> "$GITHUB_STEP_SUMMARY"
-      - name: 'Verificar partida online: ${{ steps.tunnel.outputs.url }}'
-        run: node scripts/preview-online-check.mjs
       - name: 'Probar durante 90 minutos: ${{ steps.tunnel.outputs.url }}'
         run: sleep 5400
       - name: Apagar y borrar la copia
