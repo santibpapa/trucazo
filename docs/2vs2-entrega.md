@@ -164,8 +164,9 @@ cambios respecto de la base del PR. Es una limitación anterior de la pantalla 1
 no del resultado 2vs2. No se modificó ese flujo dentro de esta entrega.
 
 Pendiente de cierre visual: 430 px, escritorio y un salón con mesa integrada
-(Quincho). El navegador se interrumpió durante esa comprobación; la compra no se
-da por realizada. Las comprobaciones de tamaño usan un marco del tamaño indicado
+(Quincho). El 11/09 el navegador bloqueó la apertura de la tienda por su política
+de acceso; no se intentó eludir ese bloqueo. La compra no se da por realizada.
+Las comprobaciones de tamaño usan un marco del tamaño indicado
 en Chrome, no un iPhone físico. No se acredita una sesión manual con cuatro
 personas en dispositivos distintos: esas composiciones se verificaron con sesiones
 independientes por la API real y en pruebas de concurrencia.
