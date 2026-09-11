@@ -183,3 +183,16 @@ No cambian las reglas, los controles de acción ni el 1vs1.
 
 TypeScript y lint del componente pasan. La comprobación visual de esta versión
 y su enlace temporal se registran en el PR #57.
+
+### Corrección de superposición en iPhone
+
+La captura posterior del dueño mostró un cruce entre las pilas enfrentadas con
+la altura útil reducida por las barras del navegador. Las medidas de 568 y
+844 px comprobadas antes no cubrían ese tamaño intermedio.
+
+El área de acciones ahora reserva dos filas y crece a tres únicamente cuando
+los cantos lo necesitan. Ese espacio se suma a la mesa y baja las cartas propias
+y la barra del turno. El tamaño de las cartas jugadas también respeta un espacio
+mínimo de 16 px entre las dos pilas enfrentadas, contando el desplazamiento de
+las tres cartas. Se conservan la estética y todos los botones; no cambia el motor.
+La verificación de alturas intermedias, cantos y el nuevo enlace van en el PR #57.
