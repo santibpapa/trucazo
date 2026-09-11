@@ -19,7 +19,7 @@ No ejecutar esta migración en producción como parte de la revisión.
   el compañero, cantos y respuesta con prioridad humana.
 - **Interfaz:** lobby existente, sala de asientos y `/game/parejas/[id]`. Componentes
   de salón, cartas y botones existentes; jugador abajo, compañero arriba, rivales
-  a los lados. Rondas anteriores consultables y autor de cantos visible.
+  a los lados. Cartas jugadas apiladas frente a cada asiento y autor de cantos visible.
 - **Sincronización:** Realtime anuncia cambios públicos; consulta cada 2,5 s de
   respaldo y al volver a la pestaña. Asiento ligado al usuario para recargas.
   Versión de mesa más identificador de solicitud y bloqueo servidor por mesa.
@@ -142,7 +142,7 @@ La sesión se apagó y borró correctamente al vencer sus 90 minutos.
 El envido puede superar el objetivo: por eso 16 puntos es un cierre válido.
 Cada persona usa una sesión Auth independiente y cada bot decide en el servidor.
 
-### Navegador
+### Navegador — versión anterior al ajuste de pilas
 
 El 10/09/2026 se verificó con Chrome e invitado de prueba:
 
@@ -170,3 +170,16 @@ Las comprobaciones de tamaño usan un marco del tamaño indicado
 en Chrome, no un iPhone físico. No se acredita una sesión manual con cuatro
 personas en dispositivos distintos: esas composiciones se verificaron con sesiones
 independientes por la API real y en pruebas de concurrencia.
+
+### Ajuste visual solicitado el 11/09/2026
+
+El dueño probó la preview y confirmó el funcionamiento. Solicitó quitar las
+pestañas de rondas y las referencias repetidas sobre las cartas. La interfaz
+ahora conserva las cartas de toda la mano en cuatro pilas, frente a cada asiento;
+la carta más reciente queda encima, con un pequeño desplazamiento que deja ver
+las anteriores. Las pilas se vacían con el siguiente reparto. Los nombres se
+mantienen junto a los jugadores; se retiran las leyendas de compañero/rival.
+No cambian las reglas, los controles de acción ni el 1vs1.
+
+TypeScript y lint del componente pasan. La comprobación visual de esta versión
+y su enlace temporal se registran en el PR #57.

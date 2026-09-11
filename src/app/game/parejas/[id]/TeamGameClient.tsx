@@ -44,7 +44,6 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
   const [connected, setConnected] = useState(true)
   const [seconds, setSeconds] = useState(initial.table.time_limit)
   const [showExit, setShowExit] = useState(false)
-  const [historyRound, setHistoryRound] = useState<number | null>(null)
   const pending = useRef<{ key: string; id: string } | null>(null)
   const acting = useRef(false)
   const disposed = useRef(false)
@@ -137,7 +136,6 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
     document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; document.body.style.overscrollBehavior = 'none'
     return () => { document.documentElement.style.overflow = previous.html; document.body.style.overflow = previous.body; document.body.style.overscrollBehavior = previous.over }
   }, [state.table.status])
-  useEffect(() => { setHistoryRound(null) }, [state.game?.hand_number, state.game?.round])
   useEffect(() => {
     const g = state.game
     if (g) for (const c of g.played) animated.current.add(`${g.hand_number}-${c.round}-${c.seat}`)
@@ -192,7 +190,6 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
     </Panel>
   </main>
 
-  const displayRound = historyRound ?? g.round
   const relativeSeats = [0, 1, 2, 3].map(n => (mySeat + n) % 4)
   const fullHand = [...state.hand, ...g.played.filter(c => c.seat === mySeat).map(c => c.card)]
   const tanto = getEnvidoPoints(fullHand)
@@ -207,7 +204,6 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
     return <div key={m.seat} className={`${styles.player} ${styles[`position${relative}`]} ${state.actor === m.seat && !g!.awaiting_deal ? styles.active : ''}`} data-team-hand={m.seat}>
       <Avatar url={m.avatar_url} name={m.username} size={32} />
       <span className={styles.playerName}>{m.user_id === userId ? 'Vos' : m.username}</span>
-      {relative !== 0 && <span className={styles.relation}>{relative === 2 ? 'Tu compañero' : 'Rival'}</span>}
       {relative !== 0 && <div className={styles.backs} aria-label={`${m.username}: cartas ocultas`}>{Array.from({ length: Math.max(0, 3 - g!.played.filter(c => c.seat === m.seat).length) }, (_, i) => <div key={i}><CardBack /></div>)}</div>}
     </div>
   }
@@ -224,16 +220,12 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
       <section className={styles.stage} data-team-stage aria-label="Mesa de cuatro jugadores">
         <SalonTable slug={salonSlug} />
         {relativeSeats.map((seat, relative) => seatView(member(seat), relative))}
-        <div className={styles.playedArea}>
-          <div className={styles.roundTabs} aria-label="Rondas de la mano">{[1, 2, 3].map(round => <button key={round} disabled={round > g.round} aria-pressed={round === displayRound} onClick={() => setHistoryRound(round === g.round ? null : round)}>Ronda {round}</button>)}</div>
-          <div className={styles.playedCards}>{relativeSeats.map(seat => {
-            const played = g.played.find(c => c.round === displayRound && c.seat === seat)
-            const key = `${g.hand_number}-${displayRound}-${seat}`
-            return <div key={key} className={styles.playedSlot}><span>{seat === mySeat ? 'Vos' : member(seat)?.username}</span>
-              {played && <Played card={played.card} seat={seat} animate={!animated.current.has(key)} />}
-            </div>
-          })}</div>
-        </div>
+        {relativeSeats.map((seat, relative) => <div key={seat} className={`${styles.pile} ${styles[`pile${relative}`]}`} role="group" aria-label={`Cartas jugadas por ${seat === mySeat ? 'vos' : member(seat)?.username}`}>
+          {g.played.filter(c => c.seat === seat).map(played => {
+            const key = `${g.hand_number}-${played.round}-${seat}`
+            return <div key={key} className={styles.playedCard}><Played card={played.card} seat={seat} animate={!animated.current.has(key)} /></div>
+          })}
+        </div>)}
         {g.reveal && g.awaiting_deal && <div className={styles.reveal}><span>{member(g.reveal.seat)?.username}: {g.reveal.points} en mesa</span><div>{g.reveal.cards.map(c => <div key={`${c.suit}-${c.value}`}><PlayingCard card={c} /></div>)}</div></div>}
         <div className={styles.hand} aria-label="Tus cartas">{state.hand.map(c => <button key={`${g.hand_number}-${c.suit}-${c.value}`} aria-label={`Jugar ${c.value} de ${c.suit}`} disabled={busy || !state.legal.includes('play')} onClick={() => { void act('play', undefined, c) }}><PlayingCard card={c} /></button>)}</div>
       </section>
