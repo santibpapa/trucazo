@@ -5,15 +5,16 @@ partidas completas, servidor autoritativo y pantalla de juego sin desplazamiento
 La entrega termina en PRs revisables y una preview funcional. **No hacer merge ni
 lanzar a producción sin autorización del dueño.**
 
-## Estado al 09/09/2026
+## Estado al 11/09/2026
 
 - Base auditada: `master`, commit `708162b0aec85b3053702978045a7f19c0932c23`.
 - Rama de trabajo: `codex/2vs2`.
 - Etapa 1 completada: diagnóstico y todas las decisiones D1–D5 y Q1–Q3 confirmadas.
 - Backend de etapas 2–4 y 6 implementado; suite SQL ejecutada en base descartable
-  PGlite con todas las migraciones. Pruebas concurrentes agregadas a CI.
-- Interfaz/lobby implementados en el espacio de trabajo; build y tipos pasan.
-- Pendiente: verificación visual, CI nativo, preview aislada y revisión final.
+  PGlite y Supabase local real con todas las migraciones. Concurrencia nativa y CI pasan.
+- Interfaz/lobby implementados en el PR #57; build y tipos pasan.
+- Preview aislada validada con las cinco composiciones por API. Partidas completas
+  en navegador: 2vs2 (15–8) y 1vs1 (8–15). Pendiente: tamaños y salón adicionales.
 - No se modificó la base de producción ni se enviaron comunicaciones.
 
 ## Decisiones del dueño que ya están confirmadas
@@ -77,22 +78,24 @@ lanzar a producción sin autorización del dueño.**
 
 | Recorrido | Estado |
 |---|---|
-| Cuatro personas terminan una partida | Pendiente |
-| Tres personas y un bot | Pendiente |
-| Dos personas compañeras y dos bots | Pendiente |
-| Dos personas rivales y dos bots | Pendiente |
-| Una persona y tres bots | Pendiente |
-| Envido y truco: aumentos, rechazo, respuestas simultáneas | Pendiente |
-| Empates y mazo de cualquiera que cierra la mano | Pendiente |
-| Recarga, reconexión, timeout y abandono | Pendiente |
-| Resultado por equipo y vuelta al lobby | Pendiente |
-| Celulares de 320–430 px, alturas reducidas y escritorio | Pendiente |
-| Privacidad de las cuatro manos y decisiones de los bots | Pendiente |
-| Sin duplicación de puntos, cobros ni efectos de misiones | Pendiente |
-| Regresión de mesas, partidas y cierre del 1vs1 | Pendiente |
+| Cuatro personas terminan una partida | SQL y API online: correctos (20 cartas, 22 eventos Realtime) |
+| Tres personas y un bot | SQL y API online: correctos; partida completa por puntos |
+| Dos personas compañeras y dos bots | SQL y API online: correctos; partida completa por puntos |
+| Dos personas rivales y dos bots | SQL y API online: correctos; partida completa por puntos |
+| Una persona y tres bots | SQL y API online: correctos; partida completa por puntos |
+| Envido y truco: aumentos, rechazo, respuestas simultáneas | SQL y concurrencia: correctos; revisión online/visual en curso |
+| Empates y mazo de cualquiera que cierra la mano | SQL y concurrencia: correctos; revisión online/visual en curso |
+| Recarga, reconexión, timeout y abandono | SQL y concurrencia: correctos; revisión online/visual en curso |
+| Resultado por equipo y vuelta al lobby | Correcto en navegador: 15–8, cobro 20 y regreso |
+| Celulares de 320–430 px, alturas reducidas y escritorio | 320×568 y 390×844 correctos; resto pendiente |
+| Privacidad de las cuatro manos y decisiones de los bots | SQL y concurrencia: correctos; revisión online/visual en curso |
+| Sin duplicación de puntos, cobros ni efectos de misiones | SQL y concurrencia: correctos; revisión online/visual en curso |
+| Regresión de mesas, partidas y cierre del 1vs1 | Partida completa correcta; altura del resultado 1vs1 limitada en 568 px, problema previo |
 
 ## Continuación
 
-Ejecutar CI contra PostgreSQL nativo, verificar toda la interfaz en navegador y
-preparar una preview con base aislada de producción. Mantener el PR en borrador
-hasta completar esas verificaciones. No hacer merge ni lanzamiento.
+CI nativo y las cinco composiciones online pasan. La corrección móvil de
+`61f68c6` quedó verificada en 320×568 y 390×844 con partida completa y regreso.
+Completar 430 px, escritorio y Quincho. Mantener el PR en borrador hasta cerrar
+la revisión; no hacer merge ni lanzamiento. Ver evidencia y límites en
+`docs/2vs2-entrega.md`.
