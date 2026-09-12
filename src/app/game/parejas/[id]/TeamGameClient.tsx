@@ -32,7 +32,10 @@ function Played({ card, seat, animate }: { card: Card; seat: number; animate: bo
       { transform: 'translate(0,0) scale(1)' },
     ], { duration: 380, easing: 'cubic-bezier(.22,.7,.24,1)' })
     return () => animation.cancel()
-  }, [animate, seat])
+    // Solo al montar: la carta vuela una vez. Si dependiera de `animate`, el
+    // primer re-render (reloj, Realtime) la cancelaría a mitad de camino.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   return <div ref={ref}><PlayingCard card={card} /></div>
 }
 
@@ -131,7 +134,9 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
   }, [act])
 
   useEffect(() => {
-    if (state.table.status === 'waiting') return
+    // Solo mientras se juega: las pantallas de resultado y de mesa cancelada
+    // pueden ser más altas que el celular y necesitan scroll para llegar al botón.
+    if (state.table.status !== 'playing') return
     const previous = { html: document.documentElement.style.overflow, body: document.body.style.overflow, over: document.body.style.overscrollBehavior }
     document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; document.body.style.overscrollBehavior = 'none'
     return () => { document.documentElement.style.overflow = previous.html; document.body.style.overflow = previous.body; document.body.style.overscrollBehavior = previous.over }
