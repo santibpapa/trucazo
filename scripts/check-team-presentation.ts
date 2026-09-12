@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { announcementRemaining, teamAnnouncement } from '../src/lib/team-presentation'
+import { announcementRemaining, teamAnnouncement, teamActionRows } from '../src/lib/team-presentation'
 import type { TeamSnapshot } from '../src/lib/team-game'
 
 const now = '2026-09-12T15:00:00Z'
@@ -29,4 +29,13 @@ snapshot.game!.announcement = null
 assert.equal(teamAnnouncement(snapshot), null, 'La nueva mano no hereda el cartel anterior')
 snapshot.my_seat = null
 assert.equal(teamAnnouncement(snapshot), null)
+assert.deepEqual(teamActionRows(['mazo', 'play', 'truco', 'envido', 'real_envido', 'falta_envido']), [
+  ['envido', 'real_envido', 'falta_envido'], ['truco', 'mazo'],
+])
+const sevenActions = ['mazo', 'truco_yes', 'truco_no', 'retruco', 'envido', 'real_envido', 'falta_envido']
+assert.deepEqual(teamActionRows(sevenActions), [
+  ['truco_yes', 'retruco', 'truco_no'], ['envido', 'real_envido', 'falta_envido'], ['mazo'],
+], 'Los siete permisos entran en tres filas, con el mismo orden de respuesta que 1vs1')
+assert.deepEqual(teamActionRows(['son_buenas', 'mazo']), [['son_buenas', 'mazo']])
+assert.deepEqual(teamActionRows([]), [], 'No agrega acciones cuando no corresponde actuar')
 console.log('Presentación 2vs2: autores, cantos, privacidad y vencimiento OK')

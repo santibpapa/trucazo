@@ -8,7 +8,7 @@ import { createDeck, getCardImage, getEnvidoPoints, type Card } from '@/lib/truc
 import { Button, CoinIcon } from '@/components/ui'
 import PlayingCard from '@/components/game/PlayingCard'
 import FinishScreen from '@/components/game/FinishScreen'
-import { SeatAvatar, TableAccessory, MesaButton, MesaAnnouncement, MesaHeader, MesaTurn, MesaToolbar, EmoteTray, DEAL_ORIGINS, type Announce } from '@/components/game/MesaUI'
+import { SeatAvatar, TableAccessory, MesaButton, MesaAnnouncement, MesaHeader, MesaTurn, MesaToolbar, EmoteTray, MesaDeck, DEAL_ORIGINS, type Announce } from '@/components/game/MesaUI'
 import CardBack from '@/components/game/CardBack'
 import { TableCard, useCardFlight } from '@/components/game/CardMotion'
 import { playSound, isMuted, setMuted } from '@/lib/sounds'
@@ -1084,13 +1084,7 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
         {/* Mazo: pila de dorsos de la que "salen" las cartas al repartir. En
             celular va más abajo, bien sobre el paño (arriba quedaba fuera del
             óvalo, que en la mesa achatada ya no llega a esa esquina). */}
-        <div className={styles.deck} aria-hidden="true">
-          <div className="relative w-7 sm:w-9 aspect-[11/17] drop-shadow-md">
-            <CardBack className="absolute inset-0 translate-x-[3px] -translate-y-[3px] opacity-60" />
-            <CardBack className="absolute inset-0 translate-x-[1.5px] -translate-y-[1.5px] opacity-80" />
-            <CardBack className="absolute inset-0" />
-          </div>
-        </div>
+        <MesaDeck />
 
         {/* Cartas del oponente boca abajo, en abanico (no conocemos sus cartas,
             solo cuántas le quedan). Alto fijo: cuando se queda sin cartas la fila

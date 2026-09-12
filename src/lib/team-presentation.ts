@@ -14,6 +14,18 @@ export const CANTO_SOUNDS: Record<string, SoundName> = {
   envido_yes: 'quiero', truco_yes: 'quiero', envido_no: 'no-quiero', truco_no: 'no-quiero',
 }
 
+/** Conserva el orden visual del 1vs1, mostrando sólo permisos del servidor. */
+export function teamActionRows(legal: string[]): string[][] {
+  const declaring = legal.includes('tengo') || legal.includes('son_buenas')
+  const answeringTruco = legal.includes('truco_yes')
+  return [
+    declaring ? ['son_buenas', 'tengo', 'mazo'] : answeringTruco
+      ? ['truco_yes', 'retruco', 'vale_cuatro', 'truco_no'] : ['envido_yes', 'envido_no'],
+    ['envido', 'real_envido', 'falta_envido'],
+    declaring ? [] : answeringTruco ? ['mazo'] : ['truco', 'retruco', 'vale_cuatro', 'mazo'],
+  ].map(row => row.filter(action => legal.includes(action))).filter(row => row.length > 0)
+}
+
 /** Presentación de un evento público del servidor. No infiere cantos ni tantos ocultos. */
 export function teamAnnouncement(snapshot: TeamSnapshot): Announce | null {
   const { game, my_seat: seat, members } = snapshot

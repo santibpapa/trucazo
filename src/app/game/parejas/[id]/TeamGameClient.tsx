@@ -8,8 +8,8 @@ import { SalonBackground, SalonTable } from '@/components/game/SalonScene'
 import PlayingCard from '@/components/game/PlayingCard'
 import CardBack from '@/components/game/CardBack'
 import FinishScreen from '@/components/game/FinishScreen'
-import { MesaHeader, MesaButton, MesaTurn, MesaAnnouncement, SeatAvatar, TableAccessory, DEAL_ORIGINS } from '@/components/game/MesaUI'
-import { TEAM_LABELS as labels } from '@/lib/team-presentation'
+import { MesaHeader, MesaButton, MesaTurn, MesaAnnouncement, SeatAvatar, TableAccessory, MesaDeck, DEAL_ORIGINS } from '@/components/game/MesaUI'
+import { TEAM_LABELS as labels, teamActionRows } from '@/lib/team-presentation'
 import useTeamPresentation from './useTeamPresentation'
 import TeamToolbar from './TeamToolbar'
 import useTeamCosmetics from './useTeamCosmetics'
@@ -230,6 +230,7 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
       <MesaHeader salonSlug={salonSlug} left={{ name: 'Nosotros', score: g.scores[team] }} right={{ name: 'Ellos', score: g.scores[1 - team] }} target={table.target_score} pot={table.bet * 4} mano={g.mano === mySeat ? 'vos' : g.mano % 2 === team ? 'compañero' : 'rival'} />
       <section className={styles.stage} data-team-stage aria-label="Mesa de cuatro jugadores">
         <SalonTable slug={salonSlug} />
+        <MesaDeck className={styles.deck} />
         <TeamToolbar tableId={table.id} members={members} userId={userId} mySeat={mySeat} playing={table.status === 'playing'} />
         {announce && <MesaAnnouncement key={g.announcement?.at} announce={announce} />}
         {relativeSeats.map((seat, relative) => seatView(member(seat), relative))}
@@ -252,11 +253,7 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
       <MesaTurn active={active} seconds={g.awaiting_deal || table.status !== 'playing' ? null : seconds}>{connected ? status : 'Reconectando…'}</MesaTurn>
       <div className={`${salon.actions} ${styles.actions}`} aria-label="Acciones de la partida">
         <div className={styles.actionRows}>
-          {[
-            state.legal.filter(a => ['envido_yes', 'envido_no', 'truco_yes', 'truco_no', 'tengo', 'son_buenas'].includes(a)),
-            state.legal.filter(a => ['envido', 'real_envido', 'falta_envido'].includes(a)),
-            state.legal.filter(a => ['truco', 'retruco', 'vale_cuatro', 'mazo'].includes(a)),
-          ].filter(row => row.length).map((row, i) => <div key={i} className="flex gap-2">
+          {teamActionRows(state.legal).map((row, i) => <div key={i} className="flex gap-2">
             {row.map(a => <MesaButton key={a} tone={a === 'mazo' ? 'ghost' : a.endsWith('_no') ? 'danger' : a.endsWith('_yes') ? 'positive' : ['tengo', 'truco', 'retruco', 'vale_cuatro'].includes(a) ? 'gold' : 'outline'} disabled={busy || table.status !== 'playing'} onClick={() => { void act(a) }}>{a === 'tengo' ? `Tengo ${tanto}` : labels[a]}</MesaButton>)}
           </div>)}
         </div>

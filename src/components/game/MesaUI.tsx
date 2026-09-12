@@ -6,6 +6,17 @@ import { getFrameTheme } from '@/lib/marcos'
 import { getMedal } from '@/lib/medallas'
 import { getSalonTheme } from '@/lib/salones'
 import styles from './salon.module.css'
+import CardBack from './CardBack'
+
+export function MesaDeck({ className = '' }: { className?: string }) {
+  return <div className={`${styles.deck} ${className}`} aria-hidden="true">
+    <div className="relative w-7 sm:w-9 aspect-[11/17] drop-shadow-md">
+      <CardBack className="absolute inset-0 translate-x-[3px] -translate-y-[3px] opacity-60" />
+      <CardBack className="absolute inset-0 translate-x-[1.5px] -translate-y-[1.5px] opacity-80" />
+      <CardBack className="absolute inset-0" />
+    </div>
+  </div>
+}
 
 /** La misma cabecera y el mismo reloj en las dos modalidades. */
 export function MesaHeader({ salonSlug, left, right, target, pot, mano }: {

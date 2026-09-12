@@ -28,7 +28,7 @@
 .playedCard:nth-child(3) { left: calc(2 * var(--stack-step)); top: 4px; z-index: 2; }
 .hand { position: absolute; z-index: 5; bottom: var(--hand-bottom); left: 50%; transform: translateX(-50%); display: flex; gap: 7px; }
 .hand button { width: var(--hand-card-width); }
-.game .actions { flex: 0 0 162px; gap: 4px; }
+.game .actions { flex: 0 0 auto; min-height: 126px; gap: 4px; }
 .actionRows { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
 .reveal { position: absolute; z-index: 9; top: 43%; left: 50%; transform: translate(-50%,-50%); display: flex; gap: 4px; pointer-events: none; }
 .reveal > div { width: min(14cqh,58px); }
@@ -48,7 +48,7 @@
   .stage { --partner-pile-top: calc(min(8cqh,36px) + 22px); }
   .backs { display: none; }
   .playerName { font-size: 13px; }
-  .game .actions { flex-basis: 150px; }
+  .game .actions { min-height: 110px; }
   .actionRows button { height: 40px; min-height: 40px; }
 }
 @media(prefers-reduced-motion:reduce) { .hand button { transition: none; } }
@@ -58,3 +58,5 @@
 .stage .accessory1 { top: 27%; bottom: auto; left: auto; right: 0; }
 .stage .accessory2 { top: 0; bottom: auto; left: 20%; right: auto; }
 .stage .accessory3 { top: 27%; bottom: auto; left: 0; right: auto; }
+
+.stage .deck { top: 48px; right: 0; }
