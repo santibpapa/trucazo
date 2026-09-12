@@ -50,6 +50,9 @@ jobs:
       - name: Verificar actualización de mesas al volver al lobby
         run: node --import tsx scripts/check-lobby-tables.ts
 
+      - name: Verificar presentación de cantos por equipos
+        run: node --import tsx scripts/check-team-presentation.ts
+
       - name: Que la lógica de truco del cliente y la del servidor coincidan
         run: npx tsx scripts/sim.ts
 
@@ -131,3 +134,9 @@ jobs:
 
       - name: Novedades inmediatas, pausa y aislamiento
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/immediate_news.sql
+
+      - name: Motor, bots y privacidad de partidas 2vs2
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/team_games.sql
+
+      - name: Concurrencia real entre participantes 2vs2
+        run: supabase/tests/team_concurrency.sh

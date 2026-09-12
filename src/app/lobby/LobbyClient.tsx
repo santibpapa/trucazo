@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -14,6 +14,8 @@ import FriendsPanel from '@/components/FriendsPanel'
 import ChatGlobal from '@/components/ChatGlobal'
 import ObjectivesFloatingButton from '@/components/objectives/ObjectivesFloatingButton'
 import type { ObjectivesData } from '@/lib/objectives'
+import { teamModeEnabled, type TeamSnapshot } from '@/lib/team-game'
+import TeamTables from '@/components/game/TeamTables'
 
 interface Props {
   profile: Profile
@@ -45,6 +47,8 @@ export default function LobbyClient({
   const [targetScore, setTargetScore] = useState(30)
   const [timeLimit, setTimeLimit] = useState(30)
   const [isPrivate, setIsPrivate] = useState(false)
+  const [mode, setMode] = useState('1vs1')
+  const teamRequest = useRef<{ key: string; id: string } | null>(null)
   const [joinCode, setJoinCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -129,6 +133,22 @@ export default function LobbyClient({
 
     setLoading(true)
     setError('')
+
+    if (teamModeEnabled && mode === '2vs2') {
+      const key = JSON.stringify(['create', tableName.trim(), betNum, targetScore, timeLimit, isPrivate])
+      if (teamRequest.current?.key !== key) teamRequest.current = { key, id: crypto.randomUUID() }
+      const result = await supabase.rpc('team_create', {
+        p_request_id: teamRequest.current.id, p_name: tableName.trim(), p_bet: betNum,
+        p_target_score: targetScore, p_time_limit: timeLimit, p_is_private: isPrivate,
+      })
+      setLoading(false)
+      if (result.error || !result.data) { setError(result.error?.message || 'No se pudo crear la mesa'); return }
+      teamRequest.current = null
+      const next = result.data as TeamSnapshot
+      setCoins(next.coins)
+      router.push(`/game/parejas/${next.table.id}`)
+      return
+    }
 
     const code = isPrivate ? generatePrivateCode() : null
 
@@ -243,6 +263,19 @@ export default function LobbyClient({
 
     setLoading(true)
     setError('')
+
+    if (teamModeEnabled && /^P[0-9A-F]{9}$/i.test(joinCode.trim())) {
+      const code = joinCode.trim().toUpperCase()
+      if (teamRequest.current?.key !== code) teamRequest.current = { key: code, id: crypto.randomUUID() }
+      const result = await supabase.rpc('team_join', { p_request_id: teamRequest.current.id, p_code: code })
+      setLoading(false)
+      if (result.error || !result.data) { setError(result.error?.message || 'Código no disponible'); return }
+      teamRequest.current = null
+      const next = result.data as TeamSnapshot
+      setCoins(next.coins)
+      router.push(`/game/parejas/${next.table.id}`)
+      return
+    }
 
     const { data: table, error: joinError } = await supabase.rpc('join_table_by_code', {
       p_code: joinCode.trim().toUpperCase(),
@@ -520,6 +553,7 @@ export default function LobbyClient({
               ))}
             </div>
           </section>
+          {teamModeEnabled && <TeamTables />}
         </main>
       </div>
 
@@ -541,6 +575,16 @@ export default function LobbyClient({
         title="Crear mesa"
       >
         {error && <Alert>{error}</Alert>}
+
+        {teamModeEnabled && <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-muted">Modalidad</span>
+          <div className="grid grid-cols-2 gap-2">
+            {['1vs1', '2vs2'].map(value => <button key={value} type="button" onClick={() => setMode(value)}
+              className={`rounded-xl border py-2.5 font-display font-bold transition-colors ${mode === value ? 'border-gold bg-gold/15 text-gold' : 'border-line bg-surface2 text-muted hover:text-cream'}`}>
+              {value === '1vs1' ? 'Mano a mano' : '2vs2 · Parejas'}
+            </button>)}
+          </div>
+        </div>}
 
         <Input
           label="Nombre de la mesa"
@@ -637,13 +681,13 @@ export default function LobbyClient({
         {error && <Alert>{error}</Alert>}
 
         <Input
-          label="Código de 6 dígitos"
+          label={teamModeEnabled ? 'Código de la mesa' : 'Código de 6 dígitos'}
           name="joinCode"
           type="text"
           value={joinCode}
           onChange={e => setJoinCode(e.target.value.toUpperCase())}
           placeholder="ABC123"
-          maxLength={6}
+          maxLength={teamModeEnabled ? 10 : 6}
           className="text-center text-2xl font-display font-bold tracking-[0.3em] uppercase"
         />
 
