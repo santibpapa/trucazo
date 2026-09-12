@@ -374,35 +374,6 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
   // turno y el destello dorado del borde de la pantalla.
   const meActive = !game.awaiting_deal && game.status === 'playing' && humanCanAct
 
-  // Pantalla del juego fija: bloquea el scroll/rebote del body mientras estás
-  // en la partida (sobre todo en iOS). Se restaura al salir al lobby.
-  useEffect(() => {
-    const html = document.documentElement
-    const body = document.body
-    const prev = {
-      htmlOverflow: html.style.overflow,
-      bodyOverflow: body.style.overflow,
-      overscroll: body.style.overscrollBehavior,
-      position: body.style.position,
-      width: body.style.width,
-      height: body.style.height,
-    }
-    html.style.overflow = 'hidden'
-    body.style.overflow = 'hidden'
-    body.style.overscrollBehavior = 'none'
-    body.style.position = 'fixed'
-    body.style.width = '100%'
-    body.style.height = '100%'
-    return () => {
-      html.style.overflow = prev.htmlOverflow
-      body.style.overflow = prev.bodyOverflow
-      body.style.overscrollBehavior = prev.overscroll
-      body.style.position = prev.position
-      body.style.width = prev.width
-      body.style.height = prev.height
-    }
-  }, [])
-
   // Precarga las 40 cartas una sola vez: cuando se reparte una mano nueva las
   // imágenes ya están en caché del navegador y aparecen al instante, sin
   // "pintarse a medias" mientras el PNG termina de bajar.
@@ -607,6 +578,39 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
     const t = setTimeout(() => setShowFinish(true), 2000)
     return () => clearTimeout(t)
   }, [game.status, showFinish])
+
+  // Pantalla del juego fija: bloquea el scroll/rebote del body mientras estás
+  // en la partida (sobre todo en iOS). Se restaura al salir al lobby. La
+  // pantalla de fin NO se bloquea: puede ser más alta que el celular (varias
+  // misiones) y necesita scroll para llegar a los botones.
+  const finishShown = game.status === 'finished' && showFinish
+  useEffect(() => {
+    if (finishShown) return
+    const html = document.documentElement
+    const body = document.body
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      overscroll: body.style.overscrollBehavior,
+      position: body.style.position,
+      width: body.style.width,
+      height: body.style.height,
+    }
+    html.style.overflow = 'hidden'
+    body.style.overflow = 'hidden'
+    body.style.overscrollBehavior = 'none'
+    body.style.position = 'fixed'
+    body.style.width = '100%'
+    body.style.height = '100%'
+    return () => {
+      html.style.overflow = prev.htmlOverflow
+      body.style.overflow = prev.bodyOverflow
+      body.style.overscrollBehavior = prev.overscroll
+      body.style.position = prev.position
+      body.style.width = prev.width
+      body.style.height = prev.height
+    }
+  }, [finishShown])
 
   // Frase de despedida del rival de campaña: aprovecha el ratito entre que
   // termina la partida y aparece la pantalla de fin.
