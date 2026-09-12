@@ -50,6 +50,9 @@ jobs:
       - name: Verificar actualización de mesas al volver al lobby
         run: node --import tsx scripts/check-lobby-tables.ts
 
+      - name: Verificar presentación de cantos por equipos
+        run: node --import tsx scripts/check-team-presentation.ts
+
       - name: Que la lógica de truco del cliente y la del servidor coincidan
         run: npx tsx scripts/sim.ts
 

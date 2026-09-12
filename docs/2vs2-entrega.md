@@ -196,3 +196,16 @@ y la barra del turno. El tamaño de las cartas jugadas también respeta un espac
 mínimo de 16 px entre las dos pilas enfrentadas, contando el desplazamiento de
 las tres cartas. Se conservan la estética y todos los botones; no cambia el motor.
 La verificación de alturas intermedias, cantos y el nuevo enlace van en el PR #57.
+# Paridad visual con 1vs1 — 12/09/2026
+
+La partida por equipos ahora reutiliza los componentes de presentación del 1vs1: `MesaHeader`, `MesaTurn`, `MesaButton`, `SeatAvatar`, `MesaAnnouncement`, `MesaToolbar`, `EmoteTray` y `FinishScreen`. El 1vs1 conserva sus controladores y reglas; sólo se extrajo su presentación. Fondo, materiales, fuentes, colores, dorsos y animación del reparto siguen viniendo de los componentes existentes.
+
+- Se conservan cuatro asientos relativos al jugador local y pilas persistentes frente a cada asiento, sin rótulos de rondas. Las dimensiones se calculan sobre el espacio restante después del HUD y los controles, reservando una separación entre las pilas enfrentadas.
+- Los carteles grandes identifican al autor de envido, truco, aumentos, respuestas y declaraciones. Se basan en el evento público del servidor y vencen a los 3,6 segundos; polling y recargas no reinician su duración. Se descartan al comenzar otra mano.
+- El reloj, los tonos de Quiero/No quiero/Truco y el enlace para abandonar usan la presentación del 1vs1. Los controles reservan tres filas para el caso de más opciones.
+- El chat rápido es público para los cuatro participantes, con las mismas frases y límite de frecuencia. No comunica datos de partida ni constituye una acción del motor. Los sonidos y su preferencia de silencio son los existentes.
+- Se muestran marcos, medallas validadas y accesorios que ya están equipados. Sólo se consultan los campos públicos de apariencia y la función existente de medallas.
+- La pantalla final comparte salón desenfocado, abanico, título, avatares, puntajes y saldo neto; adapta los avatares a dos jugadores por equipo. Muestra `+apuesta` al ganar o `−apuesta` al perder (no confunde el cobro bruto con la ganancia). El cierre sigue exclusivamente a cargo del servidor.
+- Se mantienen fuera de alcance la revancha 2vs2 y nuevas integraciones de objetivos/recompensas/reseñas. El resultado ofrece Volver al lobby.
+
+No hay migraciones nuevas ni cambios de reglas en este ajuste. La prueba `node --import tsx scripts/check-team-presentation.ts` cubre autores desde los cuatro asientos, etiquetas, privacidad de tantos y vencimiento de carteles; está incorporada a CI. La verificación en navegador y la URL vigente se registran en el PR 57 para no reiniciar la preview al actualizar esta documentación.

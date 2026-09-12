@@ -3,21 +3,21 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Alert, Avatar, Button, Coins, Modal, Panel } from '@/components/ui'
+import { Alert, Avatar, Button, CoinIcon, Coins, Modal, Panel } from '@/components/ui'
 import { SalonBackground, SalonTable } from '@/components/game/SalonScene'
 import PlayingCard from '@/components/game/PlayingCard'
 import CardBack from '@/components/game/CardBack'
+import FinishScreen from '@/components/game/FinishScreen'
+import { MesaHeader, MesaButton, MesaTurn, MesaAnnouncement, SeatAvatar, TableAccessory, DEAL_ORIGINS } from '@/components/game/MesaUI'
+import { TEAM_LABELS as labels } from '@/lib/team-presentation'
+import useTeamPresentation from './useTeamPresentation'
+import TeamToolbar from './TeamToolbar'
+import useTeamCosmetics from './useTeamCosmetics'
 import { getEnvidoPoints, type Card } from '@/lib/truco'
 import type { TeamMember, TeamSnapshot } from '@/lib/team-game'
 import { getSalonTheme } from '@/lib/salones'
 import salon from '@/components/game/salon.module.css'
 import styles from './team.module.css'
-
-const labels: Record<string, string> = {
-  mazo: 'Irse al mazo', envido: 'Envido', real_envido: 'Real envido', falta_envido: 'Falta envido',
-  truco: 'Truco', retruco: 'Retruco', vale_cuatro: 'Vale cuatro',
-  envido_yes: 'Quiero', envido_no: 'No quiero', truco_yes: 'Quiero', truco_no: 'No quiero', son_buenas: 'Son buenas',
-}
 
 function Played({ card, seat, animate }: { card: Card; seat: number; animate: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -54,6 +54,8 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
   const animated = useRef(new Set(initial.game?.played.map(c => `${initial.game!.hand_number}-${c.round}-${c.seat}`)))
   const supabase = createClient()
   const router = useRouter()
+  const { announce, showFinish } = useTeamPresentation(state)
+  const cosmetics = useTeamCosmetics(state.members)
 
   const apply = useCallback((next: TeamSnapshot) => {
     if (disposed.current) return
@@ -177,67 +179,88 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
     </Panel>
   </main>
 
-  if (table.status === 'cancelled') return <main className={styles.result}><Panel className="max-w-md w-full p-6 flex flex-col gap-4 text-center"><h1 className="font-display text-2xl">Mesa cancelada</h1><p>Se devolvieron las apuestas.</p><Button onClick={lobby}>Volver al lobby</Button></Panel></main>
-  if (!g || mySeat === null) return <main className={styles.result}><p>Recuperando tu partida…</p></main>
-  const team = mySeat % 2
+  const team = (mySeat ?? 0) % 2
   const partners = members.filter(m => m.seat !== null && m.seat % 2 === team)
   const rivals = members.filter(m => m.seat !== null && m.seat % 2 !== team)
-  if (table.status === 'finished') return <main className={styles.result}>
-    <SalonBackground slug={salonSlug} />
-    <Panel className="relative z-10 max-w-md w-full p-6 flex flex-col gap-4 text-center">
-      <p className="text-gold font-semibold">Truco 2vs2</p><h1 className="font-display text-3xl font-bold">{g.winner_team === team ? '¡Ganó tu equipo!' : 'Ganó el otro equipo'}</h1>
-      <p className="text-muted">{partners.map(m => m.username).join(' + ')}</p>
-      <p className="font-display text-4xl text-gold">{g.scores[team]} — {g.scores[1 - team]}</p>
-      <p className="text-muted">{rivals.map(m => m.username).join(' + ')}</p>
-      {g.finish_reason !== 'points' && <p className="text-sm text-muted">{g.finish_reason === 'timeouts' ? 'Partida terminada por tres vencimientos de tiempo.' : 'Partida terminada por abandono.'}</p>}
-      <p>{g.winner_team === team ? <>Cobraste <Coins amount={table.bet * 2} /></> : <>Apuesta: <Coins amount={table.bet} /></>}</p>
-      <Button fullWidth onClick={lobby}>Volver al lobby</Button>
-    </Panel>
-  </main>
+  if (table.status === 'cancelled' || (table.status === 'finished' && showFinish)) {
+    const voided = table.status === 'cancelled'
+    const won = !voided && g?.winner_team === team
+    const lastHand = [...state.hand, ...(g?.played.filter(c => c.seat === mySeat).map(c => c.card) ?? [])]
+    return <FinishScreen
+      won={won} salonSlug={salonSlug} hand={lastHand.length ? lastHand : [null, null, null]}
+      title={voided ? 'Partida anulada' : won ? '¡Ganaste!' : 'Perdiste'}
+      subtitle={voided ? 'Se devolvieron las apuestas.' : <>
+        <b className="font-semibold text-cream">{partners.map(m => m.username).join(' + ')}</b><br />
+        {won ? 'le ganó a' : 'perdió con'} {rivals.map(m => m.username).join(' + ')} · {g!.scores[team]} a {g!.scores[1 - team]}
+      </>}
+      note={g?.finish_reason === 'timeouts' ? 'Partida terminada por tres vencimientos de tiempo.' : g?.finish_reason === 'forfeit' ? 'Partida terminada por abandono.' : undefined}
+      me={{ name: 'Nosotros', score: g?.scores[team] ?? 0, highlight: won, players: partners }}
+      opponent={{ name: 'Ellos', score: g?.scores[1 - team] ?? 0, highlight: !voided && !won, players: rivals }}
+      extra={voided ? <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface2 px-4 py-2 font-display font-bold text-muted"><CoinIcon size={18} />Apuesta reembolsada</div> :
+        <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 font-display text-lg font-bold tabular ${won ? 'border-positive/40 bg-positive/10 text-positive' : 'border-negative/40 bg-negative/10 text-negative'}`}><CoinIcon size={18} />{won ? '+' : '−'}{table.bet.toLocaleString('es-AR')}</div>}
+    >
+      <Button variant="secondary" size="sm" fullWidth onClick={lobby}>Volver al lobby</Button>
+    </FinishScreen>
+  }
+  if (!g || mySeat === null) return <main className={styles.result}><p>Recuperando tu partida…</p></main>
 
   const relativeSeats = [0, 1, 2, 3].map(n => (mySeat + n) % 4)
   const fullHand = [...state.hand, ...g.played.filter(c => c.seat === mySeat).map(c => c.card)]
   const tanto = getEnvidoPoints(fullHand)
   const actor = state.actor === null ? null : member(state.actor)
+  const active = state.legal.length > 0 && table.status === 'playing' && !g.awaiting_deal
   const status = g.awaiting_deal ? `Mano para ${g.last_hand_winner === team ? 'tu equipo' : 'el otro equipo'}`
     : g.envido.status === 'declaring' ? `Declara ${actor?.username ?? ''}`
       : g.envido.status === 'pending' || g.truco.status === 'pending' ? `Responde el equipo de ${actor?.username ?? ''}`
-        : `Turno de ${actor?.user_id === userId ? 'vos' : actor?.username ?? ''}`
+        : actor?.user_id === userId ? 'Tu turno' : `Turno de ${actor?.username ?? ''}`
 
   function seatView(m: TeamMember | undefined, relative: number) {
     if (!m || m.seat === null) return null
-    return <div key={m.seat} className={`${styles.player} ${styles[`position${relative}`]} ${state.actor === m.seat && !g!.awaiting_deal ? styles.active : ''}`} data-team-hand={m.seat}>
-      <Avatar url={m.avatar_url} name={m.username} size={32} />
-      <span className={styles.playerName}>{m.user_id === userId ? 'Vos' : m.username}</span>
+    return <div key={m.seat} className={`${styles.player} ${styles[`position${relative}`]}`} data-team-hand={relative === 0 ? undefined : m.seat}>
+      <SeatAvatar style={{ width: 'min(8cqh,36px)', height: 'min(8cqh,36px)' }} frame={cosmetics[m.user_id ?? '']?.frame} medal={cosmetics[m.user_id ?? '']?.medal} imageUrl={m.avatar_url} name={m.username} active={state.actor === m.seat && !g!.awaiting_deal} />
+      <span className={`${salon.seatName} ${styles.playerName}`} title={`${m.username} · ${m.seat % 2 === team ? 'Nosotros' : 'Ellos'}`}>{m.user_id === userId ? 'Vos' : m.username}</span>
       {relative !== 0 && <div className={styles.backs} aria-label={`${m.username}: cartas ocultas`}>{Array.from({ length: Math.max(0, 3 - g!.played.filter(c => c.seat === m.seat).length) }, (_, i) => <div key={i}><CardBack /></div>)}</div>}
     </div>
   }
 
   return <main className={`${salon.game} ${getSalonTheme(salonSlug).integratedTable ? salon.reference : ''} ${styles.game}`}>
-    <div className={styles.shell}>
-      <SalonBackground slug={salonSlug} />
-      <header className={styles.header}><span>TRUCAZO · 2vs2</span><button type="button" onClick={() => setShowExit(true)}>Salir</button></header>
-      <div className={salon.scoreboard} aria-label="Marcador por equipos"><div className={salon.scoreRow}>
-        <div className={salon.scorePlayer}><span className={salon.scoreName}>Nosotros</span><strong className={salon.scoreValue}>{g.scores[team]}</strong></div>
-        <div className={salon.scoreDetail}><span>A {table.target_score}</span><span>Pozo {table.bet * 4}</span><span className={styles.small}>Mano {g.hand_number}</span></div>
-        <div className={salon.scorePlayer}><span className={salon.scoreName}>Ellos</span><strong className={salon.scoreValue}>{g.scores[1 - team]}</strong></div>
-      </div></div>
+    {!getSalonTheme(salonSlug).integratedTable && <SalonBackground slug={salonSlug} />}
+    <div className={`${salon.shell} ${styles.shell}`}>
+      {getSalonTheme(salonSlug).integratedTable && <SalonBackground slug={salonSlug} />}
+      <MesaHeader salonSlug={salonSlug} left={{ name: 'Nosotros', score: g.scores[team] }} right={{ name: 'Ellos', score: g.scores[1 - team] }} target={table.target_score} pot={table.bet * 4} mano={g.mano === mySeat ? 'vos' : g.mano % 2 === team ? 'compañero' : 'rival'} />
       <section className={styles.stage} data-team-stage aria-label="Mesa de cuatro jugadores">
         <SalonTable slug={salonSlug} />
+        <TeamToolbar tableId={table.id} members={members} userId={userId} mySeat={mySeat} playing={table.status === 'playing'} />
+        {announce && <MesaAnnouncement key={g.announcement?.at} announce={announce} />}
         {relativeSeats.map((seat, relative) => seatView(member(seat), relative))}
+        {relativeSeats.map((seat, relative) => <TableAccessory key={seat} slug={cosmetics[member(seat)?.user_id ?? '']?.accessory} who={relative === 0 ? 'me' : 'opponent'} className={styles[`accessory${relative}`]} />)}
         {relativeSeats.map((seat, relative) => <div key={seat} className={`${styles.pile} ${styles[`pile${relative}`]}`} role="group" aria-label={`Cartas jugadas por ${seat === mySeat ? 'vos' : member(seat)?.username}`}>
           {g.played.filter(c => c.seat === seat).map(played => {
             const key = `${g.hand_number}-${played.round}-${seat}`
-            return <div key={key} className={styles.playedCard}><Played card={played.card} seat={seat} animate={!animated.current.has(key)} /></div>
+            return <div key={key} className={`${salon.playedCard} ${styles.playedCard}`}><Played card={played.card} seat={seat} animate={!animated.current.has(key)} /></div>
           })}
         </div>)}
-        {g.reveal && g.awaiting_deal && <div className={styles.reveal}><span>{member(g.reveal.seat)?.username}: {g.reveal.points} en mesa</span><div>{g.reveal.cards.map(c => <div key={`${c.suit}-${c.value}`}><PlayingCard card={c} /></div>)}</div></div>}
-        <div className={styles.hand} aria-label="Tus cartas">{state.hand.map(c => <button key={`${g.hand_number}-${c.suit}-${c.value}`} aria-label={`Jugar ${c.value} de ${c.suit}`} disabled={busy || !state.legal.includes('play')} onClick={() => { void act('play', undefined, c) }}><PlayingCard card={c} /></button>)}</div>
+        {g.reveal && g.awaiting_deal && <div className={styles.reveal} aria-label={`Envido de ${member(g.reveal.seat)?.username}: ${g.reveal.points} en mesa`}>
+          {g.reveal.cards.map(c => <PlayingCard key={`${c.suit}-${c.value}`} card={c} flip />)}
+        </div>}
+        <div className={styles.hand} aria-label="Tus cartas" data-team-hand={mySeat}>
+          {state.hand.map((c, i) => <div key={`${g.hand_number}-${c.suit}-${c.value}`} className="relative" style={{ transform: `rotate(${(i - (state.hand.length - 1) / 2) * 7}deg) translateY(${Math.abs(i - (state.hand.length - 1) / 2) * 7}px)`, transformOrigin: '50% 135%', zIndex: i + 1 }}>
+            <PlayingCard card={c} interactive deal className={salon.handCard} aria-label={`Jugar ${c.value} de ${c.suit}`} disabled={busy || !state.legal.includes('play')} onClick={() => { void act('play', undefined, c) }} style={{ animationDelay: `${i * 110}ms`, ...DEAL_ORIGINS[i] }} />
+          </div>)}
+        </div>
       </section>
-      <div className={styles.callout}>{g.announcement && <div className={styles.announcement} key={g.announcement.at} role="status"><strong>{member(g.announcement.seat)?.username}:</strong><span>{g.announcement.text}</span></div>}</div>
-      <div className={styles.status} role="status"><span>{connected ? status : 'Reconectando…'}</span>{!g.awaiting_deal && <strong>{seconds}s</strong>}</div>
-      <div className={styles.actions} aria-label="Acciones de la partida">
-        {state.legal.filter(a => a !== 'play').map(a => <Button key={a} className={salon.action} variant={a === 'mazo' || a.endsWith('_no') ? 'ghost' : a.endsWith('_yes') ? 'positive' : 'secondary'} disabled={busy} onClick={() => { void act(a) }}>{a === 'tengo' ? `Tengo ${tanto}` : labels[a]}</Button>)}
+      <MesaTurn active={active} seconds={g.awaiting_deal || table.status !== 'playing' ? null : seconds}>{connected ? status : 'Reconectando…'}</MesaTurn>
+      <div className={`${salon.actions} ${styles.actions}`} aria-label="Acciones de la partida">
+        <div className={styles.actionRows}>
+          {[
+            state.legal.filter(a => ['envido_yes', 'envido_no', 'truco_yes', 'truco_no', 'tengo', 'son_buenas'].includes(a)),
+            state.legal.filter(a => ['envido', 'real_envido', 'falta_envido'].includes(a)),
+            state.legal.filter(a => ['truco', 'retruco', 'vale_cuatro', 'mazo'].includes(a)),
+          ].filter(row => row.length).map((row, i) => <div key={i} className="flex gap-2">
+            {row.map(a => <MesaButton key={a} tone={a === 'mazo' ? 'ghost' : a.endsWith('_no') ? 'danger' : a.endsWith('_yes') ? 'positive' : ['tengo', 'truco', 'retruco', 'vale_cuatro'].includes(a) ? 'gold' : 'outline'} disabled={busy || table.status !== 'playing'} onClick={() => { void act(a) }}>{a === 'tengo' ? `Tengo ${tanto}` : labels[a]}</MesaButton>)}
+          </div>)}
+        </div>
+        <button onClick={() => setShowExit(true)} disabled={busy || table.status !== 'playing'} className="self-center -my-1 py-1.5 px-3 inline-flex items-center text-xs text-subtle hover:text-negative transition-colors disabled:opacity-50">Abandonar partida</button>
       </div>
       {error && <div className={styles.error} role="alert" onClick={() => setError('')}>{error}</div>}
       <Modal open={showExit} title="¿Abandonar la partida?" onClose={() => setShowExit(false)}><p className="text-sm text-muted">Tu equipo perderá la partida y la apuesta. Para perder solamente esta mano, usá «Irse al mazo» cuando sea tu turno.</p><Button variant="danger" disabled={busy} onClick={() => { setShowExit(false); void act('forfeit') }}>Abandonar partida</Button><Button variant="ghost" onClick={() => setShowExit(false)}>Seguir jugando</Button></Modal>
