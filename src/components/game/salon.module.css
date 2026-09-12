@@ -170,6 +170,9 @@
 .integratedBackground { background-size: 100% auto; }
 .reference .integratedBackground { background-size: 100% 100%; }
 .integratedBackground::after { background: none; }
+/* Club conserva su fondo, paño y borde: las capas se encuadran sobre
+   la pantalla completa, igual que las mesas incluidas en las otras escenas. */
+.reference > .table, .reference .shell > .table { inset: 16% -5% 24%; }
 .reference { --hand-width: clamp(72px, min(12dvh, 22vw), 96px); --played-width: clamp(56px, 9dvh, 74px); --back-width: clamp(39px, 6.8dvh, 50px); --seat-space: 128px; }
 .reference .shell { max-width: 540px; min-height: max(760px, 100dvh); height: auto; padding: 4px 16px 8px; gap: 3px; }
 .reference .brand { position: relative; flex: 0 0 45px; flex-direction: column; font-size: 25px; line-height: 1; }

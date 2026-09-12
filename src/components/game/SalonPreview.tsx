@@ -19,8 +19,9 @@ export default function SalonPreview({ slug, onClose }: { slug: string; onClose:
   }, [])
 
   return (
-    <dialog ref={dialog} onClose={() => { if (dialog.current && !dialog.current.open) onClose() }} aria-labelledby="salon-preview-title" className={`${styles.previewDialog} ${theme.integratedTable ? styles.reference : ''}`}>
+    <dialog ref={dialog} onClose={() => { if (dialog.current && !dialog.current.open) onClose() }} aria-labelledby="salon-preview-title" className={`${styles.previewDialog} ${styles.reference}`}>
       <SalonBackground slug={slug} />
+      <SalonTable slug={slug} />
       <div className={styles.previewContent}>
         <header className="relative z-10 flex items-start justify-between gap-3">
           <div>
@@ -30,7 +31,6 @@ export default function SalonPreview({ slug, onClose }: { slug: string; onClose:
           <button type="button" onClick={() => dialog.current?.close()} className={styles.toolButton} aria-label="Cerrar vista previa">✕</button>
         </header>
         <div className={styles.previewStage}>
-          <SalonTable slug={slug} />
           <div className="relative z-10 flex justify-center gap-1 pt-14" aria-hidden="true">
             {[0, 1, 2].map(i => <CardBack key={i} className="w-9 aspect-[11/17]" />)}
           </div>
