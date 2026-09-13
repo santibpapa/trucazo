@@ -46,8 +46,8 @@ export function MesaHeader({ salonSlug, left, right, target, pot, mano }: {
   </>
 }
 
-export function MesaTurn({ active, seconds, children }: { active: boolean; seconds: number | null; children: React.ReactNode }) {
-  return <div className={styles.turn}>
+export function MesaTurn({ active, seconds, children, className = '' }: { active: boolean; seconds: number | null; children: React.ReactNode; className?: string }) {
+  return <div className={`${styles.turn} ${className}`}>
     <div role="status" className={`${styles.turnLabel} ${active ? styles.turnActive : ''}`}>
       {children}
       {seconds != null && <span className={`ml-2 tabular ${seconds <= 5 ? 'text-negative font-bold' : 'opacity-80'}`}>⏱ {seconds}s</span>}
