@@ -3,14 +3,18 @@
    Aquí sólo se reserva el espacio necesario para cuatro jugadores. */
 .game .shell.shell { display: flex; min-height: 0; height: 100dvh; overflow: hidden; }
 .shell > [aria-label="Marcador"] { position: relative; z-index: 2; }
-.stage { position: relative; flex: 1; min-height: 0; margin-top: 9px; container-type: size; --hand-card-width: min(18cqh,23vw,100px); --hand-bottom: calc(min(8cqh,36px) + 14px); --partner-pile-top: calc(min(8cqh,36px) + 22px + min(7cqh,34px)); --stack-step: clamp(10px,3cqh,14px);
+.stage { position: relative; flex: 1; min-height: 0; margin-top: 9px; container-type: size; --hand-card-width: min(18cqh,23vw,100px,calc((100cqw - 2 * min(8cqh,36px) - 38px) / 3)); --hand-bottom: 16px; --partner-pile-top: calc(min(8cqh,36px) + 22px + min(7cqh,34px)); --stack-step: clamp(10px,3cqh,14px);
+  /* El abanico deja lugar a avatar/accesorio en los extremos, más su giro.
+     Los 16px inferiores contienen la inclinación de las cartas propias. */
   /* Reservar 16px entre las pilas enfrentadas y 2px hacia las laterales.
      34px = separación vertical + 10px hacia la mano + 4px por cada pila. */
   --played-card-width: min(17cqh,20vw,84px,calc(25cqw - 2 * var(--stack-step) - 2px),calc((100cqh - var(--hand-bottom) - var(--hand-card-width) * 1.541667 - var(--partner-pile-top) - 34px) / 3.083334));
 }
 .player { position: absolute; z-index: 3; display: flex; align-items: center; flex-direction: column; max-width: 27%; color: #f0dfbf; text-shadow: 0 2px 4px #000; }
 .playerName { font: 14px/17px Georgia,serif; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.position0 { bottom: 0; left: 50%; transform: translateX(-50%); flex-direction: row; gap: 5px; }
+/* El asiento propio queda al costado del abanico: las cartas pueden bajar
+   y ceder ese alto a las pilas, sin tapar el avatar ni el turno. */
+.position0 { bottom: 0; left: 0; max-width: min(14%,54px); }
 .position1 { top: 35%; right: 0; max-width: min(16%,84px); }
 .position2 { top: 0; left: 50%; transform: translateX(-50%); }
 .position3 { top: 35%; left: 0; max-width: min(16%,84px); }
@@ -66,7 +70,7 @@
 @media(prefers-reduced-motion:reduce) { .hand button { transition: none; } }
 
 .stage .accessory0, .stage .accessory1, .stage .accessory2, .stage .accessory3 { width: min(8cqh,40px); }
-.stage .accessory0 { top: auto; bottom: 0; left: auto; right: 15%; }
+.stage .accessory0 { top: auto; bottom: 0; left: auto; right: 0; }
 .stage .accessory1 { top: 27%; bottom: auto; left: auto; right: 0; }
 .stage .accessory2 { top: 0; bottom: auto; left: 20%; right: auto; }
 .stage .accessory3 { top: 27%; bottom: auto; left: 0; right: auto; }
