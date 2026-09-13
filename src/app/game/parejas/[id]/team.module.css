@@ -3,10 +3,10 @@
    Aquí sólo se reserva el espacio necesario para cuatro jugadores. */
 .game .shell.shell { display: flex; min-height: 0; height: 100dvh; overflow: hidden; }
 .shell > [aria-label="Marcador"] { position: relative; z-index: 2; }
-.stage { position: relative; flex: 1; min-height: 0; margin-top: 9px; container-type: size; --hand-card-width: min(19cqh,23vw,100px); --hand-bottom: calc(min(8cqh,36px) + 14px); --partner-pile-top: calc(min(8cqh,36px) + 22px + min(9cqh,42px)); --stack-step: min(2cqh,10px);
+.stage { position: relative; flex: 1; min-height: 0; margin-top: 9px; container-type: size; --hand-card-width: min(18cqh,23vw,100px); --hand-bottom: calc(min(8cqh,36px) + 14px); --partner-pile-top: calc(min(8cqh,36px) + 22px + min(7cqh,34px)); --stack-step: clamp(10px,3cqh,14px);
   /* Reservar 16px entre las pilas enfrentadas y 2px hacia las laterales.
      34px = separación vertical + 10px hacia la mano + 4px por cada pila. */
-  --played-card-width: min(13.25cqh,16.5vw,72px,calc(23cqw - 2 * var(--stack-step) - 2px),calc((100cqh - var(--hand-bottom) - var(--hand-card-width) * 1.541667 - var(--partner-pile-top) - 34px) / 3.083334));
+  --played-card-width: min(17cqh,20vw,84px,calc(25cqw - 2 * var(--stack-step) - 2px),calc((100cqh - var(--hand-bottom) - var(--hand-card-width) * 1.541667 - var(--partner-pile-top) - 34px) / 3.083334));
 }
 .player { position: absolute; z-index: 3; display: flex; align-items: center; flex-direction: column; max-width: 27%; color: #f0dfbf; text-shadow: 0 2px 4px #000; }
 .playerName { font: 14px/17px Georgia,serif; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -14,18 +14,22 @@
 .position1 { top: 35%; right: 0; max-width: min(16%,84px); }
 .position2 { top: 0; left: 50%; transform: translateX(-50%); }
 .position3 { top: 35%; left: 0; max-width: min(16%,84px); }
-.backs { display: flex; height: min(9cqh,42px); }
+.backs { display: flex; height: min(7cqh,34px); }
 .backs > div > div { width: 100%; height: 100%; }
-.backs > div { width: min(5cqh,25px); margin-left: -4px; }
+.backs > div { width: min(4.5cqh,22px); margin-left: -4px; }
 /* Cada pila conserva su lugar: las cartas nuevas se apoyan sobre las anteriores. */
 .pile { position: absolute; z-index: 4; width: calc(var(--played-card-width) + 2 * var(--stack-step)); height: calc(var(--played-card-width) * 1.541667 + 4px); transform: translateX(-50%); pointer-events: none; }
 .pile0 { left: 50%; bottom: calc(var(--hand-bottom) + var(--hand-card-width) * 1.541667 + 10px); }
-.pile1 { left: 73%; top: 45%; transform: translate(-50%,-50%); }
+.pile1 { left: 75%; top: 45%; transform: translate(-50%,-50%); }
 .pile2 { left: 50%; top: var(--partner-pile-top); }
-.pile3 { left: 27%; top: 45%; transform: translate(-50%,-50%); }
+.pile3 { left: 25%; top: 45%; transform: translate(-50%,-50%); }
 .playedCard { position: absolute; top: 0; left: 0; width: var(--played-card-width); }
 .playedCard:nth-child(2) { left: var(--stack-step); top: 2px; z-index: 1; }
 .playedCard:nth-child(3) { left: calc(2 * var(--stack-step)); top: 4px; z-index: 2; }
+/* Los WebP miden 600×916, 600×920 o 600×925: todas las cartas de mesa
+   se muestran en el mismo rectángulo, también al revelar el envido. */
+.tableCard { width: var(--played-card-width); height: calc(var(--played-card-width) * 925 / 600); }
+.tableCard img { width: 100%; height: 100%; object-fit: fill; }
 .hand { position: absolute; z-index: 5; bottom: var(--hand-bottom); left: 50%; transform: translateX(-50%); display: flex; gap: 7px; }
 .hand button { width: var(--hand-card-width); }
 /* El turno crece con el texto: su segunda línea nunca invade las respuestas.
@@ -33,12 +37,13 @@
 .game .turn { flex: 0 0 auto; min-height: 30px; padding-block: 3px; }
 .game .turn > [role="status"] { min-width: 0; font-size: 13px; line-height: 1.2; padding: 4px 10px; overflow-wrap: anywhere; }
 .game .turn > [role="status"] > span { display: inline-block; white-space: nowrap; }
-.game .actions { flex: 0 0 auto; min-height: 110px; gap: 4px; }
+/* Reservar una fila aun cuando juega otro asiento, y crecer solo si hay
+   más respuestas: el hueco de una segunda fila pasa a la mesa. */
+.game .actions { flex: 0 0 auto; min-height: 66px; gap: 4px; }
 .actionRows { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
 .game .actionRows button { height: 38px; min-height: 38px; padding: 0 6px; font-size: 14px; line-height: 1.1; }
 .game .actionRows button[data-tone="gold"] { font-size: 18px; }
 .reveal { position: absolute; z-index: 9; top: 43%; left: 50%; transform: translate(-50%,-50%); display: flex; gap: 4px; pointer-events: none; }
-.reveal > div { width: min(14cqh,58px); }
 .emote { position: absolute; z-index: 30; max-width: 70%; pointer-events: none; }
 .emote0 { bottom: 0; left: 0; }
 .emote1 { top: 35%; right: 0; }
@@ -55,7 +60,6 @@
   .stage { --partner-pile-top: calc(min(8cqh,36px) + 22px); }
   .backs { display: none; }
   .playerName { font-size: 13px; }
-  .game .actions { min-height: 104px; }
 }
 @media(prefers-reduced-motion:reduce) { .hand button { transition: none; } }
 

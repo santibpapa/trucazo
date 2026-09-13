@@ -36,7 +36,7 @@ function Played({ card, seat, animate }: { card: Card; seat: number; animate: bo
     // primer re-render (reloj, Realtime) la cancelaría a mitad de camino.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  return <div ref={ref}><PlayingCard card={card} /></div>
+  return <div ref={ref}><PlayingCard card={card} className={styles.tableCard} /></div>
 }
 
 export default function TeamGameClient({ initial, userId, salonSlug }: { initial: TeamSnapshot; userId: string; salonSlug: string }) {
@@ -242,7 +242,7 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
           })}
         </div>)}
         {g.reveal && g.awaiting_deal && <div className={styles.reveal} aria-label={`Envido de ${member(g.reveal.seat)?.username}: ${g.reveal.points} en mesa`}>
-          {g.reveal.cards.map(c => <PlayingCard key={`${c.suit}-${c.value}`} card={c} flip />)}
+          {g.reveal.cards.map(c => <PlayingCard key={`${c.suit}-${c.value}`} card={c} className={styles.tableCard} flip />)}
         </div>}
         <div className={styles.hand} aria-label="Tus cartas" data-team-hand={mySeat}>
           {state.hand.map((c, i) => <div key={`${g.hand_number}-${c.suit}-${c.value}`} className="relative" style={{ transform: `rotate(${(i - (state.hand.length - 1) / 2) * 7}deg) translateY(${Math.abs(i - (state.hand.length - 1) / 2) * 7}px)`, transformOrigin: '50% 135%', zIndex: i + 1 }}>
