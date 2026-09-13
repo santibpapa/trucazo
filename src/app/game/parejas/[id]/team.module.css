@@ -32,15 +32,17 @@
 .tableCard img { width: 100%; height: 100%; object-fit: fill; }
 .hand { position: absolute; z-index: 5; bottom: var(--hand-bottom); left: 50%; transform: translateX(-50%); display: flex; gap: 7px; }
 .hand button { width: var(--hand-card-width); }
-/* El turno crece con el texto: su segunda línea nunca invade las respuestas.
-   Al compactar los controles, la mesa crece y baja la mano propia. */
-.game .turn { flex: 0 0 auto; min-height: 30px; padding-block: 3px; }
-.game .turn > [role="status"] { min-width: 0; font-size: 13px; line-height: 1.2; padding: 4px 10px; overflow-wrap: anywhere; }
-.game .turn > [role="status"] > span { display: inline-block; white-space: nowrap; }
-/* Reservar una fila aun cuando juega otro asiento, y crecer solo si hay
-   más respuestas: el hueco de una segunda fila pasa a la mesa. */
-.game .actions { flex: 0 0 auto; min-height: 66px; gap: 4px; }
-.actionRows { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
+/* Turno y controles tienen espacio fijo, aunque cambien el texto o los
+   permisos. Así el alto de la mesa y sus unidades cqh no dependen del canto. */
+.game .turn { flex: 0 0 36px; min-height: 36px; padding-block: 3px; }
+.game .turn > [role="status"] { display: flex; align-items: center; min-width: 0; font-size: 13px; line-height: 1.2; padding: 4px 10px; }
+.game .turn > [role="status"] > span { white-space: nowrap; }
+.turnText { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.game .turn > [role="status"] > span + span { flex-shrink: 0; }
+/* Tres filas de 38px + dos separaciones de 4px = 122px; otros 24px
+   para la separación y Abandonar. Se reservan incluso sin acciones. */
+.game .actions { flex: 0 0 146px; min-height: 146px; gap: 4px; }
+.actionRows { flex: 0 0 122px; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
 .game .actionRows button { height: 38px; min-height: 38px; padding: 0 6px; font-size: 14px; line-height: 1.1; }
 .game .actionRows button[data-tone="gold"] { font-size: 18px; }
 .reveal { position: absolute; z-index: 9; top: 43%; left: 50%; transform: translate(-50%,-50%); display: flex; gap: 4px; pointer-events: none; }

@@ -250,7 +250,7 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
           </div>)}
         </div>
       </section>
-      <MesaTurn className={styles.turn} active={active} seconds={g.awaiting_deal || table.status !== 'playing' ? null : seconds}>{connected ? status : 'Reconectando…'}</MesaTurn>
+      <MesaTurn className={styles.turn} active={active} seconds={g.awaiting_deal || table.status !== 'playing' ? null : seconds}><span className={styles.turnText} title={connected ? status : 'Reconectando…'}>{connected ? status : 'Reconectando…'}</span></MesaTurn>
       <div className={`${salon.actions} ${styles.actions}`} aria-label="Acciones de la partida">
         <div className={styles.actionRows}>
           {teamActionRows(state.legal).map((row, i) => <div key={i} className="flex gap-2">
