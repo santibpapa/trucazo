@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Alert, Avatar, Button, CoinIcon, Coins, Modal, Panel } from '@/components/ui'
+import { Button, CoinIcon, Modal } from '@/components/ui'
 import { SalonBackground, SalonTable } from '@/components/game/SalonScene'
 import PlayingCard from '@/components/game/PlayingCard'
 import CardBack from '@/components/game/CardBack'
@@ -12,6 +12,7 @@ import { MesaHeader, MesaButton, MesaTurn, MesaAnnouncement, SeatAvatar, TableAc
 import { TEAM_LABELS as labels, teamActionRows } from '@/lib/team-presentation'
 import useTeamPresentation from './useTeamPresentation'
 import TeamToolbar from './TeamToolbar'
+import TeamWaitingRoom from './TeamWaitingRoom'
 import useTeamCosmetics from './useTeamCosmetics'
 import { getEnvidoPoints, type Card } from '@/lib/truco'
 import type { TeamMember, TeamSnapshot } from '@/lib/team-game'
@@ -149,35 +150,12 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
   }, [state.game])
 
   const { table, members, game: g, my_seat: mySeat } = state
-  const owner = table.creator_id === userId
   const member = (seat: number) => members.find(m => m.seat === seat)
   const lobby = () => { router.push('/lobby'); router.refresh() }
 
-  if (table.status === 'waiting') return <main className="min-h-dvh p-4 flex items-center justify-center">
-    <Panel className="w-full max-w-lg p-5 flex flex-col gap-4">
-      <div><h1 className="font-display text-2xl text-cream font-bold">{table.name}</h1><p className="text-sm text-muted">2vs2 · A {table.target_score} · <Coins amount={table.bet} size="sm" /> por jugador</p></div>
-      {error && <Alert>{error}</Alert>}
-      {!connected && <p role="status" className="text-sm text-muted">Reconectando con la mesa…</p>}
-      {table.private_code && <div className="text-center rounded-xl border border-gold/40 p-3"><p className="text-sm text-muted">Código de la mesa</p><p className="text-xl font-bold tracking-widest text-gold">{table.private_code}</p></div>}
-      <p className="text-sm text-cream">Elegí tu asiento. Los que están enfrente juegan juntos.</p>
-      <div className={styles.seatPicker}>
-        {[0, 1, 2, 3].map(seat => {
-          const m = member(seat)
-          return <div key={seat} className={`${styles.pickSeat} ${styles[`pick${seat}`]} ${mySeat === seat ? styles.selected : ''}`}>
-            <span className="text-sm text-gold">Equipo {seat % 2 === 0 ? 'A' : 'B'} · {seat + 1}</span>
-            {m ? <><Avatar url={m.avatar_url} name={m.username} size={32} /><span className="text-sm truncate max-w-full">{m.username}{m.user_id === userId ? ' (vos)' : ''}</span>
-              {m.is_bot && owner && <Button size="sm" variant="ghost" disabled={busy} onClick={() => { void act('remove_bot', seat) }}>Quitar bot</Button>}</>
-              : <><Button size="sm" disabled={busy} onClick={() => { void act('seat', seat) }}>Sentarme</Button>
-                {owner && members.length < 4 && <Button size="sm" variant="ghost" disabled={busy} onClick={() => { void act('add_bot', seat) }}>Agregar bot</Button>}</>}
-          </div>
-        })}
-      </div>
-      {members.some(m => m.seat === null) && <p className="text-sm text-muted">Eligiendo asiento: {members.filter(m => m.seat === null).map(m => m.username).join(', ')}</p>}
-      {owner ? <Button fullWidth disabled={busy || members.filter(m => m.seat !== null).length !== 4} onClick={() => { void act('start') }}>Empezar partida</Button>
-        : <p className="text-sm text-muted text-center">El creador empieza cuando los cuatro estén sentados.</p>}
-      <Button variant="ghost" disabled={busy} onClick={() => { void act('leave').then(() => { if (!current.current.left && current.current.table.status === 'cancelled') lobby() }) }}>{owner ? 'Cancelar mesa y recuperar apuestas' : 'Salir y recuperar mi apuesta'}</Button>
-    </Panel>
-  </main>
+  if (table.status === 'waiting') return <TeamWaitingRoom state={state} userId={userId} salonSlug={salonSlug} busy={busy} error={error} connected={connected}
+    act={(action, seat) => { void act(action, seat) }}
+    onLeave={() => { void act('leave').then(() => { if (!current.current.left && current.current.table.status === 'cancelled') lobby() }) }} />
 
   const team = (mySeat ?? 0) % 2
   const partners = members.filter(m => m.seat !== null && m.seat % 2 === team)
