@@ -292,10 +292,13 @@ function SoundOffIcon() {
 
 export const EMOTES = ['👏', '😂', '😎', '🔥', '🃏', '¡Mentiroso!', '¡Andá!', '¡Achicate!', '¡Quiero!', '¡Buena!']
 
-export function EmoteTray({ onSend, cooldown }: { onSend: (text: string) => void; cooldown: boolean }) {
+/** `emotes` permite otra lista (el 2vs2 suma frases de pareja); por defecto la del 1vs1.
+ *  Con más de diez frases la bandeja se ensancha y, si no entra, se desplaza. */
+export function EmoteTray({ onSend, cooldown, emotes = EMOTES }: { onSend: (text: string) => void; cooldown: boolean; emotes?: readonly string[] }) {
+  const wide = emotes.length > EMOTES.length
   return (
-          <div className="absolute top-12 right-2 z-30 flex flex-wrap justify-end gap-1.5 max-w-[15rem] rounded-2xl border border-line bg-base/95 backdrop-blur p-2 shadow-lift animate-scale-in">
-            {EMOTES.map(e => {
+          <div className={`absolute top-12 right-2 z-30 flex flex-wrap justify-end gap-1.5 rounded-2xl border border-line bg-base/95 backdrop-blur p-2 shadow-lift animate-scale-in ${wide ? 'left-2 max-w-[22rem] ml-auto max-h-[55dvh] overflow-y-auto' : 'max-w-[15rem]'}`}>
+            {emotes.map(e => {
               const isText = /[a-zA-ZÁÉÍÓÚáéíóú]/.test(e)
               return (
                 <button

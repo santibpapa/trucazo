@@ -1,4 +1,4 @@
-import type { Announce } from '@/components/game/MesaUI'
+import { EMOTES, type Announce } from '@/components/game/MesaUI'
 import type { TeamSnapshot } from './team-game'
 import type { SoundName } from './sounds'
 
@@ -7,6 +7,12 @@ export const TEAM_LABELS: Record<string, string> = {
   truco: 'Truco', retruco: 'Retruco', vale_cuatro: 'Vale Cuatro',
   envido_yes: 'Quiero', envido_no: 'No quiero', truco_yes: 'Quiero', truco_no: 'No quiero', son_buenas: 'Son buenas',
 }
+
+/** Chat rápido del 2vs2: lo del 1vs1 más frases de mesa de a cuatro. Públicas: las ven los cuatro. */
+export const TEAM_EMOTES = [...EMOTES,
+  '¡Vení, vení!', 'Juego yo', 'Voy para allá', '¿Qué hago?', '¡Cantales, cantales!',
+  '¿Tanto tenés?', 'Algo tengo', 'Estoy seco', '¿Te queda esa?', 'No me queda nada, eh',
+]
 
 export const CANTO_SOUNDS: Record<string, SoundName> = {
   envido: 'envido', real_envido: 'real-envido', falta_envido: 'falta-envido',
