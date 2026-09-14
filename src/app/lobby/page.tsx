@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import LobbyClient from './LobbyClient'
 import type { ObjectivesData } from '@/lib/objectives'
+import type { Profile } from '@/lib/types'
 
 export default async function LobbyPage() {
   const supabase = await createClient()
@@ -9,28 +10,43 @@ export default async function LobbyPage() {
 
   if (!user) redirect('/login')
 
-  let { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const userId = user.id
+
+  // La API de Supabase a veces devuelve 502/504 durante unos segundos. Ese bache
+  // no tiene que tirar el lobby entero, así que reintentamos antes de rendirnos.
+  // maybeSingle() hace que "este usuario todavía no tiene perfil" vuelva como dato
+  // vacío y no como error, para poder distinguirlo de "no pudimos preguntar".
+  async function leerPerfil(): Promise<{ perfil: Profile | null; sinRespuesta: boolean }> {
+    const hastaCuando = Date.now() + 4000 // tope de espera: la página no puede colgarse
+    for (let intento = 1; ; intento++) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+      if (!error) return { perfil: data as Profile | null, sinRespuesta: false }
+      console.error(`lobby: no se pudo leer el perfil (intento ${intento}):`, error.message)
+      if (intento >= 3 || Date.now() >= hastaCuando) return { perfil: null, sinRespuesta: true }
+      await new Promise((seguir) => setTimeout(seguir, 200 * intento))
+    }
+  }
+
+  const { perfil, sinRespuesta } = await leerPerfil()
+  let profile = perfil
 
   // Red de seguridad: si el usuario entró pero no tiene perfil (p. ej. un login
   // con Google que no llegó a crearlo), lo creamos acá para que el lobby nunca
   // quede sin perfil. Es idempotente: si ya existe, no hace nada.
-  if (!profile) {
+  // Solo cuando la base contestó: si no contestó, el perfil puede existir igual
+  // y no tiene sentido intentar crearlo.
+  if (!profile && !sinRespuesta) {
     const base = (user.email?.split('@')[0] || 'Jugador').slice(0, 16)
     for (const username of [base, `${base}${Math.floor(1000 + Math.random() * 9000)}`]) {
       const { error } = await supabase.from('profiles').insert({ id: user.id, username })
       if (!error) break
       if (error.code !== '23505') break // error real (no "nombre repetido"): no insistimos
     }
-    const { data: reloaded } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-    profile = reloaded
+    profile = (await leerPerfil()).perfil
   }
 
   // Si aun así no hay perfil, mostramos algo claro en vez de romper la pantalla.
