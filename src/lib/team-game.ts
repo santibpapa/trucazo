@@ -39,6 +39,14 @@ export interface TeamGame {
   action_started_at: string
   announcement: { seat: number; text: string; action: string; at: string } | null
   reveal: { seat: number; points: number; cards: Card[] } | null
+  chat: TeamChatLine[]
+}
+/** Una frase del chat rápido, dicha por una persona o por un bot. */
+export interface TeamChatLine {
+  seat: number
+  text: string
+  hand: number
+  at: string
 }
 export interface TeamSnapshot {
   table: TeamTable
