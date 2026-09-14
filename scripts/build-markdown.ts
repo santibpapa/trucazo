@@ -71,9 +71,12 @@ turndown.addRule('tabla', {
 // párrafo. Turndown lo pasa tal cual y queda ilegible: un corchete suelto, adentro
 // el título, y la dirección abajo de todo. Esta regla lo da vuelta y deja el
 // título enlazado, que es como se escribiría a mano.
+// Ojo con el "!==  null": domino devuelve undefined cuando no encuentra nada, así
+// que comparar contra null daba verdadero para CUALQUIER enlace y esta regla se
+// comía el texto de todos los enlaces sueltos. Va una comprobación por verdadero.
 turndown.addRule('tarjetaEnlazada', {
   filter: node =>
-    node.nodeName === 'A' && node.querySelector('h1, h2, h3, h4, h5, h6') !== null,
+    node.nodeName === 'A' && Boolean(node.querySelector('h1, h2, h3, h4, h5, h6')),
   replacement: (_content, node) => {
     const el = node as HTMLAnchorElement
     const heading = el.querySelector('h1, h2, h3, h4, h5, h6')
