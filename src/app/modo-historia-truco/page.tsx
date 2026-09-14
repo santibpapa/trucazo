@@ -16,6 +16,7 @@ export const metadata = createPublicMetadata({ title, description, path, type: '
 export default function ModoHistoriaPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Modo Historia de Trucazo"
       breadcrumb="Modo Historia"
       intro="Una campaña de truco mano a mano por Argentina. Cada parada presenta un rival con personalidad, dificultad y recompensa propias."

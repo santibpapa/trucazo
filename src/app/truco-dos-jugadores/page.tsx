@@ -13,6 +13,7 @@ export const metadata = createPublicMetadata({ title, description, path })
 export default function TrucoDosPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Cómo jugar al truco entre dos"
       breadcrumb="Truco para dos jugadores"
       intro="El truco mano a mano conserva el envido, el bluff y las tres bazas, pero elimina compañeros, señas y decisiones de equipo. Es la modalidad más directa de Trucazo, que también tiene mesas en parejas."

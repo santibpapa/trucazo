@@ -24,6 +24,7 @@ const pageJsonLd = {
 export default function SinRegistroPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Jugar al truco sin registrarse"
       breadcrumb="Jugar sin registrarse"
       intro="El modo invitado crea un perfil temporal y te lleva al lobby sin pedir email ni contraseña. Sirve para probar una partida antes de decidir si querés una cuenta."

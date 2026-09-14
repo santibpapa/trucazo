@@ -14,6 +14,7 @@ export const metadata = createPublicMetadata({ title, description, path, type: '
 export default function ContactoPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Contacto y soporte"
       breadcrumb="Contacto"
       intro="Elegí el canal según lo que necesites. No publiques contraseñas, tokens, datos privados ni capturas que expongan información personal."

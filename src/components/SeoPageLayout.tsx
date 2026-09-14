@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Logo, buttonClass } from '@/components/ui'
 import GuestButton from '@/components/GuestButton'
 import TrackedLink from '@/components/TrackedLink'
-import { CONTENT_UPDATED_AT, EDITOR_NAME } from '@/lib/seo'
+import { contentUpdatedAt, EDITOR_NAME, formatUpdated } from '@/lib/seo'
 
 // Marco de las páginas públicas de contenido (las que Google indexa):
 // una barra arriba con el logo y un botón para jugar, el contenido, y un
@@ -12,6 +12,7 @@ export default function SeoPageLayout({
   intro,
   children,
   breadcrumb,
+  path,
   showPlayCta = true,
   showByline = true,
 }: {
@@ -19,9 +20,12 @@ export default function SeoPageLayout({
   intro: string
   children: React.ReactNode
   breadcrumb?: string
+  /** Camino de esta página; de ahí sale su fecha de actualización. */
+  path?: string
   showPlayCta?: boolean
   showByline?: boolean
 }) {
+  const updated = path ? contentUpdatedAt(path) : null
   return (
     <div className="min-h-screen flex flex-col">
       <header className="flex items-center justify-between gap-4 px-5 sm:px-8 py-4 border-b border-line">
@@ -51,10 +55,10 @@ export default function SeoPageLayout({
           {title}
         </h1>
         <p className="mt-4 text-lg text-muted text-balance">{intro}</p>
-        {showByline ? (
+        {showByline && updated ? (
           <p className="mt-3 text-xs text-subtle">
             Revisado por {EDITOR_NAME} · Actualizado el{' '}
-            <time dateTime={CONTENT_UPDATED_AT}>15 de agosto de 2026</time>
+            <time dateTime={updated}>{formatUpdated(updated)}</time>
           </p>
         ) : null}
 
