@@ -15,7 +15,7 @@ export default function TrucoDosPage() {
     <SeoPageLayout
       title="Cómo jugar al truco entre dos"
       breadcrumb="Truco para dos jugadores"
-      intro="El truco mano a mano conserva el envido, el bluff y las tres bazas, pero elimina compañeros, señas y decisiones de equipo. Es la modalidad principal de Trucazo."
+      intro="El truco mano a mano conserva el envido, el bluff y las tres bazas, pero elimina compañeros, señas y decisiones de equipo. Es la modalidad más directa de Trucazo, que también tiene mesas en parejas."
     >
       <JsonLd data={createArticleJsonLd({ headline: title, description, path })} />
       <JsonLd data={createBreadcrumbJsonLd('Truco para dos jugadores', path)} />
@@ -80,10 +80,15 @@ export default function TrucoDosPage() {
 
       <Section title="Jugar la modalidad">
         <p>
-          Trucazo está diseñado alrededor del 1 contra 1. Podés{' '}
+          El mano a mano es la forma más rápida de entrar a una mesa. Podés{' '}
           <Link href="/jugar-truco-sin-registrarse" className="text-gold underline underline-offset-2">probar como invitado</Link>,{' '}
           <Link href="/jugar-truco-con-amigos" className="text-gold underline underline-offset-2">crear una mesa con un amigo</Link>{' '}
           o practicar contra la computadora.
+        </p>
+        <p>
+          Si son cuatro, en Trucazo también se juega{' '}
+          <Link href="/truco-en-parejas" className="text-gold underline underline-offset-2">2 vs 2 en parejas</Link>,
+          con compañeros enfrentados y puntaje compartido.
         </p>
       </Section>
     </SeoPageLayout>

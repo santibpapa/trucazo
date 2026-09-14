@@ -177,6 +177,7 @@ export default function Home() {
           <nav className="mt-7 flex flex-wrap justify-center gap-4 text-sm font-semibold">
             <Link href="/jugar-truco-sin-registrarse" className="text-gold hover:underline">Sin registrarme</Link>
             <Link href="/jugar-truco-con-amigos" className="text-gold hover:underline">Con amigos</Link>
+            <Link href="/truco-en-parejas" className="text-gold hover:underline">En parejas (2 vs 2)</Link>
             <Link href="/truco-contra-computadora" className="text-gold hover:underline">Contra la computadora</Link>
             <Link href="/modo-historia-truco" className="text-gold hover:underline">Modo Historia</Link>
           </nav>

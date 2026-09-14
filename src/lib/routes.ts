@@ -89,6 +89,14 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     frequency: 'monthly',
   },
   {
+    path: '/truco-en-parejas',
+    label: 'Truco en parejas',
+    blurb: 'reglas del 2 vs 2 con cuatro jugadores.',
+    group: 'guia',
+    priority: 0.8,
+    frequency: 'monthly',
+  },
+  {
     path: '/jugar-truco-sin-registrarse',
     label: 'Sin registrarse',
     blurb: 'entrar como invitado, sin crear cuenta.',
