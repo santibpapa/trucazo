@@ -42,6 +42,7 @@ const bravas = [
 export default function OrdenCartasPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Orden de las cartas del truco"
       breadcrumb="Orden de las cartas"
       intro="En el truco argentino no gana siempre el número más alto. El 1 de espada es la carta máxima y los 4 son las más bajas. Esta tabla muestra la jerarquía completa usada por Trucazo."

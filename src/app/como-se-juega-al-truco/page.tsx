@@ -53,6 +53,7 @@ const faqs = [
 export default function ComoSeJuegaPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Cómo se juega al truco argentino"
       breadcrumb="Cómo se juega al truco"
       intro="El objetivo es sumar puntos ganando el envido y las bazas del truco. En Trucazo se juega 1 contra 1, a 15 o 30 puntos y sin flor. Esta guía explica esa modalidad y marca dónde existen variantes tradicionales."

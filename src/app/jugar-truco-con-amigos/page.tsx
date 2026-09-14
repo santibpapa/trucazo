@@ -15,6 +15,7 @@ export const metadata = createPublicMetadata({ title, description, path, type: '
 export default function ConAmigosPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Jugar al truco online con amigos"
       breadcrumb="Jugar al truco con amigos"
       intro="Creá una mesa privada, elegí sus reglas y compartí el código. Cuando tu amigo entra, la partida empieza en el navegador de ambos."

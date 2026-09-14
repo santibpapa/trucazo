@@ -175,6 +175,17 @@ for (const route of PUBLIC_ROUTES) {
     route.path === '' || (route.path.startsWith('/') && !route.path.endsWith('/')),
     `el camino "${route.path}" tiene que empezar con / y no terminar en /`,
   )
+  // La fecha va al sitemap, a la ficha para buscadores y al "Actualizado el ..."
+  // que ve la persona. Una mal escrita se publica igual y no se nota.
+  const label = route.path === '' ? '/ (inicio)' : route.path
+  check(
+    /^\d{4}-\d{2}-\d{2}$/.test(route.updated),
+    `la fecha de ${label} tiene que ser AAAA-MM-DD y es "${route.updated}"`,
+  )
+  check(
+    !Number.isNaN(Date.parse(`${route.updated}T00:00:00Z`)),
+    `la fecha de ${label} no existe en el calendario: "${route.updated}"`,
+  )
 }
 
 // ---------------------------------------------------------------

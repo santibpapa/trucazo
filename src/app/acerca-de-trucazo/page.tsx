@@ -14,6 +14,7 @@ export const metadata = createPublicMetadata({ title, description, path, type: '
 export default function AcercaPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Acerca de Trucazo"
       breadcrumb="Acerca de Trucazo"
       intro="Trucazo es un proyecto argentino independiente para aprender y jugar al truco mano a mano desde el navegador."

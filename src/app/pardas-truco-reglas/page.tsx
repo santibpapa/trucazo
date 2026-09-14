@@ -22,6 +22,7 @@ const cases = [
 export default function PardasPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Pardas en el truco: quién gana"
       breadcrumb="Pardas en el truco"
       intro="Una parda ocurre cuando las cartas más fuertes de una baza tienen el mismo rango. La clave es recordar que el empate favorece a quien ya había ganado antes; sin ventaja previa, manda la siguiente baza o la mano."

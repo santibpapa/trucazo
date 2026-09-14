@@ -18,6 +18,7 @@ export const metadata = createPublicMetadata({ title, description, path })
 export default function CalculadoraEnvidoPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Calculadora de envido"
       breadcrumb="Calculadora de envido"
       intro="Elegí las tres cartas de tu mano. La calculadora encuentra automáticamente la mejor combinación válida y te explica de dónde sale el resultado."

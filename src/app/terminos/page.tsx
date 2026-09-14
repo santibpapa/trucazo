@@ -14,6 +14,7 @@ export const metadata = createPublicMetadata({ title, description, path, type: '
 export default function TerminosPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Términos de uso"
       breadcrumb="Términos"
       intro="Al utilizar Trucazo aceptás estas condiciones básicas de convivencia y funcionamiento. Última actualización: 15 de agosto de 2026."

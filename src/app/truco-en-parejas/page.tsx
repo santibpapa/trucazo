@@ -40,6 +40,7 @@ const faqs = [
 export default function TrucoEnParejasPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Cómo jugar al truco en parejas (2 vs 2)"
       breadcrumb="Truco en parejas"
       intro="El truco de a cuatro es el que se juega en las mesas de bar y en los campeonatos: dos parejas, cartas que se cuidan entre compañeros y cantos que comprometen a todo el equipo. Esta guía explica cómo funciona y cómo jugarlo en Trucazo."

@@ -52,6 +52,7 @@ const reasons = [
 export default function JugarOnlinePage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Jugar al truco online gratis"
       breadcrumb="Jugar al truco online gratis"
       intro="Entrá desde el navegador y jugá una partida 1 contra 1. No necesitás descargar una aplicación ni crear una cuenta para probar Trucazo."

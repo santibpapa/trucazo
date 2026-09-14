@@ -14,6 +14,7 @@ export const metadata = createPublicMetadata({ title, description, path, type: '
 export default function PrivacidadPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Política de privacidad"
       breadcrumb="Privacidad"
       intro="Esta página explica en lenguaje claro qué información necesita Trucazo para funcionar. Última actualización: 29 de agosto de 2026."

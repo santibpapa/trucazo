@@ -15,6 +15,7 @@ export const metadata = createPublicMetadata({ title, description, path, type: '
 export default function ContraComputadoraPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Jugar al truco contra la computadora"
       breadcrumb="Truco contra la computadora"
       intro="Trucazo incluye rivales controlados por computadora para empezar sin esperar a otra persona. Podés jugar una partida rápida o avanzar por una campaña con dificultad creciente."

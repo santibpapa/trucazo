@@ -22,6 +22,7 @@ const rows = [
 export default function EnvidoPage() {
   return (
     <SeoPageLayout
+      path={path}
       title="Envido, real envido y falta envido"
       breadcrumb="Envido, real envido y falta envido"
       intro="El envido compara los tantos de cada mano. Los cantos pueden aceptarse, rechazarse o subirse, y su valor cambia según la cadena. Acá usamos la modalidad 1 contra 1 implementada por Trucazo."
