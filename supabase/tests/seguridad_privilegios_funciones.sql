@@ -31,7 +31,7 @@ declare
     'set_avatar_url', 'sing_envido', 'sing_truco', 'start_campaign_duel',
     'start_game', 'submit_feedback', 'timeout_mazo', 'touch_online',
     'touch_presence', 'team_create', 'team_join', 'team_action',
-    'team_snapshot', 'team_lobby', 'team_presence'
+    'team_snapshot', 'team_lobby', 'team_presence', 'team_say'
   ];
   v_bad text[];
   v_owner record;
