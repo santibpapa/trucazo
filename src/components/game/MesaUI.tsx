@@ -7,6 +7,7 @@ import { getMedal } from '@/lib/medallas'
 import { getSalonTheme } from '@/lib/salones'
 import styles from './salon.module.css'
 import CardBack from './CardBack'
+import { EMOTES } from '@/lib/emotes'
 
 export function MesaDeck({ className = '' }: { className?: string }) {
   return <div className={`${styles.deck} ${className}`} aria-hidden="true">
@@ -290,7 +291,7 @@ function SoundOffIcon() {
   )
 }
 
-export const EMOTES = ['👏', '😂', '😎', '🔥', '🃏', '¡Mentiroso!', '¡Andá!', '¡Achicate!', '¡Quiero!', '¡Buena!']
+export { EMOTES }
 
 /** `emotes` permite otra lista (el 2vs2 suma frases de pareja); por defecto la del 1vs1.
  *  Con más de diez frases la bandeja se ensancha y, si no entra, se desplaza. */

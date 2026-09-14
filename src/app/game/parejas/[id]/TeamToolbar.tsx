@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { isMuted, setMuted } from '@/lib/sounds'
 import type { TeamMember } from '@/lib/team-game'
 import { EmoteTray, MesaToolbar } from '@/components/game/MesaUI'
-import { TEAM_EMOTES } from '@/lib/team-presentation'
+import { TEAM_EMOTES } from '@/lib/emotes'
 import styles from './team.module.css'
 
 /** El chat rápido es público para toda la mesa, como en 1vs1. Nunca es una acción del motor. */
