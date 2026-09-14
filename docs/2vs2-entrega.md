@@ -15,9 +15,9 @@ de espera se rediseñó después, a su pedido.
 | Reglas | D1–D5 y Q1–Q3 en `2vs2-auditoria.md`: turnos, pardas, envido declarado en orden y mazo que cierra la mano para todo el equipo. |
 | Mesas | Cuatro asientos; 0/2 contra 1/3; públicas o con código. Cada persona elige asiento. El creador gestiona bots e inicio. Se necesitan cuatro participantes sentados. |
 | Motor | Servidor autoritativo, manos privadas, puntaje compartido, acciones con versión e identificador, bloqueos por mesa y pagos una sola vez. |
-| Bots | Las cinco composiciones; decisión con cartas propias e información pública, ahorro de cartas cuando gana el compañero, prioridad humana al responder. |
+| Bots | Las cinco composiciones; decisión con cartas propias e información pública, ahorro de cartas cuando gana el compañero, prioridad humana al responder. Desde el 14/09/2026 se sientan con nombre de jugador, hablan en la mesa y escuchan a su compañero: `2vs2-bots-humanos.md`. |
 | Presentación | Componentes y estética del 1vs1; pilas frente a cada jugador, tamaños estables, cantos con autor y resultado por equipo. La sala de espera se rediseñó aparte: la mesa se ve desde arriba, con un lugar por lado y el compañero enfrente. |
-| Chat rápido | Los emotes del 1vs1 más once frases de mesa de a cuatro, en `src/lib/emotes.ts`. Son públicas: las lee toda la mesa. No hay señas ni canal privado entre compañeros. |
+| Chat rápido | Los emotes del 1vs1 más once frases de mesa de a cuatro, en `src/lib/emotes.ts`. Son públicas: las lee toda la mesa. No hay señas ni canal privado entre compañeros. Viajan por el servidor (`team_say`), que solo acepta las frases de esa lista y no toca el turno ni la versión de la mesa. |
 | Sincronización | Realtime de estado público, consulta de respaldo cada 2,5 s, presencia cada 8 s y recuperación de asiento al recargar con la misma sesión. |
 | Compatibilidad | Incluye la corrección del resultado 1vs1 de master, PR #58 (`d7094d0`). No cambia la mesa ni el resultado del 2vs2 aprobado. |
 
@@ -54,8 +54,10 @@ premios adicionales por ese cambio de saldo.
 
 ## Migraciones y activación
 
-Las tres ya están aplicadas en producción. Quedan listadas por si hay que reconstruir
-una base desde cero o montar un entorno de prueba, y se corren en este orden:
+Las tres primeras ya están aplicadas en producción. **La cuarta está pendiente: hay
+que correrla a mano** para que los bots tomen nombre, hablen y escuchen. Quedan las
+cuatro listadas por si hay que reconstruir una base desde cero o montar un entorno
+de prueba, y se corren en este orden:
 
 1. `supabase/migrations/20260909211038_team_2vs2.sql`: tablas, motor, permisos,
    publicación de `team_tables` en Realtime y cron `sweep_team_tables`.
@@ -63,6 +65,9 @@ una base desde cero o montar un entorno de prueba, y se corren en este orden:
    presencia, limpieza de solicitudes, índices, RLS y actividad de emails.
 3. `supabase/migrations/20260914100000_team_2vs2_abandono.sql`: ausencia total en
    partida: el equipo ausente pierde por abandono; con ausentes de ambos lados se anula.
+4. `supabase/migrations/20260914170000_team_2vs2_bots_hablan.sql`: bots con nombre,
+   catálogo de frases, chat rápido por servidor y pedidos del compañero. No cambia
+   reglas, turnos, puntajes ni pagos.
 
 La primera exige que la extensión `pg_cron` esté habilitada (Supabase → Database →
 Extensions): programa el barrido con `cron.schedule` y sin la extensión falla entera.
@@ -70,7 +75,7 @@ Cada archivo es transaccional y no se repite: si ya fue aplicado, se omite.
 
 Para montar otra base con las migraciones de master:
 
-1. Abrirla en Supabase → **SQL Editor** y correr los tres archivos, uno por consulta.
+1. Abrirla en Supabase → **SQL Editor** y correr los cuatro archivos, uno por consulta.
 2. Comprobar las cuatro tablas `team_*`, la tabla privada `team_internal.requests`,
    sus permisos y RLS. En Realtime debe aparecer solo `team_tables`, nunca las
    manos ni las solicitudes. Debe existir un único cron `sweep_team_tables` cada 5 min.
@@ -112,7 +117,7 @@ Un enlace vencido no se recupera recargando Safari.
 
 ## Verificación y límites
 
-- Local: reconstrucción desde cero con las tres migraciones; pruebas SQL del motor,
+- Local: reconstrucción desde cero con las cuatro migraciones; pruebas SQL del motor,
   bots, privacidad, permisos, pagos, presencia y retención; actividad de emails,
   tipos TypeScript y comprobación de RPC.
 - CI: PostgreSQL 16, reconstrucción y suites de seguridad, regresión 1vs1,
@@ -124,6 +129,10 @@ Un enlace vencido no se recupera recargando Safari.
   WebSocket. El resultado concreto de la ejecución vigente queda en el PR.
 - Composiciones cubiertas: cuatro personas, tres más bot, dos compañeras más bots,
   dos rivales más bots y una persona más tres bots; objetivos 15/30 y relojes 15/30.
+- Charla de los bots: nombres sin repetir, permisos y RLS del catálogo, validación y
+  límite del chat, que hablar no mueva turno ni versión, respuesta honesta según la
+  mano, caducidad del pedido al terminar la mano, "Calladito" y el efecto medido de
+  cada pedido sobre la decisión. En `team_games.sql` y `check-team-presentation.ts`.
 - La apariencia la aprobó el dueño, incluido el rediseño de la sala de espera.
 - La sesión manual con cuatro personas la hizo el dueño antes de lanzar.
 

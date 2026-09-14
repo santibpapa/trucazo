@@ -380,4 +380,138 @@ declare t uuid:=pg_temp.fixture(array[0,1]); active uuid; recent uuid; u uuid; r
   perform pg_temp.check((select relrowsecurity from pg_class where oid='team_internal.requests'::regclass),'comprobantes protegidos por RLS');
 end $$;
 
+-- Bots con nombre: de la lista del lobby, sin repetir en la mesa.
+do $$
+declare t uuid:=pg_temp.fixture(array[0]); begin
+  perform pg_temp.check((select count(distinct username)=4 from public.team_seats where table_id=t),'cuatro nombres distintos');
+  perform pg_temp.check((select bool_and(username in (select name from public.lobby_bot_names))
+    from public.team_seats where table_id=t and user_id is null),'los bots usan nombres de jugador');
+  perform pg_temp.check((select relrowsecurity from pg_class where oid='public.team_bot_lines'::regclass),'catálogo de frases protegido por RLS');
+  -- Quedarse callado ante el compañero se nota: toda frase del chat rápido
+  -- tiene respuesta, y con las dos manos (buena y mala) cuando la distingue.
+  perform pg_temp.check(not exists(select 1 from unnest(team_internal.chat_lines()) frase
+    where not exists(select 1 from public.team_bot_lines l where l.moment='oye:'||frase)),
+    'el bot tiene respuesta para cada frase del chat');
+  perform pg_temp.check(not exists(select 1 from public.team_bot_lines l where l.strong
+    and not exists(select 1 from public.team_bot_lines o where o.moment=l.moment and not o.strong)),
+    'si contesta con buena mano, también contesta con mala');
+end $$;
+
+create function pg_temp.say(t uuid,s integer,texto text) returns jsonb language plpgsql as $$
+declare u uuid; result jsonb; begin
+  select user_id into u from public.team_seats where table_id=t and seat=s;
+  perform set_config('request.jwt.claim.sub',u::text,true);
+  set local role authenticated;
+  result:=public.team_say(t,texto);
+  reset role;
+  return result;
+end $$;
+
+-- El chat rápido: qué se puede decir, quién puede decirlo y qué NO mueve.
+do $$
+declare t uuid:=pg_temp.fixture(); g public.team_games; v bigint; started timestamptz;
+  outsider uuid:=pg_temp.person(); blocked boolean; n integer; i integer; begin
+  select version,(select action_started_at from public.team_games where id=t) into v,started
+    from public.team_tables where id=t;
+  perform pg_temp.say(t,0,'¿Qué hago?');
+  select * into g from public.team_games where id=t;
+  perform pg_temp.check(jsonb_array_length(g.chat)=1 and g.chat->0->>'text'='¿Qué hago?'
+    and (g.chat->0->>'seat')::integer=0 and (g.chat->0->>'hand')::integer=g.hand_number,'la frase queda con autor y mano');
+  -- Hablar no es jugar: ni corre el reloj del turno ni invalida la jugada del otro.
+  perform pg_temp.check((select version=v from public.team_tables where id=t),'el chat no cambia la versión de la mesa');
+  perform pg_temp.check(g.action_started_at=started,'el chat no reinicia el reloj del turno');
+  perform pg_temp.check(not (g.chat::text like '%rank%'),'el chat no lleva cartas');
+  -- Un mensaje cada dos segundos por persona.
+  perform pg_temp.say(t,0,'Algo tengo');
+  perform pg_temp.check((select jsonb_array_length(chat)=1 from public.team_games where id=t),'ignora el mensaje repetido al instante');
+  blocked:=false;
+  begin perform pg_temp.say(t,1,'te mando un link'); exception when raise_exception then blocked:=true; end;
+  perform pg_temp.check(blocked,'solo se pueden mandar las frases de la lista');
+  blocked:=false;
+  begin perform set_config('request.jwt.claim.sub',outsider::text,true);
+    set local role authenticated; perform public.team_say(t,'¡Buena!');
+    exception when raise_exception then blocked:=true; end;
+  reset role;
+  perform pg_temp.check(blocked,'un ajeno no puede hablar en la mesa');
+  -- La lista guarda las últimas diez y nada más.
+  for i in 1..12 loop perform team_internal.say(t,1,'¡Buena!'); end loop;
+  select jsonb_array_length(chat) into n from public.team_games where id=t;
+  perform pg_temp.check(n=10,'la mesa recuerda las últimas diez frases');
+  blocked:=false;
+  perform team_internal.finish(t,0,'points');
+  begin perform pg_temp.say(t,0,'¡Buena!'); exception when raise_exception then blocked:=true; end;
+  perform pg_temp.check(blocked,'no se habla en una mesa terminada');
+end $$;
+
+-- El bot escucha a su compañero: le contesta, y lo que contesta es verdad.
+do $$
+declare t uuid:=pg_temp.fixture(array[0]); g public.team_games; i integer:=0; reply text; begin
+  -- Mano de fierro para el bot del asiento 2 (el compañero del 0).
+  update public.team_hands set cards='[{"suit":"espada","value":1,"rank":1},{"suit":"basto","value":1,"rank":2},{"suit":"espada","value":7,"rank":3}]'
+    where table_id=t and seat=2;
+  perform pg_temp.check(team_internal.bot_line(t,2,'oye:¿Qué hago?',team_internal.bot_strong(t,2,false)),'el compañero contesta');
+  select chat->-1->>'text' into reply from public.team_games where id=t;
+  perform pg_temp.check(reply in (select text from public.team_bot_lines where moment='oye:¿Qué hago?' and strong),'con buena mano contesta que lo sigan');
+  update public.team_games set chat='[]' where id=t;
+  update public.team_hands set cards='[{"suit":"copa","value":4,"rank":14},{"suit":"basto","value":5,"rank":13},{"suit":"oro","value":6,"rank":12}]'
+    where table_id=t and seat=2;
+  perform pg_temp.check(team_internal.bot_line(t,2,'oye:¿Qué hago?',team_internal.bot_strong(t,2,false)),'el compañero contesta');
+  select chat->-1->>'text' into reply from public.team_games where id=t;
+  perform pg_temp.check(reply in (select text from public.team_bot_lines where moment='oye:¿Qué hago?' and not strong),'sin nada avisa que está seco');
+  -- Dos bots no se encinan… salvo para contestarle al compañero: quedarse
+  -- callado ante una pregunta directa se nota mucho más que el coro.
+  perform pg_temp.check(not team_internal.bot_line(t,1,'chicana'),'un bot no habla encima de otro');
+  perform pg_temp.check(team_internal.bot_line(t,1,'oye:¿Qué hago?',true,true),'contestarle al compañero no espera turno');
+  perform pg_temp.check(not team_internal.bot_line(t,1,'oye:¿Qué hago?',true,true),'pero no se contesta dos veces seguidas');
+  -- El pedido de una persona llega al compañero bot y no al rival.
+  update public.team_games set chat='[]' where id=t;
+  perform pg_temp.say(t,0,'¡Cantales, cantales!');
+  select * into g from public.team_games where id=t;
+  perform pg_temp.check(team_internal.partner_hint(g,2)='cantales','el compañero escucha el pedido');
+  perform pg_temp.check(team_internal.partner_hint(g,1) is null and team_internal.partner_hint(g,3) is null,'los rivales no le manejan el juego al bot');
+  update public.team_games set hand_number=hand_number+1 where id=t;
+  select * into g from public.team_games where id=t;
+  perform pg_temp.check(team_internal.partner_hint(g,2) is null,'el pedido caduca al terminar la mano');
+end $$;
+
+-- "Calladito" los calla por el resto de la mano, y solo por esa mano.
+do $$
+declare t uuid:=pg_temp.fixture(array[0]); g public.team_games; n integer; begin
+  perform pg_temp.say(t,0,'Calladito');
+  select * into g from public.team_games where id=t;
+  perform pg_temp.check(team_internal.quiet(g),'queda pedido el silencio');
+  select jsonb_array_length(chat) into n from public.team_games where id=t;
+  perform pg_temp.check(not team_internal.bot_line(t,2,'apoya'),'callados no hablan');
+  perform team_internal.bot_talk(t,0,'truco');
+  perform pg_temp.check((select jsonb_array_length(chat)=n from public.team_games where id=t),'ni siquiera para acompañar un canto');
+  update public.team_games set hand_number=hand_number+1 where id=t;
+  select * into g from public.team_games where id=t;
+  perform pg_temp.check(not team_internal.quiet(g),'en la mano siguiente vuelven a hablar');
+end $$;
+
+-- El pedido del compañero corre el umbral del bot, pero no le da la mano.
+do $$
+declare g public.team_games; floja jsonb; tanto23 jsonb; tanto26 jsonb; fierro jsonb; begin
+  g.id:=gen_random_uuid(); g.played:='[]'; g.round:=1; g.turn:=0; g.hand_number:=1; g.chat:='[]';
+  floja:='[{"suit":"copa","value":4,"rank":14},{"suit":"basto","value":5,"rank":13},{"suit":"oro","value":6,"rank":12}]';
+  tanto23:='[{"suit":"oro","value":1,"rank":7},{"suit":"oro","value":2,"rank":6},{"suit":"basto","value":4,"rank":14}]';
+  tanto26:='[{"suit":"oro","value":5,"rank":13},{"suit":"oro","value":1,"rank":7},{"suit":"basto","value":4,"rank":14}]';
+  fierro:='[{"suit":"espada","value":1,"rank":1},{"suit":"basto","value":1,"rank":2},{"suit":"espada","value":7,"rank":3}]';
+  -- Truco: "cantales" lo anima; "estoy seco" lo guarda.
+  perform pg_temp.check(team_internal.bot_choice(g,0,floja,array['truco_yes','truco_no'],0.3)->>'action'='truco_no','sin pedido, con nada, no quiere');
+  perform pg_temp.check(team_internal.bot_choice(g,0,floja,array['truco_yes','truco_no'],0.3,'cantales')->>'action'='truco_yes','"cantales" lo anima a querer');
+  perform pg_temp.check(team_internal.bot_choice(g,0,floja,array['truco_yes','truco_no'],0.1)->>'action'='truco_yes','sin pedido a veces quiere igual');
+  perform pg_temp.check(team_internal.bot_choice(g,0,floja,array['truco_yes','truco_no'],0.1,'seco')->>'action'='truco_no','"estoy seco" lo hace achicarse');
+  perform pg_temp.check(team_internal.bot_choice(g,0,fierro,array['truco_yes','truco_no'],0.9,'seco')->>'action'='truco_yes','con la mano hecha quiere aunque le digan que están secos');
+  -- Envido: el tanto del equipo es el mejor de los dos, así que el aviso pesa.
+  perform pg_temp.check(team_internal.bot_choice(g,0,tanto23,array['envido_yes','envido_no'],0.5)->>'action'='envido_no','sin pedido, 23 no alcanza');
+  perform pg_temp.check(team_internal.bot_choice(g,0,tanto23,array['envido_yes','envido_no'],0.5,'tengo')->>'action'='envido_yes','"algo tengo" baja el listón del envido');
+  perform pg_temp.check(team_internal.bot_choice(g,0,tanto26,array['envido_yes','envido_no'],0.5)->>'action'='envido_yes','sin pedido, 26 se quiere');
+  perform pg_temp.check(team_internal.bot_choice(g,0,tanto26,array['envido_yes','envido_no'],0.5,'seco')->>'action'='envido_no','"estoy seco" lo pone más exigente');
+  -- Sin pedido decide igual que antes, y el pedido nunca inventa una jugada.
+  perform pg_temp.check(team_internal.bot_choice(g,0,floja,array['play'],0.42)
+    =team_internal.bot_choice(g,0,floja,array['play'],0.42,'cantales'),'el pedido no cambia qué carta juega');
+  perform pg_temp.check(team_internal.bot_choice(g,0,floja,array['truco_yes','truco_no'],0.3,'cantales')->>'action'<>'vale_cuatro','el pedido no inventa un canto que no tiene');
+end $$;
+
 rollback;

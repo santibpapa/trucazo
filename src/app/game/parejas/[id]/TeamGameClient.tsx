@@ -94,6 +94,15 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
     } finally { acting.current = false; if (!disposed.current) setBusy(false) }
   }, [apply, supabase])
 
+  // El chat rápido no es una jugada: va por su propia RPC, no pasa por `acting`
+  // y no puede dejar a nadie sin poder jugar si falla.
+  const say = useCallback(async (text: string) => {
+    try {
+      const result = await supabase.rpc('team_say', { p_table_id: initial.table.id, p_text: text })
+      if (!disposed.current && result.data) apply(result.data as TeamSnapshot)
+    } catch { if (!disposed.current) setConnected(false) }
+  }, [apply, initial.table.id, supabase])
+
   useEffect(() => {
     disposed.current = false
     const refresh = async () => {
@@ -209,7 +218,7 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
       <section className={styles.stage} data-team-stage aria-label="Mesa de cuatro jugadores">
         <SalonTable slug={salonSlug} />
         <MesaDeck className={styles.deck} />
-        <TeamToolbar tableId={table.id} members={members} userId={userId} mySeat={mySeat} playing={table.status === 'playing'} />
+        <TeamToolbar chat={g.chat ?? []} members={members} mySeat={mySeat} playing={table.status === 'playing'} offset={offset.current} onSay={text => { void say(text) }} />
         {announce && <MesaAnnouncement key={g.announcement?.at} announce={announce} />}
         {relativeSeats.map((seat, relative) => seatView(member(seat), relative))}
         {relativeSeats.map((seat, relative) => <TableAccessory key={seat} slug={cosmetics[member(seat)?.user_id ?? '']?.accessory} who={relative === 0 ? 'me' : 'opponent'} className={styles[`accessory${relative}`]} />)}
