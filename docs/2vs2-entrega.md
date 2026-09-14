@@ -1,8 +1,12 @@
-# 2vs2 — entrega para revisión
+# 2vs2 — cómo quedó la modalidad
 
-PR #57, rama `codex/2vs2`. **La apariencia quedó aprobada por el dueño sobre
-`76fa76e` el 13/09/2026 y no se modifica.** La revisión visual queda a su cargo.
-El PR continúa en borrador. No hacer merge a master ni lanzar en producción sin autorización.
+**Lanzada el 14/09/2026.** El PR #57 (rama `codex/2vs2`) se mergeó a master, las tres
+migraciones se aplicaron en el Supabase de producción y `NEXT_PUBLIC_ENABLE_2VS2=true`
+quedó configurada en Vercel. La modalidad está activa para todos los jugadores.
+
+Este documento pasa a ser la referencia de qué hace el 2vs2 y cómo está montado.
+La apariencia de la partida la aprobó el dueño sobre `76fa76e` el 13/09/2026; la sala
+de espera se rediseñó después, a su pedido.
 
 ## Implementación por etapas
 
@@ -12,7 +16,8 @@ El PR continúa en borrador. No hacer merge a master ni lanzar en producción si
 | Mesas | Cuatro asientos; 0/2 contra 1/3; públicas o con código. Cada persona elige asiento. El creador gestiona bots e inicio. Se necesitan cuatro participantes sentados. |
 | Motor | Servidor autoritativo, manos privadas, puntaje compartido, acciones con versión e identificador, bloqueos por mesa y pagos una sola vez. |
 | Bots | Las cinco composiciones; decisión con cartas propias e información pública, ahorro de cartas cuando gana el compañero, prioridad humana al responder. |
-| Presentación | Componentes y estética del 1vs1; pilas frente a cada jugador, tamaños estables, cantos con autor y resultado por equipo. Aprobada y congelada. |
+| Presentación | Componentes y estética del 1vs1; pilas frente a cada jugador, tamaños estables, cantos con autor y resultado por equipo. La sala de espera se rediseñó aparte: la mesa se ve desde arriba, con un lugar por lado y el compañero enfrente. |
+| Chat rápido | Los emotes del 1vs1 más once frases de mesa de a cuatro, en `src/lib/emotes.ts`. Son públicas: las lee toda la mesa. No hay señas ni canal privado entre compañeros. |
 | Sincronización | Realtime de estado público, consulta de respaldo cada 2,5 s, presencia cada 8 s y recuperación de asiento al recargar con la misma sesión. |
 | Compatibilidad | Incluye la corrección del resultado 1vs1 de master, PR #58 (`d7094d0`). No cambia la mesa ni el resultado del 2vs2 aprobado. |
 
@@ -49,7 +54,8 @@ premios adicionales por ese cambio de saldo.
 
 ## Migraciones y activación
 
-Aplicar en este orden, **solo en la base de prueba aislada** durante la revisión:
+Las tres ya están aplicadas en producción. Quedan listadas por si hay que reconstruir
+una base desde cero o montar un entorno de prueba, y se corren en este orden:
 
 1. `supabase/migrations/20260909211038_team_2vs2.sql`: tablas, motor, permisos,
    publicación de `team_tables` en Realtime y cron `sweep_team_tables`.
@@ -58,31 +64,35 @@ Aplicar en este orden, **solo en la base de prueba aislada** durante la revisió
 3. `supabase/migrations/20260914100000_team_2vs2_abandono.sql`: ausencia total en
    partida: el equipo ausente pierde por abandono; con ausentes de ambos lados se anula.
 
-La preview aplica las tres automáticamente. Para aplicarlas manualmente en una base
-separada que ya tenga las migraciones de master:
+La primera exige que la extensión `pg_cron` esté habilitada (Supabase → Database →
+Extensions): programa el barrido con `cron.schedule` y sin la extensión falla entera.
+Cada archivo es transaccional y no se repite: si ya fue aplicado, se omite.
 
-1. Abrir esa base de prueba en Supabase → **SQL Editor**.
-2. Abrir el primer archivo del PR, copiar su contenido completo a una consulta
-   nueva y pulsar **Run**. Si ya fue aplicado, omitirlo; no repetirlo.
-3. Repetir con el segundo y el tercer archivo. Cada archivo es transaccional: si falla, no activar.
-4. Comprobar las cuatro tablas `team_*`, la tabla privada `team_internal.requests`,
+Para montar otra base con las migraciones de master:
+
+1. Abrirla en Supabase → **SQL Editor** y correr los tres archivos, uno por consulta.
+2. Comprobar las cuatro tablas `team_*`, la tabla privada `team_internal.requests`,
    sus permisos y RLS. En Realtime debe aparecer solo `team_tables`, nunca las
    manos ni las solicitudes. Debe existir un único cron `sweep_team_tables` cada 5 min.
-5. En la aplicación de **Preview**, configurar URL y clave pública de esa misma
-   base y `NEXT_PUBLIC_ENABLE_2VS2=true`, y volver a compilar la copia.
+   Se verifican con `select tablename from pg_publication_tables where pubname='supabase_realtime'`
+   y `select jobname, schedule from cron.job`.
+3. Configurar URL y clave pública de esa base y `NEXT_PUBLIC_ENABLE_2VS2=true`, y
+   volver a compilar. La variable se hornea en el build: sin recompilar no toma efecto.
 
 Sin la variable, o con `false`, se mantienen las opciones 1vs1 y las rutas de
-parejas vuelven al lobby. Esta entrega no habilita el modo en producción.
+parejas vuelven al lobby. Sirve como interruptor de emergencia: ponerla en `false`
+y volver a desplegar apaga la modalidad sin tocar la base ni revertir código.
 La foto de estructura y funciones 2vs2 es `supabase/schema/team_2vs2.json`; no
 contiene datos. Para reconstruir de cero, seguir `supabase/schema/README.md`:
 la base histórica más todas las migraciones siguen siendo la receta ejecutable.
 
 ## Preview gratuita y cómo probar
 
-Los dos proyectos Supabase del dueño siguen intactos. `preview-2vs2.yml` crea una
-base vacía con Auth, PostgreSQL y Realtime reales en un runner estándar del
-repositorio público y un enlace temporal de Cloudflare. No usa datos ni claves de
-producción. La copia tiene los emails desactivados y se borra al terminar.
+Se usó durante la revisión y sigue disponible para probar cambios futuros sin tocar
+producción. `preview-2vs2.yml` crea una base vacía con Auth, PostgreSQL y Realtime
+reales en un runner estándar del repositorio público y un enlace temporal de
+Cloudflare. No usa datos ni claves de producción. La copia tiene los emails
+desactivados y se borra al terminar. Hoy solo se dispara en la rama `codex/2vs2`.
 
 1. Abrir PR #57 → **Checks → Preview temporal 2vs2 → preview**.
 2. Esperar las pruebas de las cinco composiciones y **Comprobar acceso público**.
@@ -114,9 +124,9 @@ Un enlace vencido no se recupera recargando Safari.
   WebSocket. El resultado concreto de la ejecución vigente queda en el PR.
 - Composiciones cubiertas: cuatro personas, tres más bot, dos compañeras más bots,
   dos rivales más bots y una persona más tres bots; objetivos 15/30 y relojes 15/30.
-- La apariencia la aprobó el dueño. No se hacen nuevas revisiones visuales.
-  Sigue sin acreditarse una sesión manual de cuatro personas en cuatro dispositivos;
-  las composiciones sí están cubiertas automáticamente por Auth/API/Realtime.
+- La apariencia la aprobó el dueño, incluido el rediseño de la sala de espera.
+- La sesión manual con cuatro personas la hizo el dueño antes de lanzar.
 
-Antes del lanzamiento faltan la sesión manual de cuatro personas y la autorización
-del dueño. La ausencia total contra bots quedó resuelta y probada en `team_games.sql`.
+Todo lo que figuraba como pendiente quedó resuelto: la ausencia total contra bots
+tiene regla propia (migración `20260914100000`, probada en `team_games.sql`), la
+prueba con cuatro personas se hizo, y el dueño autorizó migraciones y lanzamiento.

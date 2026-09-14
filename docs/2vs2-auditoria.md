@@ -7,6 +7,10 @@ Este documento entrega el relevamiento de la etapa 1. Distingue hechos del códi
 adaptaciones propuestas y decisiones pendientes. No certifica el estado aplicado
 en el Supabase de producción: no se ejecutaron consultas ni cambios allí.
 
+Estado al 14/09/2026: la modalidad se lanzó. Todas las decisiones que este documento
+dejaba abiertas están resueltas y aplicadas. Para saber cómo quedó el 2vs2 en
+producción, la referencia es `2vs2-entrega.md`; esto es el registro de cómo se llegó.
+
 Actualización tras las respuestas del dueño: D1, D3 y D4 confirmadas. D2 y D5
 corregidas: irse al mazo SIEMPRE termina la mano para el equipo, también si es por
 tiempo; no existe retiro individual con continuación del compañero. La declaración
