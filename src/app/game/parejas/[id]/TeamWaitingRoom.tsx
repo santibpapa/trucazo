@@ -42,7 +42,7 @@ export default function TeamWaitingRoom({ state, userId, salonSlug, busy, error,
         </button>
         <span className={styles.name}>{mySeat === null ? 'Sentarme' : 'Libre'}</span>
         {role(seat) && <span className={styles.role}>{role(seat)}</span>}
-        {canAddBot && <button type="button" className={styles.pill} disabled={busy} onClick={() => act('add_bot', seat)}>+ Bot</button>}
+        {canAddBot && <button type="button" className={styles.pill} disabled={busy} onClick={() => act('add_bot', seat)}>Añadir bot</button>}
       </>}
     </div>
   }
