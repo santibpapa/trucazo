@@ -187,10 +187,13 @@ como presencia humana.
 
 Actualización de mantenimiento del 13/09/2026: en 2vs2, las salas en espera
 se cancelan tras 15 minutos sin presencia humana, no por su edad si alguien sigue
-conectado. Presencia y barrido se serializan por mesa. La cancelación de partidas
-en curso tras 10 minutos sin personas sigue vigente, pero queda pendiente acordar
-su cambio: contra bots permite evitar una derrota cerrando todas las pestañas.
-No se cambia esa decisión ni se introduce reemplazo automático sin confirmación.
+conectado. Presencia y barrido se serializan por mesa.
+
+Actualización del 14/09/2026 (decisión del dueño): una partida en curso con 10
+minutos sin ninguna persona ya no se anula siempre. Si todas las personas de la
+mesa juegan en el mismo equipo, ese equipo pierde por abandono, sin reembolso;
+así cerrar las pestañas contra bots no evita la derrota. Con personas ausentes de
+ambos equipos se anula y se devuelven las apuestas. Sigue sin haber reemplazo por bot.
 
 No deducir abandono de un evento transitorio de Realtime ni agregar sustitución
 automática por bots.

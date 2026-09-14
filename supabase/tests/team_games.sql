@@ -270,9 +270,18 @@ declare t uuid:=pg_temp.fixture(array[0]); g public.team_games; i integer; s jso
   perform pg_temp.check((s->>'my_seat')::integer=0 and jsonb_array_length(s->'hand')=3,'reconexión conserva asiento y mano');
   update public.team_seats set last_seen_at=now()-interval '11 minutes' where table_id=t;
   perform team_internal.sweep(); perform team_internal.sweep();
-  perform pg_temp.check((select status='cancelled' from public.team_tables where id=t),'todos ausentes cancela');
-  perform pg_temp.check((select coins=100000 from public.profiles where id=u),'barrido reembolsa una vez');
+  -- Todas las personas ausentes juegan en el mismo equipo: pierden por abandono, sin reembolso.
+  perform pg_temp.check((select status='finished' from public.team_tables where id=t),'todos ausentes de un equipo termina la partida');
+  perform pg_temp.check((select winner_team=1 and finish_reason='forfeit' from public.team_games where id=t),'el equipo ausente pierde por abandono');
+  perform pg_temp.check((select coins=99900 from public.profiles where id=u),'abandono por ausencia no reembolsa');
   perform pg_temp.check((select count(*)=1 from public.team_seats where table_id=t and user_id is not null),'no reemplaza persona');
+  -- Personas ausentes de ambos equipos: se anula y devuelve, una sola vez.
+  t:=pg_temp.fixture(array[0,1]);
+  update public.team_seats set last_seen_at=now()-interval '11 minutes' where table_id=t;
+  perform team_internal.sweep(); perform team_internal.sweep();
+  perform pg_temp.check((select status='cancelled' from public.team_tables where id=t),'ausentes de ambos equipos cancela');
+  perform pg_temp.check(not exists(select 1 from public.team_seats s join public.profiles p on p.id=s.user_id
+    where s.table_id=t and p.coins<>100000),'cancelación por ausencia reembolsa una vez');
 end $$;
 
 -- Prioridad humana, igualdad de tanto y conservación de cartas al ganar compañero.

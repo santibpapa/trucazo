@@ -2,8 +2,7 @@
 
 PR #57, rama `codex/2vs2`. **La apariencia quedó aprobada por el dueño sobre
 `76fa76e` el 13/09/2026 y no se modifica.** La revisión visual queda a su cargo.
-El PR continúa en borrador: falta acordar el tratamiento de la desconexión total
-contra bots. No hacer merge a master ni lanzar en producción sin autorización.
+El PR continúa en borrador. No hacer merge a master ni lanzar en producción sin autorización.
 
 ## Implementación por etapas
 
@@ -33,10 +32,11 @@ premios adicionales por ese cambio de saldo.
 - **Durante la partida:** siguen vigentes 15/30 segundos por acción, mazo automático
   al vencer el turno y derrota del equipo al tercer vencimiento individual.
   Reconectar no borra el contador. No hay sustitución automática por bot.
-- **Pendiente de decisión:** actualmente, 10 minutos de ausencia de todas las
-  personas cancelan la partida y devuelven apuestas en el próximo barrido. Contra
-  bots esto permite evitar una derrota cerrando las pestañas. Se conserva la regla
-  aprobada hasta acordar su cambio; no se considera resuelto para lanzamiento.
+- **Ausencia total en partida (decidido el 14/09/2026):** tras 10 minutos sin
+  ninguna persona, si todas las personas de la mesa juegan en el mismo equipo, ese
+  equipo pierde por abandono y no hay reembolso: cerrar las pestañas contra bots
+  ya no evita la derrota. Si hay personas ausentes en ambos equipos, la partida se
+  anula y se devuelven las apuestas, como antes. No hay sustitución por bot.
 - **Solicitudes:** se conservan los comprobantes de creación e ingreso, que protegen
   sus cobros contra reintentos. Solo se purgan solicitudes de acciones de mesas
   cerradas hace más de 30 días, hasta 5.000 por barrido. Las mesas abiertas nunca
@@ -55,14 +55,16 @@ Aplicar en este orden, **solo en la base de prueba aislada** durante la revisió
    publicación de `team_tables` en Realtime y cron `sweep_team_tables`.
 2. `supabase/migrations/20260913191141_team_2vs2_maintenance.sql`: espera según
    presencia, limpieza de solicitudes, índices, RLS y actividad de emails.
+3. `supabase/migrations/20260914100000_team_2vs2_abandono.sql`: ausencia total en
+   partida: el equipo ausente pierde por abandono; con ausentes de ambos lados se anula.
 
-La preview aplica ambas automáticamente. Para aplicarlas manualmente en una base
+La preview aplica las tres automáticamente. Para aplicarlas manualmente en una base
 separada que ya tenga las migraciones de master:
 
 1. Abrir esa base de prueba en Supabase → **SQL Editor**.
 2. Abrir el primer archivo del PR, copiar su contenido completo a una consulta
    nueva y pulsar **Run**. Si ya fue aplicado, omitirlo; no repetirlo.
-3. Repetir con el segundo archivo. Cada archivo es transaccional: si falla, no activar.
+3. Repetir con el segundo y el tercer archivo. Cada archivo es transaccional: si falla, no activar.
 4. Comprobar las cuatro tablas `team_*`, la tabla privada `team_internal.requests`,
    sus permisos y RLS. En Realtime debe aparecer solo `team_tables`, nunca las
    manos ni las solicitudes. Debe existir un único cron `sweep_team_tables` cada 5 min.
@@ -100,7 +102,7 @@ Un enlace vencido no se recupera recargando Safari.
 
 ## Verificación y límites
 
-- Local: reconstrucción desde cero con las dos migraciones; pruebas SQL del motor,
+- Local: reconstrucción desde cero con las tres migraciones; pruebas SQL del motor,
   bots, privacidad, permisos, pagos, presencia y retención; actividad de emails,
   tipos TypeScript y comprobación de RPC.
 - CI: PostgreSQL 16, reconstrucción y suites de seguridad, regresión 1vs1,
@@ -116,5 +118,5 @@ Un enlace vencido no se recupera recargando Safari.
   Sigue sin acreditarse una sesión manual de cuatro personas en cuatro dispositivos;
   las composiciones sí están cubiertas automáticamente por Auth/API/Realtime.
 
-Antes del lanzamiento faltan la decisión de desconexión total contra bots y su
-implementación/pruebas, la sesión manual de cuatro personas y autorización del dueño.
+Antes del lanzamiento faltan la sesión manual de cuatro personas y la autorización
+del dueño. La ausencia total contra bots quedó resuelta y probada en `team_games.sql`.
