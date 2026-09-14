@@ -1,0 +1,861 @@
+{
+    "tables": {
+        "public.team_games": {
+            "rls": true,
+            "grants": [
+                {
+                    "role": "authenticated",
+                    "privilege": "SELECT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "DELETE"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "INSERT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "REFERENCES"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "SELECT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "TRIGGER"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "TRUNCATE"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "UPDATE"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "DELETE"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "INSERT"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "REFERENCES"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "SELECT"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "TRIGGER"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "TRUNCATE"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "UPDATE"
+                }
+            ],
+            "columns": [
+                {
+                    "name": "id",
+                    "type": "uuid",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "hand_number",
+                    "type": "integer",
+                    "default": "1",
+                    "nullable": false
+                },
+                {
+                    "name": "mano",
+                    "type": "integer",
+                    "default": "0",
+                    "nullable": false
+                },
+                {
+                    "name": "turn",
+                    "type": "integer",
+                    "default": "0",
+                    "nullable": false
+                },
+                {
+                    "name": "round",
+                    "type": "integer",
+                    "default": "1",
+                    "nullable": false
+                },
+                {
+                    "name": "scores",
+                    "type": "integer[]",
+                    "default": "ARRAY[0, 0]",
+                    "nullable": false
+                },
+                {
+                    "name": "played",
+                    "type": "jsonb",
+                    "default": "'[]'::jsonb",
+                    "nullable": false
+                },
+                {
+                    "name": "rounds",
+                    "type": "jsonb",
+                    "default": "'[]'::jsonb",
+                    "nullable": false
+                },
+                {
+                    "name": "envido",
+                    "type": "jsonb",
+                    "default": "'{\"chain\": [], \"status\": \"none\"}'::jsonb",
+                    "nullable": false
+                },
+                {
+                    "name": "truco",
+                    "type": "jsonb",
+                    "default": "'{\"value\": 1, \"status\": \"none\"}'::jsonb",
+                    "nullable": false
+                },
+                {
+                    "name": "awaiting_deal",
+                    "type": "boolean",
+                    "default": "false",
+                    "nullable": false
+                },
+                {
+                    "name": "winner_team",
+                    "type": "integer",
+                    "default": null,
+                    "nullable": true
+                },
+                {
+                    "name": "last_hand_winner",
+                    "type": "integer",
+                    "default": null,
+                    "nullable": true
+                },
+                {
+                    "name": "finish_reason",
+                    "type": "text",
+                    "default": null,
+                    "nullable": true
+                },
+                {
+                    "name": "announcement",
+                    "type": "jsonb",
+                    "default": null,
+                    "nullable": true
+                },
+                {
+                    "name": "reveal",
+                    "type": "jsonb",
+                    "default": null,
+                    "nullable": true
+                },
+                {
+                    "name": "action_started_at",
+                    "type": "timestamp with time zone",
+                    "default": "now()",
+                    "nullable": false
+                }
+            ],
+            "indexes": {
+                "team_games_pkey": "CREATE UNIQUE INDEX team_games_pkey ON public.team_games USING btree (id)"
+            },
+            "policies": [
+                {
+                    "name": "team_game_read",
+                    "check": null,
+                    "roles": [
+                        "authenticated"
+                    ],
+                    "using": "(id IN ( SELECT team_seats.table_id\n   FROM team_seats\n  WHERE (team_seats.user_id = auth.uid())))",
+                    "command": "SELECT"
+                }
+            ],
+            "constraints": {
+                "team_games_pkey": "PRIMARY KEY (id)",
+                "team_games_id_fkey": "FOREIGN KEY (id) REFERENCES team_tables(id)",
+                "team_games_mano_check": "CHECK (((mano >= 0) AND (mano <= 3)))",
+                "team_games_turn_check": "CHECK (((turn >= 0) AND (turn <= 3)))",
+                "team_games_id_not_null": "NOT NULL id",
+                "team_games_round_check": "CHECK (((round >= 1) AND (round <= 3)))",
+                "team_games_mano_not_null": "NOT NULL mano",
+                "team_games_turn_not_null": "NOT NULL turn",
+                "team_games_round_not_null": "NOT NULL round",
+                "team_games_truco_not_null": "NOT NULL truco",
+                "team_games_envido_not_null": "NOT NULL envido",
+                "team_games_played_not_null": "NOT NULL played",
+                "team_games_rounds_not_null": "NOT NULL rounds",
+                "team_games_scores_not_null": "NOT NULL scores",
+                "team_games_winner_team_check": "CHECK ((winner_team = ANY (ARRAY[0, 1])))",
+                "team_games_hand_number_not_null": "NOT NULL hand_number",
+                "team_games_awaiting_deal_not_null": "NOT NULL awaiting_deal",
+                "team_games_last_hand_winner_check": "CHECK ((last_hand_winner = ANY (ARRAY[0, 1])))",
+                "team_games_action_started_at_not_null": "NOT NULL action_started_at"
+            }
+        },
+        "public.team_hands": {
+            "rls": true,
+            "grants": [
+                {
+                    "role": "authenticated",
+                    "privilege": "SELECT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "DELETE"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "INSERT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "REFERENCES"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "SELECT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "TRIGGER"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "TRUNCATE"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "UPDATE"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "DELETE"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "INSERT"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "REFERENCES"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "SELECT"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "TRIGGER"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "TRUNCATE"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "UPDATE"
+                }
+            ],
+            "columns": [
+                {
+                    "name": "table_id",
+                    "type": "uuid",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "seat",
+                    "type": "integer",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "cards",
+                    "type": "jsonb",
+                    "default": null,
+                    "nullable": false
+                }
+            ],
+            "indexes": {
+                "team_hands_pkey": "CREATE UNIQUE INDEX team_hands_pkey ON public.team_hands USING btree (table_id, seat)"
+            },
+            "policies": [
+                {
+                    "name": "team_hand_read",
+                    "check": null,
+                    "roles": [
+                        "authenticated"
+                    ],
+                    "using": "(EXISTS ( SELECT 1\n   FROM team_seats s\n  WHERE ((s.table_id = team_hands.table_id) AND (s.seat = team_hands.seat) AND (s.user_id = auth.uid()))))",
+                    "command": "SELECT"
+                }
+            ],
+            "constraints": {
+                "team_hands_pkey": "PRIMARY KEY (table_id, seat)",
+                "team_hands_seat_check": "CHECK (((seat >= 0) AND (seat <= 3)))",
+                "team_hands_seat_not_null": "NOT NULL seat",
+                "team_hands_table_id_fkey": "FOREIGN KEY (table_id) REFERENCES team_tables(id)",
+                "team_hands_cards_not_null": "NOT NULL cards",
+                "team_hands_table_id_not_null": "NOT NULL table_id",
+                "team_hands_table_id_seat_fkey": "FOREIGN KEY (table_id, seat) REFERENCES team_seats(table_id, seat)"
+            }
+        },
+        "public.team_seats": {
+            "rls": true,
+            "grants": [
+                {
+                    "role": "authenticated",
+                    "privilege": "SELECT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "DELETE"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "INSERT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "REFERENCES"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "SELECT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "TRIGGER"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "TRUNCATE"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "UPDATE"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "DELETE"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "INSERT"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "REFERENCES"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "SELECT"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "TRIGGER"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "TRUNCATE"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "UPDATE"
+                }
+            ],
+            "columns": [
+                {
+                    "name": "id",
+                    "type": "uuid",
+                    "default": "gen_random_uuid()",
+                    "nullable": false
+                },
+                {
+                    "name": "table_id",
+                    "type": "uuid",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "user_id",
+                    "type": "uuid",
+                    "default": null,
+                    "nullable": true
+                },
+                {
+                    "name": "seat",
+                    "type": "integer",
+                    "default": null,
+                    "nullable": true
+                },
+                {
+                    "name": "username",
+                    "type": "text",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "avatar_url",
+                    "type": "text",
+                    "default": null,
+                    "nullable": true
+                },
+                {
+                    "name": "paid",
+                    "type": "integer",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "timeouts",
+                    "type": "integer",
+                    "default": "0",
+                    "nullable": false
+                },
+                {
+                    "name": "last_seen_at",
+                    "type": "timestamp with time zone",
+                    "default": "now()",
+                    "nullable": false
+                }
+            ],
+            "indexes": {
+                "team_seats_pkey": "CREATE UNIQUE INDEX team_seats_pkey ON public.team_seats USING btree (id)",
+                "team_seats_user_idx": "CREATE INDEX team_seats_user_idx ON public.team_seats USING btree (user_id, table_id)",
+                "team_seats_presence_idx": "CREATE INDEX team_seats_presence_idx ON public.team_seats USING btree (table_id, last_seen_at) WHERE (user_id IS NOT NULL)",
+                "team_seats_table_id_seat_key": "CREATE UNIQUE INDEX team_seats_table_id_seat_key ON public.team_seats USING btree (table_id, seat)",
+                "team_seats_table_id_user_id_key": "CREATE UNIQUE INDEX team_seats_table_id_user_id_key ON public.team_seats USING btree (table_id, user_id)"
+            },
+            "policies": [
+                {
+                    "name": "team_own_seat",
+                    "check": null,
+                    "roles": [
+                        "authenticated"
+                    ],
+                    "using": "(user_id = auth.uid())",
+                    "command": "SELECT"
+                }
+            ],
+            "constraints": {
+                "team_seats_pkey": "PRIMARY KEY (id)",
+                "team_seats_check": "CHECK (((user_id IS NOT NULL) OR (seat IS NOT NULL)))",
+                "team_seats_paid_check": "CHECK ((paid >= 0))",
+                "team_seats_seat_check": "CHECK (((seat >= 0) AND (seat <= 3)))",
+                "team_seats_id_not_null": "NOT NULL id",
+                "team_seats_user_id_fkey": "FOREIGN KEY (user_id) REFERENCES profiles(id)",
+                "team_seats_paid_not_null": "NOT NULL paid",
+                "team_seats_table_id_fkey": "FOREIGN KEY (table_id) REFERENCES team_tables(id) ON DELETE CASCADE",
+                "team_seats_table_id_not_null": "NOT NULL table_id",
+                "team_seats_table_id_seat_key": "UNIQUE (table_id, seat)",
+                "team_seats_timeouts_not_null": "NOT NULL timeouts",
+                "team_seats_username_not_null": "NOT NULL username",
+                "team_seats_table_id_user_id_key": "UNIQUE (table_id, user_id)",
+                "team_seats_last_seen_at_not_null": "NOT NULL last_seen_at"
+            }
+        },
+        "public.team_tables": {
+            "rls": true,
+            "grants": [
+                {
+                    "role": "authenticated",
+                    "privilege": "SELECT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "DELETE"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "INSERT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "REFERENCES"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "SELECT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "TRIGGER"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "TRUNCATE"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "UPDATE"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "DELETE"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "INSERT"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "REFERENCES"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "SELECT"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "TRIGGER"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "TRUNCATE"
+                },
+                {
+                    "role": "service_role",
+                    "privilege": "UPDATE"
+                }
+            ],
+            "columns": [
+                {
+                    "name": "id",
+                    "type": "uuid",
+                    "default": "gen_random_uuid()",
+                    "nullable": false
+                },
+                {
+                    "name": "creator_id",
+                    "type": "uuid",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "name",
+                    "type": "text",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "bet",
+                    "type": "integer",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "target_score",
+                    "type": "integer",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "time_limit",
+                    "type": "integer",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "is_private",
+                    "type": "boolean",
+                    "default": "false",
+                    "nullable": false
+                },
+                {
+                    "name": "private_code",
+                    "type": "text",
+                    "default": null,
+                    "nullable": true
+                },
+                {
+                    "name": "status",
+                    "type": "text",
+                    "default": "'waiting'::text",
+                    "nullable": false
+                },
+                {
+                    "name": "version",
+                    "type": "bigint",
+                    "default": "1",
+                    "nullable": false
+                },
+                {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "default": "now()",
+                    "nullable": false
+                },
+                {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "default": "now()",
+                    "nullable": false
+                }
+            ],
+            "indexes": {
+                "team_tables_pkey": "CREATE UNIQUE INDEX team_tables_pkey ON public.team_tables USING btree (id)",
+                "team_tables_private_code_key": "CREATE UNIQUE INDEX team_tables_private_code_key ON public.team_tables USING btree (private_code)",
+                "team_tables_closed_updated_idx": "CREATE INDEX team_tables_closed_updated_idx ON public.team_tables USING btree (updated_at, id) WHERE (status = ANY (ARRAY['finished'::text, 'cancelled'::text]))"
+            },
+            "policies": [
+                {
+                    "name": "team_table_read",
+                    "check": null,
+                    "roles": [
+                        "authenticated"
+                    ],
+                    "using": "((NOT is_private) OR (id IN ( SELECT team_seats.table_id\n   FROM team_seats\n  WHERE (team_seats.user_id = auth.uid()))))",
+                    "command": "SELECT"
+                }
+            ],
+            "constraints": {
+                "team_tables_pkey": "PRIMARY KEY (id)",
+                "team_tables_check": "CHECK ((is_private = (private_code IS NOT NULL)))",
+                "team_tables_bet_check": "CHECK (((bet >= 10) AND (bet <= 1000000)))",
+                "team_tables_name_check": "CHECK (((length(name) >= 1) AND (length(name) <= 60)))",
+                "team_tables_id_not_null": "NOT NULL id",
+                "team_tables_bet_not_null": "NOT NULL bet",
+                "team_tables_status_check": "CHECK ((status = ANY (ARRAY['waiting'::text, 'playing'::text, 'finished'::text, 'cancelled'::text])))",
+                "team_tables_name_not_null": "NOT NULL name",
+                "team_tables_creator_id_fkey": "FOREIGN KEY (creator_id) REFERENCES profiles(id)",
+                "team_tables_status_not_null": "NOT NULL status",
+                "team_tables_private_code_key": "UNIQUE (private_code)",
+                "team_tables_time_limit_check": "CHECK ((time_limit = ANY (ARRAY[15, 30])))",
+                "team_tables_version_not_null": "NOT NULL version",
+                "team_tables_target_score_check": "CHECK ((target_score = ANY (ARRAY[15, 30])))",
+                "team_tables_created_at_not_null": "NOT NULL created_at",
+                "team_tables_creator_id_not_null": "NOT NULL creator_id",
+                "team_tables_is_private_not_null": "NOT NULL is_private",
+                "team_tables_time_limit_not_null": "NOT NULL time_limit",
+                "team_tables_updated_at_not_null": "NOT NULL updated_at",
+                "team_tables_target_score_not_null": "NOT NULL target_score"
+            }
+        },
+        "team_internal.requests": {
+            "rls": true,
+            "grants": [
+                {
+                    "role": "postgres",
+                    "privilege": "DELETE"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "INSERT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "REFERENCES"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "SELECT"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "TRIGGER"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "TRUNCATE"
+                },
+                {
+                    "role": "postgres",
+                    "privilege": "UPDATE"
+                }
+            ],
+            "columns": [
+                {
+                    "name": "actor",
+                    "type": "uuid",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "request_id",
+                    "type": "uuid",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "table_id",
+                    "type": "uuid",
+                    "default": null,
+                    "nullable": false
+                },
+                {
+                    "name": "payload",
+                    "type": "jsonb",
+                    "default": null,
+                    "nullable": false
+                }
+            ],
+            "indexes": {
+                "requests_pkey": "CREATE UNIQUE INDEX requests_pkey ON team_internal.requests USING btree (actor, request_id)",
+                "team_requests_actions_table_idx": "CREATE INDEX team_requests_actions_table_idx ON team_internal.requests USING btree (table_id) WHERE ((payload ->> 'action'::text) <> ALL (ARRAY['create'::text, 'join'::text]))"
+            },
+            "policies": null,
+            "constraints": {
+                "requests_pkey": "PRIMARY KEY (actor, request_id)",
+                "requests_table_id_fkey": "FOREIGN KEY (table_id) REFERENCES team_tables(id)",
+                "requests_actor_not_null": "NOT NULL actor",
+                "requests_payload_not_null": "NOT NULL payload",
+                "requests_table_id_not_null": "NOT NULL table_id",
+                "requests_request_id_not_null": "NOT NULL request_id"
+            }
+        }
+    },
+    "functions": {
+        "public.team_lobby()": {
+            "acl": [
+                "postgres=X/postgres",
+                "authenticated=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION public.team_lobby()\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n  if auth.uid() is null then raise exception 'No autenticado'; end if;\n  return jsonb_build_object('tables',coalesce((select jsonb_agg(x order by x.created_at desc) from (\n    select t.id,t.name,t.bet,t.target_score,t.time_limit,t.created_at,\n      (select count(*) from public.team_seats s where s.table_id=t.id) as occupied\n    from public.team_tables t where t.status='waiting' and not t.is_private\n  ) x),'[]'::jsonb),'mine',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'name',t.name,'status',t.status))\n    from public.team_tables t join public.team_seats s on s.table_id=t.id\n    where s.user_id=auth.uid() and t.status in ('waiting','playing')),'[]'::jsonb));\nend;\n$function$\n"
+        },
+        "team_internal.sweep()": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.sweep()\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare t record; n integer:=0; absence interval;\nbegin\n  for t in select * from public.team_tables x where\n    ((status='waiting' and created_at<now()-interval '15 minutes') or status='playing')\n    and not exists(select 1 from public.team_seats s where s.table_id=x.id\n      and s.user_id is not null and s.last_seen_at>=now()-\n        case when x.status='waiting' then interval '15 minutes' else interval '10 minutes' end)\n    for update skip locked\n  loop\n    absence:=case when t.status='waiting' then interval '15 minutes' else interval '10 minutes' end;\n    -- Releer después de obtener el bloqueo: una presencia recién confirmada\n    -- puede no estar en la instantánea que eligió los candidatos del barrido.\n    if not exists(select 1 from public.team_seats s where s.table_id=t.id\n      and s.user_id is not null and s.last_seen_at>=clock_timestamp()-absence) then\n      perform team_internal.cancel(t.id); n:=n+1;\n    end if;\n  end loop;\n  perform team_internal.prune_requests();\n  return n;\nend;\n$function$\n"
+        },
+        "team_internal.deal(p_id uuid)": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.deal(p_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare deck jsonb[]; s integer;\nbegin\n  select array_agg(c order by random()) into deck from jsonb_array_elements(public._truco_deck()) c;\n  for s in 0..3 loop\n    insert into public.team_hands(table_id,seat,cards)\n      values(p_id,s,jsonb_build_array(deck[s*3+1],deck[s*3+2],deck[s*3+3]))\n      on conflict(table_id,seat) do update set cards=excluded.cards;\n  end loop;\nend;\n$function$\n"
+        },
+        "team_internal.prune_requests()": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.prune_requests()\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare n integer;\nbegin\n  -- Crear/unirse puede cobrar: sus comprobantes se conservan indefinidamente.\n  -- Las acciones de una mesa cerrada ya no pueden mutarla ni pagar otra vez.\n  -- Lotes acotados para que el cron no haga una eliminación masiva de golpe.\n  with expired as (\n    select r.actor, r.request_id from team_internal.requests r\n    join public.team_tables t on t.id=r.table_id\n    where t.status in ('finished', 'cancelled')\n      and t.updated_at<now()-interval '30 days'\n      and r.payload->>'action' not in ('create', 'join')\n    order by t.updated_at, t.id, r.actor, r.request_id\n    limit 5000\n    for update of r skip locked\n  ), removed as (\n    delete from team_internal.requests r using expired e\n    where r.actor=e.actor and r.request_id=e.request_id returning 1\n  ) select count(*) into n from removed;\n  return n;\nend;\n$function$\n"
+        },
+        "team_internal.cancel(p_id uuid)": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.cancel(p_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare s record;\nbegin\n  for s in select user_id,paid from public.team_seats where table_id=p_id and user_id is not null and paid>0 order by user_id loop\n    perform team_internal.coins(s.user_id,s.paid);\n  end loop;\n  update public.team_seats set paid=0 where table_id=p_id;\n  update public.team_tables set status='cancelled',version=version+1,updated_at=now() where id=p_id;\nend;\n$function$\n"
+        },
+        "team_internal.member(p_id uuid)": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.member(p_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select exists(select 1 from public.team_seats where table_id=p_id and user_id=auth.uid());\n$function$\n"
+        },
+        "team_internal.actor(g team_games)": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.actor(g team_games)\n RETURNS integer\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n  if g.envido->>'status'='declaring' then return (g.envido->>'declare_turn')::integer; end if;\n  if g.envido->>'status'='pending' then\n    return team_internal.responder(g.id,1-(g.envido->>'team')::integer,g.mano);\n  end if;\n  if g.truco->>'status'='pending' then\n    return team_internal.responder(g.id,1-(g.truco->>'team')::integer,g.mano);\n  end if;\n  return g.turn;\nend;\n$function$\n"
+        },
+        "team_internal.snapshot(p_id uuid)": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.snapshot(p_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare t public.team_tables; g public.team_games; me public.team_seats; members jsonb; hand jsonb; actor integer;\nbegin\n  select * into t from public.team_tables where id=p_id;\n  if not found then raise exception 'Mesa no disponible'; end if;\n  select * into me from public.team_seats where table_id=p_id and user_id=auth.uid();\n  if not found and t.creator_id is distinct from auth.uid() then raise exception 'No sos participante'; end if;\n  select * into g from public.team_games where id=p_id;\n  select coalesce(jsonb_agg(jsonb_build_object('id',s.id,'user_id',s.user_id,'seat',s.seat,\n    'username',s.username,'avatar_url',s.avatar_url,'is_bot',s.user_id is null,'timeouts',s.timeouts)\n    order by s.seat nulls last),'[]') into members from public.team_seats s where table_id=p_id;\n  select cards into hand from public.team_hands where table_id=p_id and seat=me.seat;\n  if g.id is not null then actor:=team_internal.actor(g); end if;\n  return jsonb_build_object('table',to_jsonb(t),'members',members,'game',case when g.id is null then null else to_jsonb(g) end,\n    'my_seat',me.seat,'hand',coalesce(hand,'[]'),'legal',team_internal.legal(g,me.seat),\n    'actor',actor,'actor_is_bot',exists(select 1 from public.team_seats where table_id=p_id and seat=actor and user_id is null),\n    'server_now',clock_timestamp(),'coins',(select coins from public.profiles where id=auth.uid()));\nend;\n$function$\n"
+        },
+        "team_internal.stake(g team_games)": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.stake(g team_games)\n RETURNS integer\n LANGUAGE sql\n IMMUTABLE\nAS $function$\n  select case when g.truco->>'status'='pending' then (g.truco->>'value')::integer-1\n    else coalesce((g.truco->>'value')::integer,1) end;\n$function$\n"
+        },
+        "public.team_presence(p_table_id uuid)": {
+            "acl": [
+                "postgres=X/postgres",
+                "authenticated=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION public.team_presence(p_table_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n  if auth.uid() is null then raise exception 'No autenticado'; end if;\n  -- Mismo bloqueo que las acciones y el barrido: la presencia no puede quedar\n  -- confirmada entre la última comprobación de ausencia y la cancelación.\n  perform 1 from public.team_tables where id=p_table_id for update;\n  update public.team_seats set last_seen_at=clock_timestamp()\n    where table_id=p_table_id and user_id=auth.uid();\n  if not found then raise exception 'No sos participante'; end if;\nend;\n$function$\n"
+        },
+        "public.team_snapshot(p_table_id uuid)": {
+            "acl": [
+                "postgres=X/postgres",
+                "authenticated=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION public.team_snapshot(p_table_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n  if auth.uid() is null then raise exception 'No autenticado'; end if;\n  return team_internal.snapshot(p_table_id);\nend;\n$function$\n"
+        },
+        "team_internal.coins(p_user uuid, p_delta integer)": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.coins(p_user uuid, p_delta integer)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare v_previous text := current_setting('trucazo.team_coins',true); v_balance integer;\nbegin\n  select coins into v_balance from public.profiles where id=p_user for update;\n  if not found or v_balance+p_delta<0 then raise exception 'Monedas insuficientes'; end if;\n  perform set_config('trucazo.team_coins','on',true);\n  update public.profiles set coins=coins+p_delta where id=p_user;\n  perform set_config('trucazo.team_coins',coalesce(v_previous,''),true);\nend;\n$function$\n"
+        },
+        "team_internal.legal(g team_games, p_seat integer)": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.legal(g team_games, p_seat integer)\n RETURNS text[]\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare a text[] := '{}'; es text := g.envido->>'status'; ts text := g.truco->>'status';\n  actor integer; target integer; v integer; points integer; n integer;\nbegin\n  if g.id is null or p_seat is null or g.awaiting_deal then return a; end if;\n  if not exists(select 1 from public.team_tables where id=g.id and status='playing') then return a; end if;\n  actor:=team_internal.actor(g);\n  if actor=p_seat then a:=array_append(a,'mazo'); end if;\n  if es='declaring' then\n    if actor=p_seat then\n      points:=public._envido_points(team_internal.full_hand(g.id,p_seat));\n      a:=array_append(a,case when points>coalesce((g.envido->>'high')::integer,-1) then 'tengo' else 'son_buenas' end);\n    end if;\n    return a;\n  end if;\n  if es='pending' then\n    target:=1-(g.envido->>'team')::integer;\n    if p_seat%2<>target then return a; end if;\n    a:=a || array['envido_yes','envido_no'];\n    v:=jsonb_array_length(g.envido->'chain');\n    if g.envido->'chain'->>(v-1)='envido' then\n      select count(*) into n from jsonb_array_elements_text(g.envido->'chain') c where c='envido';\n      if n<2 then a:=array_append(a,'envido'); end if;\n      a:=array_append(a,'real_envido');\n    end if;\n    if g.envido->'chain'->>(v-1)<>'falta_envido' then a:=array_append(a,'falta_envido'); end if;\n    return a;\n  end if;\n  if ts='pending' then\n    if p_seat%2=(g.truco->>'team')::integer then return a; end if;\n    a:=a || array['truco_yes','truco_no'];\n    v:=(g.truco->>'value')::integer;\n    if v<4 then a:=array_append(a,case v when 2 then 'retruco' else 'vale_cuatro' end); end if;\n  elsif g.turn=p_seat then\n    a:=array_append(a,'play');\n    if ts='none' then a:=array_append(a,'truco');\n    elsif ts='accepted' and p_seat%2<>(g.truco->>'team')::integer then\n      v:=(g.truco->>'value')::integer;\n      if v<4 then a:=array_append(a,case v when 2 then 'retruco' else 'vale_cuatro' end); end if;\n    end if;\n  else return a;\n  end if;\n  if es='none' and ts<>'accepted' and g.round=1 and not exists(\n    select 1 from jsonb_array_elements(g.played) c where (c->>'seat')::integer=p_seat\n  ) then a:=a || array['envido','real_envido','falta_envido']; end if;\n  return a;\nend;\n$function$\n"
+        },
+        "public.email_recipient_activity(p_user_ids uuid[])": {
+            "acl": [
+                "postgres=X/postgres",
+                "service_role=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION public.email_recipient_activity(p_user_ids uuid[])\n RETURNS TABLE(user_id uuid, username text, registered_at timestamp with time zone, last_played_at timestamp with time zone, news_enabled boolean, reengagement_enabled boolean, unsubscribe_token uuid)\n LANGUAGE sql\n STABLE\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n  with played as (\n    select h.player_id as user_id, h.created_at as played_at\n    from public.game_history h where h.player_id=any(p_user_ids)\n    union all\n    select g.player1_id, g.updated_at from public.games g\n    where g.status='finished' and g.player1_id=any(p_user_ids)\n    union all\n    select g.player2_id, g.updated_at from public.games g\n    where g.status='finished' and g.player2_id=any(p_user_ids)\n    union all\n    select s.user_id, t.updated_at from public.team_seats s\n    join public.team_tables t on t.id=s.table_id\n    where t.status='finished' and s.user_id=any(p_user_ids)\n  ), activity as (\n    select played.user_id, max(played.played_at) as last_played_at\n    from played group by played.user_id\n  )\n  select p.id, p.username, p.created_at, activity.last_played_at,\n    ep.news_enabled, ep.reengagement_enabled, ep.unsubscribe_token\n  from public.profiles p\n  join public.email_preferences ep on ep.user_id=p.id\n  left join activity on activity.user_id=p.id\n  where p.id=any(p_user_ids) and not p.is_bot and not p.is_admin;\n$function$\n"
+        },
+        "team_internal.full_hand(p_id uuid, p_seat integer)": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.full_hand(p_id uuid, p_seat integer)\n RETURNS jsonb\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select h.cards || coalesce((select jsonb_agg(c->'card')\n    from public.team_games g, jsonb_array_elements(g.played) c\n    where g.id=p_id and (c->>'seat')::integer=p_seat),'[]'::jsonb)\n  from public.team_hands h where h.table_id=p_id and h.seat=p_seat;\n$function$\n"
+        },
+        "team_internal.finish(p_id uuid, p_winner integer, p_reason text)": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.finish(p_id uuid, p_winner integer, p_reason text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare t public.team_tables; s record;\nbegin\n  select * into t from public.team_tables where id=p_id for update;\n  if t.status<>'playing' then return; end if;\n  if p_winner not in (0,1) or p_winner is null then raise exception 'Equipo inválido'; end if;\n  update public.team_tables set status='finished' where id=p_id;\n  update public.team_games set winner_team=p_winner,finish_reason=p_reason,awaiting_deal=false where id=p_id;\n  for s in select user_id from public.team_seats where table_id=p_id and seat%2=p_winner and user_id is not null order by user_id loop\n    perform team_internal.coins(s.user_id,t.bet*2);\n  end loop;\nend;\n$function$\n"
+        },
+        "public.team_join(p_request_id uuid, p_table_id uuid, p_code text)": {
+            "acl": [
+                "postgres=X/postgres",
+                "authenticated=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION public.team_join(p_request_id uuid, p_table_id uuid DEFAULT NULL::uuid, p_code text DEFAULT NULL::text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare uid uuid:=auth.uid(); t public.team_tables; r team_internal.requests; p jsonb;\nbegin\n  if uid is null or p_request_id is null then raise exception 'Solicitud inválida'; end if;\n  p:=jsonb_build_object('action','join','id',p_table_id,'code',upper(btrim(p_code)));\n  perform pg_advisory_xact_lock(hashtextextended(uid::text,0));\n  select * into r from team_internal.requests q where q.actor=uid and q.request_id=p_request_id;\n  if found then\n    if r.payload<>p then raise exception 'Identificador de solicitud reutilizado'; end if;\n    return team_internal.snapshot(r.table_id);\n  end if;\n  select * into t from public.team_tables where\n    (p_table_id is not null and id=p_table_id and not is_private)\n    or (p_table_id is null and private_code=upper(btrim(p_code)) and is_private) for update;\n  if not found then raise exception 'Mesa o código no disponible'; end if;\n  if team_internal.member(t.id) then return team_internal.snapshot(t.id); end if;\n  if t.status<>'waiting' or (select count(*) from public.team_seats where table_id=t.id)>=4 then raise exception 'La mesa está llena o ya comenzó'; end if;\n  if exists(select 1 from public.team_seats s join public.team_tables x on x.id=s.table_id\n    where s.user_id=uid and x.status in ('waiting','playing')) then raise exception 'Ya tenés una mesa 2vs2 en curso'; end if;\n  perform team_internal.coins(uid,-t.bet);\n  insert into public.team_seats(table_id,user_id,username,avatar_url,paid)\n    select t.id,uid,username,avatar_url,t.bet from public.profiles where id=uid;\n  update public.team_tables set version=version+1,updated_at=now() where id=t.id;\n  insert into team_internal.requests values(uid,p_request_id,t.id,p);\n  return team_internal.snapshot(t.id);\nend;\n$function$\n"
+        },
+        "team_internal.responder(p_id uuid, p_team integer, p_mano integer)": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.responder(p_id uuid, p_team integer, p_mano integer)\n RETURNS integer\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select seat from public.team_seats where table_id=p_id and seat%2=p_team\n  order by (user_id is null), (seat-p_mano+4)%4 limit 1;\n$function$\n"
+        },
+        "team_internal.apply(p_id uuid, p_seat integer, p_action text, p_card jsonb)": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.apply(p_id uuid, p_seat integer, p_action text, p_card jsonb DEFAULT NULL::jsonb)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare g public.team_games; t public.team_tables; v_cards jsonb; matched jsonb; chain jsonb;\n  winner integer; leader integer; best integer; teams integer[]; first_team integer; second_team integer;\n  points integer; extra integer:=0; hand_over boolean:=false; count_played integer; dindex integer;\n  phrase text:=p_action; c jsonb; shown jsonb:='[]'; full_cards jsonb;\nbegin\n  select * into t from public.team_tables where id=p_id;\n  select * into g from public.team_games where id=p_id;\n  if not (p_action=any(team_internal.legal(g,p_seat))) then raise exception 'Esa acción no corresponde a tu turno'; end if;\n  case\n  when p_action='play' then\n    if exists(select 1 from jsonb_array_elements(g.played) x where (x->>'seat')::integer=p_seat and (x->>'round')::integer=g.round) then raise exception 'Ya jugaste esta ronda'; end if;\n    select h.cards into v_cards from public.team_hands h where table_id=p_id and seat=p_seat;\n    select x into matched from jsonb_array_elements(v_cards) x where x->>'suit'=p_card->>'suit' and x->>'value'=p_card->>'value';\n    if matched is null then raise exception 'No tenés esa carta'; end if;\n    update public.team_hands set cards=(select coalesce(jsonb_agg(x),'[]') from jsonb_array_elements(v_cards) x where x<>matched)\n      where table_id=p_id and seat=p_seat;\n    g.played:=g.played || jsonb_build_array(jsonb_build_object('seat',p_seat,'card',matched,'round',g.round));\n    select count(*) into count_played from jsonb_array_elements(g.played) x where (x->>'round')::integer=g.round;\n    if count_played<4 then g.turn:=(p_seat+1)%4;\n    else\n      select min((x->'card'->>'rank')::integer) into best from jsonb_array_elements(g.played) x where (x->>'round')::integer=g.round;\n      select array_agg(distinct (x->>'seat')::integer%2) into teams from jsonb_array_elements(g.played) x\n        where (x->>'round')::integer=g.round and (x->'card'->>'rank')::integer=best;\n      if array_length(teams,1)=1 then\n        winner:=teams[1];\n        select (x->>'seat')::integer into leader from jsonb_array_elements(g.played) with ordinality e(x,n)\n          where (x->>'round')::integer=g.round and (x->'card'->>'rank')::integer=best order by n limit 1;\n      else\n        winner:=null;\n        select (x->>'seat')::integer into leader from jsonb_array_elements(g.played) with ordinality e(x,n)\n          where (x->>'round')::integer=g.round order by n limit 1;\n      end if;\n      g.rounds:=g.rounds || jsonb_build_array(jsonb_build_object('round',g.round,'team',winner,'leader',leader));\n      first_team:=(g.rounds->0->>'team')::integer; second_team:=(g.rounds->1->>'team')::integer;\n      if g.round=2 and (first_team=second_team or first_team is null or second_team is null)\n        and coalesce(first_team,second_team) is not null then\n        winner:=coalesce(first_team,second_team); hand_over:=true;\n      elsif g.round=3 then\n        winner:=coalesce(winner,first_team,second_team,g.mano%2); hand_over:=true;\n      else g.turn:=leader; g.round:=g.round+1;\n      end if;\n      if hand_over then points:=team_internal.stake(g); end if;\n    end if;\n    phrase:=null;\n  when p_action in ('envido','real_envido','falta_envido') then\n    chain:=coalesce(g.envido->'chain','[]') || jsonb_build_array(p_action);\n    g.envido:=jsonb_build_object('status','pending','chain',chain,'singer',p_seat,'team',p_seat%2,\n      'value',public._envido_quiero_value(chain,g.scores[1],g.scores[2],t.target_score));\n    phrase:=case p_action when 'envido' then 'Envido' when 'real_envido' then 'Real envido' else 'Falta envido' end;\n  when p_action='envido_yes' then\n    g.envido:=g.envido || jsonb_build_object('status','declaring','declare_turn',g.mano,'declare_index',0,'high',-1,'declarations','[]'::jsonb);\n    phrase:='Quiero';\n  when p_action='envido_no' then\n    winner:=(g.envido->>'team')::integer;\n    points:=public._envido_reject_value(g.envido->'chain',g.scores[1],g.scores[2],t.target_score);\n    g.envido:=g.envido || jsonb_build_object('status','rejected','winner_team',winner,'awarded',points);\n    phrase:='No quiero';\n  when p_action in ('tengo','son_buenas') then\n    dindex:=(g.envido->>'declare_index')::integer+1;\n    if p_action='tengo' then\n      points:=public._envido_points(team_internal.full_hand(p_id,p_seat));\n      g.envido:=g.envido || jsonb_build_object('high',points,'high_seat',p_seat);\n      phrase:='Tengo '||points;\n      g.envido:=jsonb_set(g.envido,'{declarations}',g.envido->'declarations' || jsonb_build_array(jsonb_build_object('seat',p_seat,'points',points)));\n    else\n      phrase:='Son buenas';\n      g.envido:=jsonb_set(g.envido,'{declarations}',g.envido->'declarations' || jsonb_build_array(jsonb_build_object('seat',p_seat,'points',null)));\n    end if;\n    points:=null;\n    if dindex=4 then\n      winner:=(g.envido->>'high_seat')::integer%2;\n      points:=(g.envido->>'value')::integer;\n      g.envido:=g.envido || jsonb_build_object('status','resolved','winner_team',winner,'awarded',points,'declare_turn',null);\n    else g.envido:=g.envido || jsonb_build_object('declare_index',dindex,'declare_turn',(g.mano+dindex)%4);\n    end if;\n  when p_action in ('truco','retruco','vale_cuatro') then\n    g.truco:=jsonb_build_object('status','pending','value',case p_action when 'truco' then 2 when 'retruco' then 3 else 4 end,'singer',p_seat,'team',p_seat%2);\n    phrase:=case p_action when 'truco' then 'Truco' when 'retruco' then 'Retruco' else 'Vale cuatro' end;\n  when p_action='truco_yes' then\n    g.truco:=g.truco || jsonb_build_object('status','accepted'); phrase:='Quiero';\n  when p_action='truco_no' then\n    winner:=(g.truco->>'team')::integer; points:=team_internal.stake(g); hand_over:=true;\n    g.truco:=g.truco || jsonb_build_object('status','rejected'); phrase:='No quiero';\n  when p_action='mazo' then\n    winner:=1-p_seat%2; points:=team_internal.stake(g); hand_over:=true; phrase:='Me voy al mazo';\n    if g.envido->>'status'='pending' then\n      extra:=public._envido_reject_value(g.envido->'chain',g.scores[1],g.scores[2],t.target_score);\n    elsif g.envido->>'status'='declaring' then extra:=(g.envido->>'value')::integer;\n    end if;\n    if extra>0 then\n      g.envido:=g.envido || jsonb_build_object('status','mazo','winner_team',winner,'awarded',extra);\n      if (g.envido->>'high_seat')::integer%2 is distinct from winner then\n        g.envido:=g.envido-'high_seat'-'high';\n      end if;\n    end if;\n    points:=points+extra;\n  else raise exception 'Acción inválida';\n  end case;\n  if points is not null and winner is not null then g.scores[winner+1]:=g.scores[winner+1]+points; end if;\n  if hand_over then g.awaiting_deal:=true; g.last_hand_winner:=winner; end if;\n  if phrase is not null then g.announcement:=jsonb_build_object('seat',p_seat,'text',phrase,'action',p_action,'at',clock_timestamp()); end if;\n  update public.team_games set turn=g.turn,round=g.round,scores=g.scores,played=g.played,rounds=g.rounds,\n    envido=g.envido,truco=g.truco,awaiting_deal=g.awaiting_deal,last_hand_winner=g.last_hand_winner,\n    announcement=g.announcement,action_started_at=now() where id=p_id;\n  if g.scores[1]>=t.target_score or g.scores[2]>=t.target_score then\n    perform team_internal.finish(p_id,case when g.scores[1]>=t.target_score then 0 else 1 end,'points');\n  elsif hand_over and g.envido->>'status' in ('resolved','mazo') and g.envido->>'high_seat' is not null then\n    leader:=(g.envido->>'high_seat')::integer;\n    full_cards:=team_internal.full_hand(p_id,leader);\n    for c in select value from jsonb_array_elements(public._envido_winning_cards(full_cards)) loop\n      if not exists(select 1 from jsonb_array_elements(g.played) x where (x->>'seat')::integer=leader and x->'card'=c) then\n        shown:=shown || jsonb_build_array(c);\n      end if;\n    end loop;\n    if jsonb_array_length(shown)>0 then\n      update public.team_games set reveal=jsonb_build_object('seat',leader,'cards',shown,'points',(g.envido->>'high')::integer) where id=p_id;\n    end if;\n  end if;\nend;\n$function$\n"
+        },
+        "team_internal.bot_choice(g team_games, p_seat integer, p_hand jsonb, p_legal text[], p_roll double precision)": {
+            "acl": [
+                "postgres=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION team_internal.bot_choice(g team_games, p_seat integer, p_hand jsonb, p_legal text[], p_roll double precision)\n RETURNS jsonb\n LANGUAGE plpgsql\n IMMUTABLE\nAS $function$\ndeclare chosen jsonb; strongest integer; team_leads boolean; remaining_rivals integer; n integer; power integer; env integer; a text;\nbegin\n  if 'tengo'=any(p_legal) then return jsonb_build_object('action','tengo'); end if;\n  if 'son_buenas'=any(p_legal) then return jsonb_build_object('action','son_buenas'); end if;\n  env:=public._envido_points(p_hand || coalesce((select jsonb_agg(x->'card') from jsonb_array_elements(g.played) x where (x->>'seat')::integer=p_seat),'[]'));\n  select min((x->>'rank')::integer),sum(15-(x->>'rank')::integer) into strongest,power from jsonb_array_elements(p_hand) x;\n  if 'envido_yes'=any(p_legal) then\n    a:=case when env>=26 or (env>=22 and p_roll<0.35) then 'envido_yes' else 'envido_no' end;\n    if env>=31 and 'real_envido'=any(p_legal) and p_roll<0.5 then a:='real_envido'; end if;\n    return jsonb_build_object('action',a);\n  end if;\n  if 'truco_yes'=any(p_legal) then\n    if strongest<=3 and power>=18 and p_roll<0.35 then\n      if 'vale_cuatro'=any(p_legal) then return jsonb_build_object('action','vale_cuatro'); end if;\n      if 'retruco'=any(p_legal) then return jsonb_build_object('action','retruco'); end if;\n    end if;\n    return jsonb_build_object('action',case when strongest<=7 or power>=13 or p_roll<0.2 then 'truco_yes' else 'truco_no' end);\n  end if;\n  if 'envido'=any(p_legal) and (env>=27 or p_roll<0.05) then return jsonb_build_object('action','envido'); end if;\n  if 'truco'=any(p_legal) and strongest<=4 and p_roll<0.3 then return jsonb_build_object('action','truco'); end if;\n  if strongest<=3 and power>=18 and p_roll<0.2 then\n    if 'vale_cuatro'=any(p_legal) then return jsonb_build_object('action','vale_cuatro'); end if;\n    if 'retruco'=any(p_legal) then return jsonb_build_object('action','retruco'); end if;\n  end if;\n  if not ('play'=any(p_legal)) then return null; end if;\n  select min((x->'card'->>'rank')::integer),count(*) into strongest,n from jsonb_array_elements(g.played) x where (x->>'round')::integer=g.round;\n  if n>0 then\n    select bool_and((x->>'seat')::integer%2=p_seat%2) into team_leads from jsonb_array_elements(g.played) x\n      where (x->>'round')::integer=g.round and (x->'card'->>'rank')::integer=strongest;\n    select count(*) into remaining_rivals from generate_series(0,3) s where s%2<>p_seat%2 and not exists(\n      select 1 from jsonb_array_elements(g.played) x where (x->>'round')::integer=g.round and (x->>'seat')::integer=s);\n    if team_leads and (remaining_rivals=0 or strongest<=4) then\n      select x into chosen from jsonb_array_elements(p_hand) x order by (x->>'rank')::integer desc limit 1;\n    else\n      select x into chosen from jsonb_array_elements(p_hand) x where (x->>'rank')::integer<strongest order by (x->>'rank')::integer desc limit 1;\n    end if;\n  else\n    select x into chosen from jsonb_array_elements(p_hand) x order by (x->>'rank')::integer asc limit 1;\n  end if;\n  if chosen is null then select x into chosen from jsonb_array_elements(p_hand) x order by (x->>'rank')::integer desc limit 1; end if;\n  return jsonb_build_object('action','play','card',chosen);\nend;\n$function$\n"
+        },
+        "public.team_action(p_table_id uuid, p_request_id uuid, p_version bigint, p_action text, p_seat integer, p_card jsonb)": {
+            "acl": [
+                "postgres=X/postgres",
+                "authenticated=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION public.team_action(p_table_id uuid, p_request_id uuid, p_version bigint, p_action text, p_seat integer DEFAULT NULL::integer, p_card jsonb DEFAULT NULL::jsonb)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare uid uuid:=auth.uid(); t public.team_tables; me public.team_seats; r team_internal.requests;\n  p jsonb; g public.team_games; member_count integer; actor integer; timed integer; choice jsonb; cards jsonb; a text[];\nbegin\n  if uid is null or p_request_id is null or p_version is null or p_action is null then raise exception 'Solicitud inválida'; end if;\n  -- Orden fijo: usuario, mesa, perfiles. No hay cambio de identidad para jugar bots.\n  perform pg_advisory_xact_lock(hashtextextended(uid::text,0));\n  select * into t from public.team_tables where id=p_table_id for update;\n  if not found then raise exception 'Mesa no disponible'; end if;\n  p:=jsonb_build_object('id',p_table_id,'version',p_version,'action',p_action,'seat',p_seat,'card',p_card);\n  select * into r from team_internal.requests q where q.actor=uid and q.request_id=p_request_id;\n  if found then\n    if r.payload<>p then raise exception 'Identificador de solicitud reutilizado'; end if;\n    if p_action='leave' and not team_internal.member(p_table_id) then return jsonb_build_object('left',true); end if;\n    return team_internal.snapshot(p_table_id);\n  end if;\n  select * into me from public.team_seats where table_id=p_table_id and user_id=uid;\n  if not found then raise exception 'No sos participante'; end if;\n  if t.version<>p_version then return team_internal.snapshot(p_table_id) || '{\"stale\":true}'::jsonb; end if;\n  if t.status in ('finished','cancelled') then return team_internal.snapshot(p_table_id); end if;\n  if t.status='waiting' then\n    case p_action\n    when 'seat' then\n      if p_seat is null or p_seat not between 0 and 3 then raise exception 'Asiento inválido'; end if;\n      if exists(select 1 from public.team_seats where table_id=p_table_id and seat=p_seat and id<>me.id) then raise exception 'Ese asiento ya está ocupado'; end if;\n      update public.team_seats set seat=p_seat where id=me.id;\n    when 'add_bot' then\n      if t.creator_id<>uid then raise exception 'Solo el creador puede agregar bots'; end if;\n      if p_seat is null or p_seat not between 0 and 3 then raise exception 'Asiento inválido'; end if;\n      select count(*) into member_count from public.team_seats where table_id=p_table_id;\n      if member_count>=4 then raise exception 'No quedan lugares'; end if;\n      if exists(select 1 from public.team_seats where table_id=p_table_id and seat=p_seat) then raise exception 'Ese asiento ya está ocupado'; end if;\n      insert into public.team_seats(table_id,seat,username,paid) values(p_table_id,p_seat,'Bot '||(p_seat+1),t.bet);\n    when 'remove_bot' then\n      if t.creator_id<>uid then raise exception 'Solo el creador puede quitar bots'; end if;\n      delete from public.team_seats where table_id=p_table_id and seat=p_seat and user_id is null;\n      if not found then raise exception 'No hay un bot en ese asiento'; end if;\n    when 'start' then\n      if t.creator_id<>uid then raise exception 'Solo el creador puede comenzar'; end if;\n      if (select count(*) from public.team_seats where table_id=p_table_id and seat is not null)<>4 then raise exception 'Faltan jugadores por sentarse'; end if;\n      insert into public.team_games(id) values(p_table_id);\n      perform team_internal.deal(p_table_id);\n      update public.team_tables set status='playing' where id=p_table_id;\n    when 'leave' then\n      if uid=t.creator_id then perform team_internal.cancel(p_table_id);\n      else\n        perform team_internal.coins(uid,me.paid);\n        delete from public.team_seats where id=me.id;\n        update public.team_tables set version=version+1,updated_at=now() where id=p_table_id;\n        insert into team_internal.requests values(uid,p_request_id,p_table_id,p);\n        return jsonb_build_object('left',true);\n      end if;\n    else raise exception 'Acción inválida en sala de espera';\n    end case;\n  else\n    select * into g from public.team_games where id=p_table_id;\n    if p_action='forfeit' then perform team_internal.finish(p_table_id,1-me.seat%2,'forfeit');\n    elsif p_action='tick' then\n      if g.awaiting_deal then\n        if clock_timestamp()<g.action_started_at+interval '2500 milliseconds' then return team_internal.snapshot(p_table_id); end if;\n        perform team_internal.deal(p_table_id);\n        update public.team_games set hand_number=hand_number+1,mano=(mano+1)%4,turn=(mano+1)%4,round=1,\n          played='[]',rounds='[]',envido='{\"status\":\"none\",\"chain\":[]}',truco='{\"status\":\"none\",\"value\":1}',\n          awaiting_deal=false,reveal=null,announcement=null,action_started_at=now() where id=p_table_id;\n      else\n        actor:=team_internal.actor(g);\n        if clock_timestamp()>=g.action_started_at+make_interval(secs=>t.time_limit) then\n          update public.team_seats set timeouts=timeouts+1 where table_id=p_table_id and seat=actor returning timeouts into timed;\n          perform team_internal.apply(p_table_id,actor,'mazo');\n          update public.team_games set announcement=jsonb_build_object('seat',actor,'text','Sin tiempo · al mazo','action','timeout','at',clock_timestamp()) where id=p_table_id;\n          if timed>=3 then perform team_internal.finish(p_table_id,1-actor%2,'timeouts'); end if;\n        elsif clock_timestamp()>=g.action_started_at+interval '1200 milliseconds'\n          and exists(select 1 from public.team_seats where table_id=p_table_id and seat=actor and user_id is null) then\n          select h.cards into cards from public.team_hands h where table_id=p_table_id and seat=actor;\n          a:=team_internal.legal(g,actor);\n          choice:=team_internal.bot_choice(g,actor,cards,a,random());\n          if choice is null then return team_internal.snapshot(p_table_id); end if;\n          perform team_internal.apply(p_table_id,actor,choice->>'action',choice->'card');\n        else return team_internal.snapshot(p_table_id);\n        end if;\n      end if;\n    else\n      if clock_timestamp()>=g.action_started_at+make_interval(secs=>t.time_limit) then raise exception 'Se terminó el tiempo de la jugada'; end if;\n      perform team_internal.apply(p_table_id,me.seat,p_action,p_card);\n    end if;\n  end if;\n  update public.team_tables set version=version+1,updated_at=now() where id=p_table_id;\n  insert into team_internal.requests values(uid,p_request_id,p_table_id,p);\n  return team_internal.snapshot(p_table_id);\nend;\n$function$\n"
+        },
+        "public.team_create(p_request_id uuid, p_name text, p_bet integer, p_target_score integer, p_time_limit integer, p_is_private boolean)": {
+            "acl": [
+                "postgres=X/postgres",
+                "authenticated=X/postgres"
+            ],
+            "definition": "CREATE OR REPLACE FUNCTION public.team_create(p_request_id uuid, p_name text, p_bet integer, p_target_score integer DEFAULT 30, p_time_limit integer DEFAULT 30, p_is_private boolean DEFAULT false)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare uid uuid:=auth.uid(); t public.team_tables; r team_internal.requests; p jsonb;\nbegin\n  if uid is null or p_request_id is null then raise exception 'Solicitud inválida'; end if;\n  p:=jsonb_build_object('action','create','name',p_name,'bet',p_bet,'score',p_target_score,'time',p_time_limit,'private',p_is_private);\n  perform pg_advisory_xact_lock(hashtextextended(uid::text,0));\n  select * into r from team_internal.requests q where q.actor=uid and q.request_id=p_request_id;\n  if found then\n    if r.payload<>p then raise exception 'Identificador de solicitud reutilizado'; end if;\n    return team_internal.snapshot(r.table_id);\n  end if;\n  if p_name is null or length(btrim(p_name)) not between 1 and 60 or p_bet is null or p_bet not between 10 and 1000000\n    or p_target_score is null or p_target_score not in (15,30) or p_time_limit is null or p_time_limit not in (15,30)\n    or p_is_private is null then raise exception 'Opciones inválidas'; end if;\n  if exists(select 1 from public.team_seats s join public.team_tables active on active.id=s.table_id\n    where s.user_id=uid and active.status in ('waiting','playing')) then raise exception 'Ya tenés una mesa 2vs2 en curso'; end if;\n  perform team_internal.coins(uid,-p_bet);\n  insert into public.team_tables(creator_id,name,bet,target_score,time_limit,is_private,private_code)\n    values(uid,btrim(p_name),p_bet,p_target_score,p_time_limit,p_is_private,\n      case when p_is_private then 'P'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,9)) else null end) returning * into t;\n  insert into public.team_seats(table_id,user_id,username,avatar_url,paid)\n    select t.id,uid,username,avatar_url,p_bet from public.profiles where id=uid;\n  insert into team_internal.requests values(uid,p_request_id,t.id,p);\n  return team_internal.snapshot(t.id);\nend;\n$function$\n"
+        }
+    }
+}

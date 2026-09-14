@@ -308,4 +308,67 @@ declare t uuid:=pg_temp.fixture(array[0,3]); g public.team_games; choice jsonb; 
   perform pg_temp.check(first_choice=choice,'cartas ocultas no alteran decisión del bot');
 end $$;
 
+-- Una sala antigua sigue abierta mientras quede una persona conectada.
+do $$
+declare t uuid:=pg_temp.fixture(array[0,1],false); u uuid; outsider uuid:=pg_temp.person(); blocked boolean:=false; begin
+  update public.team_tables set created_at=now()-interval '2 hours' where id=t;
+  update public.team_seats set last_seen_at=now()-interval '20 minutes' where table_id=t;
+  select user_id into u from public.team_seats where table_id=t and seat=1;
+  perform set_config('request.jwt.claim.sub',u::text,true);
+  set local role authenticated; perform public.team_presence(t); reset role;
+  perform team_internal.sweep();
+  perform pg_temp.check((select status='waiting' from public.team_tables where id=t),'presencia de cualquier compañero/rival conserva sala antigua');
+  perform set_config('request.jwt.claim.sub',outsider::text,true);
+  begin set local role authenticated; perform public.team_presence(t);
+    exception when raise_exception then blocked:=true; end;
+  reset role;
+  perform pg_temp.check(blocked,'ajeno no puede renovar presencia');
+  update public.team_seats set last_seen_at=now()-interval '16 minutes' where table_id=t and user_id is not null;
+  -- Los bots siguen teniendo presencia reciente; no mantienen la sala abiertos.
+  update public.team_seats set last_seen_at=now() where table_id=t and user_id is null;
+  perform team_internal.sweep(); perform team_internal.sweep();
+  perform pg_temp.check((select status='cancelled' from public.team_tables where id=t),'sala sin personas por 15 minutos cancela');
+  perform pg_temp.check(not exists(select 1 from public.team_seats s join public.profiles p on p.id=s.user_id
+    where s.table_id=t and p.coins<>100000),'cancelación devuelve a ambas personas una vez');
+end $$;
+
+-- Retención: borrar jugadas cerradas no habilita reintentos de cobros/pagos.
+do $$
+declare t uuid:=pg_temp.fixture(array[0,1]); active uuid; recent uuid; u uuid; req uuid:=gen_random_uuid();
+  create_req uuid; create_payload jsonb; join_req uuid; join_user uuid; v bigint; kept integer; blocked boolean:=false; begin
+  select user_id into u from public.team_seats where table_id=t and seat=0;
+  select request_id,payload into create_req,create_payload from team_internal.requests where table_id=t and payload->>'action'='create';
+  select request_id,actor into join_req,join_user from team_internal.requests where table_id=t and payload->>'action'='join';
+  select version into v from public.team_tables where id=t;
+  perform pg_temp.act(t,0,'forfeit',null,req,v);
+  update public.team_tables set updated_at=now()-interval '31 days' where id=t;
+  active:=pg_temp.fixture(array[0],false);
+  update public.team_tables set updated_at=now()-interval '60 days' where id=active;
+  recent:=pg_temp.fixture(array[0]); perform pg_temp.act(recent,0,'forfeit');
+  select count(*) into kept from team_internal.requests where table_id in (active,recent);
+  perform team_internal.prune_requests();
+  perform pg_temp.check(not exists(select 1 from team_internal.requests where table_id=t and payload->>'action' not in ('create','join')),'purga acciones antiguas cerradas');
+  perform pg_temp.check((select count(*)=2 from team_internal.requests where table_id=t),'conserva creación e ingreso');
+  perform pg_temp.check((select count(*)=kept from team_internal.requests where table_id in (active,recent)),'no purga mesas activas ni cierres recientes');
+  perform pg_temp.check(team_internal.prune_requests()=0,'repetir limpieza es inocuo');
+  -- Reintento con versión original y con versión actual: ninguno vuelve a pagar.
+  perform pg_temp.act(t,0,'forfeit',null,req,v);
+  perform pg_temp.act(t,0,'forfeit',null,req);
+  perform set_config('request.jwt.claim.sub',u::text,true);
+  set local role authenticated;
+  perform public.team_create(create_req,create_payload->>'name',(create_payload->>'bet')::int,
+    (create_payload->>'score')::int,(create_payload->>'time')::int,(create_payload->>'private')::boolean);
+  reset role;
+  perform set_config('request.jwt.claim.sub',join_user::text,true);
+  set local role authenticated; perform public.team_join(join_req,t); reset role;
+  perform pg_temp.check((select coins=99900 from public.profiles where id=u),'reintento de crear no debita otra apuesta');
+  perform pg_temp.check((select coins=100100 from public.profiles where id=join_user),'reintentos de ingreso y cierre no repiten pagos');
+  perform pg_temp.check((select version=v+1 from public.team_tables where id=t),'mesa cerrada inmutable tras purga y reintentos');
+  begin set local role authenticated; perform team_internal.prune_requests();
+    exception when insufficient_privilege then blocked:=true; end;
+  reset role;
+  perform pg_temp.check(blocked,'cliente no puede borrar comprobantes');
+  perform pg_temp.check((select relrowsecurity from pg_class where oid='team_internal.requests'::regclass),'comprobantes protegidos por RLS');
+end $$;
+
 rollback;

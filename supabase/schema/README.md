@@ -36,6 +36,13 @@ las que completan y las que ponen todo al día.
 
 ## Por qué la foto no es la fuente de la verdad
 
+La estructura completa del agregado 2vs2 está en `team_2vs2.json`: tablas,
+restricciones, índices, RLS, permisos y definiciones de funciones, exportados de
+una base de prueba reconstruida. No contiene usuarios ni cartas. Es una referencia
+para revisión; **no se ejecuta ni sustituye las migraciones**. Se regenera con
+`scripts/export-team-schema.sql` después de aplicar todo el historial. Mantenerla
+separada evita crear dos veces las tablas 2vs2 al reconstruir la base histórica.
+
 `supabase/schema/` es una **foto** para poder reconstruir. La verdad de lo que
 tiene la base es `supabase/migrations/`, que es el historial completo.
 
@@ -52,6 +59,12 @@ No son SQL "normal" y no entran en ningún archivo:
 - El **cron** que limpia partidas y mesas abandonadas (`sweep_stale_games` y
   `sweep_stale_tables`, cada 5 minutos). En una base local ni hace falta: el
   andamiaje deja una imitación de `cron` que no hace nada.
+
+Para el 2vs2, la migración sí incorpora `team_tables` a la publicación de Realtime
+y programa `sweep_team_tables` cada 5 minutos. Hay que verificar ambos al aplicar
+la entrega; nunca publicar `team_hands` ni `team_internal.requests`. El barrido
+también limpia solicitudes de acciones de mesas cerradas hace más de 30 días,
+conservando los comprobantes de creación e ingreso.
 
 ## Detalles que costaron encontrar
 

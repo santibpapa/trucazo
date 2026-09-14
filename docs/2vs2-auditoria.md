@@ -185,6 +185,13 @@ Vencimiento al declarar también cierra la mano. Su liquidación de envido queda
 Q3 confirmada. Cancelar si todos los humanos están ausentes más de 10 min; los bots no cuentan
 como presencia humana.
 
+Actualización de mantenimiento del 13/09/2026: en 2vs2, las salas en espera
+se cancelan tras 15 minutos sin presencia humana, no por su edad si alguien sigue
+conectado. Presencia y barrido se serializan por mesa. La cancelación de partidas
+en curso tras 10 minutos sin personas sigue vigente, pero queda pendiente acordar
+su cambio: contra bots permite evitar una derrota cerrando todas las pestañas.
+No se cambia esa decisión ni se introduce reemplazo automático sin confirmación.
+
 No deducir abandono de un evento transitorio de Realtime ni agregar sustitución
 automática por bots.
 
