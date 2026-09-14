@@ -64,3 +64,6 @@ next-env.d.ts
 # Informe de SEO: lo genera el robot de GitHub Actions en cada corrida.
 informe-seo.md
 fallo.md
+
+# Caché local de Supabase CLI
+/supabase/.temp/

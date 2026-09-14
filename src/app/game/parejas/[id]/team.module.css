@@ -1,0 +1,77 @@
+.game { overflow: hidden; }
+/* Tipografía, HUD, botones y materiales vienen del salón compartido con 1vs1.
+   Aquí sólo se reserva el espacio necesario para cuatro jugadores. */
+.game .shell.shell { display: flex; min-height: 0; height: 100dvh; overflow: hidden; }
+.shell > [aria-label="Marcador"] { position: relative; z-index: 2; }
+.stage { position: relative; flex: 1; min-height: 0; margin-top: 9px; container-type: size; --hand-card-width: min(18cqh,23vw,100px,calc((100cqw - 2 * min(8cqh,36px) - 38px) / 3)); --hand-bottom: 16px; --partner-pile-top: calc(min(8cqh,36px) + 22px + min(7cqh,34px)); --stack-step: clamp(10px,3cqh,14px);
+  /* El abanico deja lugar al accesorio en el extremo, más su giro.
+     Los 16px inferiores contienen la inclinación de las cartas propias. */
+  /* Reservar 16px entre las pilas enfrentadas y 2px hacia las laterales.
+     34px = separación vertical + 10px hacia la mano + 4px por cada pila. */
+  --played-card-width: min(17cqh,20vw,84px,calc(25cqw - 2 * var(--stack-step) - 2px),calc((100cqh - var(--hand-bottom) - var(--hand-card-width) * 1.541667 - var(--partner-pile-top) - 34px) / 3.083334));
+}
+.player { position: absolute; z-index: 3; display: flex; align-items: center; flex-direction: column; max-width: 27%; color: #f0dfbf; text-shadow: 0 2px 4px #000; }
+.playerName { font: 14px/17px Georgia,serif; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* El asiento vuelve al centro debajo de la mano. Los 20px reservados
+   antes del turno alojan la parte que sobresale del borde de la mesa. */
+.position0 { bottom: calc(12px - min(8cqh,36px)); left: 50%; transform: translateX(-50%); flex-direction: row; gap: 5px; }
+.position1 { top: 35%; right: 0; max-width: min(16%,84px); }
+.position2 { top: 0; left: 50%; transform: translateX(-50%); }
+.position3 { top: 35%; left: 0; max-width: min(16%,84px); }
+.backs { display: flex; height: min(7cqh,34px); }
+.backs > div > div { width: 100%; height: 100%; }
+.backs > div { width: min(4.5cqh,22px); margin-left: -4px; }
+/* Cada pila conserva su lugar: las cartas nuevas se apoyan sobre las anteriores. */
+.pile { position: absolute; z-index: 4; width: calc(var(--played-card-width) + 2 * var(--stack-step)); height: calc(var(--played-card-width) * 1.541667 + 4px); transform: translateX(-50%); pointer-events: none; }
+.pile0 { left: 50%; bottom: calc(var(--hand-bottom) + var(--hand-card-width) * 1.541667 + 10px); }
+.pile1 { left: 75%; top: 45%; transform: translate(-50%,-50%); }
+.pile2 { left: 50%; top: var(--partner-pile-top); }
+.pile3 { left: 25%; top: 45%; transform: translate(-50%,-50%); }
+.playedCard { position: absolute; top: 0; left: 0; width: var(--played-card-width); }
+.playedCard:nth-child(2) { left: var(--stack-step); top: 2px; z-index: 1; }
+.playedCard:nth-child(3) { left: calc(2 * var(--stack-step)); top: 4px; z-index: 2; }
+/* Los WebP miden 600×916, 600×920 o 600×925: todas las cartas de mesa
+   se muestran en el mismo rectángulo, también al revelar el envido. */
+.tableCard { width: var(--played-card-width); height: calc(var(--played-card-width) * 925 / 600); }
+.tableCard img { width: 100%; height: 100%; object-fit: fill; }
+.hand { position: absolute; z-index: 5; bottom: var(--hand-bottom); left: 50%; transform: translateX(-50%); display: flex; gap: 7px; }
+.hand button { width: var(--hand-card-width); }
+/* Turno y controles tienen espacio fijo, aunque cambien el texto o los
+   permisos. Así el alto de la mesa y sus unidades cqh no dependen del canto. */
+.game .turn { flex: 0 0 36px; min-height: 36px; margin-top: 20px; padding-block: 3px; }
+.game .turn > [role="status"] { display: flex; align-items: center; min-width: 0; font-size: 13px; line-height: 1.2; padding: 4px 10px; }
+.game .turn > [role="status"] > span { white-space: nowrap; }
+.turnText { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.game .turn > [role="status"] > span + span { flex-shrink: 0; }
+/* Tres filas de 34px + dos separaciones de 4px = 110px; otros 16px
+   para separación y Abandonar. Los 20px ahorrados pasan al asiento propio,
+   manteniendo exactamente el mismo espacio disponible para mesa y cartas. */
+.game .actions { flex: 0 0 126px; min-height: 126px; gap: 4px; }
+.actionRows { flex: 0 0 110px; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
+.game .actionRows button { height: 34px; min-height: 34px; padding: 0 6px; font-size: 14px; line-height: 1.05; }
+.game .actionRows button[data-tone="gold"] { font-size: 18px; }
+.game .actions > button:last-child { padding-block: 2px; }
+.game .actionRows > div:has(> button:nth-child(3)) button[data-tone="gold"] { font-size: 14px; }
+.reveal { position: absolute; z-index: 9; top: 43%; left: 50%; transform: translate(-50%,-50%); display: flex; gap: 4px; pointer-events: none; }
+.emote { position: absolute; z-index: 30; max-width: 70%; pointer-events: none; }
+.emote0 { bottom: 0; left: 0; }
+.emote1 { top: 35%; right: 0; }
+.emote2 { top: 0; left: 0; }
+.emote3 { top: 35%; left: 0; }
+.error { position: absolute; z-index: 40; top: 105px; left: 12px; right: 12px; border: 1px solid #dd7979; background: #762727f5; border-radius: 8px; padding: 8px; color: white; font-size: 14px; }
+.result { position: relative; min-height: 100dvh; padding: 16px; display: flex; align-items: center; justify-content: center; background: #1a100d; }
+@media(min-width:768px) { .position1 { right: 7%; }.position3 { left: 7%; } }
+@media(max-height:640px) {
+  .stage { --partner-pile-top: calc(min(8cqh,36px) + 22px); }
+  .backs { display: none; }
+  .playerName { font-size: 13px; }
+}
+@media(prefers-reduced-motion:reduce) { .hand button { transition: none; } }
+
+.stage .accessory0, .stage .accessory1, .stage .accessory2, .stage .accessory3 { width: min(8cqh,40px); }
+.stage .accessory0 { top: auto; bottom: 0; left: auto; right: 0; }
+.stage .accessory1 { top: 27%; bottom: auto; left: auto; right: 0; }
+.stage .accessory2 { top: 0; bottom: auto; left: 20%; right: auto; }
+.stage .accessory3 { top: 27%; bottom: auto; left: 0; right: auto; }
+
+.stage .deck { top: 48px; right: 0; }

@@ -16,6 +16,7 @@ interface PlayingCardProps {
   flip?: boolean
   /** Para escalonar el reparto (animationDelay) u otros ajustes inline. */
   style?: React.CSSProperties
+  'aria-label'?: string
 }
 
 /**
@@ -32,6 +33,7 @@ export default function PlayingCard({
   deal,
   flip,
   style,
+  'aria-label': ariaLabel,
 }: PlayingCardProps) {
   const inner = (
     <Image
@@ -52,6 +54,7 @@ export default function PlayingCard({
   if (interactive) {
     return (
       <button
+        aria-label={ariaLabel}
         onClick={onClick}
         disabled={disabled}
         style={style}
