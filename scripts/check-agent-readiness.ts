@@ -134,7 +134,7 @@ if (!existsSync(mdDir)) {
 // ---------------------------------------------------------------
 console.log('\nLista de páginas del sitemap')
 
-// Foto de las 16 páginas tal como se publican hoy. Si agregás una página nueva,
+// Foto de las 17 páginas tal como se publican hoy. Si agregás una página nueva,
 // sumala acá a propósito: este test existe para que no se muevan solas.
 const EXPECTED: [string, number][] = [
   ['', 1],
@@ -145,6 +145,7 @@ const EXPECTED: [string, number][] = [
   ['/envido-real-envido-falta-envido', 0.8],
   ['/pardas-truco-reglas', 0.8],
   ['/truco-dos-jugadores', 0.8],
+  ['/truco-en-parejas', 0.8],
   ['/jugar-truco-sin-registrarse', 0.8],
   ['/jugar-truco-con-amigos', 0.8],
   ['/truco-contra-computadora', 0.8],

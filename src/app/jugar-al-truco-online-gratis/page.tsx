@@ -122,6 +122,10 @@ export default function JugarOnlinePage() {
             <h3 className="font-semibold text-cream">Jugar con amigos</h3>
             <p className="mt-1 text-sm text-muted">Creá una mesa privada y compartí el código.</p>
           </Link>
+          <Link href="/truco-en-parejas" className="rounded-2xl border border-line bg-surface p-5 hover:border-gold/50">
+            <h3 className="font-semibold text-cream">Jugar en parejas</h3>
+            <p className="mt-1 text-sm text-muted">Armá una mesa 2 vs 2 con tu compañero enfrente.</p>
+          </Link>
           <Link href="/truco-contra-computadora" className="rounded-2xl border border-line bg-surface p-5 hover:border-gold/50">
             <h3 className="font-semibold text-cream">Jugar contra la CPU</h3>
             <p className="mt-1 text-sm text-muted">Practicá con bots sin esperar a otra persona.</p>
