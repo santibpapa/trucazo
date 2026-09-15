@@ -10,7 +10,7 @@ import { createBreadcrumbJsonLd, createPublicMetadata } from '@/lib/seo'
 const path = '/jugar-al-truco-online-gratis'
 const title = 'Jugar al truco online gratis y sin descargar'
 const description =
-  'Jugá al truco argentino online gratis desde el navegador. Entrá sin registrarte, enfrentá personas o CPU y creá mesas privadas con amigos.'
+  'Jugá al truco argentino online gratis desde el navegador. Entrá sin registrarte, jugá 1 contra 1 o en parejas 2 vs 2, enfrentá personas o CPU y creá mesas privadas con amigos.'
 
 export const metadata = createPublicMetadata({
   title,
@@ -41,7 +41,7 @@ const reasons = [
   },
   {
     title: 'Varias formas de jugar',
-    text: 'Podés buscar rival, crear una mesa privada, practicar contra bots o avanzar por el Modo Historia.',
+    text: 'Podés buscar rival mano a mano, armar una mesa 2 vs 2 en parejas, crear una partida privada, practicar contra bots o avanzar por el Modo Historia.',
   },
   {
     title: 'Sin dinero real',
@@ -55,7 +55,7 @@ export default function JugarOnlinePage() {
       path={path}
       title="Jugar al truco online gratis"
       breadcrumb="Jugar al truco online gratis"
-      intro="Entrá desde el navegador y jugá una partida 1 contra 1. No necesitás descargar una aplicación ni crear una cuenta para probar Trucazo."
+      intro="Entrá desde el navegador y jugá una partida, mano a mano o en parejas 2 vs 2. No necesitás descargar una aplicación ni crear una cuenta para probar Trucazo."
     >
       <JsonLd data={webPageJsonLd} />
       <JsonLd data={createBreadcrumbJsonLd('Jugar al truco online gratis', path)} />
@@ -98,7 +98,7 @@ export default function JugarOnlinePage() {
         <ol className="flex flex-col gap-2 list-decimal pl-5">
           <li>Entrá como invitado o iniciá sesión con tu cuenta.</li>
           <li>Usá “Jugar ya”, buscá una mesa o creá una partida privada.</li>
-          <li>Elegí una partida a 15 o 30 puntos y jugá cada mano.</li>
+          <li>Elegí la modalidad —mano a mano o 2 vs 2— y el puntaje: 15 o 30.</li>
         </ol>
         <p>
           Si todavía no conocés las reglas, empezá por{' '}

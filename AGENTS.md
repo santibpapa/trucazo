@@ -68,7 +68,8 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 # Trucazo — reglas de la casa (específico de este proyecto)
 
-Truco argentino 1v1 online, a 15 o 30 puntos, sin flor, con monedas ficticias.
+Truco argentino online, a 15 o 30 puntos, sin flor, con monedas ficticias.
+Dos modalidades: 1v1 (mano a mano) y 2vs2 (en parejas, cuatro jugadores).
 Stack: Next.js 14 (App Router) + React + TypeScript + Tailwind + Supabase
 (Auth + Postgres + Realtime + RPC `security definer`).
 

@@ -46,7 +46,11 @@ const faqs = [
   },
   {
     q: '¿Trucazo se juega con flor?',
-    a: 'No. La modalidad implementada por Trucazo es mano a mano y sin flor. En una mesa tradicional la flor puede acordarse como variante antes de empezar.',
+    a: 'No. Trucazo se juega sin flor, tanto mano a mano como en parejas. En una mesa tradicional la flor puede acordarse como variante antes de empezar.',
+  },
+  {
+    q: '¿Se puede jugar de a cuatro, en parejas?',
+    a: 'Sí. Trucazo tiene mesas 2 vs 2, con los compañeros enfrentados. Las cartas y los puntajes son los mismos, pero cada canto compromete al equipo y el envido se declara por turno alrededor de la mesa. Está explicado en la guía de truco en parejas.',
   },
 ]
 
@@ -56,7 +60,7 @@ export default function ComoSeJuegaPage() {
       path={path}
       title="Cómo se juega al truco argentino"
       breadcrumb="Cómo se juega al truco"
-      intro="El objetivo es sumar puntos ganando el envido y las bazas del truco. En Trucazo se juega 1 contra 1, a 15 o 30 puntos y sin flor. Esta guía explica esa modalidad y marca dónde existen variantes tradicionales."
+      intro="El objetivo es sumar puntos ganando el envido y las bazas del truco. En Trucazo se juega a 15 o 30 puntos y sin flor, mano a mano (1 contra 1) o en parejas (2 vs 2). Esta guía explica las reglas comunes y marca dónde existen variantes tradicionales."
     >
       <JsonLd data={createArticleJsonLd({ headline: title, description, path })} />
       <JsonLd data={createBreadcrumbJsonLd('Cómo se juega al truco', path)} />
@@ -118,6 +122,14 @@ export default function ComoSeJuegaPage() {
         <p>
           Quien gana una baza abre la siguiente. Si la baza es parda, vuelve a abrir el
           jugador que había salido en esa baza; en la primera, ese jugador es la mano.
+        </p>
+        <p>
+          En una mesa de cuatro el turno gira alrededor de la mesa y los compañeros quedan
+          enfrentados. Ese recorrido está explicado en la guía de{' '}
+          <Link href="/truco-en-parejas" className="text-gold underline underline-offset-2">
+            truco en parejas
+          </Link>
+          .
         </p>
       </Section>
 
@@ -259,7 +271,8 @@ export default function ComoSeJuegaPage() {
             Pagat
           </a>
           . Algunas mesas tradicionales acuerdan variantes —en especial la flor y el
-          valor de la falta envido— antes de repartir.
+          valor de la falta envido— antes de repartir. Las reglas de esta página valen para
+          las dos modalidades del juego: mano a mano y en parejas.
         </p>
       </Section>
     </SeoPageLayout>

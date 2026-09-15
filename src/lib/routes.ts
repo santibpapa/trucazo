@@ -34,7 +34,7 @@ export type PublicRoute = {
 export const PUBLIC_ROUTES: PublicRoute[] = [
   {
     path: '',
-    updated: '2026-09-14',
+    updated: '2026-09-15',
     label: 'Inicio',
     blurb: 'acceso al juego y resumen de modalidades.',
     group: 'guia',
@@ -43,7 +43,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/como-se-juega-al-truco',
-    updated: '2026-08-15',
+    updated: '2026-09-15',
     label: 'Cómo se juega al truco',
     blurb: 'guía central de reglas.',
     group: 'guia',
@@ -52,7 +52,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/jugar-al-truco-online-gratis',
-    updated: '2026-09-14',
+    updated: '2026-09-15',
     label: 'Jugar al truco online gratis',
     blurb: 'acceso, modalidades y requisitos.',
     group: 'guia',
@@ -79,7 +79,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/envido-real-envido-falta-envido',
-    updated: '2026-08-15',
+    updated: '2026-09-15',
     label: 'Envido, real envido y falta envido',
     blurb: 'cantos, rechazos y puntajes.',
     group: 'guia',
@@ -88,7 +88,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/pardas-truco-reglas',
-    updated: '2026-08-15',
+    updated: '2026-09-15',
     label: 'Pardas',
     blurb: 'resolución de bazas empatadas.',
     group: 'guia',
@@ -115,7 +115,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/jugar-truco-sin-registrarse',
-    updated: '2026-08-15',
+    updated: '2026-09-15',
     label: 'Sin registrarse',
     blurb: 'entrar como invitado, sin crear cuenta.',
     group: 'jugar',
@@ -124,7 +124,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/jugar-truco-con-amigos',
-    updated: '2026-08-15',
+    updated: '2026-09-15',
     label: 'Con amigos',
     blurb: 'mesa privada con código para compartir.',
     group: 'jugar',
@@ -133,7 +133,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/truco-contra-computadora',
-    updated: '2026-08-15',
+    updated: '2026-09-15',
     label: 'Contra la computadora',
     blurb: 'partidas contra rivales controlados por la máquina.',
     group: 'jugar',
@@ -151,7 +151,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/acerca-de-trucazo',
-    updated: '2026-08-15',
+    updated: '2026-09-15',
     label: 'Acerca de Trucazo',
     blurb: 'qué es el proyecto y sus principios editoriales.',
     group: 'institucional',
