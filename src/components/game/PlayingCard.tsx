@@ -42,6 +42,13 @@ export default function PlayingCard({
       width={600}
       height={925}
       unoptimized
+      // Las cartas de la mano (interactive) se ven apenas abre la mesa, así que
+      // se piden con prioridad. Sin esto next/image las marca "lazy", el
+      // navegador no las descubre al leer el HTML y espera a calcular la
+      // pantalla para pedirlas: medido en producción, la primera carta tardaba
+      // 3,6 segundos en empezar a bajarse. Las de la mesa siguen perezosas:
+      // aparecen recién cuando alguien las juega.
+      priority={!!interactive}
       className="block w-full h-auto select-none pointer-events-none [-webkit-user-drag:none] [-webkit-touch-callout:none]"
       draggable={false}
     />
