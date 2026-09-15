@@ -7,7 +7,7 @@ import { SITE_URL, GOOGLE_SITE_VERIFICATION } from '@/lib/site'
 import './globals.css'
 
 const geist = localFont({
-  src: './fonts/GeistVF.woff',
+  src: './fonts/GeistVF.woff2',
   variable: '--font-inter',
   display: 'swap',
 })

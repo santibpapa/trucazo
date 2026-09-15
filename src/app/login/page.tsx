@@ -74,7 +74,7 @@ export default function LoginPage() {
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen p-6">
-      <Panel className="w-full max-w-sm p-8 flex flex-col gap-6 animate-fade-up">
+      <Panel className="w-full max-w-sm p-8 flex flex-col gap-6">
         <div className="flex flex-col items-center gap-2 text-center">
           <Logo size="md" />
           <p className="text-sm text-muted">Entrá a jugar</p>

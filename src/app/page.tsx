@@ -61,7 +61,7 @@ export default function Home() {
       <JsonLd data={productJsonLd} />
 
       <section className="min-h-[92vh] flex flex-col items-center justify-center gap-8 px-6 py-12 text-center">
-        <div className="flex flex-col items-center gap-5 animate-fade-up">
+        <div className="flex flex-col items-center gap-5">
           <Logo size="lg" />
           <div className="max-w-xl">
             <h1 className="font-display text-3xl font-extrabold tracking-tight text-cream sm:text-5xl text-balance">
@@ -77,7 +77,7 @@ export default function Home() {
 
         {/* data-md="skip": botones de acceso. No son contenido legible, así que
             la versión markdown para agentes los descarta. */}
-        <div data-md="skip" className="flex w-full max-w-xs flex-col gap-3 animate-fade-up">
+        <div data-md="skip" className="flex w-full max-w-xs flex-col gap-3">
           <GuestButton
             variant="primary"
             size="lg"
@@ -104,7 +104,7 @@ export default function Home() {
           <InstallButton />
         </div>
 
-        <p className="inline-flex items-center gap-2 text-sm text-subtle animate-fade-up">
+        <p className="inline-flex items-center gap-2 text-sm text-subtle">
           Cada jugador nuevo arranca con
           <span className="inline-flex items-center gap-1.5 font-semibold text-gold">
             <CoinIcon size={14} /> 1.000 monedas ficticias
