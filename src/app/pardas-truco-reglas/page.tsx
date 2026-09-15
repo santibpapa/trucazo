@@ -85,9 +85,12 @@ export default function PardasPage() {
 
       <Section title="Fuente y modalidad">
         <p>
-          Los casos reflejan la lógica de partidas mano a mano de Trucazo y coinciden con
-          el{' '}
+          Los casos reflejan la lógica de Trucazo y coinciden con el{' '}
           <a href="https://www.pagat.com/put/truco_ar.html" className="text-gold underline underline-offset-2" rel="noopener noreferrer">reglamento argentino de Pagat</a>.
+          En las mesas{' '}
+          <Link href="/truco-en-parejas" className="text-gold underline underline-offset-2">en parejas</Link>{' '}
+          la cuenta es la misma, con una diferencia: la ventaja es del equipo y no del
+          jugador, así que da lo mismo cuál de los dos compañeros ganó la baza anterior.
         </p>
       </Section>
     </SeoPageLayout>

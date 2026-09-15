@@ -64,7 +64,7 @@ export default function Image() {
         </div>
 
         <div style={{ display: 'flex', fontSize: 40, color: '#A78A86' }}>
-          Truco argentino online · gratis · 1 contra 1
+          Truco argentino online · gratis · 1 vs 1 y 2 vs 2
         </div>
       </div>
     ),

@@ -1,6 +1,7 @@
 # Trucazo
 
-Truco argentino **1 contra 1** online, a 15 o 30 puntos y sin flor, con monedas ficticias.
+Truco argentino online, a 15 o 30 puntos y sin flor, con monedas ficticias.
+Dos modalidades: **1 contra 1** (mano a mano) y **2 vs 2** (en parejas, cuatro jugadores).
 Construido con Next.js (App Router), React, TypeScript y Supabase (Auth + Postgres + Realtime).
 
 ## Stack

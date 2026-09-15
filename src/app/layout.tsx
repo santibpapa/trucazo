@@ -16,12 +16,12 @@ export const metadata: Metadata = {
   // Base para armar URLs absolutas (canónicas, imágenes, etc.).
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Trucazo — Truco argentino online, gratis y 1 contra 1',
+    default: 'Trucazo — Truco argentino online gratis, 1 vs 1 y 2 vs 2',
     // Las demás páginas se ven como "Lobby · Trucazo", "Tienda · Trucazo", etc.
     template: '%s · Trucazo',
   },
   description:
-    'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 a 15 o 30 puntos, con envido y truco, contra personas o la computadora.',
+    'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 o en parejas 2 vs 2, a 15 o 30 puntos, con envido y truco, contra personas o la computadora.',
   applicationName: 'Trucazo',
   authors: [{ name: 'Trucazo' }],
   creator: 'Trucazo',
@@ -30,15 +30,15 @@ export const metadata: Metadata = {
     locale: 'es_AR',
     url: SITE_URL,
     siteName: 'Trucazo',
-    title: 'Trucazo — Truco argentino online, gratis y 1 contra 1',
+    title: 'Trucazo — Truco argentino online gratis, 1 vs 1 y 2 vs 2',
     description:
-      'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 contra personas o la computadora.',
+      'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 o en parejas 2 vs 2, contra personas o la computadora.',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Trucazo — Truco argentino online',
     description:
-      'Jugá al truco argentino online, gratis y 1 contra 1. El de siempre, como siempre.',
+      'Jugá al truco argentino online, gratis, 1 contra 1 o en parejas. El de siempre, como siempre.',
   },
   robots: {
     index: true,

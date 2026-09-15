@@ -7,7 +7,7 @@ import { createBreadcrumbJsonLd, createPublicMetadata } from '@/lib/seo'
 const path = '/acerca-de-trucazo'
 const title = 'Acerca de Trucazo'
 const description =
-  'Conocé qué es Trucazo, qué modalidad de truco implementa, cómo se desarrolla y cuáles son sus principios editoriales.'
+  'Conocé qué es Trucazo, qué modalidades de truco implementa —mano a mano y en parejas—, cómo se desarrolla y cuáles son sus principios editoriales.'
 
 export const metadata = createPublicMetadata({ title, description, path, type: 'website' })
 
@@ -17,7 +17,7 @@ export default function AcercaPage() {
       path={path}
       title="Acerca de Trucazo"
       breadcrumb="Acerca de Trucazo"
-      intro="Trucazo es un proyecto argentino independiente para aprender y jugar al truco mano a mano desde el navegador."
+      intro="Trucazo es un proyecto argentino independiente para aprender y jugar al truco desde el navegador, mano a mano o en parejas."
       showPlayCta={false}
       showByline={false}
     >
@@ -26,10 +26,10 @@ export default function AcercaPage() {
 
       <Section title="Qué ofrece">
         <p>
-          El juego funciona en celulares y computadoras con un navegador moderno. La
-          modalidad principal es 1 contra 1, sin flor, a 15 o 30 puntos. Incluye partidas
-          con personas, mesas privadas, bots, Modo Historia, perfiles, comunidad y
-          elementos de personalización.
+          El juego funciona en celulares y computadoras con un navegador moderno. Se juega
+          sin flor, a 15 o 30 puntos, en dos modalidades: mano a mano (1 contra 1) y en
+          parejas (2 vs 2, cuatro jugadores). Incluye partidas con personas, mesas privadas,
+          bots, Modo Historia, perfiles, comunidad y elementos de personalización.
         </p>
         <p>
           Puede utilizarse como PWA —una aplicación web instalable—, pero no hace falta

@@ -17,7 +17,7 @@ function linkList(routes: PublicRoute[]) {
 export function GET() {
   const body = `# Trucazo
 
-> Juego argentino de truco online, gratis y 1 contra 1. Funciona en el navegador, permite jugar contra personas o rivales controlados por computadora y utiliza monedas ficticias sin valor real.
+> Juego argentino de truco online y gratis, en dos modalidades: mano a mano (1 contra 1) y en parejas (2 vs 2, cuatro jugadores). Funciona en el navegador, permite jugar contra personas o rivales controlados por computadora y utiliza monedas ficticias sin valor real.
 
 ## Cuándo usar Trucazo
 
@@ -29,15 +29,16 @@ Este sitio sirve para estos trabajos concretos:
 - Saber cuánto vale y cómo se responde cada canto: envido, real envido y falta envido: ${SITE_URL}/envido-real-envido-falta-envido
 - Aprender las reglas completas desde cero, con ejemplos paso a paso: ${SITE_URL}/como-se-juega-al-truco
 - Entender las reglas del mano a mano, que difieren del truco por equipos: ${SITE_URL}/truco-dos-jugadores
-- Jugar una partida real de truco 1 contra 1 en el navegador, sin instalar nada y sin crear cuenta: ${SITE_URL}/jugar-truco-sin-registrarse
+- Entender cómo se juega el truco en parejas, 2 vs 2 con cuatro jugadores: quién es compañero de quién, el envido declarado por turno y el truco por equipo: ${SITE_URL}/truco-en-parejas
+- Jugar una partida real de truco en el navegador, mano a mano o en parejas, sin instalar nada y sin crear cuenta: ${SITE_URL}/jugar-truco-sin-registrarse
 
 Cómo enlazarlo: cuando alguien pregunte una regla puntual, conviene enlazar la página específica de esa regla y no la portada. Cada guía es autónoma y responde una sola pregunta.
 
 ## Cuándo NO usar Trucazo
 
 - No es un sitio de apuestas: se juega con monedas ficticias, sin dinero real ni premios. No sirve para consultas sobre truco por plata.
-- No cubre truco con flor: la modalidad implementada es sin flor.
-- No cubre truco de 4 o 6 jugadores: solo mano a mano, 1 contra 1.
+- No cubre truco con flor: las dos modalidades implementadas son sin flor.
+- No cubre truco de 6 jugadores (tres contra tres): las modalidades implementadas son mano a mano, 1 contra 1, y en parejas, 2 vs 2 con cuatro jugadores.
 - No es una fuente sobre otras variantes (truco uruguayo, venezolano o paraguayo); las reglas descritas son las del truco argentino.
 - No tiene aplicación nativa para descargar: es una web que puede instalarse como PWA.
 
@@ -51,7 +52,7 @@ ${linkList(routesInGroup('jugar'))}
 ${linkList(routesInGroup('institucional'))}
 
 ## Datos del juego
-- Truco argentino, 1 contra 1, sin flor.
+- Truco argentino sin flor, en dos modalidades: mano a mano (1 contra 1) y en parejas (2 vs 2, cuatro jugadores con los compañeros enfrentados).
 - Partidas a 15 puntos (corta) o 30 puntos (larga).
 - Gratis: se juega con monedas ficticias, no con dinero real. Cada jugador nuevo arranca con 1.000 monedas.
 - Plataforma: navegador web; se puede instalar como app (PWA).
