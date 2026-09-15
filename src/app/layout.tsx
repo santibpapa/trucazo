@@ -89,7 +89,9 @@ const organizationJsonLd = {
     contactType: 'Soporte',
     availableLanguage: 'es',
   },
-  sameAs: ['https://github.com/santibpapa'],
+  // "sameAs" son los perfiles oficiales de la marca. Le sirven a Google para
+  // atar el Instagram a este sitio y entender que son el mismo Trucazo.
+  sameAs: ['https://github.com/santibpapa', 'https://www.instagram.com/trucazo_arg/'],
 }
 
 export default function RootLayout({

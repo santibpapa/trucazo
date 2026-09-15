@@ -1,7 +1,7 @@
 # ============================================================
-# Informe de SEO cada dos semanas
+# Informe de SEO una vez por mes
 #
-# Baja los datos de Google Search Console, los compara con las dos semanas
+# Baja los datos de Google Search Console, los compara con las cuatro semanas
 # anteriores, revisa que el sitio esté sano y publica todo como un "issue"
 # del repositorio (GitHub te avisa por mail cuando aparece).
 #
@@ -17,8 +17,13 @@ name: Informe de SEO
 
 on:
   schedule:
-    # Los días 1 y 15 de cada mes, 9:00 UTC (6 de la mañana en Argentina).
-    - cron: '0 9 1,15 * *'
+    # El día 1 de cada mes, 9:00 UTC (6 de la mañana en Argentina).
+    #
+    # Antes salía también el 15. Como cada informe mira 28 días, dos informes
+    # seguidos compartían la mitad de los días y comparar uno con otro contaba
+    # dos veces los mismos clics. Una vez por mes, cada informe arranca donde
+    # terminó el anterior.
+    - cron: '0 9 1 * *'
   # Botón para correrlo cuando quieras: pestaña Actions → Informe de SEO → Run workflow.
   workflow_dispatch:
 

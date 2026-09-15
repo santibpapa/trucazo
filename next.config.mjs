@@ -28,8 +28,16 @@ const nextConfig = {
   },
   // La página de Objetivos se dio de baja: todo vive en la ventana del cofre
   // del lobby. Quien tenga el link guardado cae en el lobby.
+  //
+  // /jugar-al-truco-online-gratis se dio de baja porque le competía a la portada:
+  // decían lo mismo con distinto nombre y Google nunca llegó a indexarla (dos
+  // meses online, cero impresiones). Redirigirla le pasa a la portada lo que
+  // haya juntado en vez de dividir la señal entre las dos.
   async redirects() {
-    return [{ source: '/objetivos', destination: '/lobby', permanent: true }]
+    return [
+      { source: '/objetivos', destination: '/lobby', permanent: true },
+      { source: '/jugar-al-truco-online-gratis', destination: '/', permanent: true },
+    ]
   },
 }
 

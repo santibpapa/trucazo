@@ -9,10 +9,14 @@ import { SITE_URL } from '@/lib/site'
 import { createPublicMetadata } from '@/lib/seo'
 
 const description =
-  'Jugá al truco argentino online desde el navegador. Partidas 1 contra 1 o en parejas 2 vs 2, modo invitado, mesas con amigos y desafíos contra la computadora.'
+  'Jugá al truco argentino online, gratis y sin descargar nada. Entrá sin registrarte y jugá 1 contra 1 o en parejas 2 vs 2, contra personas o la computadora.'
 
+// El título arranca con la marca porque la mayoría de las visitas llegan
+// buscando "trucazo", pero sigue con "Jugar al truco...": de las diez búsquedas
+// que más nos muestran, cinco empiezan con "jugar". La portada es la única
+// página que compite por esas, así que el verbo tiene que estar acá.
 export const metadata = createPublicMetadata({
-  title: 'Trucazo — Truco argentino online gratis, 1 vs 1 y 2 vs 2',
+  title: 'Trucazo — Jugar al truco argentino online gratis, 1 vs 1 y 2 vs 2',
   description,
   path: '/',
   type: 'website',
@@ -65,12 +69,12 @@ export default function Home() {
           <Logo size="lg" />
           <div className="max-w-xl">
             <h1 className="font-display text-3xl font-extrabold tracking-tight text-cream sm:text-5xl text-balance">
-              Truco argentino online, mano a mano o en parejas
+              Jugá al truco argentino online, mano a mano o en parejas
             </h1>
             <p className="mx-auto mt-4 max-w-lg text-balance text-muted">
-              Jugá 1 contra 1 o 2 vs 2 desde el navegador, contra otras personas o la
-              computadora. Entrá como invitado, creá una mesa con amigos o avanzá por el
-              Modo Historia.
+              Jugá 1 contra 1 o 2 vs 2 desde el navegador, sin descargar nada, contra otras
+              personas o la computadora. Entrá como invitado, creá una mesa con amigos o
+              avanzá por el Modo Historia.
             </p>
           </div>
         </div>
