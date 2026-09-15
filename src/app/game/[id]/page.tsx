@@ -8,15 +8,16 @@ import WaitingRoom from './WaitingRoom'
 
 export default async function GamePage({ params }: { params: { id: string } }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+
+  // Quién sos y qué mesa es son dos preguntas independientes: la mesa se busca
+  // por el id de la URL y no necesita saber quién la pide. Antes iban una atrás
+  // de otra; juntas, se ahorra una ida y vuelta entera a la base.
+  const [{ data: { user } }, { data: table }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('tables').select('*').eq('id', params.id).single(),
+  ])
 
   if (!user) redirect('/login')
-
-  const { data: table } = await supabase
-    .from('tables')
-    .select('*')
-    .eq('id', params.id)
-    .single()
 
   if (!table) redirect('/lobby')
 
