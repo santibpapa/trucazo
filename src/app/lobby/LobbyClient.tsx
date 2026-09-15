@@ -90,6 +90,16 @@ export default function LobbyClient({
   // de navegación ni de que justo se cree una mesa nueva en tiempo real.
   useEffect(() => subscribeLobbyTables(supabase, setTables), [supabase])
 
+  // Vigila si la mesa que creaste arrancó, para meterte en la partida. Sigue
+  // mirando cada segundo, que es lo que hace que entres al toque.
+  //
+  // Una mesa "jugando" cuya partida YA terminó no lleva a ningún lado: es
+  // basura que quedó dando vueltas. Antes no se anotaba en ningún lado, así que
+  // cada segundo se volvía a preguntar por ella —dos consultas por segundo, para
+  // siempre, sin que sirvieran de nada—. Ahora se anota y no se pregunta de
+  // nuevo; el vigilante sigue vivo para la próxima mesa que crees.
+  const mesasTerminadas = useRef<Set<string>>(new Set())
+
   useEffect(() => {
     const interval = setInterval(async () => {
       const { data: myTables } = await supabase
@@ -97,18 +107,26 @@ export default function LobbyClient({
         .select('*')
         .eq('creator_id', profile.id)
         .eq('status', 'playing')
+        // La más nueva primero: con una mesa vieja dando vueltas, sin este orden
+        // podía volver siempre esa y no enterarse de la que acabás de crear.
+        .order('created_at', { ascending: false })
         .limit(1)
 
       if (myTables && myTables.length > 0) {
+        const tableId = myTables[0].id
+        if (mesasTerminadas.current.has(tableId)) return
+
         const { data: gameData } = await supabase
           .from('games')
           .select('status')
-          .eq('id', myTables[0].id)
+          .eq('id', tableId)
           .single()
 
         if (!gameData || gameData.status !== 'finished') {
           clearInterval(interval)
-          router.push(`/game/${myTables[0].id}`)
+          router.push(`/game/${tableId}`)
+        } else {
+          mesasTerminadas.current.add(tableId)
         }
       }
     }, 1000)
