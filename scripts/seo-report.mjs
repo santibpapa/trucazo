@@ -1,7 +1,7 @@
 /**
- * Informe de SEO cada dos semanas.
+ * Informe de SEO una vez por mes.
  *
- * Baja los datos de Google Search Console, los compara contra las dos semanas
+ * Baja los datos de Google Search Console, los compara contra las cuatro semanas
  * anteriores y escribe un informe en castellano. Lo corre solo GitHub Actions
  * (.github/workflows/seo.yml), que después lo publica como "issue" del repo.
  *
