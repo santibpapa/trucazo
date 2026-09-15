@@ -107,12 +107,6 @@ export default function SeoPageLayout({
           >
             Cómo se juega al truco
           </Link>
-          <Link
-            href="/jugar-al-truco-online-gratis"
-            className="hover:text-gold transition-colors"
-          >
-            Jugar al truco online gratis
-          </Link>
           <Link href="/truco-en-parejas" className="hover:text-gold transition-colors">
             Truco en parejas
           </Link>

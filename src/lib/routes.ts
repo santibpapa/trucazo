@@ -51,15 +51,6 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     frequency: 'monthly',
   },
   {
-    path: '/jugar-al-truco-online-gratis',
-    updated: '2026-09-15',
-    label: 'Jugar al truco online gratis',
-    blurb: 'acceso, modalidades y requisitos.',
-    group: 'guia',
-    priority: 0.9,
-    frequency: 'monthly',
-  },
-  {
     path: '/orden-cartas-truco',
     updated: '2026-08-15',
     label: 'Orden de las cartas',
