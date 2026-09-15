@@ -110,16 +110,18 @@
   95% { transform: rotate(3deg) translateX(1px); }
 }
 
+/* El resplandor late con opacidad y escala, nunca con box-shadow: una sombra
+   que cambia de tamaño obliga al navegador a volver a pintar el elemento en
+   cada cuadro, 60 veces por segundo y para siempre mientras estés en el lobby.
+   Opacidad y escala, en cambio, las resuelve la placa de video sin repintar. */
 @keyframes objectives-chest-glow {
   0%, 100% {
     opacity: 0.55;
     transform: scale(0.92);
-    box-shadow: 0 0 18px rgba(201, 162, 75, 0.55);
   }
   50% {
     opacity: 1;
     transform: scale(1.08);
-    box-shadow: 0 0 34px rgba(239, 202, 104, 0.88);
   }
 }
 
@@ -129,6 +131,8 @@
 }
 
 .objectives-chest-glow {
+  /* Fija: el latido se lo dan la opacidad y la escala de arriba. */
+  box-shadow: 0 0 26px rgba(220, 182, 86, 0.72);
   animation: objectives-chest-glow 2.4s ease-in-out infinite;
 }
 
