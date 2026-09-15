@@ -514,11 +514,10 @@ export default function LobbyClient({
             )}
 
             <div className="grid gap-3 sm:grid-cols-2">
-              {tables.map((table, i) => (
+              {tables.map(table => (
                 <Panel
                   key={table.id}
-                  className="p-4 flex flex-col gap-3 transition-shadow duration-200 hover:shadow-lift animate-fade-up"
-                  style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+                  className="p-4 flex flex-col gap-3 transition-shadow duration-200 hover:shadow-lift"
                 >
                   <div className="flex items-center justify-between gap-2 min-w-0">
                     <p className="font-semibold text-cream truncate">{table.name}</p>
