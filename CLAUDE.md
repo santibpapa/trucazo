@@ -102,10 +102,32 @@ El dueño del proyecto **no escribe código**: define el qué y el por qué, no 
 - `supabase/schema/` es la **foto** del estado actual del backend (tablas, funciones,
   RLS) para reconstruir de cero. `supabase/migrations/` es el historial incremental.
 - Configuración que NO es SQL y se setea a mano en el panel: Realtime en `games`/
-  `tables`, el trigger `handle_new_user`, y el cron de `sweep_stale_games`.
+  `tables`, el trigger `handle_new_user`, el cron de `sweep_stale_games`, y la
+  **región de las funciones de Vercel: `gru1` (São Paulo)**, que tiene que ser la
+  misma que la de Supabase. Si no coinciden, cada consulta del servidor cruza el
+  continente: medido, con las funciones en Washington el HTML del lobby tardaba
+  3 segundos en llegar; con las dos en São Paulo, 523 ms.
 
 ## Diseño y estética
 Prioridad alta: todo pulido y simple de entender. UI limpia, sin texto denso.
+
+## Velocidad (todo esto se midió en producción, no es teoría)
+- **Nada de lo que se ve al abrir una pantalla puede entrar con `animate-fade-up`.**
+  Arranca en opacidad 0, y Chrome descarta para siempre, como candidato a LCP,
+  cualquier cosa que se haya pintado invisible. La métrica termina midiendo lo que
+  aparece tarde: en la portada llegó a medir el botón "Instalar app". Arriba de
+  todo, sin animación de entrada.
+- Animaciones infinitas: sólo opacidad y `transform`. Animar `box-shadow` obliga al
+  navegador a repintar en cada cuadro, para siempre; el resplandor del cofre se
+  comía ~100 ms de hilo principal por segundo.
+- Las imágenes se guardan a 3x su uso **más grande de todo el sitio**, no a la
+  resolución que vino ni al tamaño de una sola pantalla.
+- `next/image` marca `lazy` toda imagen que no diga `priority`. Lo que se ve al
+  abrir (las cartas de la mano) va con `priority`, o el navegador ni la pide hasta
+  después de calcular la pantalla.
+- Las páginas de servidor le preguntan a la base **en paralelo** (`Promise.all`),
+  nunca de a una: cada ida y vuelta se paga entera y el navegador no puede empezar
+  nada hasta que llega el HTML.
 
 ---
 
