@@ -54,10 +54,9 @@ premios adicionales por ese cambio de saldo.
 
 ## Migraciones y activación
 
-Las tres primeras ya están aplicadas en producción. **La cuarta está pendiente: hay
-que correrla a mano** para que los bots tomen nombre, hablen y escuchen. Quedan las
-cuatro listadas por si hay que reconstruir una base desde cero o montar un entorno
-de prueba, y se corren en este orden:
+Las cuatro están aplicadas en producción. Quedan listadas por si hay que
+reconstruir una base desde cero o montar un entorno de prueba, y se corren en
+este orden:
 
 1. `supabase/migrations/20260909211038_team_2vs2.sql`: tablas, motor, permisos,
    publicación de `team_tables` en Realtime y cron `sweep_team_tables`.
@@ -71,7 +70,30 @@ de prueba, y se corren en este orden:
 
 La primera exige que la extensión `pg_cron` esté habilitada (Supabase → Database →
 Extensions): programa el barrido con `cron.schedule` y sin la extensión falla entera.
-Cada archivo es transaccional y no se repite: si ya fue aplicado, se omite.
+Cada archivo es transaccional: si algo falla, no queda nada a medias. Pero **no son
+repetibles**. Reenviar el cuarto falla en su primera línea, con
+`column "chat" of relation "team_games" already exists`, porque agrega esa columna sin
+preguntar si ya estaba. El error es inofensivo —la transacción se deshace y la base
+queda igual— pero el archivo no se saltea solo. Antes de reenviar uno, preguntarle al
+catálogo qué hay:
+
+```sql
+select
+  (select count(*) from information_schema.columns where table_schema='public'
+     and table_name='team_games' and column_name='chat')            as columna_chat,
+  (select count(*) from information_schema.tables where table_schema='public'
+     and table_name='team_bot_lines')                               as tabla_frases,
+  (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+     where n.nspname='public' and p.proname='team_say')             as funcion_team_say,
+  (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+     where n.nspname='team_internal' and p.proname in ('chat_lines','say','quiet',
+       'bot_strong','bot_line','bot_talk','bot_hears','partner_hint')) as ayudantes,
+  (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+     where n.nspname='team_internal' and p.proname='bot_choice'
+       and p.pronargs=6)                                            as bot_choice_nuevo;
+```
+
+`1, 1, 1, 8, 1` es el cuarto archivo entero. Se comprobó así el 16/09/2026.
 
 Para montar otra base con las migraciones de master:
 

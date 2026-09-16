@@ -1,6 +1,6 @@
 # SEO y GEO — estado y seguimiento
 
-Última actualización: **24/08/2026**.
+Última actualización: **16/09/2026**.
 
 Este documento reemplaza la auditoría orientativa del 15/07/2026. Se retiró el
 puntaje “72/100” porque no provenía de una metodología reproducible ni de datos
@@ -38,9 +38,9 @@ Preparación para agentes de IA:
 
 Medición automática:
 
-- `scripts/seo-report.mjs` + `.github/workflows/seo.yml`: cada 1 y 15 baja los
-  datos de Search Console, los compara con las cuatro semanas anteriores, revisa
-  el sitio en vivo y publica todo como issue del repositorio.
+- `scripts/seo-report.mjs` + `.github/workflows/seo.yml`: el día 1 de cada mes
+  baja los datos de Search Console, los compara con las cuatro semanas
+  anteriores, revisa el sitio en vivo y publica todo como issue del repositorio.
 
 ## Acciones externas pendientes
 
@@ -53,19 +53,20 @@ Estas tareas requieren acceso a producción o datos que no están en el reposito
 2. Enviar `https://www.trucazo.com.ar/sitemap.xml` en Search Console.
 3. ~~Registrar línea base de 28 días: consultas de marca/no marca, impresiones,
    clics, CTR, posición y páginas indexadas.~~ **Automatizado**: lo hace el
-   informe quincenal, que además separa marca de no marca en cada corrida.
+   informe mensual, que además separa marca de no marca en cada corrida.
 4. Inspeccionar home, guía, orden de cartas y calculadora después del despliegue.
 5. Revisar Core Web Vitals de campo cuando exista muestra suficiente.
 6. Fijar metas porcentuales recién después de contar con esa línea base.
-7. Agregar las redes sociales del juego al `sameAs` del schema `Organization`
-   (hoy sólo apunta al GitHub personal del autor). Requiere que existan esas
-   cuentas. Es la señal más débil hoy para que Google distinga la marca
-   "Trucazo" de la palabra común y de la app homónima en Google Play.
+7. ~~Agregar las redes sociales del juego al `sameAs` del schema `Organization`.~~
+   **Hecho el 15/09/2026**: el Instagram oficial está declarado en
+   `src/app/layout.tsx`, junto al GitHub del autor. Era la señal más débil para que
+   Google distinga la marca "Trucazo" de la palabra común y de la app homónima en
+   Google Play.
 
 ## Seguimiento editorial
 
 - Revisar Search Console a los 28, 60 y 90 días (ahora llega solo: el informe
-  quincenal lo publica como issue).
+  mensual lo publica como issue).
 - Priorizar ampliaciones desde consultas reales, no desde listas masivas.
 - Actualizar `lastModified` sólo cuando cambie materialmente una página.
 - Mantener reglas, funcionalidades, autoría y fechas verificables.
