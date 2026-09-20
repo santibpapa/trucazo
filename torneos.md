@@ -24,7 +24,7 @@ Reglas de trabajo:
 
 | Entrega | Estado | Rama | PR | Migraciones | Observaciones |
 | --- | --- | --- | --- | --- | --- |
-| Documento base | Completo | `codex/plan-sistema-torneos` | Por completar al publicar | Ninguna | Especificación y división en cinco etapas |
+| Documento base | Completo | `codex/plan-sistema-torneos` | [#74](https://github.com/santibpapa/trucazo/pull/74) | Ninguna | Especificación y división en cinco etapas |
 | PR 1 — Base de datos y contrato | Pendiente | — | — | — | La funcionalidad queda apagada |
 | PR 2 — Administración e inscripciones | Pendiente | — | — | — | Aún no se disputan partidas |
 | PR 3 — Competencia 1v1 | Pendiente | — | — | — | Primer flujo jugable completo |
@@ -609,8 +609,8 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 
 - Estado: Completo
 - Rama: `codex/plan-sistema-torneos`
-- PR: se completa al publicar este documento
-- Commit final: se completa al publicar este documento
+- PR: [#74 — docs: planificar implementación progresiva de torneos](https://github.com/santibpapa/trucazo/pull/74)
+- Commit de publicación inicial: `469c13646b44867dfd8d1b6b0c4fef4b4edbe5d5`
 - Migraciones nuevas: ninguna
 - SQL aplicado en: no corresponde
 - Feature flag: todavía no existe; PR 1 lo agrega apagado
