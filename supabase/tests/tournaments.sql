@@ -37,27 +37,19 @@ on conflict (id) do update set
   is_admin = excluded.is_admin,
   is_bot = excluded.is_bot;
 
-create temporary table tournament_test_state(
-  name text primary key,
-  id uuid not null
-) on commit drop;
-
 select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000001',false);
 
-insert into tournament_test_state(name, id)
-select 'team', (public.tournament_admin_create(
-  'aa110000-0000-4000-a000-000000000001',
-  'Parejas de prueba',
-  'Contrato 2v2 del PR 1',
-  '2v2', 'knockout', 8, 30, 300, 200, 100,
-  now() + interval '40 minutes', true
-)->>'id')::uuid;
-
--- Conservamos el identificador en una variable de sesion: los roles de cliente
--- no deben necesitar permisos sobre la tabla temporal del fixture.
+-- Conservamos el identificador en una variable de sesion para que cada cambio
+-- de rol use el mismo torneo sin depender de una tabla auxiliar.
 select set_config(
   'trucazo.test_team_tournament',
-  (select id::text from tournament_test_state where name = 'team'),
+  public.tournament_admin_create(
+    'aa110000-0000-4000-a000-000000000001',
+    'Parejas de prueba',
+    'Contrato 2v2 del PR 1',
+    '2v2', 'knockout', 8, 30, 300, 200, 100,
+    now() + interval '40 minutes', true
+  )->>'id',
   false
 );
 
