@@ -25,7 +25,7 @@ Reglas de trabajo:
 | Entrega | Estado | Rama | PR | Migraciones | Observaciones |
 | --- | --- | --- | --- | --- | --- |
 | Documento base | Completo | `codex/plan-sistema-torneos` | [#74](https://github.com/santibpapa/trucazo/pull/74) | Ninguna | Especificación y división en cinco etapas |
-| PR 1 — Base de datos y contrato | Completo | `codex/tournaments-base-contract` | [#75](https://github.com/santibpapa/trucazo/pull/75) | `20260921082456_tournaments_base_contract.sql` | Base y contrato listos; la funcionalidad sigue apagada |
+| PR 1 — Base de datos y contrato | Completo | `codex/tournaments-base-contract` | [#75](https://github.com/santibpapa/trucazo/pull/75) | `20260921082456_tournaments_base_contract.sql` | Fusionado, SQL aplicado y verificado; la funcionalidad sigue apagada |
 | PR 2 — Administración e inscripciones | Pendiente | — | — | — | Aún no se disputan partidas |
 | PR 3 — Competencia 1v1 | Pendiente | — | — | — | Primer flujo jugable completo |
 | PR 4 — Competencia 2v2 | Pendiente | — | — | — | Integra el motor de equipos |
@@ -625,12 +625,13 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 - Estado: Completo
 - Rama: `codex/tournaments-base-contract`
 - PR: [#75 — feat: establecer base segura para torneos](https://github.com/santibpapa/trucazo/pull/75)
-- Commit final de implementación y pruebas: `eb651a6bb52c89f1353d496bf3a93def0a24aaf7`
+- Commit final de implementación y pruebas: `e6e0bcfe2a9bb99d02003e2a691b676fd38af3ea`
+- Merge en `master`: `5508b9f7a1dfb7ac4dcb95a667a3fa740c71f7cb`
 - Migraciones nuevas: `supabase/migrations/20260921082456_tournaments_base_contract.sql`
-- SQL aplicado en: todavía no aplicado; ejecutar la migración completa después de fusionar el PR
-- Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS` implementado y apagado por defecto; debe seguir ausente o en `false`
-- Pruebas automáticas ejecutadas: reconstrucción completa desde cero; todas las pruebas SQL existentes; seguridad, privilegios, restricciones e idempotencia de torneos; concurrencia real por el último cupo y por retiro frente a inscripción nueva; prioridad de espera; respuesta a una invitación exacta; reinvitación con historial; invalidación de check-in al reprogramar; TypeScript; ESLint; allowlist de RPC; verificaciones de regresión; build de producción. Todo pasó en [GitHub Actions](https://github.com/santibpapa/trucazo/actions/runs/35605884013)
+- SQL aplicado en: proyecto Supabase conectado, después del merge del PR #75; verificación posterior completa con tablas, RPC, firma exacta de invitaciones, prioridad de espera, permisos y RLS en estado correcto
+- Feature flag: variable pública `NEXT_PUBLIC_ENABLE_TOURNAMENTS` creada con valor `false`; debe permanecer así hasta la habilitación pública prevista para PR 5
+- Pruebas automáticas ejecutadas: reconstrucción completa desde cero; todas las pruebas SQL existentes; seguridad, privilegios, restricciones e idempotencia de torneos; concurrencia real por el último cupo y por retiro frente a inscripción nueva; prioridad de espera; respuesta a una invitación exacta; reinvitación con historial; invalidación de check-in al reprogramar; TypeScript; ESLint; allowlist de RPC; verificaciones de regresión; build de producción. Todo pasó en [GitHub Actions](https://github.com/santibpapa/trucazo/actions/runs/35606239349)
 - Recorridos manuales ejecutados: revisión del contrato de lectura, administración, inscripción, invitación, retiro y check-in; no hay recorrido de interfaz porque la UI queda fuera de PR 1 y apagada
 - Decisiones técnicas tomadas: tablas públicas sin acceso directo del cliente; estado interno, auditoría e idempotencia en esquema privado; mutaciones mediante RPC `security definer` con `search_path` vacío; bloqueo de la fila del torneo para serializar cupos, promociones, parejas y check-in; toda respuesta identifica la invitación exacta; los reintentos de invitación conservan historial; reprogramar invalida confirmaciones de presencia; contratos TypeScript compartidos y autoridad final del servidor
 - Problemas pendientes o riesgos: todavía no existen UI, sorteos, partidas, progresión, emails, espectadores ni entrega de premios; es el alcance previsto de las PR siguientes y nada se expone mientras el flag siga apagado
-- Para que empiece PR 2 falta: fusionar PR #75, aplicar la migración indicada, verificarla en el proyecto Supabase y mantener el feature flag apagado
+- Para que empiece PR 2 falta: nada; PR #75 está fusionado, la migración fue aplicada y verificada, las pruebas están verdes y el feature flag permanece apagado. La próxima sesión debe partir del último `master`.
