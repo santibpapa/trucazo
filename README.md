@@ -33,6 +33,7 @@ Construido con Next.js (App Router), React, TypeScript y Supabase (Auth + Postgr
 
    # Opcionales
    NEXT_PUBLIC_SITE_URL=https://trucazo.com.ar   # para el sitemap y los links absolutos
+   NEXT_PUBLIC_ENABLE_TOURNAMENTS=false           # mantener apagado hasta el lanzamiento del PR 5
    SUPABASE_SERVICE_ROLE_KEY=<tu-service-role>   # entrar con nombre de usuario (solo servidor)
    TELEGRAM_BOT_TOKEN=<token>                    # aviso cuando alguien crea una mesa
    TELEGRAM_CHAT_ID=<chat>
