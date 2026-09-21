@@ -39,6 +39,7 @@ export interface Tournament {
 }
 
 export interface TournamentMember {
+  id?: string
   user_id: string
   username: string
   avatar_url: string | null
@@ -183,10 +184,16 @@ export function tournamentApi(client: SupabaseClient) {
         p_tournament_id: tournamentId,
         p_partner_id: partnerId,
       }),
-    respondInvitation: (requestId: string, tournamentId: string, accept: boolean) =>
+    respondInvitation: (
+      requestId: string,
+      tournamentId: string,
+      invitationId: string,
+      accept: boolean,
+    ) =>
       client.rpc('tournament_respond_invitation', {
         p_request_id: requestId,
         p_tournament_id: tournamentId,
+        p_invitation_id: invitationId,
         p_accept: accept,
       }),
     withdraw: (requestId: string, tournamentId: string) =>
