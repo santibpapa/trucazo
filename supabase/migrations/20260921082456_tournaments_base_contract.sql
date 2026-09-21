@@ -212,7 +212,6 @@ create table public.tournament_matches (
   foreign key (loser_entry_id, tournament_id)
     references public.tournament_entries(id, tournament_id),
   unique (id, tournament_id),
-  unique (tournament_id, phase, round_number, match_number),
   check ((phase = 'group') = (group_id is not null)),
   check (side_a_entry_id is null or side_b_entry_id is null or side_a_entry_id <> side_b_entry_id),
   check (game_id is null or team_game_id is null),
@@ -223,6 +222,12 @@ create table public.tournament_matches (
 
 create index tournament_matches_tournament_status_idx
   on public.tournament_matches(tournament_id, status, phase, round_number);
+create unique index tournament_matches_elimination_slot_idx
+  on public.tournament_matches(tournament_id, phase, round_number, match_number)
+  where group_id is null;
+create unique index tournament_matches_group_slot_idx
+  on public.tournament_matches(group_id, round_number, match_number)
+  where group_id is not null;
 create index tournament_matches_group_idx
   on public.tournament_matches(group_id)
   where group_id is not null;
