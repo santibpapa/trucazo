@@ -46,6 +46,7 @@ drop schema if exists storage cascade;
 drop schema if exists cron    cascade;
 drop schema if exists email_internal cascade;
 drop schema if exists team_internal cascade;
+drop schema if exists tournament_internal cascade;
 drop schema if exists net cascade;
 create schema public;
 
@@ -208,6 +209,19 @@ revoke all on public.bot_decisions from anon, authenticated;
 revoke all on public.team_tables, public.team_seats, public.team_games, public.team_hands from anon, authenticated;
 grant select on public.team_tables, public.team_seats, public.team_games, public.team_hands to authenticated;
 revoke all on public.news_email_campaign, public.news_email_jobs from anon, authenticated;
+revoke all on public.tournaments,
+  public.tournament_entries,
+  public.tournament_entry_members,
+  public.tournament_checkins,
+  public.tournament_groups,
+  public.tournament_group_members,
+  public.tournament_matches,
+  public.tournament_match_presence,
+  public.tournament_awards,
+  public.tournament_notifications,
+  public.tournament_email_jobs
+from anon, authenticated;
+revoke all on sequence public.tournament_entries_sequence_no_seq from anon, authenticated;
 SQL
 
 if [ "${TRUCAZO_PREVIEW_STACK:-0}" = 1 ]; then
