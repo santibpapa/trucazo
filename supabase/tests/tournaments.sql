@@ -16,7 +16,9 @@ insert into auth.users(
   ('00000000-0000-0000-0000-000000000000','aa100000-0000-4000-a000-000000000004','authenticated','authenticated','jugador-torneos@trucazo.com.ar',now(),'{}','{}',false,now(),now()),
   ('00000000-0000-0000-0000-000000000000','aa100000-0000-4000-a000-000000000005','authenticated','authenticated','invitado-torneos@trucazo.com.ar',now(),'{}','{}',true,now(),now()),
   ('00000000-0000-0000-0000-000000000000','aa100000-0000-4000-a000-000000000006','authenticated','authenticated','bot-torneos@trucazo.bot',now(),'{"provider":"bot"}','{}',false,now(),now()),
-  ('00000000-0000-0000-0000-000000000000','aa100000-0000-4000-a000-000000000007','authenticated','authenticated','bloqueado@sample.test',now(),'{}','{}',false,now(),now())
+  ('00000000-0000-0000-0000-000000000000','aa100000-0000-4000-a000-000000000007','authenticated','authenticated','bloqueado@sample.test',now(),'{}','{}',false,now(),now()),
+  ('00000000-0000-0000-0000-000000000000','aa100000-0000-4000-a000-000000000008','authenticated','authenticated','reinvitado-torneos@trucazo.com.ar',now(),'{}','{}',false,now(),now()),
+  ('00000000-0000-0000-0000-000000000000','aa100000-0000-4000-a000-000000000009','authenticated','authenticated','espera-torneos@trucazo.com.ar',now(),'{}','{}',false,now(),now())
 on conflict (id) do update set
   email = excluded.email,
   email_confirmed_at = excluded.email_confirmed_at,
@@ -31,7 +33,9 @@ insert into public.profiles(id, username, is_admin, is_bot) values
   ('aa100000-0000-4000-a000-000000000004','JugadorTorneos',false,false),
   ('aa100000-0000-4000-a000-000000000005','InvitadoTorneos',false,false),
   ('aa100000-0000-4000-a000-000000000006','BotTorneos',false,true),
-  ('aa100000-0000-4000-a000-000000000007','CuentaPruebaTorneos',false,false)
+  ('aa100000-0000-4000-a000-000000000007','CuentaPruebaTorneos',false,false),
+  ('aa100000-0000-4000-a000-000000000008','ReinvitadoTorneos',false,false),
+  ('aa100000-0000-4000-a000-000000000009','EsperaTorneos',false,false)
 on conflict (id) do update set
   username = excluded.username,
   is_admin = excluded.is_admin,
@@ -203,19 +207,34 @@ select public.tournament_invite_partner(
 );
 reset role;
 
+select set_config(
+  'trucazo.test_team_invitation',
+  (
+    select m.id::text
+      from public.tournament_entry_members m
+     where m.tournament_id = current_setting('trucazo.test_team_tournament')::uuid
+       and m.user_id = 'aa100000-0000-4000-a000-000000000003'
+       and m.status = 'pending'
+  ),
+  false
+);
+
 select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000003',false);
 set local role authenticated;
 select public.tournament_respond_invitation(
   'aa140000-0000-4000-a000-000000000001',
-  current_setting('trucazo.test_team_tournament')::uuid, true
+  current_setting('trucazo.test_team_tournament')::uuid,
+  current_setting('trucazo.test_team_invitation')::uuid, true
 );
 select public.tournament_respond_invitation(
   'aa140000-0000-4000-a000-000000000001',
-  current_setting('trucazo.test_team_tournament')::uuid, true
+  current_setting('trucazo.test_team_tournament')::uuid,
+  current_setting('trucazo.test_team_invitation')::uuid, true
 );
 select public.tournament_respond_invitation(
   'aa140000-0000-4000-a000-000000000002',
-  current_setting('trucazo.test_team_tournament')::uuid, true
+  current_setting('trucazo.test_team_tournament')::uuid,
+  current_setting('trucazo.test_team_invitation')::uuid, true
 );
 reset role;
 
@@ -236,6 +255,121 @@ begin
   end if;
   if (select count(*) from public.tournament_entries where tournament_id = v_team) <> 1 then
     raise exception 'aceptar dos veces duplico la inscripcion';
+  end if;
+end $$;
+
+-- Rechazar y volver a invitar conserva dos intentos distintos. Una pantalla
+-- vieja no puede aceptar el intento nuevo usando el identificador anterior.
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000004',false);
+set local role authenticated;
+select public.tournament_invite_partner(
+  'aa130000-0000-4000-a000-000000000002',
+  current_setting('trucazo.test_team_tournament')::uuid,
+  'aa100000-0000-4000-a000-000000000008'
+);
+reset role;
+
+select set_config(
+  'trucazo.test_first_rejected_invitation',
+  (
+    select m.id::text
+      from public.tournament_entry_members m
+     where m.tournament_id = current_setting('trucazo.test_team_tournament')::uuid
+       and m.user_id = 'aa100000-0000-4000-a000-000000000008'
+       and m.status = 'pending'
+  ),
+  false
+);
+
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000008',false);
+set local role authenticated;
+select public.tournament_respond_invitation(
+  'aa140000-0000-4000-a000-000000000003',
+  current_setting('trucazo.test_team_tournament')::uuid,
+  current_setting('trucazo.test_first_rejected_invitation')::uuid, false
+);
+reset role;
+
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000004',false);
+set local role authenticated;
+select public.tournament_invite_partner(
+  'aa130000-0000-4000-a000-000000000003',
+  current_setting('trucazo.test_team_tournament')::uuid,
+  'aa100000-0000-4000-a000-000000000008'
+);
+reset role;
+
+select set_config(
+  'trucazo.test_second_invitation',
+  (
+    select m.id::text
+      from public.tournament_entry_members m
+     where m.tournament_id = current_setting('trucazo.test_team_tournament')::uuid
+       and m.user_id = 'aa100000-0000-4000-a000-000000000008'
+       and m.status = 'pending'
+  ),
+  false
+);
+
+do $$
+declare
+  v_stale_rejected boolean := false;
+  v_stale_error text;
+begin
+  if current_setting('trucazo.test_first_rejected_invitation') =
+     current_setting('trucazo.test_second_invitation') then
+    raise exception 'la reinvitacion reutilizo el identificador anterior';
+  end if;
+
+  perform set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000008',true);
+  begin
+    set local role authenticated;
+    perform public.tournament_respond_invitation(
+      'aa140000-0000-4000-a000-000000000004',
+      current_setting('trucazo.test_team_tournament')::uuid,
+      current_setting('trucazo.test_first_rejected_invitation')::uuid,
+      true
+    );
+  exception when others then
+    v_stale_rejected := true;
+    v_stale_error := sqlerrm;
+  end;
+  reset role;
+
+  if not v_stale_rejected then
+    raise exception 'una pantalla vieja acepto una invitacion diferente';
+  end if;
+  if v_stale_error <> 'No hay una invitacion pendiente' then
+    raise exception 'la invitacion vieja fallo por una causa inesperada: %', v_stale_error;
+  end if;
+  if not exists (
+    select 1 from public.tournament_entry_members
+     where id = current_setting('trucazo.test_second_invitation')::uuid
+       and status = 'pending'
+  ) then
+    raise exception 'el intento viejo modifico la invitacion vigente';
+  end if;
+end $$;
+
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000008',false);
+set local role authenticated;
+select public.tournament_respond_invitation(
+  'aa140000-0000-4000-a000-000000000005',
+  current_setting('trucazo.test_team_tournament')::uuid,
+  current_setting('trucazo.test_second_invitation')::uuid, true
+);
+reset role;
+
+do $$
+begin
+  if (
+    select count(*)
+      from public.tournament_entry_members
+     where tournament_id = current_setting('trucazo.test_team_tournament')::uuid
+       and user_id = 'aa100000-0000-4000-a000-000000000008'
+       and status in ('rejected', 'accepted')
+  ) <> 2 then
+    raise exception 'la reinvitacion no conservo ambos intentos';
   end if;
 end $$;
 
@@ -278,7 +412,13 @@ do $$
 declare
   v_team uuid := current_setting('trucazo.test_team_tournament')::uuid;
   v_entry uuid := (
-    select id from public.tournament_entries where tournament_id = v_team limit 1
+    select e.id
+      from public.tournament_entries e
+      join public.tournament_entry_members m on m.entry_id = e.id
+     where e.tournament_id = v_team
+       and m.user_id = 'aa100000-0000-4000-a000-000000000003'
+       and m.status = 'accepted'
+     limit 1
   );
 begin
   if (select count(*) from public.tournament_checkins where entry_id = v_entry) <> 1 then
@@ -290,6 +430,156 @@ begin
   end if;
   if (select count(*) from tournament_internal.audit_log where entry_id = v_entry and action = 'entry_checked_in') <> 1 then
     raise exception 'el check-in repetido duplico la auditoria';
+  end if;
+end $$;
+
+-- Reprogramar invalida toda confirmacion de presencia anterior.
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000001',false);
+set local role authenticated;
+select public.tournament_admin_reschedule(
+  'aa150000-0000-4000-a000-000000000002',
+  current_setting('trucazo.test_team_tournament')::uuid,
+  now() + interval '1 week'
+);
+reset role;
+
+do $$
+begin
+  if exists (
+    select 1 from public.tournament_checkins
+     where tournament_id = current_setting('trucazo.test_team_tournament')::uuid
+  ) then
+    raise exception 'reprogramar conservo un check-in viejo';
+  end if;
+  if not exists (
+    select 1
+      from tournament_internal.audit_log
+     where tournament_id = current_setting('trucazo.test_team_tournament')::uuid
+       and action = 'tournament_rescheduled'
+       and details->>'checkins_cleared' = '1'
+  ) then
+    raise exception 'reprogramar no audito el check-in invalidado';
+  end if;
+end $$;
+
+-- Un retiro promociona primero a la inscripcion mas antigua en espera. Quien
+-- vuelve a anotarse despues no puede ocupar ese lugar libre.
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000001',false);
+select set_config(
+  'trucazo.test_waitlist_tournament',
+  public.tournament_admin_create(
+    'aa170000-0000-4000-a000-000000000001',
+    'Espera de prueba',
+    'Prioridad de la lista de espera',
+    '1v1', 'knockout', 4, 15, 0, 0, 0,
+    now() + interval '2 hours', true
+  )->>'id',
+  false
+);
+
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000002',false);
+set local role authenticated;
+select public.tournament_register_solo(
+  'aa171000-0000-4000-a000-000000000001',
+  current_setting('trucazo.test_waitlist_tournament')::uuid
+);
+reset role;
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000003',false);
+set local role authenticated;
+select public.tournament_register_solo(
+  'aa171000-0000-4000-a000-000000000002',
+  current_setting('trucazo.test_waitlist_tournament')::uuid
+);
+reset role;
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000004',false);
+set local role authenticated;
+select public.tournament_register_solo(
+  'aa171000-0000-4000-a000-000000000003',
+  current_setting('trucazo.test_waitlist_tournament')::uuid
+);
+reset role;
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000008',false);
+set local role authenticated;
+select public.tournament_register_solo(
+  'aa171000-0000-4000-a000-000000000004',
+  current_setting('trucazo.test_waitlist_tournament')::uuid
+);
+reset role;
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000009',false);
+set local role authenticated;
+select public.tournament_register_solo(
+  'aa171000-0000-4000-a000-000000000005',
+  current_setting('trucazo.test_waitlist_tournament')::uuid
+);
+reset role;
+
+do $$
+begin
+  if not exists (
+    select 1
+      from public.tournament_entries e
+      join public.tournament_entry_members m on m.entry_id = e.id
+     where e.tournament_id = current_setting('trucazo.test_waitlist_tournament')::uuid
+       and e.status = 'waitlisted'
+       and m.user_id = 'aa100000-0000-4000-a000-000000000009'
+       and m.status = 'accepted'
+  ) then
+    raise exception 'el quinto jugador no quedo en espera';
+  end if;
+end $$;
+
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000003',false);
+set local role authenticated;
+select public.tournament_withdraw(
+  'aa172000-0000-4000-a000-000000000001',
+  current_setting('trucazo.test_waitlist_tournament')::uuid
+);
+reset role;
+
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000003',false);
+set local role authenticated;
+select public.tournament_register_solo(
+  'aa171000-0000-4000-a000-000000000006',
+  current_setting('trucazo.test_waitlist_tournament')::uuid
+);
+reset role;
+
+do $$
+declare
+  v_tournament uuid := current_setting('trucazo.test_waitlist_tournament')::uuid;
+  v_promoted_entry uuid;
+begin
+  select e.id into v_promoted_entry
+    from public.tournament_entries e
+    join public.tournament_entry_members m on m.entry_id = e.id
+   where e.tournament_id = v_tournament
+     and e.status = 'active'
+     and m.user_id = 'aa100000-0000-4000-a000-000000000009'
+     and m.status = 'accepted';
+  if v_promoted_entry is null then
+    raise exception 'el primero en espera no fue promocionado';
+  end if;
+  if tournament_internal.active_player_count(v_tournament, null) <> 4 then
+    raise exception 'la promocion altero el cupo activo';
+  end if;
+  if not exists (
+    select 1
+      from public.tournament_entries e
+      join public.tournament_entry_members m on m.entry_id = e.id
+     where e.tournament_id = v_tournament
+       and e.status = 'waitlisted'
+       and m.user_id = 'aa100000-0000-4000-a000-000000000003'
+       and m.status = 'accepted'
+  ) then
+    raise exception 'la inscripcion nueva salto la lista de espera';
+  end if;
+  if (
+    select count(*) from tournament_internal.audit_log
+     where tournament_id = v_tournament
+       and entry_id = v_promoted_entry
+       and action = 'entry_promoted_from_waitlist'
+  ) <> 1 then
+    raise exception 'la promocion no quedo auditada exactamente una vez';
   end if;
 end $$;
 
