@@ -215,8 +215,16 @@ create table public.tournament_matches (
   check ((phase = 'group') = (group_id is not null)),
   check (side_a_entry_id is null or side_b_entry_id is null or side_a_entry_id <> side_b_entry_id),
   check (game_id is null or team_game_id is null),
-  check (winner_entry_id is null or winner_entry_id in (side_a_entry_id, side_b_entry_id)),
-  check (loser_entry_id is null or loser_entry_id in (side_a_entry_id, side_b_entry_id)),
+  check (
+    winner_entry_id is null
+    or (side_a_entry_id is not null and winner_entry_id = side_a_entry_id)
+    or (side_b_entry_id is not null and winner_entry_id = side_b_entry_id)
+  ),
+  check (
+    loser_entry_id is null
+    or (side_a_entry_id is not null and loser_entry_id = side_a_entry_id)
+    or (side_b_entry_id is not null and loser_entry_id = side_b_entry_id)
+  ),
   check (winner_entry_id is null or loser_entry_id is null or winner_entry_id <> loser_entry_id)
 );
 
