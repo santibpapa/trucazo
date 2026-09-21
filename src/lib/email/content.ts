@@ -12,6 +12,12 @@ type BaseMail = {
   preferencesUrl: string
 }
 
+export type RankingMailInput = BaseMail & {
+  oldRank: 1 | 2 | 3 | null
+  newRank: 1 | 2 | 3 | null
+  passedByUsername?: string | null
+}
+
 function escapeHtml(value: string) {
   return value
     .replaceAll('&', '&amp;')
@@ -214,5 +220,81 @@ export function reengagementMail({
       preferencesUrl,
     }),
     text: `${greeting}\n\n${title}\n\n${message}\n\n${cta}: ${ctaUrl}\n\nPreferencias: ${preferencesUrl}`,
+  }
+}
+
+export function rankingMail({
+  username,
+  preferencesUrl,
+  oldRank,
+  newRank,
+  passedByUsername,
+}: RankingMailInput): MailContent {
+  const greeting = `Hola, ${username}.`
+  const content = newRank !== null && (oldRank === null || newRank < oldRank)
+    ? rankingAchievement(newRank)
+    : rankingDrop(newRank, passedByUsername)
+  const htmlBody = `<p style="margin:0 0 14px">${escapeHtml(greeting)}</p><p style="margin:0">${escapeHtml(content.message)}</p>`
+  const ctaUrl = trackedUrl('/ranking', 'ranking-top-3')
+
+  return {
+    subject: content.subject,
+    html: layout({
+      preview: content.preview,
+      title: content.title,
+      body: htmlBody,
+      cta: content.cta,
+      ctaUrl,
+      preferencesUrl,
+    }),
+    text: `${greeting}\n\n${content.title}\n\n${content.message}\n\n${content.cta}: ${ctaUrl}\n\nPreferencias: ${preferencesUrl}`,
+  }
+}
+
+function rankingAchievement(rank: 1 | 2 | 3) {
+  if (rank === 1) {
+    return {
+      subject: '¡Llegaste al puesto 1 de Trucazo!',
+      preview: 'Ahora sos el número 1 del ranking online.',
+      title: 'El ranking tiene nuevo líder',
+      message: 'Tu última victoria te llevó al primer puesto del ranking online. Ahora todos van a querer bajarte.',
+      cta: 'Ver mi puesto',
+    }
+  }
+  if (rank === 2) {
+    return {
+      subject: '¡Subiste al puesto 2!',
+      preview: 'Ya estás segundo en el ranking online.',
+      title: 'Ya estás segundo',
+      message: 'Te metiste en el segundo puesto del ranking online. La cima está cada vez más cerca.',
+      cta: 'Ver mi puesto',
+    }
+  }
+  return {
+    subject: '¡Entraste al top 3!',
+    preview: 'Tu nombre ya está en el podio del ranking online.',
+    title: 'Te metiste en el podio',
+    message: 'Llegaste al tercer puesto del ranking online de Trucazo. Ya estás entre los mejores.',
+    cta: 'Ver mi puesto',
+  }
+}
+
+function rankingDrop(newRank: 1 | 2 | 3 | null, passedByUsername?: string | null) {
+  const rival = passedByUsername ? `${passedByUsername} te pasó` : 'Te pasaron'
+  if (newRank === null) {
+    return {
+      subject: 'Te sacaron del top 3',
+      preview: 'Hubo movimiento en el podio de Trucazo.',
+      title: 'Tu lugar en el podio está en juego',
+      message: `${rival} y quedaste afuera del top 3. Volvé a la mesa para recuperar tu lugar.`,
+      cta: 'Recuperar mi puesto',
+    }
+  }
+  return {
+    subject: `Ahora estás en el puesto ${newRank}`,
+    preview: 'Hubo movimiento en el podio de Trucazo.',
+    title: 'Te pasaron en el ranking',
+    message: `${rival} y ahora estás en el puesto ${newRank} del ranking online. Tu lugar sigue en el podio: defendelo en la mesa.`,
+    cta: 'Recuperar mi puesto',
   }
 }
