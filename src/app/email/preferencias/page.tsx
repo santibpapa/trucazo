@@ -15,7 +15,7 @@ export default async function EmailPreferencesPage({ searchParams }: Props) {
   const { data } = supabase && UUID_PATTERN.test(token)
     ? await supabase
         .from('email_preferences')
-        .select('news_enabled, reengagement_enabled')
+        .select('news_enabled, reengagement_enabled, ranking_enabled')
         .eq('unsubscribe_token', token)
         .maybeSingle()
     : { data: null }
@@ -57,6 +57,12 @@ export default async function EmailPreferencesPage({ searchParams }: Props) {
             defaultChecked={data.reengagement_enabled}
             title="Invitaciones para volver"
             description="Un recordatorio si todavía no jugaste o llevás dos días sin entrar a una partida."
+          />
+          <Preference
+            name="ranking"
+            defaultChecked={data.ranking_enabled}
+            title="Movimientos del ranking"
+            description="Avisos cuando entrás o cambiás de puesto en el top 3 online."
           />
           <button className="mt-2 rounded-xl bg-gold px-5 py-3 font-bold text-base hover:bg-gold-600">Guardar preferencias</button>
           <button name="action" value="all-off" className="rounded-xl border border-line px-5 py-3 text-sm font-semibold text-muted hover:text-cream">No quiero recibir ningún email</button>

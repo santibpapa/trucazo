@@ -135,6 +135,9 @@ jobs:
       - name: Novedades inmediatas, pausa y aislamiento
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/immediate_news.sql
 
+      - name: Movimientos y límite de los emails del ranking
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/ranking_emails.sql
+
       - name: Motor, bots y privacidad de partidas 2vs2
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/team_games.sql
 

@@ -21,6 +21,10 @@ cuenta invitada, bot o de prueba, crear combinaciones inválidas y duplicar una
 aceptación/check-in. `tournaments_concurrency.sh` hace competir dos conexiones
 reales por el último lugar y comprueba que una pase a lista de espera.
 
+La prueba ranking_emails.sql comprueba que un cambio de podio avise a todos los
+puestos afectados, que cada jugador tenga un máximo de un correo cada 24 horas
+y que la cola y sus credenciales no sean visibles desde el navegador.
+
 Sirve para que los agujeros que se cerraron no vuelvan a abrirse sin que nadie se
 dé cuenta.
 
@@ -36,6 +40,7 @@ psql -f supabase/tests/seguridad_pr2.sql
 psql -f supabase/tests/ciclo_retorno.sql
 psql -f supabase/tests/tournaments.sql
 supabase/tests/tournaments_concurrency.sh
+psql -f supabase/tests/ranking_emails.sql
 ```
 
 Termina en 0 si está todo bien y en distinto de 0 si encontró algo, así que sirve

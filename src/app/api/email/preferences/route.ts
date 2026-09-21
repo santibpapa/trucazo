@@ -28,10 +28,11 @@ export async function POST(request: Request) {
   const oneClick = form?.get('List-Unsubscribe') === 'One-Click'
   const allOff = oneClick || form?.get('action') === 'all-off'
   const update = allOff
-    ? { news_enabled: false, reengagement_enabled: false, updated_at: new Date().toISOString() }
+    ? { news_enabled: false, reengagement_enabled: false, ranking_enabled: false, updated_at: new Date().toISOString() }
     : {
         news_enabled: form?.get('news') === 'on',
         reengagement_enabled: form?.get('reengagement') === 'on',
+        ranking_enabled: form?.get('ranking') === 'on',
         updated_at: new Date().toISOString(),
       }
 
