@@ -31,7 +31,13 @@ declare
     'set_avatar_url', 'sing_envido', 'sing_truco', 'start_campaign_duel',
     'start_game', 'submit_feedback', 'timeout_mazo', 'touch_online',
     'touch_presence', 'team_create', 'team_join', 'team_action',
-    'team_snapshot', 'team_lobby', 'team_presence', 'team_say'
+    'team_snapshot', 'team_lobby', 'team_presence', 'team_say',
+    'tournament_list', 'tournament_detail', 'tournament_my_entry',
+    'tournament_admin_create', 'tournament_admin_update',
+    'tournament_admin_publish', 'tournament_admin_reschedule',
+    'tournament_admin_cancel', 'tournament_register_solo',
+    'tournament_invite_partner', 'tournament_respond_invitation',
+    'tournament_withdraw', 'tournament_check_in'
   ];
   v_bad text[];
   v_owner record;

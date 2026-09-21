@@ -16,6 +16,11 @@ variantes, rotación sin repetición consecutiva, progreso único por partida,
 reclamo idempotente, privacidad, clasificación de modos, fecha argentina y una
 sola protección de racha por semana.
 
+`tournaments.sql` intenta saltarse permisos de administrador, inscribir una
+cuenta invitada, bot o de prueba, crear combinaciones inválidas y duplicar una
+aceptación/check-in. `tournaments_concurrency.sh` hace competir dos conexiones
+reales por el último lugar y comprueba que una pase a lista de espera.
+
 Sirve para que los agujeros que se cerraron no vuelvan a abrirse sin que nadie se
 dé cuenta.
 
@@ -29,6 +34,8 @@ psql -f supabase/tests/seguridad_pr1.sql
 psql -f supabase/tests/seguridad_privilegios_funciones.sql
 psql -f supabase/tests/seguridad_pr2.sql
 psql -f supabase/tests/ciclo_retorno.sql
+psql -f supabase/tests/tournaments.sql
+supabase/tests/tournaments_concurrency.sh
 ```
 
 Termina en 0 si está todo bien y en distinto de 0 si encontró algo, así que sirve
