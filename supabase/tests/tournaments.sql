@@ -53,10 +53,18 @@ select 'team', (public.tournament_admin_create(
   now() + interval '40 minutes', true
 )->>'id')::uuid;
 
+-- Conservamos el identificador en una variable de sesion: los roles de cliente
+-- no deben necesitar permisos sobre la tabla temporal del fixture.
+select set_config(
+  'trucazo.test_team_tournament',
+  (select id::text from tournament_test_state where name = 'team'),
+  false
+);
+
 -- La misma solicitud de alta devuelve el mismo torneo y no crea otro.
 do $$
 declare
-  v_first uuid := (select id from tournament_test_state where name = 'team');
+  v_first uuid := current_setting('trucazo.test_team_tournament')::uuid;
   v_repeated uuid;
 begin
   v_repeated := (public.tournament_admin_create(
@@ -74,7 +82,7 @@ end $$;
 -- Restricciones y permisos que no dependen de la interfaz.
 do $$
 declare
-  v_team uuid := (select id from tournament_test_state where name = 'team');
+  v_team uuid := current_setting('trucazo.test_team_tournament')::uuid;
   v_rls_count integer;
   v_bad_privileges text[];
   fallas text[] := '{}';
@@ -198,7 +206,7 @@ select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000002'
 set local role authenticated;
 select public.tournament_invite_partner(
   'aa130000-0000-4000-a000-000000000001',
-  (select id from tournament_test_state where name = 'team'),
+  current_setting('trucazo.test_team_tournament')::uuid,
   'aa100000-0000-4000-a000-000000000003'
 );
 reset role;
@@ -207,21 +215,21 @@ select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000003'
 set local role authenticated;
 select public.tournament_respond_invitation(
   'aa140000-0000-4000-a000-000000000001',
-  (select id from tournament_test_state where name = 'team'), true
+  current_setting('trucazo.test_team_tournament')::uuid, true
 );
 select public.tournament_respond_invitation(
   'aa140000-0000-4000-a000-000000000001',
-  (select id from tournament_test_state where name = 'team'), true
+  current_setting('trucazo.test_team_tournament')::uuid, true
 );
 select public.tournament_respond_invitation(
   'aa140000-0000-4000-a000-000000000002',
-  (select id from tournament_test_state where name = 'team'), true
+  current_setting('trucazo.test_team_tournament')::uuid, true
 );
 reset role;
 
 do $$
 declare
-  v_team uuid := (select id from tournament_test_state where name = 'team');
+  v_team uuid := current_setting('trucazo.test_team_tournament')::uuid;
   v_entry uuid;
 begin
   select e.id into v_entry
@@ -245,7 +253,7 @@ select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000001'
 set local role authenticated;
 select public.tournament_admin_reschedule(
   'aa150000-0000-4000-a000-000000000001',
-  (select id from tournament_test_state where name = 'team'),
+  current_setting('trucazo.test_team_tournament')::uuid,
   now() + interval '20 minutes'
 );
 reset role;
@@ -254,15 +262,15 @@ select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000003'
 set local role authenticated;
 select public.tournament_check_in(
   'aa160000-0000-4000-a000-000000000001',
-  (select id from tournament_test_state where name = 'team')
+  current_setting('trucazo.test_team_tournament')::uuid
 );
 select public.tournament_check_in(
   'aa160000-0000-4000-a000-000000000001',
-  (select id from tournament_test_state where name = 'team')
+  current_setting('trucazo.test_team_tournament')::uuid
 );
 select public.tournament_check_in(
   'aa160000-0000-4000-a000-000000000002',
-  (select id from tournament_test_state where name = 'team')
+  current_setting('trucazo.test_team_tournament')::uuid
 );
 reset role;
 
@@ -270,13 +278,13 @@ select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000002'
 set local role authenticated;
 select public.tournament_check_in(
   'aa160000-0000-4000-a000-000000000003',
-  (select id from tournament_test_state where name = 'team')
+  current_setting('trucazo.test_team_tournament')::uuid
 );
 reset role;
 
 do $$
 declare
-  v_team uuid := (select id from tournament_test_state where name = 'team');
+  v_team uuid := current_setting('trucazo.test_team_tournament')::uuid;
   v_entry uuid := (
     select id from public.tournament_entries where tournament_id = v_team limit 1
   );
