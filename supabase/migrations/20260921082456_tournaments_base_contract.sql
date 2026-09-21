@@ -443,7 +443,7 @@ as $$
        and u.email_confirmed_at is not null
        and u.email is not null
        and lower(split_part(u.email, '@', 2)) not in ('example.com', 'example.net', 'example.org', 'test.com', 'trucazo.bot')
-       and lower(split_part(u.email, '@', 2)) !~ '(\\.example\\.(com|net|org)|\\.(invalid|localhost|test))$'
+       and lower(split_part(u.email, '@', 2)) !~ '([.]example[.](com|net|org)|[.](invalid|localhost|test))$'
   );
 $$;
 
