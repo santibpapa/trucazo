@@ -99,7 +99,6 @@ create table public.tournament_entry_members (
   created_at timestamptz not null default now(),
   foreign key (entry_id, tournament_id)
     references public.tournament_entries(id, tournament_id) on delete cascade,
-  unique (entry_id, user_id),
   check (status <> 'pending' or (role = 'invitee' and invited_by is not null and invited_at is not null)),
   check (status <> 'accepted' or accepted_at is not null),
   check (status <> 'rejected' or rejected_at is not null),
@@ -118,6 +117,8 @@ create unique index tournament_member_one_pending_invite_idx
   where status = 'pending';
 create index tournament_members_entry_status_idx
   on public.tournament_entry_members(entry_id, status);
+create index tournament_members_entry_user_history_idx
+  on public.tournament_entry_members(entry_id, user_id, created_at desc);
 create index tournament_members_user_status_idx
   on public.tournament_entry_members(user_id, status);
 create index tournament_members_invited_by_idx
@@ -519,6 +520,72 @@ as $$
      and (p_excluded_entry_id is null or e.id <> p_excluded_entry_id);
 $$;
 
+create function tournament_internal.promote_waitlist(
+  p_tournament_id uuid,
+  p_actor_id uuid
+)
+returns integer
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_capacity integer;
+  v_active_players integer;
+  v_entry_id uuid;
+  v_player_count integer;
+  v_promoted_entries integer := 0;
+begin
+  -- La fila del torneo serializa cualquier cambio de cupo. No usamos
+  -- SKIP LOCKED porque nunca se debe adelantar una inscripcion mas nueva.
+  select t.capacity into v_capacity
+    from public.tournaments t
+   where t.id = p_tournament_id
+   for update;
+  if not found then
+    raise exception 'Torneo no disponible';
+  end if;
+
+  v_active_players := tournament_internal.active_player_count(p_tournament_id, null);
+
+  loop
+    exit when v_active_players >= v_capacity;
+
+    select e.id,
+           (select count(*)::integer
+              from public.tournament_entry_members m
+             where m.entry_id = e.id and m.status = 'accepted')
+      into v_entry_id, v_player_count
+      from public.tournament_entries e
+     where e.tournament_id = p_tournament_id
+       and e.status = 'waitlisted'
+       and (select count(*)
+              from public.tournament_entry_members m
+             where m.entry_id = e.id and m.status = 'accepted')
+           between 1 and v_capacity - v_active_players
+     order by e.priority_at, e.sequence_no
+     limit 1
+     for update of e;
+
+    exit when not found;
+
+    update public.tournament_entries
+       set status = 'active', updated_at = now()
+     where id = v_entry_id;
+
+    perform tournament_internal.audit(
+      p_tournament_id, p_actor_id, 'entry_promoted_from_waitlist', v_entry_id,
+      jsonb_build_object('players', v_player_count)
+    );
+    v_active_players := v_active_players + v_player_count;
+    v_promoted_entries := v_promoted_entries + 1;
+  end loop;
+
+  return v_promoted_entries;
+end;
+$$;
+
 create function tournament_internal.entry_snapshot(p_tournament_id uuid, p_user_id uuid)
 returns jsonb
 language sql
@@ -530,6 +597,7 @@ as $$
     'entry', to_jsonb(e),
     'members', coalesce((
       select jsonb_agg(jsonb_build_object(
+        'id', member.id,
         'user_id', member.user_id,
         'username', p.username,
         'avatar_url', p.avatar_url,
@@ -1048,6 +1116,7 @@ as $$
 declare
   v_actor uuid := tournament_internal.require_admin();
   v_tournament public.tournaments;
+  v_checkins_cleared integer;
   v_payload jsonb := jsonb_build_object(
     'tournament_id', p_tournament_id, 'starts_at', p_starts_at
   );
@@ -1077,12 +1146,19 @@ begin
          updated_by = v_actor,
          updated_at = now()
    where id = p_tournament_id;
+  delete from public.tournament_checkins
+   where tournament_id = p_tournament_id;
+  get diagnostics v_checkins_cleared = row_count;
   perform tournament_internal.store_request(
     v_actor, p_request_id, 'admin_reschedule', v_payload, p_tournament_id, null
   );
   perform tournament_internal.audit(
     p_tournament_id, v_actor, 'tournament_rescheduled', null,
-    jsonb_build_object('from', v_tournament.starts_at, 'to', p_starts_at)
+    jsonb_build_object(
+      'from', v_tournament.starts_at,
+      'to', p_starts_at,
+      'checkins_cleared', v_checkins_cleared
+    )
   );
   return tournament_internal.admin_snapshot(p_tournament_id);
 end;
@@ -1182,6 +1258,9 @@ begin
   if v_tournament.roster_frozen_at is not null or now() >= v_tournament.starts_at then
     raise exception 'La inscripcion ya cerro';
   end if;
+
+  -- Una vacante siempre pertenece primero a la lista de espera existente.
+  perform tournament_internal.promote_waitlist(p_tournament_id, v_user_id);
 
   if exists (
     select 1 from public.tournament_entry_members m
@@ -1292,6 +1371,9 @@ begin
     raise exception 'El companero elegido no puede participar';
   end if;
 
+  -- La invitacion nueva tampoco puede adelantarse a quienes ya esperan.
+  perform tournament_internal.promote_waitlist(p_tournament_id, v_user_id);
+
   if exists (
     select 1 from public.tournament_entry_members m
     where m.tournament_id = p_tournament_id
@@ -1374,6 +1456,7 @@ $$;
 create function public.tournament_respond_invitation(
   p_request_id uuid,
   p_tournament_id uuid,
+  p_invitation_id uuid,
   p_accept boolean
 )
 returns jsonb
@@ -1388,11 +1471,14 @@ declare
   v_invitation public.tournament_entry_members;
   v_entry_status text;
   v_payload jsonb := jsonb_build_object(
-    'tournament_id', p_tournament_id, 'accept', p_accept
+    'tournament_id', p_tournament_id,
+    'invitation_id', p_invitation_id,
+    'accept', p_accept
   );
   v_previous jsonb;
 begin
   if p_accept is null then raise exception 'Respuesta invalida'; end if;
+  if p_invitation_id is null then raise exception 'La invitacion es obligatoria'; end if;
 
   perform pg_advisory_xact_lock(hashtextextended(v_user_id::text, 7202));
   v_previous := tournament_internal.request_result(
@@ -1411,7 +1497,8 @@ begin
 
   select m.* into v_invitation
     from public.tournament_entry_members m
-   where m.tournament_id = p_tournament_id
+   where m.id = p_invitation_id
+     and m.tournament_id = p_tournament_id
      and m.user_id = v_user_id
      and m.status = 'pending'
    order by m.created_at desc
@@ -1422,7 +1509,8 @@ begin
     select e.* into v_entry
       from public.tournament_entries e
       join public.tournament_entry_members m on m.entry_id = e.id
-     where e.tournament_id = p_tournament_id
+     where m.id = p_invitation_id
+       and e.tournament_id = p_tournament_id
        and m.user_id = v_user_id
        and m.status = case when p_accept then 'accepted' else 'rejected' end
      order by m.created_at desc
@@ -1551,6 +1639,7 @@ begin
      set status = 'withdrawn', updated_at = now()
    where id = v_entry.id;
   delete from public.tournament_checkins where entry_id = v_entry.id;
+  perform tournament_internal.promote_waitlist(p_tournament_id, v_user_id);
 
   perform tournament_internal.store_request(
     v_user_id, p_request_id, 'withdraw', v_payload,
@@ -1656,7 +1745,7 @@ revoke execute on function public.tournament_list(),
   public.tournament_admin_cancel(uuid,uuid,text),
   public.tournament_register_solo(uuid,uuid),
   public.tournament_invite_partner(uuid,uuid,uuid),
-  public.tournament_respond_invitation(uuid,uuid,boolean),
+  public.tournament_respond_invitation(uuid,uuid,uuid,boolean),
   public.tournament_withdraw(uuid,uuid),
   public.tournament_check_in(uuid,uuid)
 from public, anon;
@@ -1671,7 +1760,7 @@ grant execute on function public.tournament_admin_reschedule(uuid,uuid,timestamp
 grant execute on function public.tournament_admin_cancel(uuid,uuid,text) to authenticated;
 grant execute on function public.tournament_register_solo(uuid,uuid) to authenticated;
 grant execute on function public.tournament_invite_partner(uuid,uuid,uuid) to authenticated;
-grant execute on function public.tournament_respond_invitation(uuid,uuid,boolean) to authenticated;
+grant execute on function public.tournament_respond_invitation(uuid,uuid,uuid,boolean) to authenticated;
 grant execute on function public.tournament_withdraw(uuid,uuid) to authenticated;
 grant execute on function public.tournament_check_in(uuid,uuid) to authenticated;
 
