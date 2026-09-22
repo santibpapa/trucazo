@@ -583,6 +583,74 @@ begin
   end if;
 end $$;
 
+-- Cancelar un borrador nunca lo convierte en contenido publico. El admin lo
+-- conserva para auditoria, pero un jugador no lo ve en la lista ni por ID.
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000001',false);
+select set_config(
+  'trucazo.test_cancelled_draft',
+  public.tournament_admin_create(
+    'aa180000-0000-4000-a000-000000000001',
+    'Borrador cancelado',
+    'Nunca se publico',
+    '1v1', 'knockout', 4, 15, 0, 0, 0,
+    now() + interval '3 days', false
+  )->>'id',
+  false
+);
+select public.tournament_admin_cancel(
+  'aa180000-0000-4000-a000-000000000002',
+  current_setting('trucazo.test_cancelled_draft')::uuid,
+  'Prueba de privacidad'
+);
+
+do $$
+declare
+  v_rejected boolean := false;
+begin
+  begin
+    perform public.tournament_admin_create(
+      'aa180000-0000-4000-a000-000000000003',
+      'Borrador con fecha vieja',
+      '',
+      '1v1', 'knockout', 4, 15, 0, 0, 0,
+      now() - interval '1 minute', false
+    );
+  exception when others then
+    v_rejected := sqlerrm = 'La fecha de inicio debe ser futura';
+  end;
+  if not v_rejected then
+    raise exception 'el servidor acepto un borrador con fecha pasada';
+  end if;
+end $$;
+
+select set_config('request.jwt.claim.sub','aa100000-0000-4000-a000-000000000004',false);
+set local role authenticated;
+do $$
+declare
+  v_list jsonb := public.tournament_list();
+  v_hidden boolean := false;
+begin
+  if exists (
+    select 1
+      from jsonb_array_elements(v_list->'past') item
+     where item->>'id' = current_setting('trucazo.test_cancelled_draft')
+  ) then
+    raise exception 'un borrador cancelado aparecio en la lista publica';
+  end if;
+
+  begin
+    perform public.tournament_detail(
+      current_setting('trucazo.test_cancelled_draft')::uuid
+    );
+  exception when others then
+    v_hidden := sqlerrm = 'Torneo no disponible';
+  end;
+  if not v_hidden then
+    raise exception 'un jugador pudo abrir el borrador cancelado por ID';
+  end if;
+end $$;
+reset role;
+
 rollback;
 
 \echo ''

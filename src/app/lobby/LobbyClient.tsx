@@ -13,8 +13,10 @@ import { useCommunity } from '@/lib/useCommunity'
 import FriendsPanel from '@/components/FriendsPanel'
 import ChatGlobal from '@/components/ChatGlobal'
 import ObjectivesFloatingButton from '@/components/objectives/ObjectivesFloatingButton'
+import TournamentLobbyAccess from '@/components/tournaments/TournamentLobbyAccess'
 import type { ObjectivesData } from '@/lib/objectives'
 import { teamModeEnabled, type TeamSnapshot } from '@/lib/team-game'
+import { tournamentModeEnabled } from '@/lib/tournaments'
 import TeamTables from '@/components/game/TeamTables'
 
 interface Props {
@@ -469,6 +471,7 @@ export default function LobbyClient({
             isGuest={isGuest}
             onCoinsChange={setCoins}
           />
+          {tournamentModeEnabled && <TournamentLobbyAccess />}
 
           {/* Anti-quiebra: si te quedaste sin monedas para jugar, reclamá el bonus */}
           {coins < 10 && (

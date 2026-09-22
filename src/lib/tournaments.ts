@@ -49,6 +49,23 @@ export interface TournamentMember {
   accepted_at?: string | null
 }
 
+export interface TournamentAdminMember {
+  id: string
+  tournament_id: string
+  entry_id: string
+  user_id: string
+  role: 'captain' | 'invitee' | 'assigned' | 'replacement'
+  status: TournamentMemberStatus
+  invited_by: string | null
+  invited_at: string | null
+  accepted_at: string | null
+  rejected_at: string | null
+  withdrawn_at: string | null
+  replaced_at: string | null
+  replaced_by: string | null
+  created_at: string
+}
+
 export interface TournamentEntry {
   id: string
   tournament_id: string
@@ -100,7 +117,7 @@ export interface TournamentDetailData {
   matches: unknown[]
   admin_entries?: Array<{
     entry: TournamentEntry
-    members: unknown[]
+    members: TournamentAdminMember[]
   }>
 }
 

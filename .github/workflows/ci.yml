@@ -62,6 +62,9 @@ jobs:
       - name: Que la atribución de visitas clasifique bien cada origen
         run: npm run check:analytics
 
+      - name: Validar formularios y horarios de torneos
+        run: npm run check:tournaments
+
       - name: Build de producción
         # Claves de mentira a propósito: el build no se conecta a ningún lado,
         # solo necesita que las variables existan.
