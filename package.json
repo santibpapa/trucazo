@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "build": "next build && tsx scripts/build-markdown.ts",
+    "build": "next build && node --import tsx scripts/build-markdown.ts",
     "start": "next start",
     "lint": "next lint",
     "check:rpc-allowlist": "node scripts/check-rpc-allowlist.mjs",
     "check:campaign": "node scripts/check-patagonia-expansion.mjs",
     "check:emails": "node --import tsx scripts/check-email-notifications.ts && node --import tsx scripts/check-immediate-news.ts && node --import tsx scripts/check-ranking-emails.ts",
     "check:analytics": "node --import tsx scripts/check-analytics.ts",
+    "check:tournaments": "node --import tsx scripts/check-tournament-ui.ts",
     "check:agentes": "tsx scripts/check-agent-readiness.ts"
   },
   "dependencies": {
