@@ -26,7 +26,7 @@ Reglas de trabajo:
 | --- | --- | --- | --- | --- | --- |
 | Documento base | Completo | `codex/plan-sistema-torneos` | [#74](https://github.com/santibpapa/trucazo/pull/74) | Ninguna | Especificación y división en cinco etapas |
 | PR 1 — Base de datos y contrato | Completo | `codex/tournaments-base-contract` | [#75](https://github.com/santibpapa/trucazo/pull/75) | `20260921082456_tournaments_base_contract.sql` | Fusionado, SQL aplicado y verificado; la funcionalidad sigue apagada |
-| PR 2 — Administración e inscripciones | En curso | `codex/tournaments-admin-registration` | Por abrir | `20260922071129_tournaments_public_projection.sql` | UI completa; aún no se disputan partidas y el flag sigue apagado |
+| PR 2 — Administración e inscripciones | En curso | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | UI completa; aún no se disputan partidas y el flag sigue apagado |
 | PR 3 — Competencia 1v1 | Pendiente | — | — | — | Primer flujo jugable completo |
 | PR 4 — Competencia 2v2 | Pendiente | — | — | — | Integra el motor de equipos |
 | PR 5 — Comunicaciones, espectadores y lanzamiento | Pendiente | — | — | — | Habilitación pública al final |
@@ -640,8 +640,9 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 
 - Estado: En curso
 - Rama: `codex/tournaments-admin-registration`
-- PR: por abrir
-- Commit final: pendiente
+- PR: [#78 — feat: implementar administración e inscripciones de torneos](https://github.com/santibpapa/trucazo/pull/78)
+- Commit de implementación: `526da902d8460ee3f1f7aee0bb04b63642eda68e`
+- Commit final: pendiente del cierre de la etapa
 - Migraciones nuevas: `20260922071129_tournaments_public_projection.sql`
 - SQL aplicado en: pendiente; debe aplicarse manualmente después del merge
 - Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false`; la administración queda disponible y la central/acceso del lobby siguen ocultos hasta habilitarlos solo en preview
