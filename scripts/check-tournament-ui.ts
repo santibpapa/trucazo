@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict'
 import {
   argentinaInputToIso,
+  escapeTournamentUsernamePattern,
+  isExactTournamentUsername,
   isoToArgentinaInput,
   TOURNAMENT_CAPACITIES,
   tournamentCheckInState,
+  tournamentRequestForRetry,
   validateTournamentDraft,
 } from '../src/lib/tournament-ui'
 import type { Tournament, TournamentDraftInput } from '../src/lib/tournaments'
@@ -16,6 +19,19 @@ assert.deepEqual(TOURNAMENT_CAPACITIES['2v2'].groups, [16, 32])
 assert.equal(argentinaInputToIso('2027-01-10T19:00'), '2027-01-10T22:00:00.000Z')
 assert.equal(isoToArgentinaInput('2027-01-10T22:00:00.000Z'), '2027-01-10T19:00')
 assert.equal(argentinaInputToIso('fecha-invalida'), null)
+
+assert.equal(escapeTournamentUsernamePattern('Juan_20%26'), 'Juan\\_20\\%26')
+assert.equal(isExactTournamentUsername('JUAN_2026', 'juan_2026'), true)
+assert.equal(isExactTournamentUsername('JuanX2026', 'Juan_2026'), false)
+
+let nextRequest = 0
+const createRequestId = () => `request-${++nextRequest}`
+const firstRequest = tournamentRequestForRetry(null, 'mismo-formulario', createRequestId)
+const retriedRequest = tournamentRequestForRetry(firstRequest, 'mismo-formulario', createRequestId)
+const changedRequest = tournamentRequestForRetry(firstRequest, 'formulario-modificado', createRequestId)
+assert.equal(firstRequest.requestId, 'request-1')
+assert.equal(retriedRequest.requestId, firstRequest.requestId)
+assert.equal(changedRequest.requestId, 'request-2')
 
 const validInput: TournamentDraftInput = {
   name: 'Copa de prueba',
@@ -62,4 +78,4 @@ assert.equal(tournamentCheckInState(tournament, Date.parse('2027-01-10T21:29:59Z
 assert.equal(tournamentCheckInState(tournament, Date.parse('2027-01-10T21:30:00Z')), 'open')
 assert.equal(tournamentCheckInState(tournament, Date.parse('2027-01-10T22:00:00Z')), 'closed')
 
-console.log('Formularios, horarios y combinaciones de torneos verificados.')
+console.log('Formularios, reintentos, usuarios, horarios y combinaciones de torneos verificados.')

@@ -5,7 +5,9 @@ import Link from 'next/link'
 import { Alert, Avatar, Button, Input, Panel } from '@/components/ui'
 import { createClient } from '@/lib/supabase/client'
 import {
+  escapeTournamentUsernamePattern,
   formatTournamentDate,
+  isExactTournamentUsername,
   TOURNAMENT_FORMAT_LABEL,
   TOURNAMENT_MODE_LABEL,
   tournamentCheckInState,
@@ -111,10 +113,14 @@ export default function TournamentDetail({
     const profileResult = await supabase
       .from('profiles')
       .select('id, username')
-      .ilike('username', username)
+      .ilike('username', escapeTournamentUsernamePattern(username))
       .limit(1)
       .maybeSingle()
-    if (profileResult.error || !profileResult.data) {
+    if (
+      profileResult.error
+      || !profileResult.data
+      || !isExactTournamentUsername(profileResult.data.username, username)
+    ) {
       setError('No encontramos un jugador con ese nombre exacto.')
       setBusy(null)
       return

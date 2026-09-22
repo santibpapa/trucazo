@@ -88,6 +88,28 @@ export function defaultTournamentStart(): string {
   return isoToArgentinaInput(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString())
 }
 
+export function escapeTournamentUsernamePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&')
+}
+
+export function isExactTournamentUsername(actual: string, requested: string): boolean {
+  return actual.toLocaleLowerCase('es-AR') === requested.toLocaleLowerCase('es-AR')
+}
+
+export interface PendingTournamentRequest {
+  requestId: string
+  fingerprint: string
+}
+
+export function tournamentRequestForRetry(
+  pending: PendingTournamentRequest | null,
+  fingerprint: string,
+  createRequestId: () => string,
+): PendingTournamentRequest {
+  if (pending?.fingerprint === fingerprint) return pending
+  return { requestId: createRequestId(), fingerprint }
+}
+
 export function validateTournamentDraft(input: TournamentDraftInput): string[] {
   const errors: string[] = []
   const name = input.name.trim()

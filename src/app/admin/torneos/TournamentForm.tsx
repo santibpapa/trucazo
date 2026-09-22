@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Alert, Button, Input, Panel } from '@/components/ui'
@@ -9,7 +9,9 @@ import {
   argentinaInputToIso,
   defaultTournamentStart,
   isoToArgentinaInput,
+  type PendingTournamentRequest,
   TOURNAMENT_CAPACITIES,
+  tournamentRequestForRetry,
   validateTournamentDraft,
 } from '@/lib/tournament-ui'
 import {
@@ -37,6 +39,7 @@ export default function TournamentForm({ initialTournament }: { initialTournamen
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const api = useMemo(() => tournamentApi(supabase), [supabase])
+  const createRequest = useRef<PendingTournamentRequest | null>(null)
   const [form, setForm] = useState<FormState>(() => initialTournament ? {
     name: initialTournament.name,
     description: initialTournament.description,
@@ -60,8 +63,9 @@ export default function TournamentForm({ initialTournament }: { initialTournamen
     prizeThird: '0',
     startsAt: defaultTournamentStart(),
   })
-  const [busy, setBusy] = useState<'draft' | 'publish' | null>(null)
+  const [busy, setBusy] = useState<'draft' | 'publish' | 'cancel' | null>(null)
   const [error, setError] = useState('')
+  const [cancelReason, setCancelReason] = useState('')
 
   const allowedCapacities = TOURNAMENT_CAPACITIES[form.mode][form.format]
 
@@ -117,12 +121,19 @@ export default function TournamentForm({ initialTournament }: { initialTournamen
     setBusy(publish ? 'publish' : 'draft')
     setError('')
     if (!initialTournament) {
-      const result = await api.adminCreate(crypto.randomUUID(), input, publish)
+      const pendingRequest = tournamentRequestForRetry(
+        createRequest.current,
+        JSON.stringify({ input, publish }),
+        () => crypto.randomUUID(),
+      )
+      createRequest.current = pendingRequest
+      const result = await api.adminCreate(pendingRequest.requestId, input, publish)
       if (result.error || !result.data) {
         setError(friendlyAdminError(result.error?.message ?? 'No pudimos crear el torneo.'))
         setBusy(null)
         return
       }
+      createRequest.current = null
       const created = result.data as { id?: string }
       if (!created.id) {
         setError('El torneo se creó, pero no pudimos abrirlo. Volvé al listado.')
@@ -152,14 +163,30 @@ export default function TournamentForm({ initialTournament }: { initialTournamen
     setBusy(null)
   }
 
+  const cancelDraft = async () => {
+    if (!initialTournament) return
+    if (!window.confirm('¿Cancelar definitivamente este borrador? No se podrá publicar después.')) return
+    setBusy('cancel')
+    setError('')
+    const result = await api.adminCancel(
+      crypto.randomUUID(),
+      initialTournament.id,
+      cancelReason.trim(),
+    )
+    if (result.error) {
+      setError(friendlyAdminError(result.error.message))
+      setBusy(null)
+      return
+    }
+    router.push('/admin/torneos')
+    router.refresh()
+  }
+
   return (
     <main className="mx-auto min-h-[100dvh] w-full max-w-3xl px-4 py-6 pb-20 sm:px-6">
       <header className="mb-6">
-        <Link
-          href={initialTournament ? `/admin/torneos/${initialTournament.id}` : '/admin/torneos'}
-          className="text-sm font-semibold text-muted hover:text-gold"
-        >
-          ← {initialTournament ? 'Volver al torneo' : 'Volver a torneos'}
+        <Link href="/admin/torneos" className="text-sm font-semibold text-muted hover:text-gold">
+          ← Volver a torneos
         </Link>
         <h1 className="mt-2 font-display text-3xl font-extrabold text-cream">
           {initialTournament ? 'Editar borrador' : 'Crear torneo'}
@@ -287,6 +314,28 @@ export default function TournamentForm({ initialTournament }: { initialTournamen
           </div>
         </div>
       </Panel>
+
+      {initialTournament && (
+        <Panel className="mt-5 border-negative/35 p-5 sm:p-6">
+          <h2 className="font-display text-lg font-extrabold text-cream">Cancelar borrador</h2>
+          <p className="mb-3 mt-1 text-sm text-muted">Lo conserva en el historial, pero ya no podrá publicarse.</p>
+          <Input
+            label="Motivo (opcional)"
+            name="cancelReason"
+            value={cancelReason}
+            onChange={event => setCancelReason(event.target.value)}
+            maxLength={500}
+          />
+          <Button
+            className="mt-3"
+            variant="danger"
+            onClick={() => void cancelDraft()}
+            disabled={busy !== null}
+          >
+            {busy === 'cancel' ? 'Cancelando…' : 'Cancelar borrador'}
+          </Button>
+        </Panel>
+      )}
     </main>
   )
 }
