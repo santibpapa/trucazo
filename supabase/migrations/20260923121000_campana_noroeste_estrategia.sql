@@ -158,7 +158,7 @@ begin
      and p_envido->>'last_singer' is distinct from p_bot::text then
     value_env := greatest(1,coalesce((p_envido->>'value')::int,2));
     reject_env := public._envido_reject_value(p_envido->'chain',p_bot_score,p_human_score,30);
-    acceptance := greatest(case es when 'falta_envido' then 0.82
+    acceptance := greatest(case es when 'falta_envido' then 0.80
                                    when 'real_envido' then 0.51 else 0.36 end,
                            (value_env-reject_env)::numeric/(2*value_env)+0.10);
     if p_human_score+value_env>=30 then acceptance := acceptance+0.06; end if;
