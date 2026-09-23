@@ -107,7 +107,7 @@ function acceptsEnvido(player,state,profile,type) {
   const et=envido(state.hands[player]);if(profile==='legacy')return et>={envido:20,real_envido:24,falta_envido:29}[type]
   const chance=clamp(.16+(et-20)*.055,.04,.97)
   const val=type==='falta_envido'?30-Math.max(...state.scores):type==='real_envido'?3:2
-  const need=type==='falta_envido'?.82:type==='real_envido'?.51:.36
+  const need=type==='falta_envido'?.80:type==='real_envido'?.51:.36
   return (type!=='falta_envido'||et>=29)&&chance>=Math.max(need,(val-1)/(2*val)+.10)+
     (state.scores[1-player]+val>=30?.06:0)
 }
