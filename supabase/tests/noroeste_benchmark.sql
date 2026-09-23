@@ -16,6 +16,10 @@ declare
   steps int:=0; decision_error text;
 begin
   select id into legacy from campaign_rivals where slug='antartica';
+  begin
+  -- Aislar cada partida evita acumular versiones de perfiles y triggers
+  -- diferidos al alternar is_bot miles de veces. Se ejecuta el motor completo;
+  -- sólo se conservan las métricas, no sus efectos en la base de pruebas.
   delete from campaign_style where user_id in(p1,p2);
   update profiles set campaign_points=22000 where id in(p1,p2);
   insert into tables(id,name,creator_id,creator_username,opponent_id,opponent_username,bet,is_private,status,target_score)
@@ -36,7 +40,7 @@ begin
     if g.hand_number<>hand_dealt then
       -- Fixture de reparto: misma secuencia al invertir asientos. Ningún
       -- decisor recibe la semilla ni acceso a las cartas del otro jugador.
-      select array_agg(e.value order by md5(p_seed::text||':'||g.hand_number||':'||e.value::text))
+      select array_agg(e.value order by md5(p_rival::text||':'||p_seed||':'||g.hand_number||':'||e.value::text))
         into dealt_cards from jsonb_array_elements(_truco_deck()) e;
       update game_hands set cards=case when player_id=p1 then to_jsonb(dealt_cards[1:3]) else to_jsonb(dealt_cards[4:6]) end where game_id=duel;
       hand_dealt:=g.hand_number;
@@ -50,7 +54,7 @@ begin
     before_game:=to_jsonb(g);
     perform set_config('request.jwt.claim.sub',caller::text,true);
     perform set_config('request.jwt.claims',json_build_object('sub',caller,'role','authenticated')::text,true);
-    perform setseed((('x'||substr(md5(p_seed||':'||g.hand_number||':'||steps||':'||case when actor=p1 then 1 else 2 end),1,8))::bit(32)::bigint/4294967295.0)::double precision);
+    perform setseed((('x'||substr(md5(p_rival::text||':'||p_seed||':'||g.hand_number||':'||steps||':'||case when actor=p1 then 1 else 2 end),1,8))::bit(32)::bigint/4294967295.0)::double precision);
     perform public.bot_step(duel);
     select error into decision_error from bot_decisions where game_id=duel and not ok limit 1;
     if decision_error is not null then raise exception 'benchmark acción ilegal: %, state %',decision_error,before_game; end if;
@@ -61,9 +65,11 @@ begin
   won:=g.winner_id=nw;
   margin:=case when nw=p1 then g.player1_score-g.player2_score else g.player2_score-g.player1_score end;
   actions:=steps;
-  -- Sólo la partida recién creada, para que el arnés no acumule logs.
-  delete from bot_decisions where game_id=duel;
-  delete from tables where id=duel;
+  raise exception 'rollback de la partida de prueba' using errcode='PZ001';
+  exception when sqlstate 'PZ001' then
+    -- Las variables PL/pgSQL conservan el resultado; las filas se revierten.
+    null;
+  end;
   return next;
 end $$;
 
@@ -74,6 +80,10 @@ declare
   seed_start int:=coalesce(nullif(current_setting('trucazo.benchmark_seed_start',true),''),'1')::int;
 begin
   if trials not between 1 and 100 or seed_start<1 then raise exception 'parámetros benchmark inválidos'; end if;
+  if (select count(*) from campaign_rivals where order_index between 47 and 66)<>20
+     or not exists(select 1 from campaign_rivals where slug='antartica' and difficulty=10) then
+    raise exception 'benchmark: faltan los veinte rivales o Irene nivel 10';
+  end if;
   insert into auth.users(id,email,raw_user_meta_data) values
     ('b0800000-0000-4000-a000-000000000001','bench1@test.invalid','{"username":"Prueba Uno"}'),
     ('b0800000-0000-4000-a000-000000000002','bench2@test.invalid','{"username":"Prueba Dos"}');
@@ -81,12 +91,18 @@ begin
     for trial in seed_start..seed_start+trials-1 loop
       for seat in 1..2 loop
         select * into row_result from pg_temp.northwest_benchmark_game(rival.id,trial,seat);
+        if row_result.won is null or row_result.actions<1 then
+          raise exception 'benchmark: partida sin resultado';
+        end if;
         insert into northwest_benchmark_results values(rival.slug,trial,seat,row_result.won,row_result.margin,row_result.actions);
       end loop;
     end loop;
     select count(*),count(*) filter(where won) into total,victories from northwest_benchmark_results where slug=rival.slug;
     raise notice 'benchmark %: %/% victorias',rival.slug,victories,total;
   end loop;
+  if exists(select 1 from games where player1_id='b0800000-0000-4000-a000-000000000001') then
+    raise exception 'benchmark: no se revirtió una partida de prueba';
+  end if;
 end $benchmark$;
 
 select slug,count(*) as games,count(*) filter(where won) as wins,
@@ -94,9 +110,9 @@ select slug,count(*) as games,count(*) filter(where won) as wins,
   round(avg(margin),2) as average_margin
 from northwest_benchmark_results group by slug order by slug;
 
--- La unidad independiente es la semilla: perfiles y asientos comparten
--- repartos. El intervalo se calcula por bloques, no como 400 Bernoulli sueltos.
-with seeds as(select seed,avg(won::int) as rate from northwest_benchmark_results group by seed)
+-- Cada rival usa repartos distintos; sólo los dos asientos comparten semilla.
+-- El límite agrupa cada pareja rival/semilla (200 bloques), no 400 Bernoulli.
+with seeds as(select slug,seed,avg(won::int) as rate from northwest_benchmark_results group by slug,seed)
 select (select count(*) from northwest_benchmark_results) as games,
        (select count(*) from northwest_benchmark_results where won) as wins,
        round(100*avg(rate),2) as win_rate,
@@ -106,8 +122,8 @@ from seeds;
 do $$
 declare rate numeric; low numeric;
 begin
-  select avg(rate),avg(rate)-2.3*stddev_samp(rate)/sqrt(count(*)::numeric) into rate,low
-    from(select avg(won::int) as rate from northwest_benchmark_results group by seed) s;
+  select avg(s.rate),avg(s.rate)-2.3*stddev_samp(s.rate)/sqrt(count(*)::numeric) into rate,low
+    from(select avg(won::int) as rate from northwest_benchmark_results group by slug,seed) s;
   if rate<=0.55 or (low is not null and low<=0.50) then
     raise exception 'benchmark: dificultad no demostrada (rate %, límite %)',rate,low;
   end if;

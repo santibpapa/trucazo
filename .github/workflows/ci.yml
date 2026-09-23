@@ -127,6 +127,11 @@ jobs:
       - name: Regresiones tácticas y dificultad Noroeste contra Irene (motor real)
         run: node scripts/sim-noroeste.mjs --local-test-db
 
+      - name: Confirmar dificultad con repartos nuevos
+        env:
+          NOROESTE_SEED_START: '251'
+        run: node scripts/sim-noroeste.mjs --local-test-db
+
       # Las tres pruebas de seguridad, contra la base recién armada. Cada una
       # termina distinto de 0 si encuentra algo, así que alcanza con correrlas.
       - name: Trampas contra la base (PR 1)

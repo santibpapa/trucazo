@@ -142,7 +142,7 @@ begin
     value_env := greatest(1,coalesce((p_envido->>'value')::int,2));
     reject_env := public._envido_reject_value(p_envido->'chain',p_bot_score,p_human_score,30);
     acceptance := greatest(case es when 'falta_envido' then 0.80
-                                   when 'real_envido' then 0.51 else 0.36 end,
+                                   when 'real_envido' then 0.65 else 0.47 end,
                            (value_env-reject_env)::numeric/(2*value_env)+0.10);
     if p_human_score+value_env>=30 then acceptance := acceptance+0.06; end if;
     if es<>'falta_envido' then acceptance := acceptance-human_bluff*reads*0.12; end if;
@@ -152,6 +152,10 @@ begin
     elsif p_bot_score+value_env>=30 then
       gain:=30; loss:=case when p_human_score+value_env>=30 then 30 else value_env end;
       acceptance:=least(acceptance,(loss-reject_env)/(gain+loss)+0.05);
+    end if;
+    -- Con 33 siendo mano no hay riesgo: cobrar el máximo posible.
+    if es<>'falta_envido' and env_chance=1 then
+      return jsonb_build_object('action','sing_envido','type','falta_envido');
     end if;
     if es='envido' and env_chance>0.81 and p_seed<0.30
        and p_human_score+5<30 then
@@ -174,9 +178,9 @@ begin
       gain:=30;loss:=case when p_human_score+value_truco>=30 then 30 else value_truco end;
       acceptance:=least(acceptance,(loss-reject_loss)/(gain+loss)+0.05);
     end if;
-    if value_truco<4 and hand_chance>0.78
+    if value_truco<4 and (hand_chance=1 or (hand_chance>0.78
        and p_seed<0.25 + greatest(0,p_aggressive-5)*0.025
-       and p_human_score+value_truco+1<30 then
+       and p_human_score+value_truco+1<30)) then
       return jsonb_build_object('action','sing_truco','type',
                                 case value_truco when 2 then 'retruco' else 'vale_cuatro' end);
     end if;
@@ -190,11 +194,14 @@ begin
   can_env := es='none' and p_round=1 and ts<>'accepted'
              and not exists (select 1 from jsonb_array_elements(p_played) e
                              where e.value->>'player_id'=p_bot::text);
-  if can_env and ((env_chance>0.32 and
-      p_seed<least(1,0.60+(env_chance-0.32)*0.70)) or
+  -- Reservar el canto por valor para tantos competitivos. Los tantos medios
+  -- presionan sólo si la reputación pública muestra que el rival se retira.
+  if can_env and (et>=27 or
+     (et>=25 and human_fold*reads>0.45 and p_seed<0.60) or
      (et<=19 and p_seed<bluff and p_human_score+2<30)) then
     return jsonb_build_object('action','sing_envido','type',
-      case when env_chance>0.88 and p_bot_score+3>=30 then 'real_envido' else 'envido' end);
+      case when env_chance=1 then 'falta_envido'
+           when et>=32 and p_bot_score+3>=30 then 'real_envido' else 'envido' end);
   end if;
 
   if ts='none' and (hand_chance>case p_profile
@@ -206,8 +213,8 @@ begin
     return jsonb_build_object('action','sing_truco','type','truco');
   end if;
   if ts='accepted' and p_truco->>'last_singer' is distinct from p_bot::text
-     and value_truco<4 and hand_chance>0.78 and p_seed<0.18
-     and p_human_score+value_truco+1<30 then
+     and value_truco<4 and (hand_chance=1 or (hand_chance>0.78 and p_seed<0.18
+     and p_human_score+value_truco+1<30)) then
     return jsonb_build_object('action','sing_truco','type',
                               case value_truco when 2 then 'retruco' else 'vale_cuatro' end);
   end if;

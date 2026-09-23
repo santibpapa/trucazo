@@ -6,7 +6,7 @@ do $test$
 declare
   bot uuid := 'b0700000-0000-4000-a000-000000000066';
   human uuid := '00000000-0000-4000-a000-000000000001';
-  ace jsonb; four jsonb; two_b jsonb; two_o jsonb; three_o jsonb;
+  ace jsonb; four jsonb; two_b jsonb; two_o jsonb; three_o jsonb; six_e jsonb; seven_e jsonb;
   plan jsonb; choice jsonb; played jsonb; results jsonb;
 begin
   select value into ace from jsonb_array_elements(_truco_deck()) where value->>'suit'='espada' and value->>'value'='1';
@@ -14,13 +14,15 @@ begin
   select value into two_b from jsonb_array_elements(_truco_deck()) where value->>'suit'='basto' and value->>'value'='2';
   select value into two_o from jsonb_array_elements(_truco_deck()) where value->>'suit'='oro' and value->>'value'='2';
   select value into three_o from jsonb_array_elements(_truco_deck()) where value->>'suit'='oro' and value->>'value'='3';
+  select value into six_e from jsonb_array_elements(_truco_deck()) where value->>'suit'='espada' and value->>'value'='6';
+  select value into seven_e from jsonb_array_elements(_truco_deck()) where value->>'suit'='espada' and value->>'value'='7';
   played := jsonb_build_array(jsonb_build_object('round',1,'player_id',bot,'card',two_b),
                               jsonb_build_object('round',1,'player_id',human,'card',two_o));
   results := '[{"round":1,"winner_id":null}]'::jsonb;
   plan := _northwest_plan(jsonb_build_array(ace,four),jsonb_build_array(two_b,ace,four),played,results,
     '{"status":"none"}',jsonb_build_object('status','truco','value',2,'last_singer',human),
     bot,human,2,true,10,10,'paciente',7,7,'{}',0.99);
-  perform pg_temp.check(plan->>'action'='respond_truco_yes','primera parda + ancho: aceptar victoria segura');
+  perform pg_temp.check(plan->>'action' in ('respond_truco_yes','sing_truco'),'primera parda + ancho: aceptar o subir victoria segura');
 
   results := jsonb_build_array(jsonb_build_object('round',1,'winner_id',human),
                                jsonb_build_object('round',2,'winner_id',bot));
@@ -32,7 +34,8 @@ begin
   plan := _northwest_plan('[]',jsonb_build_array(four,three_o,ace),played,results,
     '{"status":"none"}',jsonb_build_object('status','retruco','value',3,'last_singer',human),
     bot,human,3,true,10,10,'paciente',7,7,'{}',0.99);
-  perform pg_temp.check(plan->>'action'='respond_truco_yes','ancho ya tirado en tercera: no regalar retruco');
+  perform pg_temp.check(plan->>'action' in ('respond_truco_yes','sing_truco'),'ancho ya tirado en tercera: no regalar retruco');
+  perform pg_temp.check(plan->>'type'='vale_cuatro','victoria segura: subir incluso sin sorteo favorable');
 
   -- Invertir únicamente las cartas públicas debe invertir la respuesta:
   -- reconocer el ancho propio no puede convertirse en querer a ciegas.
@@ -57,6 +60,17 @@ begin
     jsonb_build_object('status','envido','value',2,'chain',jsonb_build_array('envido'),'last_singer',human),
     '{"status":"none"}',bot,human,1,true,20,29,'paciente',7,7,'{}',0.99);
   perform pg_temp.check(plan->>'action'='respond_envido_yes','no rechazar si concede el punto que termina el partido');
+
+  plan := _northwest_plan(jsonb_build_array(six_e,seven_e,four),jsonb_build_array(six_e,seven_e,four),'[]','[]',
+    '{"status":"none"}','{"status":"none"}',bot,bot,1,true,10,10,'paciente',7,7,'{}',0.99);
+  perform pg_temp.check(plan->>'action'='sing_envido' and plan->>'type'='falta_envido',
+    '33 siendo mano: aprovechar victoria segura sin depender del azar');
+  plan := _northwest_plan(jsonb_build_array(six_e,seven_e,four),jsonb_build_array(six_e,seven_e,four),'[]','[]',
+    '{"status":"none"}','{"status":"none"}',bot,human,1,true,10,10,'paciente',7,7,'{}',0.99);
+  perform pg_temp.check(plan->>'type'<>'falta_envido','33 siendo pie no garantiza ganar un empate');
+  plan := _northwest_plan(jsonb_build_array(ace,two_o,four),jsonb_build_array(ace,two_o,four),'[]','[]',
+    '{"status":"none"}','{"status":"none"}',bot,human,1,true,10,10,'paciente',7,7,'{}',0.01);
+  perform pg_temp.check(plan->>'action'<>'sing_envido','26 sin lectura favorable: no apostar por valor como si fueran 30');
 
   perform pg_temp.check(_envido_quiero_value('["envido","real_envido"]',0,0,30)=5,'envido + real: cinco');
   perform pg_temp.check(_envido_reject_value('["envido","real_envido"]',0,0,30)=2,'rechazo de envido + real: dos');
