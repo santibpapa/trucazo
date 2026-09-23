@@ -71,6 +71,15 @@ begin
   perform pg_temp.check(blocked,'puntaje bloquea duelo directo aun con Irene');
   duel := (public.start_campaign_duel(first_rival)).id;
   perform pg_temp.check(duel is not null,'primer duelo sin derrotar a los otros 45');
+  perform public.play_card(duel,
+    (select h.cards->0 from game_hands h where h.game_id=duel and h.player_id=u));
+  perform pg_temp.check((select current_turn from games where id=duel)
+    = 'b0700000-0000-4000-a000-000000000047'::uuid,
+    'turno del bot tras la primera carta humana');
+  perform public.bot_step(duel);
+  perform pg_temp.check((select coalesce(bool_and(ok),false) from bot_decisions
+    where game_id=duel and situation='noroeste'),
+    'bot nuevo ejecuta una acción legal en el servidor');
   select coins into before_coins from profiles where id=u;
   perform public.finish_game(duel,u,30,10);
   select coins into after_coins from profiles where id=u;
@@ -126,6 +135,8 @@ begin
   -- propias se toman de la partida creada; mesa, marcador y semilla son iguales.
   bot := 'b0700000-0000-4000-a000-000000000047';
   select h.cards into cards from game_hands h where h.game_id=duel and h.player_id=bot;
+  perform pg_temp.check(jsonb_array_length(coalesce(cards,'[]'::jsonb))>0,
+    'la comparación usa una mano propia real');
   update game_hands set cards='[{"rank":14,"suit":"oro","value":4},
                                {"rank":13,"suit":"basto","value":5},
                                {"rank":12,"suit":"copa","value":6}]'::jsonb
