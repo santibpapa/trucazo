@@ -262,7 +262,8 @@ begin
     g.current_turn=v_bot,
     case when v_bot=g.player1_id then g.player1_score else g.player2_score end,
     case when v_human=g.player1_id then g.player1_score else g.player2_score end,
-    r.strategy_profile,r.trait_liar,r.trait_aggressive,style,random());
+    r.strategy_profile,r.trait_liar::int,r.trait_aggressive::int,
+    style,random()::numeric);
   action := decision->>'action';
   if action='wait' then return g; end if;
 
