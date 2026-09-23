@@ -124,6 +124,9 @@ jobs:
       - name: Progresión, acceso y decisiones de la Ruta del Noroeste
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/ruta_noroeste.sql
 
+      - name: Regresiones tácticas y dificultad Noroeste contra Irene (motor real)
+        run: node scripts/sim-noroeste.mjs --local-test-db
+
       # Las tres pruebas de seguridad, contra la base recién armada. Cada una
       # termina distinto de 0 si encuentra algo, así que alcanza con correrlas.
       - name: Trampas contra la base (PR 1)
