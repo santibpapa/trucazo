@@ -93,6 +93,11 @@ const MARCADORES: Record<string, Pos> = {
   'rio-negro':           { x: 32.1, y: 54.6 },
   'chubut':              { x: 29.2, y: 65 },
   'tierra-del-fuego':    { x: 39, y: 91.9 },
+  'la-rioja':            { x: 25.5, y: 25.5 },
+  'catamarca':           { x: 24.6, y: 17.8 },
+  'tucuman':             { x: 43.5, y: 16.4 },
+  'salta':               { x: 38.6, y: 10.2 },
+  'jujuy':               { x: 32.8, y: 5.9 },
 }
 
 // Lugares de los rivales DENTRO de cada provincia (en % del cuadro flotante).
@@ -110,6 +115,11 @@ const LUGARES: Record<string, Pos[]> = {
   'rio-negro':           [{ x: 43, y: 49.9 }, { x: 68.2, y: 43.7 }, { x: 39, y: 68 }, { x: 67.8, y: 70.5 }],
   'chubut':              [{ x: 28, y: 29 }, { x: 68, y: 27 }, { x: 33, y: 69 }, { x: 68.9, y: 54.9 }],
   'tierra-del-fuego':    [{ x: 12, y: 35 }, { x: 25, y: 55 }, { x: 47, y: 70 }, { x: 68, y: 84 }],
+  'la-rioja':            [{ x: 34, y: 28 }, { x: 67, y: 39 }, { x: 35, y: 64 }, { x: 66, y: 76 }],
+  'catamarca':           [{ x: 37, y: 25 }, { x: 66, y: 34 }, { x: 35, y: 65 }, { x: 65, y: 76 }],
+  'tucuman':             [{ x: 32, y: 28 }, { x: 69, y: 32 }, { x: 34, y: 70 }, { x: 67, y: 75 }],
+  'salta':               [{ x: 34, y: 25 }, { x: 68, y: 34 }, { x: 35, y: 68 }, { x: 65, y: 76 }],
+  'jujuy':               [{ x: 33, y: 26 }, { x: 69, y: 36 }, { x: 35, y: 69 }, { x: 67, y: 76 }],
 }
 
 export default function HistoriaClient({ points, fama, style, provinces: initialProvinces, coins }: Props) {
@@ -294,6 +304,7 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
           <ProvinceMarker
             key={p.slug}
             p={p}
+            playerPoints={points}
             pos={marcadores[p.slug] ?? { x: 50, y: 50 }}
             newlyUnlocked={reveal.pu.has(p.slug)}
             editing={editing}
@@ -630,9 +641,9 @@ function toPct(rect: DOMRect, clientX: number, clientY: number): Pos {
 // Marcador de una provincia sobre el mapa. Desbloqueada = medallón dorado con
 // el avance; bloqueada = candado con los puntos que pide.
 function ProvinceMarker({
-  p, pos, newlyUnlocked, editing, onOpen, onDragTo,
+  p, pos, playerPoints, newlyUnlocked, editing, onOpen, onDragTo,
 }: {
-  p: Province; pos: Pos; newlyUnlocked: boolean; editing: boolean
+  p: Province; pos: Pos; playerPoints: number; newlyUnlocked: boolean; editing: boolean
   onOpen: () => void; onDragTo: (clientX: number, clientY: number) => void
 }) {
   const dragging = useRef(false)
@@ -710,7 +721,9 @@ function ProvinceMarker({
           )}
           {!p.unlocked && !editing && (
             <span className="rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-gold whitespace-nowrap inline-flex items-center gap-0.5">
-              <StarIcon size={8} />{p.points_required.toLocaleString('es-AR')} pts
+              {p.order_index >= 11 && playerPoints >= p.points_required
+                ? 'Vencé a Irene'
+                : <><StarIcon size={8} />{p.points_required.toLocaleString('es-AR')} pts</>}
             </span>
           )}
           {editing && (
