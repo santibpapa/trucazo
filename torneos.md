@@ -26,7 +26,7 @@ Reglas de trabajo:
 | --- | --- | --- | --- | --- | --- |
 | Documento base | Completo | `codex/plan-sistema-torneos` | [#74](https://github.com/santibpapa/trucazo/pull/74) | Ninguna | Especificación y división en cinco etapas |
 | PR 1 — Base de datos y contrato | Completo | `codex/tournaments-base-contract` | [#75](https://github.com/santibpapa/trucazo/pull/75) | `20260921082456_tournaments_base_contract.sql` | Fusionado, SQL aplicado y verificado; la funcionalidad sigue apagada |
-| PR 2 — Administración e inscripciones | En curso | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | UI completa; aún no se disputan partidas y el flag sigue apagado |
+| PR 2 — Administración e inscripciones | Completo | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | Fusionado, SQL aplicado y recorridos validados; producción sigue apagada |
 | PR 3 — Competencia 1v1 | Pendiente | — | — | — | Primer flujo jugable completo |
 | PR 4 — Competencia 2v2 | Pendiente | — | — | — | Integra el motor de equipos |
 | PR 5 — Comunicaciones, espectadores y lanzamiento | Pendiente | — | — | — | Habilitación pública al final |
@@ -638,17 +638,18 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 
 ### 2026-09-22 — PR 2 — Administración, central, inscripción y check-in
 
-- Estado: En curso
+- Estado: Completo
 - Rama: `codex/tournaments-admin-registration`
 - PR: [#78 — feat: implementar administración e inscripciones de torneos](https://github.com/santibpapa/trucazo/pull/78)
 - Commit de implementación: `526da902d8460ee3f1f7aee0bb04b63642eda68e`
-- Commit final: pendiente del cierre de la etapa
+- Commit final: `ac62606b413bd5d21241471f65438bc4a3c09bbc`
+- Commit de merge: `84411b73c8ecdb2aa76927851f655cf8571554e1`
 - Migraciones nuevas: `20260922071129_tournaments_public_projection.sql`
-- SQL aplicado en: pendiente; debe aplicarse manualmente después del merge
-- Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false`; la administración queda disponible y la central/acceso del lobby siguen ocultos hasta habilitarlos solo en preview
-- Pruebas automáticas ejecutadas: TypeScript, ESLint, build de producción con el flag encendido, allowlist de RPC, formularios/horario argentino/combinaciones de torneos, regresión de lobby, presentación 2v2, emails, analítica y simulación del motor de Truco; todo pasó localmente. La reconstrucción y las pruebas SQL quedan además obligatorias en CI
+- SQL aplicado en: proyecto Supabase conectado después del merge; se verificaron el trigger de fecha futura, el ocultamiento de borradores no publicados y los permisos privados de la función interna
+- Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción; se habilitó únicamente en preview para validar la etapa
+- Pruebas automáticas ejecutadas: TypeScript, ESLint, build de producción con el flag encendido, allowlist de RPC, formularios/horario argentino/combinaciones de torneos, regresión de lobby, presentación 2v2, emails, analítica, simulación del motor de Truco, reconstrucción completa y pruebas SQL. Todo pasó en [GitHub Actions](https://github.com/santibpapa/trucazo/actions/runs/35734663708)
 - Correcciones de revisión: la invitación compara el usuario exacto sin interpretar `_` ni `%` como comodines; los reintentos de creación conservan el identificador original mientras los datos no cambien; los borradores permiten cancelar desde el mismo formulario y el enlace de regreso vuelve al listado
-- Recorridos manuales ejecutados: revisión estática responsive y de accesibilidad de alta, borrador, publicación, central, detalle, inscripción 1v1/2v2, invitación, aceptación/rechazo, retiro, lista de espera y check-in; el recorrido conectado en preview queda pendiente del PR y la migración
+- Recorridos manuales ejecutados: el dueño validó en preview alta, edición, cancelación y publicación; central y detalle; inscripción 1v1/2v2; invitación y aceptación; retiro, espera y check-in; acceso de invitado sin inscripción y actualización entre sesiones
 - Decisiones técnicas tomadas: primer render con Server Components; mutaciones solo por las RPC seguras del PR 1; refresco controlado cada 8 segundos en detalles y 15 segundos en listados para no abrir lectura directa ni publicar tablas privadas en Realtime; horario de formularios fijado a Argentina; los borradores cancelados dejan de filtrarse a jugadores y el servidor rechaza fechas nuevas en el pasado
-- Problemas pendientes o riesgos: no se crean partidas, sorteos, emails ni premios porque pertenecen a etapas posteriores; falta validar visualmente en preview con dos sesiones y aplicar la migración después del merge
-- Para que empiece PR 3 falta: fusionar este PR, aplicar su SQL, validar en preview los recorridos de admin/jugador/invitado y confirmar dos clientes actualizando cupo, espera y check-in con el flag todavía apagado en producción
+- Problemas pendientes o riesgos: no se crean partidas, sorteos, emails ni premios porque pertenecen a etapas posteriores; no quedan bloqueos propios del PR 2
+- Para que empiece PR 3 falta: nada; el PR 2 está fusionado, su SQL está aplicado y los recorridos fueron validados. La próxima sesión debe partir del último `master` y mantener el flag apagado en producción
