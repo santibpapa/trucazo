@@ -76,6 +76,26 @@ const PROPIAS: Record<string, Partial<Record<MomentoFrase, string[]>>> = {
   pionera:     { canta_truco: ['Yo llegué antes: truco'], sube: ['El último tramo es el más bravo'] },
   hachero:     { canta_truco: ['Esta mano se parte de un golpe'], sube: ['De acá no retrocedo'] },
   antartica:   { quiere: ['El frío enseña a esperar'], gana_partida: ['Precisión hasta el último punto'] },
+  olivarero:   { quiere: ['Todavía no es tiempo de cosechar'], gana_partida: ['Todo madura a su hora'] },
+  chayera:     { canta_truco: ['Que suene la chaya: truco'], sube: ['La fiesta recién empieza'] },
+  pirquinero:  { quiere: ['Acá encontré la veta'], no_quiere: ['Esta piedra no vale'] },
+  hilandera:   { canta_envido: ['Vamos hilando los tantos'], quiere: ['No se me escapa ese hilo'] },
+  nogalero:    { quiere: ['Guardo la buena para después'], gana_partida: ['Cosecha completa'] },
+  tejedora:    { no_quiere: ['Esa puntada la salteo'], sube: ['Ahora cierro el tejido'] },
+  'arriero-puna': { quiere: ['A esta altura, quiero'], mazo: ['Por acá no hay paso'] },
+  alfarera:    { canta_truco: ['Esta mano toma forma'], no_quiere: ['Esa pieza no salió'] },
+  canero:      { canta_truco: ['Va el corte: truco'], sube: ['Ahora sí, hasta el fondo'] },
+  empanadera:  { quiere: ['Está en su punto'], canta_envido: ['Contemos el repulgue'] },
+  zafrero:     { canta_truco: ['No aflojo el ritmo'], sube: ['La zafra no espera'] },
+  'zafrera-mayor': { quiere: ['Esta cosecha se cierra bien'], gana_partida: ['Quedó todo contado'] },
+  bagualero:   { canta_truco: ['Veamos quién lleva las riendas'], sube: ['Ahora no me frenás'] },
+  vinatera:    { canta_envido: ['El tanto ya está maduro'], no_quiere: ['A ese vino le falta'] },
+  'gaucho-valle': { quiere: ['Conozco esta vuelta'], mazo: ['Hoy guardo el caballo'] },
+  carpera:     { canta_truco: ['Arrímate a mi carpa'], sube: ['Acá mando yo'] },
+  salinero:    { quiere: ['La veo clarita'], no_quiere: ['Esta vez paso'] },
+  carnavalera: { canta_envido: ['Entre colores van los tantos'], sube: ['La fiesta sigue'] },
+  quebradeno:  { quiere: ['Hay camino todavía'], mazo: ['Busco otra salida'] },
+  'duena-silencio': { quiere: ['Quiero.'], no_quiere: ['Paso.'], canta_truco: ['Truco.'], gana_partida: ['Bien jugado.'], pierde_partida: ['Hasta la próxima.'] },
 }
 
 /**
@@ -86,6 +106,12 @@ const PROPIAS: Record<string, Partial<Record<MomentoFrase, string[]>>> = {
 export function fraseDelBot(slug: string, momento: MomentoFrase, usadas: Set<string>): string | null {
   const propias = PROPIAS[slug]
   if (propias && Object.keys(propias).length === 0) return null // el Mudo
+  if (slug === 'duena-silencio') {
+    if (Math.random() > 0.25) return null
+    const frase = (propias?.[momento] ?? []).find(f => !usadas.has(f))
+    if (frase) usadas.add(frase)
+    return frase ?? null
+  }
   if (Math.random() > 0.5) return null                          // habla ~la mitad de las veces
 
   const disponibles = (propias?.[momento] ?? []).filter(f => !usadas.has(f))

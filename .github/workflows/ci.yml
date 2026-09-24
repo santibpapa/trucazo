@@ -50,6 +50,9 @@ jobs:
       - name: Verificar actualización de mesas al volver al lobby
         run: node --import tsx scripts/check-lobby-tables.ts
 
+      - name: Contenido y economía de la Ruta del Noroeste
+        run: node scripts/check-noroeste-expansion.mjs
+
       - name: Verificar presentación de cantos por equipos
         run: node --import tsx scripts/check-team-presentation.ts
 
@@ -117,6 +120,17 @@ jobs:
 
       - name: Reconstruir la base entera desde cero
         run: scripts/rebuild-db.sh
+
+      - name: Progresión, acceso y decisiones de la Ruta del Noroeste
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/ruta_noroeste.sql
+
+      - name: Regresiones tácticas y dificultad Noroeste contra Irene (motor real)
+        run: node scripts/sim-noroeste.mjs --local-test-db
+
+      - name: Confirmar dificultad con repartos nuevos
+        env:
+          NOROESTE_SEED_START: '251'
+        run: node scripts/sim-noroeste.mjs --local-test-db
 
       # Las tres pruebas de seguridad, contra la base recién armada. Cada una
       # termina distinto de 0 si encuentra algo, así que alcanza con correrlas.
