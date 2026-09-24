@@ -64,10 +64,19 @@ update public.tournaments set starts_at=now()-interval '1 minute'
 alter table public.tournaments enable trigger tournaments_validate_future_start;
 
 select set_config('request.jwt.claim.sub','bb100000-0000-4000-a000-000000000000',false);
-set local role authenticated;
-select public.tournament_admin_start(id) from public.tournaments
-  where description='Prueba local';
-reset role;
+do $$
+declare
+  v_ids uuid[];
+  v_id uuid;
+begin
+  select array_agg(id) into v_ids from public.tournaments
+    where description='Prueba local';
+  foreach v_id in array v_ids loop
+    set local role authenticated;
+    perform public.tournament_admin_start(v_id);
+    reset role;
+  end loop;
+end $$;
 
 do $$ begin
   perform set_config('request.jwt.claim.sub',
