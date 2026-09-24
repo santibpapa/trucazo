@@ -3312,7 +3312,7 @@ begin
                'ultima_sesion',     p.last_sign_in_at,
                'visto_at',          up.last_seen_at
              ) order by p.created_at desc), '[]'::jsonb)
-      from (select * from personas order by created_at desc limit 500) p
+      from personas p
       left join por_persona   j  on j.player_id = p.id
       left join user_presence up on up.user_id  = p.id
     ),
