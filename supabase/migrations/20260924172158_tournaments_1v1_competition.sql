@@ -17,7 +17,9 @@ returns boolean language sql stable security definer set search_path = '' as $$
     join public.tournaments t on t.id = m.tournament_id
     join public.tournament_entry_members member
       on member.entry_id in (m.side_a_entry_id, m.side_b_entry_id)
+    join public.tournament_entries e on e.id = member.entry_id
     where member.user_id = p_user_id and member.status = 'accepted'
+      and e.status = 'active'
       and m.status = 'ready' and t.status = 'running'
   );
 $$;
@@ -144,16 +146,21 @@ $$;
 create function tournament_internal.group_order(p_group_id uuid)
 returns uuid[] language sql stable security definer set search_path = '' as $$
   with tied as (
-    select gm.*, count(*) over (partition by gm.wins) as tied_count
-    from public.tournament_group_members gm where gm.group_id = p_group_id
+    select gm.*, e.status = 'disqualified' as disqualified,
+      count(*) over (partition by e.status = 'disqualified', gm.wins) as tied_count
+    from public.tournament_group_members gm
+    join public.tournament_entries e on e.id = gm.entry_id
+    where gm.group_id = p_group_id
   ), ordered as (
-    select gm.entry_id, gm.wins, gm.points_for - gm.points_against as difference,
+    select gm.entry_id, gm.wins, gm.disqualified,
+      gm.points_for - gm.points_against as difference,
       gm.tie_break_seed,
       case when gm.tied_count = 2 then coalesce((
         select case when m.winner_entry_id = gm.entry_id then 1 else 0 end
         from public.tournament_matches m
         join tied other on other.group_id = gm.group_id
-          and other.wins = gm.wins and other.entry_id <> gm.entry_id
+          and other.wins = gm.wins and other.disqualified = gm.disqualified
+          and other.entry_id <> gm.entry_id
         where m.group_id = gm.group_id
           and m.status in ('finished', 'forfeit')
           and m.side_a_entry_id in (gm.entry_id, other.entry_id)
@@ -162,7 +169,7 @@ returns uuid[] language sql stable security definer set search_path = '' as $$
       ), 0) else 0 end as head_to_head
     from tied gm
   )
-  select array_agg(entry_id order by wins desc, head_to_head desc,
+  select array_agg(entry_id order by disqualified, wins desc, head_to_head desc,
                     difference desc, tie_break_seed)
   from ordered;
 $$;
@@ -277,7 +284,7 @@ begin
         v_first := array_append(v_first, v_order[1]);
         v_second := array_append(v_second, v_order[2]);
         update public.tournament_entries set status = 'eliminated', updated_at = now()
-          where id in (v_order[3], v_order[4]);
+          where id in (v_order[3], v_order[4]) and status = 'active';
       end loop;
       v_group_count := cardinality(v_first);
       -- Parejas contiguas de grupos: ganador A contra segundo B, y viceversa.
@@ -493,6 +500,10 @@ begin
   select member.entry_id into v_entry from public.tournament_entry_members member
     where member.user_id = v_actor and member.status = 'accepted'
       and member.entry_id in (m.side_a_entry_id, m.side_b_entry_id);
+  if not exists (select 1 from public.tournament_entries e
+    where e.id = v_entry and e.status = 'active') then
+    raise exception 'Esta inscripcion ya no puede jugar';
+  end if;
   if v_entry is null or t.mode <> '1v1' or t.status <> 'running'
      or m.status not in ('ready', 'playing') then
     raise exception 'No podes entrar a este cruce';
@@ -642,6 +653,16 @@ begin
   if exists(select 1 from public.tournament_matches m where m.tournament_id = t.id
      and m.status = 'playing' and p_entry_id in (m.side_a_entry_id, m.side_b_entry_id)) then
     raise exception 'Esperá a que termine la partida en curso'; end if;
+  if t.format = 'groups' and t.status = 'running' and exists (
+    select 1 from public.tournament_group_members gm
+    where gm.entry_id = p_entry_id
+      and (select count(*) from public.tournament_group_members other
+        join public.tournament_entries e on e.id = other.entry_id
+        where other.group_id = gm.group_id and other.entry_id <> p_entry_id
+          and e.status = 'active') < 2
+  ) then
+    raise exception 'El grupo necesita dos jugadores activos; reemplazá primero o cancelá';
+  end if;
   update public.tournament_entries set status = 'disqualified', updated_at = now()
     where id = p_entry_id;
   perform tournament_internal.audit(t.id, v_actor, 'entry_disqualified', p_entry_id);
