@@ -192,8 +192,9 @@ begin
     end;
     reset role;
     if (select games_won from public.profiles where id=v_winner) <> v_before+1
-       or (select coins from public.profiles where id=v_winner) <> v_coins then
-      raise exception 'Resultado repetido o apuesta pagada'; end if;
+       or (select coins from public.profiles where id=v_winner) <> v_coins
+       or (select count(*) from public.objective_game_events where game_id=m.id) <> 2 then
+      raise exception 'Resultado/misiones repetidos o apuesta pagada'; end if;
   end loop;
   if (select count(*) from public.tournament_matches
     where tournament_id=v_id and phase in ('final','third_place') and status='ready') <> 2 then

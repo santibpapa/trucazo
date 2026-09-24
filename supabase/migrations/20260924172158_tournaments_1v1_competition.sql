@@ -714,9 +714,10 @@ begin
       end;
     end if;
   end loop;
-  for m in select m.* from public.tournament_matches m
-     join public.tournaments t on t.id = m.tournament_id
-     where m.status = 'ready' and m.entry_deadline <= now() and t.status = 'running'
+  for m in select match_due.* from public.tournament_matches match_due
+     join public.tournaments tournament_due on tournament_due.id = match_due.tournament_id
+     where match_due.status = 'ready' and match_due.entry_deadline <= now()
+       and tournament_due.status = 'running'
      order by entry_deadline loop
     perform 1 from public.tournaments where id = m.tournament_id for update;
     select * into m from public.tournament_matches where id = m.id for update;
