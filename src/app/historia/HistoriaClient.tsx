@@ -100,6 +100,16 @@ const MARCADORES: Record<string, Pos> = {
   'jujuy':               { x: 32.8, y: 5.9 },
 }
 
+// Rótulos separados para las provincias pequeñas del norte. El punto y la
+// línea conservan su ubicación geográfica; las tarjetas no se pisan entre sí.
+const ROTULOS_NORTE: Record<string, Pos> = {
+  jujuy: { x: 23, y: 5.5 },
+  salta: { x: 74, y: 8.5 },
+  catamarca: { x: 22, y: 16 },
+  tucuman: { x: 74, y: 18.5 },
+  'la-rioja': { x: 21, y: 27 },
+}
+
 // Lugares de los rivales DENTRO de cada provincia (en % del cuadro flotante).
 // Hay 6 lugares por provincia (hoy se usan menos; los nuevos rivales de la
 // etapa 3 van cayendo en los que siguen). También se afinan con ?ajustar=1
@@ -272,9 +282,8 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
   const provAbierta = provinces.find(p => p.slug === openProv) ?? null
 
   return (
-    // En celular el HUD flota arriba: el pt-14 corre el mapa hacia abajo para
-    // que no tape el norte (Jujuy, Salta). En compu sobra lugar y no hace falta.
-    <main className="fixed inset-0 overflow-hidden bg-base flex items-center justify-center pt-14 sm:pt-0">
+    // El alto disponible descuenta la cabecera y las áreas seguras del teléfono.
+    <main className="fixed inset-0 overflow-hidden bg-base flex items-center justify-center pt-[calc(88px+env(safe-area-inset-top))] pb-[max(8px,env(safe-area-inset-bottom))]">
       {/* Escenario: el mapa político entra completo a lo alto en compu; en celular
           se agranda un poco más allá del ancho (118vw) para no dejar tanto aire
           arriba/abajo — lo que sobra de océano a los costados se recorta parejo.
@@ -283,7 +292,7 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
         ref={stageRef}
         className="relative shrink-0"
         style={{
-          width: `min(118vw, calc(100dvh * ${(MAP_W / MAP_H).toFixed(4)}))`,
+          width: `min(118vw, calc((100dvh - 112px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * ${(MAP_W / MAP_H).toFixed(4)}))`,
           aspectRatio: `${MAP_W} / ${MAP_H}`,
         }}
       >
@@ -299,6 +308,20 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
             no va, para ver todo. */}
         {!editing && (
           <Fog spots={provinces.filter(p => p.unlocked).map(p => marcadores[p.slug] ?? { x: 50, y: 50 })} />
+        )}
+        {!editing && (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox={`0 0 ${MAP_W} ${MAP_H}`} aria-hidden="true">
+            {provinces.filter(p => ROTULOS_NORTE[p.slug]).map(p => {
+              const anchor = marcadores[p.slug]
+              const label = ROTULOS_NORTE[p.slug]
+              return (
+                <g key={p.slug} stroke="#d6b56a" fill="#d6b56a" opacity={p.unlocked ? 0.85 : 0.5}>
+                  <line x1={anchor.x * MAP_W / 100} y1={anchor.y * MAP_H / 100} x2={label.x * MAP_W / 100} y2={label.y * MAP_H / 100} strokeWidth="2" />
+                  <circle cx={anchor.x * MAP_W / 100} cy={anchor.y * MAP_H / 100} r="6" />
+                </g>
+              )
+            })}
+          </svg>
         )}
         {provinces.map(p => (
           <ProvinceMarker
@@ -317,19 +340,19 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
       {/* HUD: barra superior fija, con chips sólidos como los del lobby. Alineado
           arriba (items-start) para que Ranking y monedas queden en la línea del
           botón de volver; la barra de fama cuelga debajo de las monedas. */}
-      <div className="fixed top-0 inset-x-0 z-20 flex items-start justify-between gap-3 p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+      <div className="fixed top-0 inset-x-0 z-20 flex items-start justify-between gap-2 p-2 sm:p-4 pt-[max(8px,env(safe-area-inset-top))] bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
         {/* Chip principal: volver + título + puntos, todo junto. */}
-        <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface2/95 pl-1.5 pr-4 py-1.5 shadow-card pointer-events-auto min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 rounded-full border border-line bg-surface2/95 pl-1.5 pr-3 sm:pr-4 py-1.5 shadow-card pointer-events-auto min-w-0">
           <Link
             href="/lobby"
             aria-label="Volver al lobby"
-            className="w-9 h-9 rounded-full bg-base border border-gold/40 flex items-center justify-center text-cream hover:text-gold transition-colors shrink-0"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-base border border-gold/40 flex items-center justify-center text-cream hover:text-gold transition-colors shrink-0"
           >
             <BackIcon />
           </Link>
           <div className="flex flex-col leading-tight min-w-0">
-            <h1 className="font-display text-sm sm:text-base font-extrabold text-cream truncate">Modo Historia</h1>
-            <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-gold tabular">
+            <h1 className="font-display text-sm sm:text-base font-extrabold text-cream truncate"><span className="hidden sm:inline">Modo </span>Historia</h1>
+            <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold text-gold tabular whitespace-nowrap">
               <StarIcon />{points.toLocaleString('es-AR')} pts
             </span>
           </div>
@@ -337,10 +360,11 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
         <div className="flex items-start gap-2 pointer-events-auto shrink-0">
           <button
             onClick={() => setShowRanking(true)}
+            aria-label="Ranking de campaña"
             className="flex items-center gap-1.5 rounded-full border border-gold/50 bg-surface2/95 px-3 py-2.5 text-xs font-bold text-gold hover:bg-gold/10 transition-colors shadow-card"
           >
             <PodiumIcon />
-            Ranking
+            <span className="hidden sm:inline">Ranking</span>
           </button>
           {/* Monedas arriba; abajo, la barra de fama (discreta, se toca para ver
               tu estilo). */}
@@ -654,6 +678,28 @@ function ProvinceMarker({
   const start = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
   const beaten = p.rivals.filter(r => r.beaten).length
   const complete = p.rivals.length > 0 && beaten === p.rivals.length
+  const label = ROTULOS_NORTE[p.slug]
+
+  if (label && !editing) {
+    return (
+      <div className="absolute z-10 -translate-x-1/2 -translate-y-1/2 w-[30%] min-w-[100px] max-w-[144px]" style={{ left: `${label.x}%`, top: `${label.y}%` }}>
+        <button
+          onClick={onOpen}
+          disabled={!p.unlocked}
+          aria-label={p.unlocked ? `Entrar a ${p.name}` : `${p.name} bloqueada: ${playerPoints >= p.points_required ? 'vencé a Irene' : `${p.points_required} puntos`}`}
+          className={cn('w-full min-h-11 flex items-center gap-1.5 rounded-xl border bg-surface2/95 px-2 py-1 shadow-card', p.unlocked ? 'border-gold/70 hover:bg-surface2' : 'border-line', newlyUnlocked && 'animate-unlock-pop')}
+        >
+          <span className="shrink-0 w-6 h-6 rounded-full border border-gold/40 flex items-center justify-center text-[10px] font-extrabold text-gold tabular">
+            {!p.unlocked ? <LockIcon /> : complete ? <CheckIcon /> : `${beaten}/${p.rivals.length}`}
+          </span>
+          <span className="min-w-0 flex-1 flex flex-col items-center gap-0.5 leading-tight">
+            <span className="text-[11px] font-bold text-cream">{p.name}</span>
+            {!p.unlocked && <span className="text-[9px] font-bold text-gold whitespace-nowrap">{playerPoints >= p.points_required ? 'Vencé a Irene' : `${p.points_required.toLocaleString('es-AR')} pts`}</span>}
+          </span>
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -661,8 +707,8 @@ function ProvinceMarker({
       style={{
         left: `${pos.x}%`,
         top: `${pos.y}%`,
-        width: 'clamp(32px, 5.5dvh, 50px)',
-        height: 'clamp(32px, 5.5dvh, 50px)',
+        width: 'clamp(32px, 7%, 40px)',
+        aspectRatio: '1',
         transform: 'translate(-50%, -50%)',
       }}
     >
@@ -704,7 +750,7 @@ function ProvinceMarker({
 
         {/* Nombre (y puntos que pide, si está bloqueada) debajo del marcador. En
             modo ajuste el nombre es la puerta de entrada (el medallón se arrastra). */}
-        <div className={cn('absolute left-1/2 -translate-x-1/2 top-full mt-1 z-20 flex flex-col items-center gap-0.5', !editing && 'pointer-events-none')}>
+        <div className={cn('absolute z-20 flex flex-col items-center gap-0.5', p.slug === 'santa-fe' && !editing ? 'left-full ml-1 top-1/2 -translate-y-1/2' : 'left-1/2 -translate-x-1/2 top-full mt-1', !editing && 'pointer-events-none')}>
           {/* En modo ajuste, tocar el nombre abre la provincia (el medallón se
               arrastra); en modo normal es solo una etiqueta. */}
           {editing ? (
