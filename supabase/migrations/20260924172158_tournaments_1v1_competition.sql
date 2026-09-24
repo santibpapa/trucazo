@@ -661,8 +661,10 @@ begin
   if not exists(select 1 from public.tournament_entries e where e.id = p_entry_id
      and e.tournament_id = t.id and e.status = 'active') then
     raise exception 'Jugador no disponible'; end if;
-  if exists(select 1 from public.tournament_matches m where m.tournament_id = t.id
-     and m.status = 'playing' and p_entry_id in (m.side_a_entry_id, m.side_b_entry_id)) then
+  if exists(select 1 from public.tournament_matches active_match
+     where active_match.tournament_id = t.id
+       and active_match.status = 'playing'
+       and p_entry_id in (active_match.side_a_entry_id, active_match.side_b_entry_id)) then
     raise exception 'Esperá a que termine la partida en curso'; end if;
   if t.format = 'groups' and t.status = 'running' and exists (
     select 1 from public.tournament_group_members gm
