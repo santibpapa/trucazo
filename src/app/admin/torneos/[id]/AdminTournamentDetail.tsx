@@ -181,7 +181,7 @@ export default function AdminTournamentDetail({
           <h2 className="font-display text-xl font-extrabold text-cream">Iniciar competencia</h2>
           <p className="mt-1 text-sm text-muted">
             {tournament.format === 'groups'
-              ? 'Se necesitan 8, 16 o 32 participantes confirmados para formar grupos de cuatro.'
+              ? 'Se necesitan al menos ocho participantes confirmados, en grupos completos de cuatro.'
               : 'Se necesitan al menos cuatro participantes. Si faltan lugares, habrá pases directos.'}
             {' '}Los ausentes del check-in se reemplazan según la lista de espera.
           </p>

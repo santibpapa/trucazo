@@ -139,6 +139,8 @@ export interface TournamentDetailData {
     match_number: number
     side_a_entry_id: string | null
     side_b_entry_id: string | null
+    side_a_username: string | null
+    side_b_username: string | null
     status: TournamentMatchStatus
     entry_deadline: string | null
     finish_reason: string | null

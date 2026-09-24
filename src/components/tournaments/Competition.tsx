@@ -37,13 +37,13 @@ export default function Competition({
 
   return (
     <div className="space-y-5">
-      {detail.tournament.status === 'completed' && final?.winner_entry_id && third?.winner_entry_id && (
+      {detail.tournament.status === 'completed' && final?.winner_entry_id && third && (
         <Panel as="section" className="border-gold/40 p-5">
           <h2 className="font-display text-xl font-extrabold text-cream">Posiciones finales</h2>
           <ol className="mt-3 space-y-2 text-sm text-cream">
             <li>🥇 {name(final.winner_entry_id)}</li>
             <li>🥈 {name(runnerUp ?? null)}</li>
-            <li>🥉 {name(third.winner_entry_id)}</li>
+            <li>🥉 {third.winner_entry_id ? name(third.winner_entry_id) : 'Vacante'}</li>
           </ol>
         </Panel>
       )}
@@ -106,12 +106,13 @@ export default function Competition({
                           <p className="mb-2 text-xs text-muted">Grupo {detail.groups.find(g => g.id === match.group_id)?.group_number}</p>
                         )}
                         <div className="flex items-center justify-between gap-3 text-sm">
-                          <span className={match.winner_entry_id === match.side_a_entry_id ? 'font-bold text-gold' : 'text-cream'}>{name(match.side_a_entry_id)}</span>
+                          <span className={match.winner_entry_id === match.side_a_entry_id ? 'font-bold text-gold' : 'text-cream'}>{match.side_a_username ?? name(match.side_a_entry_id)}</span>
                           <span className="shrink-0 tabular-nums text-muted">{match.score_a ?? '–'} : {match.score_b ?? '–'}</span>
-                          <span className={`text-right ${match.winner_entry_id === match.side_b_entry_id ? 'font-bold text-gold' : 'text-cream'}`}>{match.side_b_entry_id ? name(match.side_b_entry_id) : 'Bye'}</span>
+                          <span className={`text-right ${match.winner_entry_id === match.side_b_entry_id ? 'font-bold text-gold' : 'text-cream'}`}>{match.side_b_entry_id ? match.side_b_username ?? name(match.side_b_entry_id) : 'Bye'}</span>
                         </div>
                         <p className="mt-2 text-xs text-muted">
                           {match.finish_reason === 'attendance_review' ? 'Detenido: requiere revisión del administrador'
+                            : match.finish_reason === 'both_disqualified' ? 'Tercer puesto vacante: ambos descalificados'
                             : match.finish_reason === 'bye' ? 'Pase directo'
                               : match.finish_reason === 'absence' ? 'Victoria por ausencia'
                                 : match.status === 'ready' ? 'Listo para entrar · 5 minutos'

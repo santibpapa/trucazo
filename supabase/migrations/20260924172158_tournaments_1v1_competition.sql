@@ -10,6 +10,9 @@ alter table public.tables add column tournament_id uuid references public.tourna
 -- solo una mesa activa. Cada intento conserva su propia identidad.
 alter table public.games add column tournament_match_id uuid
   references public.tournament_matches(id);
+alter table public.tournament_matches
+  add column side_a_username text,
+  add column side_b_username text;
 create unique index tables_tournament_match_idx on public.tables(tournament_match_id)
   where tournament_match_id is not null;
 revoke insert on public.tables from public, anon, authenticated;
@@ -77,6 +80,25 @@ create trigger guard_normal_team_seat_before_insert
   before insert on public.team_seats for each row
   execute function tournament_internal.guard_normal_team_seat();
 
+-- Una mesa 2v2 puede haberse llenado ANTES de que aparezca el cruce listo.
+-- El inicio vuelve a comprobar a todos los ocupantes, no sólo el ingreso.
+create function tournament_internal.guard_normal_team_start()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if new.status = 'playing' and old.status = 'waiting' and exists (
+    select 1 from public.team_seats seat
+    where seat.table_id = new.id and seat.user_id is not null
+      and tournament_internal.has_ready_match(seat.user_id)
+  ) then
+    raise exception 'Tenes un cruce de torneo listo. Entra desde el torneo.';
+  end if;
+  return new;
+end;
+$$;
+create trigger guard_normal_team_start_before_update
+  before update of status on public.team_tables for each row
+  execute function tournament_internal.guard_normal_team_start();
+
 create function tournament_internal.guard_tournament_rematch()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
@@ -107,6 +129,14 @@ begin
 end;
 $$;
 
+create function tournament_internal.current_name(p_entry_id uuid)
+returns text language sql stable security definer set search_path = '' as $$
+  select profile.username from public.tournament_entry_members member
+  join public.profiles profile on profile.id = member.user_id
+  where member.entry_id = p_entry_id and member.status = 'accepted'
+  limit 1;
+$$;
+
 create function tournament_internal.create_bracket(
   p_tournament_id uuid, p_entries uuid[], p_round smallint
 )
@@ -134,14 +164,17 @@ begin
     insert into public.tournament_matches(
       tournament_id, phase, round_number, match_number,
       side_a_entry_id, side_b_entry_id, status, winner_entry_id,
-      finish_reason, finished_at, result_applied_at
+      finish_reason, finished_at, result_applied_at,
+      side_a_username, side_b_username
     ) values (
       p_tournament_id, v_phase, p_round, i, v_a, v_b,
       case when v_b is null then 'forfeit' else 'pending' end,
       case when v_b is null then v_a else null end,
       case when v_b is null then 'bye' else null end,
       case when v_b is null then now() else null end,
-      case when v_b is null then now() else null end
+      case when v_b is null then now() else null end,
+      case when v_b is null then tournament_internal.current_name(v_a) else null end,
+      null
     );
   end loop;
   perform tournament_internal.open_round(p_tournament_id, p_round);
@@ -218,9 +251,8 @@ begin
     from public.tournament_entries e where e.tournament_id = t.id and e.status = 'active';
   v_count := coalesce(cardinality(v_entries), 0);
   if v_count < 4 then raise exception 'Hacen falta al menos cuatro jugadores'; end if;
-  if t.format = 'groups' and (v_count < 8 or v_count % 4 <> 0
-                              or (v_count & (v_count - 1)) <> 0) then
-    raise exception 'Grupos requiere 8, 16 o 32 jugadores confirmados';
+  if t.format = 'groups' and (v_count < 8 or v_count % 4 <> 0) then
+    raise exception 'Grupos requiere al menos dos grupos completos de cuatro';
   end if;
 
   update public.tournaments set status = 'running', roster_frozen_at = now(),
@@ -265,12 +297,16 @@ declare
   v_winners uuid[];
   v_losers uuid[];
   v_group_count integer;
+  v_slot_count integer;
+  v_pair_count integer;
   v_group uuid;
   v_order uuid[];
   v_first uuid[] := '{}';
   v_second uuid[] := '{}';
   v_qualified uuid[] := '{}';
-  v_opposing_seconds uuid[] := '{}';
+  v_third public.tournament_matches;
+  v_a_active boolean;
+  v_b_active boolean;
   i integer;
 begin
   select * into t from public.tournaments where id = p_tournament_id for update;
@@ -294,11 +330,24 @@ begin
           where id in (v_order[3], v_order[4]) and status = 'active';
       end loop;
       v_group_count := cardinality(v_first);
-      -- Parejas contiguas de grupos: ganador A contra segundo B, y viceversa.
-      for i in 1..v_group_count by 2 loop
-        v_opposing_seconds := v_opposing_seconds || array[v_second[i+1], v_second[i]];
+      v_slot_count := 4;
+      while v_slot_count < v_group_count * 2 loop
+        v_slot_count := v_slot_count * 2;
       end loop;
-      v_qualified := v_first || v_opposing_seconds;
+      v_slot_count := v_slot_count / 2;
+      v_pair_count := v_group_count * 2 - v_slot_count;
+      -- Los cruces reales enfrentan ganador de grupo con segundo de OTRO
+      -- grupo. Los restantes reciben pases directos en la llave persistida.
+      v_qualified := v_first;
+      for i in 1..v_group_count loop
+        if v_pair_count < v_group_count and (i = 1 or i > v_pair_count + 1) then
+          v_qualified := array_append(v_qualified, v_second[i]);
+        end if;
+      end loop;
+      for i in 1..v_pair_count loop
+        v_qualified := array_append(v_qualified,
+          v_second[(i % v_group_count) + 1]);
+      end loop;
       perform tournament_internal.create_bracket(t.id, v_qualified, 4::smallint);
       return;
     end if;
@@ -321,7 +370,9 @@ begin
   if v_round is null then return; end if;
   if exists(select 1 from public.tournament_matches m
     where m.tournament_id = t.id and m.round_number = v_round
-      and m.phase <> 'group' and m.status not in ('finished', 'forfeit')) then
+      and m.phase <> 'group' and m.status not in ('finished', 'forfeit')
+      and not (m.phase = 'third_place' and m.status = 'cancelled'
+               and m.finish_reason = 'both_disqualified')) then
     return;
   end if;
   if exists(select 1 from public.tournament_matches m
@@ -343,6 +394,27 @@ begin
       match_number, side_a_entry_id, side_b_entry_id)
     values (t.id, 'final', v_round+1, 1, v_winners[1], v_winners[2]),
            (t.id, 'third_place', v_round+1, 1, v_losers[1], v_losers[2]);
+    select * into v_third from public.tournament_matches
+      where tournament_id = t.id and phase = 'third_place'
+        and round_number = v_round + 1;
+    select status = 'active' into v_a_active from public.tournament_entries
+      where id = v_third.side_a_entry_id;
+    select status = 'active' into v_b_active from public.tournament_entries
+      where id = v_third.side_b_entry_id;
+    if not v_a_active and not v_b_active then
+      -- No hay nadie habilitado para disputar el bronce. No se inventa un
+      -- ganador ni se deja una partida imposible bloqueando la final.
+      update public.tournament_matches set status = 'cancelled',
+        finish_reason = 'both_disqualified', finished_at = now(),
+        result_applied_at = now(), updated_at = now(),
+        side_a_username = tournament_internal.current_name(v_third.side_a_entry_id),
+        side_b_username = tournament_internal.current_name(v_third.side_b_entry_id)
+      where id = v_third.id;
+    elsif v_a_active <> v_b_active then
+      perform tournament_internal.settle_match(v_third.id,
+        case when v_a_active then v_third.side_a_entry_id
+             else v_third.side_b_entry_id end, null, null, 'disqualification');
+    end if;
   else
     v_phase := case v_count when 4 then 'semifinal'
       when 8 then 'quarterfinal' when 16 then 'round_of_16' else null end;
@@ -388,7 +460,9 @@ begin
     winner_entry_id = p_winner_id, loser_entry_id = v_loser,
     score_a = p_score_a, score_b = p_score_b,
     finish_reason = p_reason, finished_at = now(), result_applied_at = now(),
-    updated_at = now()
+    updated_at = now(),
+    side_a_username = tournament_internal.current_name(m.side_a_entry_id),
+    side_b_username = tournament_internal.current_name(m.side_b_entry_id)
   where id = m.id;
 
   if m.phase = 'group' then
@@ -636,8 +710,11 @@ begin
   insert into public.tournament_entry_members(tournament_id, entry_id,
     user_id, role, status, accepted_at)
     values(t.id, p_outgoing_entry_id, v_new_user, 'replacement', 'accepted', now());
-  update public.tournament_checkins set confirmed_by = v_new_user, confirmed_at = now()
-    where entry_id = p_outgoing_entry_id;
+  insert into public.tournament_checkins(entry_id, tournament_id, confirmed_by, confirmed_at)
+    values(p_outgoing_entry_id, t.id, v_new_user, now())
+    on conflict (entry_id) do update
+      set confirmed_by = excluded.confirmed_by,
+          confirmed_at = excluded.confirmed_at;
   delete from public.tournament_match_presence where tournament_id = t.id
     and entry_id = p_outgoing_entry_id and match_id in (
       select id from public.tournament_matches where status = 'ready'
@@ -668,7 +745,8 @@ begin
     raise exception 'Esperá a que termine la partida en curso'; end if;
   if t.format = 'groups' and t.status = 'running' and exists (
     select 1 from public.tournament_group_members gm
-    where gm.entry_id = p_entry_id
+    join public.tournament_groups grp on grp.id = gm.group_id
+    where gm.entry_id = p_entry_id and grp.status <> 'completed'
       and (select count(*) from public.tournament_group_members other
         join public.tournament_entries e on e.id = other.entry_id
         where other.group_id = gm.group_id and other.entry_id <> p_entry_id
@@ -809,7 +887,12 @@ begin
       join public.tournament_entry_members mem on mem.entry_id = e.id and mem.status = 'accepted'
       join public.profiles p on p.id = mem.user_id
       where e.tournament_id = t.id), '[]'::jsonb),
-    'matches', coalesce((select jsonb_agg(to_jsonb(m) order by m.round_number, m.phase, m.match_number)
+    'matches', coalesce((select jsonb_agg(to_jsonb(m) || jsonb_build_object(
+      'side_a_username', coalesce(m.side_a_username,
+        tournament_internal.current_name(m.side_a_entry_id)),
+      'side_b_username', coalesce(m.side_b_username,
+        tournament_internal.current_name(m.side_b_entry_id)))
+      order by m.round_number, m.phase, m.match_number)
       from public.tournament_matches m where m.tournament_id = t.id), '[]'::jsonb),
     'admin_entries', case when v_is_admin then coalesce((
       select jsonb_agg(jsonb_build_object(
