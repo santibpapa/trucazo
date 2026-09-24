@@ -121,6 +121,7 @@ m public.tournament_matches;
 v_a uuid;
 v_b uuid;
 v_coins integer;
+v_game uuid;
 begin
   select * into m from public.tournament_matches
     where tournament_id=(select id from public.tournaments where name='Directa 4')
@@ -143,13 +144,14 @@ begin
   reset role;
   perform set_config('request.jwt.claim.sub',v_b::text,true);
   set local role authenticated;
-  if (public.tournament_enter_match(m.id)->>'game_id')::uuid <> m.id then
-    raise exception 'No se creó la partida al llegar ambos'; end if;
+  v_game := (public.tournament_enter_match(m.id)->>'game_id')::uuid;
   perform public.tournament_enter_match(m.id);
   reset role;
+  if v_game is null or (select game_id from public.tournament_matches where id=m.id) <> v_game then
+    raise exception 'No se creó la partida al llegar ambos'; end if;
   if (select coins from public.profiles where id=v_a) <> v_coins
-     or (select bet from public.games where id=m.id) <> 0
-     or (select count(*) from public.game_hands where game_id=m.id) <> 2 then
+     or (select bet from public.games where id=v_game) <> 0
+     or (select count(*) from public.game_hands where game_id=v_game) <> 2 then
     raise exception 'La entrada cobró monedas, creó apuesta o duplicó manos';
   end if;
 end $$;
@@ -163,6 +165,7 @@ v_winner uuid;
 v_id uuid;
 v_before integer;
 v_coins integer;
+v_game uuid;
 begin
   select id into v_id from public.tournaments where name='Directa 4';
   for m in select * from public.tournament_matches
@@ -177,15 +180,16 @@ begin
         where entry_id=m.side_b_entry_id and status='accepted')::text,true);
       perform public.tournament_enter_match(m.id);
     end if;
+    select game_id into v_game from public.tournament_matches where id=m.id;
     select user_id into v_winner from public.tournament_entry_members
       where entry_id=m.side_a_entry_id and status='accepted';
     select games_won,coins into v_before,v_coins from public.profiles where id=v_winner;
     perform set_config('request.jwt.claim.sub',v_winner::text,true);
-    perform public.finish_game(m.id,v_winner,15,5);
-    perform public.finish_game(m.id,v_winner,15,5);
+    perform public.finish_game(v_game,v_winner,15,5);
+    perform public.finish_game(v_game,v_winner,15,5);
     set local role authenticated;
     begin
-      perform public.request_rematch(m.id);
+      perform public.request_rematch(v_game);
       raise exception 'Una partida de torneo permitió revancha';
     exception when others then
       if sqlerrm not like '%no tienen revancha%' then raise; end if;
@@ -193,7 +197,7 @@ begin
     reset role;
     if (select games_won from public.profiles where id=v_winner) <> v_before+1
        or (select coins from public.profiles where id=v_winner) <> v_coins
-       or (select count(*) from public.objective_game_events where game_id=m.id) <> 2 then
+       or (select count(*) from public.objective_game_events where game_id=v_game) <> 2 then
       raise exception 'Resultado/misiones repetidos o apuesta pagada'; end if;
   end loop;
   if (select count(*) from public.tournament_matches
@@ -209,10 +213,11 @@ begin
       select user_id from public.tournament_entry_members
       where entry_id=m.side_b_entry_id and status='accepted')::text,true);
     perform public.tournament_enter_match(m.id);
+    select game_id into v_game from public.tournament_matches where id=m.id;
     select user_id into v_winner from public.tournament_entry_members
       where entry_id=m.side_a_entry_id and status='accepted';
     perform set_config('request.jwt.claim.sub',v_winner::text,true);
-    perform public.finish_game(m.id,v_winner,15,3);
+    perform public.finish_game(v_game,v_winner,15,3);
   end loop;
   if (select status from public.tournaments where id=v_id) <> 'completed' then
     raise exception 'No terminó después de final y tercer puesto'; end if;
@@ -286,6 +291,9 @@ declare
 t uuid;
 m public.tournament_matches;
 v_user uuid;
+v_other uuid;
+v_old_game uuid;
+v_new_game uuid;
 begin
   select id into t from public.tournaments where name='Ausencia 4';
   select * into m from public.tournament_matches where tournament_id=t
@@ -309,6 +317,37 @@ begin
   if (select count(*) from public.tournament_matches
       where tournament_id=t and status='ready') <> 1 then
     raise exception 'No se reabrió el cruce detenido'; end if;
+
+  select * into m from public.tournament_matches where tournament_id=t and status='ready';
+  select user_id into v_user from public.tournament_entry_members
+    where entry_id=m.side_a_entry_id and status='accepted';
+  select user_id into v_other from public.tournament_entry_members
+    where entry_id=m.side_b_entry_id and status='accepted';
+  perform set_config('request.jwt.claim.sub',v_user::text,true);
+  perform public.tournament_enter_match(m.id);
+  perform set_config('request.jwt.claim.sub',v_other::text,true);
+  v_old_game := (public.tournament_enter_match(m.id)->>'game_id')::uuid;
+  update public.games set status='finished' where id=v_old_game;
+  if (select finish_reason from public.tournament_matches where id=m.id) <> 'attendance_review' then
+    raise exception 'La partida anulada no quedó detenida'; end if;
+  perform set_config('request.jwt.claim.sub',
+    'bb100000-0000-4000-a000-000000000000',true);
+  perform public.tournament_admin_retry_match(m.id);
+  perform set_config('request.jwt.claim.sub',v_user::text,true);
+  perform public.tournament_enter_match(m.id);
+  perform set_config('request.jwt.claim.sub',v_other::text,true);
+  v_new_game := (public.tournament_enter_match(m.id)->>'game_id')::uuid;
+  if v_new_game is null or v_new_game = v_old_game
+     or (select count(*) from public.games where id in (v_old_game,v_new_game)) <> 2 then
+    raise exception 'La reapertura pisó la partida anulada'; end if;
+  set local role authenticated;
+  begin
+    perform public.request_rematch(v_old_game);
+    raise exception 'Una partida anulada de torneo permitió revancha';
+  exception when others then
+    if sqlerrm not like '%no tienen revancha%' then raise; end if;
+  end;
+  reset role;
 end $$;
 
 rollback;

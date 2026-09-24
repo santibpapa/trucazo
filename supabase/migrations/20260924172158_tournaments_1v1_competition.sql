@@ -6,6 +6,10 @@ begin;
 alter table public.tables add column tournament_match_id uuid
   references public.tournament_matches(id);
 alter table public.tables add column tournament_id uuid references public.tournaments(id);
+-- Un cruce reabierto puede tener varias partidas históricas anuladas, pero
+-- solo una mesa activa. Cada intento conserva su propia identidad.
+alter table public.games add column tournament_match_id uuid
+  references public.tournament_matches(id);
 create unique index tables_tournament_match_idx on public.tables(tournament_match_id)
   where tournament_match_id is not null;
 revoke insert on public.tables from public, anon, authenticated;
@@ -34,7 +38,7 @@ begin
   if new.tournament_match_id is not null then
     select * into v_match from public.tournament_matches where id = new.tournament_match_id;
     if not found or v_match.status <> 'ready' or new.bet <> 0 or not new.is_private
-       or new.status <> 'playing' or new.id <> v_match.id
+       or new.status <> 'playing'
        or new.tournament_id is distinct from v_match.tournament_id
        or new.creator_id is distinct from (
          select member.user_id from public.tournament_entry_members member
@@ -76,7 +80,7 @@ create trigger guard_normal_team_seat_before_insert
 create function tournament_internal.guard_tournament_rematch()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
-  if exists (select 1 from public.tournament_matches m where m.game_id = new.id)
+  if new.tournament_match_id is not null
      and (new.rematch_p1 is distinct from old.rematch_p1
           or new.rematch_p2 is distinct from old.rematch_p2
           or new.rematch_game_id is distinct from old.rematch_game_id) then
@@ -495,6 +499,7 @@ declare
   v_name_a text;
   v_name_b text;
   v_hands record;
+  v_game_id uuid := gen_random_uuid();
 begin
   select tournament_id into t.id from public.tournament_matches where id = p_match_id;
   if not found then raise exception 'Cruce no disponible'; end if;
@@ -536,24 +541,24 @@ begin
     return jsonb_build_object('match_id', m.id, 'game_id', null);
   end if;
 
-  -- La partida y las dos manos se crean una sola vez al llegar ambos. El ID
-  -- coincide con el cruce y no hay ventana para unirse desde el lobby.
+  -- La partida y las dos manos se crean una sola vez al llegar ambos. Cada
+  -- intento usa un ID nuevo si el administrador reabrió el cruce.
   insert into public.tables(id, tournament_match_id, tournament_id, name, creator_id,
     creator_username, opponent_id, opponent_username, bet, is_private,
     status, target_score, time_limit)
-  values(m.id, m.id, t.id, t.name, v_a, v_name_a, v_b, v_name_b,
+  values(v_game_id, m.id, t.id, t.name, v_a, v_name_a, v_b, v_name_b,
     0, true, 'playing', t.target_score, 30);
   select * into v_hands from public._deal_hands();
-  insert into public.games(id, player1_id, player2_id, player1_username,
+  insert into public.games(id, tournament_match_id, player1_id, player2_id, player1_username,
     player2_username, current_turn, mano_player, bet, target_score,
     time_limit, turn_started_at)
-  values(m.id, v_a, v_b, v_name_a, v_name_b, v_a, v_a,
+  values(v_game_id, m.id, v_a, v_b, v_name_a, v_name_b, v_a, v_a,
     0, t.target_score, 30, now());
   insert into public.game_hands(game_id, player_id, cards)
-    values (m.id, v_a, v_hands.h1), (m.id, v_b, v_hands.h2);
-  update public.tournament_matches set status = 'playing', game_id = m.id,
+    values (v_game_id, v_a, v_hands.h1), (v_game_id, v_b, v_hands.h2);
+  update public.tournament_matches set status = 'playing', game_id = v_game_id,
     started_at = now(), updated_at = now() where id = m.id;
-  return jsonb_build_object('match_id', m.id, 'game_id', m.id);
+  return jsonb_build_object('match_id', m.id, 'game_id', v_game_id);
 end;
 $$;
 
