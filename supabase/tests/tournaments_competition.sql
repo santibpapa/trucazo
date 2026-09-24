@@ -4,9 +4,7 @@
 begin;
 
 do $$ begin
-  if has_table_privilege('authenticated','public.tables','INSERT')
-     or has_function_privilege('authenticated',
-       'tournament_internal.advance_due()','EXECUTE') then
+  if has_schema_privilege('authenticated','tournament_internal','USAGE') then
     raise exception 'Una ruta interna de torneo quedó expuesta';
   end if;
 end $$;
@@ -68,6 +66,21 @@ set local role authenticated;
 select public.tournament_admin_start(id) from public.tournaments
   where description='Prueba local';
 reset role;
+
+do $$ begin
+  perform set_config('request.jwt.claim.sub',
+    'bb100000-0000-4000-a000-000000000000',true);
+  set local role authenticated;
+  begin
+    insert into public.tables(name,creator_id,creator_username,bet,is_private,status)
+    values('Mesa sin apuesta','bb100000-0000-4000-a000-000000000000',
+      'Competicion0',0,false,'waiting');
+    raise exception 'El cliente creó una mesa directa sin apuesta';
+  exception when others then
+    if sqlerrm='El cliente creó una mesa directa sin apuesta' then raise; end if;
+  end;
+  reset role;
+end $$;
 
 do $$
 v_id uuid;

@@ -9,6 +9,9 @@ alter table public.tables add column tournament_id uuid references public.tourna
 create unique index tables_tournament_match_idx on public.tables(tournament_match_id)
   where tournament_match_id is not null;
 revoke insert on public.tables from public, anon, authenticated;
+-- El rebuild local vuelve a otorgar privilegios amplios al final; RLS sigue
+-- cerrando el INSERT directo. Todas las mesas reales se crean por RPC definer.
+drop policy if exists "Los usuarios autenticados pueden crear mesas" on public.tables;
 
 create function tournament_internal.has_ready_match(p_user_id uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
