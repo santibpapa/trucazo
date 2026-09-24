@@ -222,7 +222,7 @@ begin
   update public.tournaments set status = 'running', roster_frozen_at = now(),
     updated_at = now(), updated_by = coalesce(p_actor_id, updated_by) where id = t.id;
   if t.format = 'knockout' then
-    perform tournament_internal.create_bracket(t.id, v_entries, 1);
+    perform tournament_internal.create_bracket(t.id, v_entries, 1::smallint);
   else
     for v_group in 1..v_count/4 loop
       insert into public.tournament_groups(tournament_id, group_number, status)
@@ -244,7 +244,7 @@ begin
         end loop;
       end loop;
     end loop;
-    perform tournament_internal.open_round(t.id, 1);
+    perform tournament_internal.open_round(t.id, 1::smallint);
   end if;
   perform tournament_internal.audit(t.id, p_actor_id, 'tournament_started', null,
     jsonb_build_object('players', v_count, 'format', t.format));
@@ -295,7 +295,7 @@ begin
         v_opposing_seconds := v_opposing_seconds || array[v_second[i+1], v_second[i]];
       end loop;
       v_qualified := v_first || v_opposing_seconds;
-      perform tournament_internal.create_bracket(t.id, v_qualified, 4);
+      perform tournament_internal.create_bracket(t.id, v_qualified, 4::smallint);
       return;
     end if;
 
@@ -349,7 +349,7 @@ begin
       values(t.id, v_phase, v_round+1, i, v_winners[i*2-1], v_winners[i*2]);
     end loop;
   end if;
-  perform tournament_internal.open_round(t.id, v_round+1);
+  perform tournament_internal.open_round(t.id, (v_round+1)::smallint);
 end;
 $$;
 
