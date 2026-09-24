@@ -338,8 +338,9 @@ begin
   perform set_config('request.jwt.claim.sub',v_other::text,true);
   v_new_game := (public.tournament_enter_match(m.id)->>'game_id')::uuid;
   if v_new_game is null or v_new_game = v_old_game
-     or (select count(*) from public.games where id in (v_old_game,v_new_game)) <> 2 then
-    raise exception 'La reapertura pisó la partida anulada: anterior %, nueva %, cantidad %',
+     or (select count(*) from public.games where id in (v_old_game,v_new_game)) <> 2
+     or (select count(*) from public.tables where id in (v_old_game,v_new_game)) <> 2 then
+    raise exception 'La reapertura pisó la partida anulada: anterior %, nueva %, cantidad partidas %',
       v_old_game, v_new_game,
       (select count(*) from public.games where id in (v_old_game,v_new_game)); end if;
   set local role authenticated;

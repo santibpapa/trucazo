@@ -582,8 +582,11 @@ begin
       and g.status = 'finished' and g.winner_id is null) then
       raise exception 'La partida no esta anulada';
     end if;
+    -- games.id referencia tables.id con borrado en cascada. Conservar la mesa
+    -- cerrada mantiene la partida anulada y libera el índice del cruce.
+    update public.tables set tournament_match_id = null, status = 'finished'
+      where id = m.game_id;
     update public.tournament_matches set game_id = null where id = m.id;
-    delete from public.tables where id = m.game_id;
   end if;
   delete from public.tournament_match_presence where match_id = m.id;
   update public.tournament_matches set status = 'ready', finish_reason = null,
