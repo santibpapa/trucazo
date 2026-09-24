@@ -954,21 +954,22 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
   }
 
   if (game.status === 'finished' && showFinish && tournamentId) {
+    const voided = game.winner_id == null
     const won = game.winner_id === currentUserId
     return (
       <FinishScreen
         won={won}
         salonSlug={salonSlug}
         hand={lastHandCards}
-        title={won ? '¡Ganaste el cruce!' : 'Terminó el cruce'}
-        subtitle={won
+        title={voided ? 'Partida detenida' : won ? '¡Ganaste el cruce!' : 'Terminó el cruce'}
+        subtitle={voided ? 'Un administrador revisará esta partida.' : won
           ? <>Le ganaste a <b className="font-semibold text-cream">{opponentUsername}</b> {myScore} a {opponentScore}</>
           : <><b className="font-semibold text-cream">{opponentUsername}</b> te ganó {opponentScore} a {myScore}</>}
-        note="Consultá el cuadro para ver la próxima ronda."
-        me={{ url: myAvatarUrl, name: myUsername, score: myScore, highlight: won }}
-        opponent={{ url: opponentAvatarUrl, name: opponentUsername, score: opponentScore, highlight: !won }}
+        note={voided ? 'Volvé al torneo para seguir las novedades.' : 'Consultá el cuadro para ver la próxima ronda.'}
+        me={{ url: myAvatarUrl, name: myUsername, score: myScore, highlight: !voided && won }}
+        opponent={{ url: opponentAvatarUrl, name: opponentUsername, score: opponentScore, highlight: !voided && !won }}
       >
-        <ObjectiveProgressDelta gameId={game.id} isGuest={isGuest} />
+        {!voided && <ObjectiveProgressDelta gameId={game.id} isGuest={isGuest} />}
         <Button variant="primary" size="md" fullWidth
           onClick={() => router.push(`/torneos/${tournamentId}`)}>
           Volver al torneo

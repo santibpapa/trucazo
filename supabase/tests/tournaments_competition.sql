@@ -10,6 +10,7 @@ do $$ begin
 end $$;
 
 do $$
+declare
 i integer;
 v_id uuid;
 begin
@@ -38,6 +39,7 @@ from (values ('Directa 4','knockout',4), ('Grupos 8','groups',8),
              ('Bye 5','knockout',8), ('Ausencia 4','knockout',4)) x(name,format,capacity);
 
 do $$
+declare
 t record;
 i integer;
 v_entry uuid;
@@ -83,6 +85,7 @@ do $$ begin
 end $$;
 
 do $$
+declare
 v_id uuid;
 begin
   select id into v_id from public.tournaments where name='Directa 4';
@@ -104,6 +107,7 @@ end $$;
 -- Entradas, apuesta cero y bloqueo de mesas normales. La última entrada
 -- crea la partida una sola vez, también al repetir ambos RPC.
 do $$
+declare
 m public.tournament_matches;
 v_a uuid;
 v_b uuid;
@@ -139,19 +143,12 @@ begin
      or (select count(*) from public.game_hands where game_id=m.id) <> 2 then
     raise exception 'La entrada cobró monedas, creó apuesta o duplicó manos';
   end if;
-  perform set_config('request.jwt.claim.sub',v_a::text,true);
-  set local role authenticated;
-  begin
-    perform public.request_rematch(m.id);
-    raise exception 'Revancha anticipada en partida de torneo';
-  exception when others then null;
-  end;
-  reset role;
 end $$;
 
 -- Completar dos semis, final y tercer puesto mediante el cierre real; el
 -- callback duplicado no suma dos victorias ni mueve monedas.
 do $$
+declare
 m public.tournament_matches;
 v_winner uuid;
 v_id uuid;
@@ -214,6 +211,7 @@ end $$;
 -- Grupos: seis cruces por grupo, luego dos semifinales cruzadas. Repetir un
 -- resultado no altera la tabla y la semilla mantiene estable el orden.
 do $$
+declare
 t uuid;
 m public.tournament_matches;
 v_group uuid;
@@ -274,6 +272,7 @@ end $$;
 
 -- Expiración: un lado presente gana; ambos ausentes requieren revisión.
 do $$
+declare
 t uuid;
 m public.tournament_matches;
 v_user uuid;

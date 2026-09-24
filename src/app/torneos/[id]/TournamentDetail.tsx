@@ -373,6 +373,19 @@ function ParticipationPanel({
     )
   }
 
+  if (entry && myMember?.status === 'accepted'
+      && ['eliminated', 'disqualified', 'replaced'].includes(entry.entry.status)) {
+    return (
+      <Panel className="p-5">
+        <h2 className="font-display text-xl font-extrabold text-cream">
+          {entry.entry.status === 'eliminated' ? 'Terminó tu participación'
+            : entry.entry.status === 'disqualified' ? 'Fuiste descalificado' : 'Tu lugar fue reemplazado'}
+        </h2>
+        <p className="mt-1 text-sm text-muted">Podés seguir los resultados y las posiciones en el cuadro.</p>
+      </Panel>
+    )
+  }
+
   if (entry && myMember?.status === 'accepted') {
     const pendingPartner = entry.members.find(member => member.status === 'pending')
     return (
