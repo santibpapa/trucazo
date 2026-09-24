@@ -37,7 +37,11 @@ declare
     'tournament_admin_publish', 'tournament_admin_reschedule',
     'tournament_admin_cancel', 'tournament_register_solo',
     'tournament_invite_partner', 'tournament_respond_invitation',
-    'tournament_withdraw', 'tournament_check_in'
+    'tournament_withdraw', 'tournament_check_in',
+    'tournament_admin_start', 'tournament_admin_pause',
+    'tournament_admin_retry_match', 'tournament_admin_replace',
+    'tournament_admin_disqualify', 'tournament_enter_match',
+    'tournament_ready_match'
   ];
   v_bad text[];
   v_owner record;
