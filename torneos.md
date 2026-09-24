@@ -27,7 +27,7 @@ Reglas de trabajo:
 | Documento base | Completo | `codex/plan-sistema-torneos` | [#74](https://github.com/santibpapa/trucazo/pull/74) | Ninguna | Especificación y división en cinco etapas |
 | PR 1 — Base de datos y contrato | Completo | `codex/tournaments-base-contract` | [#75](https://github.com/santibpapa/trucazo/pull/75) | `20260921082456_tournaments_base_contract.sql` | Fusionado, SQL aplicado y verificado; la funcionalidad sigue apagada |
 | PR 2 — Administración e inscripciones | Completo | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | Fusionado, SQL aplicado y recorridos validados; producción sigue apagada |
-| PR 3 — Competencia 1v1 | Pendiente | — | — | — | Primer flujo jugable completo |
+| PR 3 — Competencia 1v1 | En curso | `codex/tournaments-1v1-competition` | — | `20260924172158_tournaments_1v1_competition.sql` | Validación pendiente en PostgreSQL y preview; flag apagado |
 | PR 4 — Competencia 2v2 | Pendiente | — | — | — | Integra el motor de equipos |
 | PR 5 — Comunicaciones, espectadores y lanzamiento | Pendiente | — | — | — | Habilitación pública al final |
 

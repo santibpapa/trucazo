@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Alert, Avatar, Button, Input, Panel } from '@/components/ui'
+import Competition from '@/components/tournaments/Competition'
 import { createClient } from '@/lib/supabase/client'
 import {
   escapeTournamentUsernamePattern,
@@ -34,6 +36,7 @@ export default function TournamentDetail({
   isGuest: boolean
   initialNow: number
 }) {
+  const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const api = useMemo(() => tournamentApi(supabase), [supabase])
   const [detail, setDetail] = useState(initialDetail)
@@ -43,6 +46,8 @@ export default function TournamentDetail({
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [now, setNow] = useState(initialNow)
+  const [enteringMatchId, setEnteringMatchId] = useState<string | null>(null)
+  const [waitingMatchId, setWaitingMatchId] = useState<string | null>(null)
 
   const refresh = useCallback(async (quiet = true) => {
     if (document.visibilityState === 'hidden') return
@@ -175,6 +180,32 @@ export default function TournamentDetail({
     () => api.checkIn(crypto.randomUUID(), tournament.id),
   )
 
+  const enterMatch = async (matchId: string) => {
+    setEnteringMatchId(matchId)
+    setError('')
+    const result = await api.enterMatch(matchId)
+    setEnteringMatchId(null)
+    if (result.error) {
+      setError(friendlyTournamentError(result.error.message))
+      return
+    }
+    const gameId = (result.data as { game_id?: string | null } | null)?.game_id
+    if (gameId) {
+      router.push(`/game/${gameId}`)
+    } else {
+      setWaitingMatchId(matchId)
+      setMessage('Ya entraste al cruce. Esperando al rival…')
+      await refresh()
+    }
+  }
+
+  useEffect(() => {
+    if (!waitingMatchId) return
+    const match = detail.matches.find(item => item.id === waitingMatchId)
+    if (match?.status === 'playing' && match.game_id) router.push(`/game/${match.game_id}`)
+    if (match && match.status !== 'ready' && match.status !== 'playing') setWaitingMatchId(null)
+  }, [detail.matches, router, waitingMatchId])
+
   return (
     <main className="mx-auto min-h-[100dvh] w-full max-w-5xl px-4 py-6 pb-20 sm:px-6">
       <Link href="/torneos" className="text-sm font-semibold text-muted hover:text-gold">
@@ -227,6 +258,13 @@ export default function TournamentDetail({
 
           <Roster title="Participantes confirmados" empty="Todavía no hay inscriptos." entries={detail.participants} />
           <Roster title="Lista de espera" empty="No hay nadie esperando un lugar." entries={detail.waitlist} waitlist />
+          <Competition
+            detail={detail}
+            myEntryId={entry?.entry.status === 'active' ? entry.entry.id : null}
+            waitingMatchId={waitingMatchId}
+            enteringMatchId={enteringMatchId}
+            onEnter={matchId => void enterMatch(matchId)}
+          />
         </div>
 
         <aside className="space-y-5">

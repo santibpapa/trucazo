@@ -113,8 +113,40 @@ export interface TournamentDetailData {
     kind: TournamentEntryKind
     members: TournamentMember[]
   }>
-  groups: unknown[]
-  matches: unknown[]
+  groups: Array<{ id: string; group_number: number; status: string }>
+  group_members: Array<{
+    group_id: string
+    entry_id: string
+    position: number
+    wins: number
+    losses: number
+    points_for: number
+    points_against: number
+    tie_break_seed: string
+    rank: number
+  }>
+  competition_entries: Array<{
+    entry_id: string
+    username: string
+    avatar_url: string | null
+    status: TournamentEntryStatus
+  }>
+  matches: Array<{
+    id: string
+    phase: 'group' | 'round_of_32' | 'round_of_16' | 'quarterfinal' | 'semifinal' | 'third_place' | 'final'
+    group_id: string | null
+    round_number: number
+    match_number: number
+    side_a_entry_id: string | null
+    side_b_entry_id: string | null
+    status: TournamentMatchStatus
+    entry_deadline: string | null
+    finish_reason: string | null
+    winner_entry_id: string | null
+    score_a: number | null
+    score_b: number | null
+    game_id: string | null
+  }>
   admin_entries?: Array<{
     entry: TournamentEntry
     members: TournamentAdminMember[]
@@ -222,6 +254,25 @@ export function tournamentApi(client: SupabaseClient) {
       client.rpc('tournament_check_in', {
         p_request_id: requestId,
         p_tournament_id: tournamentId,
+      }),
+    enterMatch: (matchId: string) =>
+      client.rpc('tournament_enter_match', { p_match_id: matchId }),
+    adminStart: (tournamentId: string) =>
+      client.rpc('tournament_admin_start', { p_tournament_id: tournamentId }),
+    adminPause: (tournamentId: string, pause: boolean) =>
+      client.rpc('tournament_admin_pause', { p_tournament_id: tournamentId, p_pause: pause }),
+    adminRetryMatch: (matchId: string) =>
+      client.rpc('tournament_admin_retry_match', { p_match_id: matchId }),
+    adminReplace: (tournamentId: string, outgoing: string, incoming: string) =>
+      client.rpc('tournament_admin_replace', {
+        p_tournament_id: tournamentId,
+        p_outgoing_entry_id: outgoing,
+        p_waitlist_entry_id: incoming,
+      }),
+    adminDisqualify: (tournamentId: string, entryId: string) =>
+      client.rpc('tournament_admin_disqualify', {
+        p_tournament_id: tournamentId,
+        p_entry_id: entryId,
       }),
   }
 }

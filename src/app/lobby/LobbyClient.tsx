@@ -26,6 +26,7 @@ interface Props {
   myMedal: string
   isGuest: boolean
   initialObjectives: ObjectivesData | null
+  initialReadyMatch: boolean
 }
 
 // "Jugar ya": mesa pública, apuesta fija y partida a 30. Un solo toque y a jugar.
@@ -39,6 +40,7 @@ export default function LobbyClient({
   myMedal,
   isGuest,
   initialObjectives,
+  initialReadyMatch,
 }: Props) {
   const router = useRouter()
   const [tables, setTables] = useState<Table[]>(initialTables)
@@ -54,6 +56,7 @@ export default function LobbyClient({
   const [joinCode, setJoinCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [readyMatch, setReadyMatch] = useState(initialReadyMatch)
   const [createdCode, setCreatedCode] = useState('')
   const [createdTableId, setCreatedTableId] = useState('')
   const [coins, setCoins] = useState(profile.coins)
@@ -65,6 +68,25 @@ export default function LobbyClient({
     (community.data?.incoming.length ?? 0) + (community.data?.invites_in.length ?? 0)
 
   const supabase = createClient()
+
+  useEffect(() => {
+    if (!tournamentModeEnabled || isGuest) return
+    const refresh = () => {
+      if (document.visibilityState !== 'hidden') {
+        void supabase.rpc('tournament_ready_match').then(({ data }) => {
+          if (typeof data === 'boolean') setReadyMatch(data)
+        })
+      }
+    }
+    const interval = window.setInterval(refresh, 8_000)
+    window.addEventListener('focus', refresh)
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener('focus', refresh)
+    }
+    // El cliente de Supabase del navegador comparte la misma instancia.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGuest])
 
   // Fotos y marcos de los creadores de las mesas visibles (profiles es de lectura pública).
   const [creatorAvatars, setCreatorAvatars] = useState<Record<string, string | null>>({})
@@ -487,11 +509,17 @@ export default function LobbyClient({
           )}
 
           {/* Acciones principales */}
+          {readyMatch && (
+            <Alert tone="info">
+              Tenés un cruce de torneo listo. <Link href="/torneos" className="font-bold underline">Entrá desde Torneos</Link> antes de jugar otra mesa.
+            </Alert>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <Button
               size="md"
               fullWidth
               onClick={() => { setShowCreateModal(true); setError('') }}
+              disabled={readyMatch}
               className="!shadow-[0_6px_18px_-7px_rgba(201,162,75,0.4)]"
             >
               <PlusIcon /> Crear mesa
@@ -501,6 +529,7 @@ export default function LobbyClient({
               size="md"
               fullWidth
               onClick={() => { setShowJoinPrivate(true); setError('') }}
+              disabled={readyMatch}
             >
               <LockIcon /> Unirse
             </Button>
@@ -511,7 +540,7 @@ export default function LobbyClient({
             size="lg"
             fullWidth
             onClick={handleJugarYa}
-            disabled={loading || coins < JUGAR_YA_APUESTA}
+            disabled={readyMatch || loading || coins < JUGAR_YA_APUESTA}
             className="-mt-2 !shadow-[0_8px_22px_-8px_rgba(201,162,75,0.55)]"
           >
             <BoltIcon /> Jugar ya
@@ -561,7 +590,7 @@ export default function LobbyClient({
                       <Button
                         size="sm"
                         onClick={() => handleJoinTable(table)}
-                        disabled={loading || coins < table.bet}
+                        disabled={readyMatch || loading || coins < table.bet}
                       >
                         Unirse
                       </Button>
@@ -573,7 +602,7 @@ export default function LobbyClient({
               ))}
             </div>
           </section>
-          {teamModeEnabled && <TeamTables />}
+          {teamModeEnabled && !readyMatch && <TeamTables />}
         </main>
       </div>
 
@@ -686,7 +715,7 @@ export default function LobbyClient({
           >
             Cancelar
           </Button>
-          <Button fullWidth onClick={handleCreateTable} disabled={loading}>
+          <Button fullWidth onClick={handleCreateTable} disabled={readyMatch || loading}>
             {loading ? 'Creando…' : 'Crear'}
           </Button>
         </div>
@@ -719,7 +748,7 @@ export default function LobbyClient({
           >
             Cancelar
           </Button>
-          <Button fullWidth onClick={handleJoinPrivate} disabled={loading}>
+          <Button fullWidth onClick={handleJoinPrivate} disabled={readyMatch || loading}>
             {loading ? 'Buscando…' : 'Unirse'}
           </Button>
         </div>

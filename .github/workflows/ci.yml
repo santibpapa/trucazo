@@ -164,5 +164,8 @@ jobs:
       - name: Seguridad, restricciones e idempotencia de torneos
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournaments.sql
 
+      - name: Competencia 1v1, grupos, ausencia e idempotencia
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournaments_competition.sql
+
       - name: Ultimo cupo concurrente de torneos
         run: supabase/tests/tournaments_concurrency.sh

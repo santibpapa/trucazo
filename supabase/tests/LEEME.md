@@ -20,6 +20,9 @@ sola protección de racha por semana.
 cuenta invitada, bot o de prueba, crear combinaciones inválidas y duplicar una
 aceptación/check-in. `tournaments_concurrency.sh` hace competir dos conexiones
 reales por el último lugar y comprueba que una pase a lista de espera.
+`tournaments_competition.sql` recorre torneos 1v1 de cuatro y ocho jugadores,
+grupos, pases directos, ausencias, pausa y reanudación, resultado repetido,
+apuesta cero, revancha prohibida y bloqueo de mesas normales.
 
 La prueba ranking_emails.sql comprueba que un cambio de podio avise a todos los
 puestos afectados, que cada jugador tenga un máximo de un correo cada 24 horas
@@ -39,6 +42,7 @@ psql -f supabase/tests/seguridad_privilegios_funciones.sql
 psql -f supabase/tests/seguridad_pr2.sql
 psql -f supabase/tests/ciclo_retorno.sql
 psql -f supabase/tests/tournaments.sql
+psql -f supabase/tests/tournaments_competition.sql
 supabase/tests/tournaments_concurrency.sh
 psql -f supabase/tests/ranking_emails.sql
 ```

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import LobbyClient from './LobbyClient'
 import type { ObjectivesData } from '@/lib/objectives'
 import type { Profile } from '@/lib/types'
+import { tournamentModeEnabled } from '@/lib/tournaments'
 
 export default async function LobbyPage() {
   const supabase = await createClient()
@@ -60,6 +61,9 @@ export default async function LobbyPage() {
     user.is_anonymous
       ? Promise.resolve({ data: null, error: null })
       : supabase.rpc('get_my_objectives', { p_game_id: null }),
+    tournamentModeEnabled && !user.is_anonymous
+      ? supabase.rpc('tournament_ready_match')
+      : Promise.resolve({ data: false, error: null }),
   ])
 
   const { perfil, sinRespuesta } = await leerPerfil()
@@ -80,7 +84,7 @@ export default async function LobbyPage() {
     profile = (await leerPerfil()).perfil
   }
 
-  const [{ data: tables }, { data: activeGame }, { data: myMedal }, { data: objectives }] =
+  const [{ data: tables }, { data: activeGame }, { data: myMedal }, { data: objectives }, { data: readyMatch }] =
     await datosDelLobby
 
   // Si aun así no hay perfil, mostramos algo claro en vez de romper la pantalla.
@@ -104,6 +108,7 @@ export default async function LobbyPage() {
       myMedal={(myMedal as string | null) ?? 'ninguno'}
       isGuest={user.is_anonymous === true}
       initialObjectives={(objectives as ObjectivesData | null) ?? null}
+      initialReadyMatch={readyMatch === true}
     />
   )
 }
