@@ -285,6 +285,38 @@ begin
     raise exception 'Los byes no avanzaron a semifinales'; end if;
 end $$;
 
+-- Reemplazo manual: se hereda el lugar competitivo sin cambiar el cruce.
+-- Descalificar al nuevo titular concede ese cruce, no reescribe el anterior.
+do $$
+declare
+  t uuid;
+  m public.tournament_matches;
+  v_waitlist uuid;
+  v_replacement uuid := 'bb100000-0000-4000-a000-000000000007';
+begin
+  select id into t from public.tournaments where name='Bye 5';
+  select * into m from public.tournament_matches where tournament_id=t
+    and phase='semifinal' and status='ready' order by match_number limit 1;
+  insert into public.tournament_entries(tournament_id,status,created_by)
+    values(t,'waitlisted',v_replacement) returning id into v_waitlist;
+  insert into public.tournament_entry_members(tournament_id,entry_id,user_id,
+    role,status,accepted_at) values(t,v_waitlist,v_replacement,'captain','accepted',now());
+  perform set_config('request.jwt.claim.sub',
+    'bb100000-0000-4000-a000-000000000000',true);
+  perform public.tournament_admin_replace(t,m.side_a_entry_id,v_waitlist);
+  if not exists(select 1 from public.tournament_entry_members
+    where entry_id=m.side_a_entry_id and user_id=v_replacement and status='accepted')
+     or (select side_a_entry_id from public.tournament_matches where id=m.id)
+        <> m.side_a_entry_id then
+    raise exception 'El reemplazo no conservó el lugar competitivo'; end if;
+  perform public.tournament_admin_disqualify(t,m.side_a_entry_id);
+  if (select winner_entry_id from public.tournament_matches where id=m.id)
+       <> m.side_b_entry_id
+     or (select finish_reason from public.tournament_matches where id=m.id)
+       <> 'disqualification' then
+    raise exception 'La descalificación no concedió el cruce'; end if;
+end $$;
+
 -- Expiración: un lado presente gana; ambos ausentes requieren revisión.
 do $$
 declare
