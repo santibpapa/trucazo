@@ -40,6 +40,7 @@ declare
     'tournament_withdraw', 'tournament_check_in',
     'tournament_admin_start', 'tournament_admin_pause',
     'tournament_admin_retry_match', 'tournament_admin_replace',
+    'tournament_admin_replace_team_member',
     'tournament_admin_disqualify', 'tournament_enter_match',
     'tournament_ready_match'
   ];
@@ -217,12 +218,3 @@ begin
   end loop;
 
   raise notice 'Permisos actuales, defaults futuros y barridos: TODO CERRADO.';
-end;
-$test$;
-
-rollback;
-
-\echo ''
-\echo '  =============================================='
-\echo '   TODO CERRADO — permisos de funciones correctos'
-\echo '  =============================================='
