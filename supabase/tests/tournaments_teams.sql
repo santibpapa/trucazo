@@ -108,6 +108,17 @@ begin
     where tournament_id=t and phase='group')=12,'faltan partidos de grupos');
 end $$;
 
+-- El torneo usa una mesa privada: cuenta como partida humana terminada,
+-- pero jamás como partida pública para las misiones diarias.
+insert into public.daily_mission_assignments(profile_id,local_date,template_slug,
+  reward_amount_snapshot)
+select pg_temp.player(i), (now() at time zone 'America/Argentina/Buenos_Aires')::date,
+  template.slug,template.reward_amount
+from generate_series(1,8) i
+cross join public.daily_mission_templates template
+where template.slug in ('finish_1','public_human_1')
+on conflict (profile_id,local_date,template_slug) do update set progress=0,completed_at=null;
+
 create function pg_temp.enter(m uuid,u uuid) returns jsonb language plpgsql as $$
 declare j jsonb;
 begin
@@ -177,6 +188,16 @@ begin
     perform pg_temp.check((select count(*) from public.tournament_matches
       where tournament_id=t.id and phase in ('final','third_place')
       and status='finished')=2,'faltó final o tercer puesto');
+    if (select name from public.tournaments where id=t.id)='Directa equipos' then
+      perform pg_temp.check((select count(*)=8 from public.daily_mission_assignments
+        where template_slug='finish_1' and profile_id in
+          (select pg_temp.player(i) from generate_series(1,8) i)
+          and progress=1),'no avanzó la misión de partida terminada');
+      perform pg_temp.check((select count(*)=8 from public.daily_mission_assignments
+        where template_slug='public_human_1' and profile_id in
+          (select pg_temp.player(i) from generate_series(1,8) i)
+          and progress=0),'la mesa privada avanzó una misión pública');
+    end if;
   end loop;
 end $$;
 
