@@ -680,8 +680,9 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 - Migraciones nuevas: `supabase/migrations/20260925103000_tournaments_2v2_competition.sql`; ejecutar completa una sola vez en el SQL Editor después del merge.
 - SQL aplicado en: ninguno por este PR. El dueño afirmó al solicitar esta etapa que acababa de finalizar PR 3; el registro anterior conserva el detalle de los recorridos en preview pendientes de documentar.
 - Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción hasta PR 5.
-- Pruebas automáticas: TypeScript, lint, contrato de RPC, build con flag encendido, reconstrucción PostgreSQL, regresiones 1v1/2v2, permisos y `supabase/tests/tournaments_teams.sql` aprobados en [GitHub Actions](https://github.com/santibpapa/trucazo/actions/runs/36189617651).
+- Pruebas automáticas: TypeScript, lint, contrato de RPC, build con flag encendido, reconstrucción PostgreSQL, regresiones 1v1/2v2, permisos y `supabase/tests/tournaments_teams.sql`; consultar los checks vigentes del [PR #89](https://github.com/santibpapa/trucazo/pull/89).
 - Recorridos manuales: pendientes en preview tras aplicar la migración en un entorno de prueba.
 - Decisiones técnicas: emparejamiento aleatorio persistido al completar el cupo o iniciar; cada equipo ocupa una inscripción competitiva; cruce y mesa 2v2 comparten resultado idempotente; cuatro asientos fijados en el servidor; las misiones 2v2 usan eventos propios y los premios permanecen para PR 5.
+- Revisión posterior: el desafío semanal de rivales humanos debía ordenar UUID en vez de aplicar `min(uuid)`, que impedía cerrar la partida; al iniciar con un equipo ausente y esperar primero un solo y después una pareja, la promoción debía elegir la pareja completa. Ambos escenarios se incorporaron a `supabase/tests/tournaments_teams.sql`.
 - Problemas pendientes o riesgos: recorrer ambos formatos y los reemplazos en preview, fusionar y aplicar SQL antes de declarar la etapa completa.
 - Para que empiece PR 5 falta: cumplir la definición de terminado de PR 4, sin habilitar el lanzamiento general.
