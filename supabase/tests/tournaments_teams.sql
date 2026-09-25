@@ -62,6 +62,9 @@ begin
   select id into t from public.tournaments where name='Ausencia integrante';
   for i in 1..8 by 2 loop perform pg_temp.add_pair(t,i); end loop;
   perform pg_temp.add_player(t,20,'solo','waitlisted');
+  insert into public.tournament_entry_members(tournament_id,entry_id,user_id,role,status,accepted_at)
+  select t,pg_temp.add_player(t,22,'team','waitlisted'),pg_temp.player(23),
+    'invitee','accepted',now();
 end $$;
 
 -- Fuerza los disparadores diferidos sin confirmar ni persistir el fixture.
@@ -227,6 +230,44 @@ begin
     where match_id=m.id)=3,'se perdieron presencias confirmadas');
   perform pg_temp.check((select entry_deadline>now() from public.tournament_matches
     where id=m.id),'el reemplazo no recibió plazo nuevo');
+end $$;
+
+-- El administrador puede cambiar una persona sola o una pareja completa
+-- conservando la plaza competitiva y el check-in del cruce.
+do $$
+declare t uuid; e uuid; incoming uuid; old_user uuid; new_user uuid; n integer;
+begin
+  perform set_config('request.jwt.claim.sub',pg_temp.player(0)::text,true);
+  select id into t from public.tournaments where name='Solo impar';
+  select id into e from public.tournament_entries where tournament_id=t
+    and status='active' and kind='team' limit 1;
+  select user_id into old_user from public.tournament_entry_members
+    where entry_id=e and status='accepted' limit 1;
+  select id into incoming from public.tournament_entries where tournament_id=t
+    and status='waitlisted' and kind='solo' limit 1;
+  select user_id into new_user from public.tournament_entry_members
+    where entry_id=incoming and status='accepted';
+  set local role authenticated;
+  perform public.tournament_admin_replace_team_member(t,e,old_user,incoming);
+  reset role;
+  select count(*) into n from public.tournament_entry_members where entry_id=e
+    and status='accepted';
+  perform pg_temp.check(n=2 and exists(select 1 from public.tournament_entry_members
+    where entry_id=e and user_id=new_user and status='accepted'),
+    'el reemplazo manual de integrante no mantuvo la pareja');
+
+  select id into t from public.tournaments where name='Ausencia integrante';
+  select id into e from public.tournament_entries where tournament_id=t
+    and status='active' and kind='team' limit 1;
+  select id into incoming from public.tournament_entries where tournament_id=t
+    and status='waitlisted' and kind='team' limit 1;
+  set local role authenticated;
+  perform public.tournament_admin_replace(t,e,incoming);
+  reset role;
+  perform pg_temp.check((select count(*)=2 from public.tournament_entry_members
+    where entry_id=e and status='accepted' and user_id in
+      (pg_temp.player(22),pg_temp.player(23))),
+    'el reemplazo manual de pareja no mantuvo ambos integrantes');
 end $$;
 
 do $$
