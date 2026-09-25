@@ -57,13 +57,18 @@ create function tournament_internal.lock_tournament_seats() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
   if exists (select 1 from public.team_tables t
-    where t.id = old.table_id and t.tournament_match_id is not null)
-    and (tg_op='DELETE' or new.user_id is distinct from old.user_id
+    where t.id = old.table_id and t.tournament_match_id is not null) then
+    if tg_op='DELETE' then
+      raise exception 'Los asientos del torneo no se pueden cambiar';
+    end if;
+    if new.user_id is distinct from old.user_id
       or new.seat is distinct from old.seat or new.paid is distinct from old.paid
-      or new.table_id is distinct from old.table_id) then
-    raise exception 'Los asientos del torneo no se pueden cambiar';
+      or new.table_id is distinct from old.table_id then
+      raise exception 'Los asientos del torneo no se pueden cambiar';
+    end if;
   end if;
-  return old;
+  if tg_op='DELETE' then return old; end if;
+  return new;
 end; $$;
 create trigger tournament_seat_update_guard before update or delete on public.team_seats
   for each row execute function tournament_internal.lock_tournament_seats();
