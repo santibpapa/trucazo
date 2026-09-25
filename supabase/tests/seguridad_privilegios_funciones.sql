@@ -218,3 +218,12 @@ begin
   end loop;
 
   raise notice 'Permisos actuales, defaults futuros y barridos: TODO CERRADO.';
+end;
+$test$;
+
+rollback;
+
+\echo ''
+\echo '  =============================================='
+\echo '   TODO CERRADO — permisos de funciones correctos'
+\echo '  =============================================='
