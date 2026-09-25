@@ -556,7 +556,7 @@ begin
       join public.daily_mission_templates d on d.slug=a.template_slug
       where a.profile_id=p_user and a.local_date=v_day for update of a
   loop
-    v_step := case when r.event_type in ('game_finished','public_human_game')
+    v_step := case when r.event_type = 'game_finished'
       or (r.event_type='human_game_won' and p_won) then 1 else 0 end;
     if v_step=0 or r.progress>=r.target_value then continue; end if;
     v_old:=r.progress; v_new:=least(r.target_value,v_old+v_step);
@@ -567,7 +567,7 @@ begin
     v_delta:=v_delta || jsonb_build_array(jsonb_build_object(
       'type','daily','identifier',r.template_slug,'name',r.name,
       'previous',v_old,'current',v_new,'target',r.target_value,
-      'reward',r.reward_amount_snapshot,'mode','persona',
+      'reward',r.reward_amount_snapshot,'mode','privada',
       'completed',v_new>=r.target_value,'newly_completed',v_new>=r.target_value));
   end loop;
   select c.*,p.progress as player_progress into r
@@ -599,7 +599,7 @@ begin
       v_delta:=v_delta || jsonb_build_array(jsonb_build_object(
         'type','weekly','identifier',r.template_slug,'name',r.name_snapshot,
         'previous',v_old,'current',v_new,'target',r.target_value_snapshot,
-        'reward',r.reward_amount_snapshot,'mode','persona',
+        'reward',r.reward_amount_snapshot,'mode','privada',
         'completed',v_new>=r.target_value_snapshot,'newly_completed',v_new>=r.target_value_snapshot));
     end if;
   end if;
