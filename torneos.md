@@ -674,14 +674,14 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 
 ### 2026-09-25 — PR 4 — Competencia 2v2
 
-- Estado: En curso; implementación pendiente de revisión, merge, SQL y recorridos reales.
+- Estado: Código y pruebas automáticas completos; pendientes revisión, merge, SQL y recorridos reales.
 - Rama: `codex/tournaments-2v2-competition`.
 - PR: [#89 — feat: competencia 2v2 de torneos](https://github.com/santibpapa/trucazo/pull/89).
 - Migraciones nuevas: `supabase/migrations/20260925103000_tournaments_2v2_competition.sql`; ejecutar completa una sola vez en el SQL Editor después del merge.
 - SQL aplicado en: ninguno por este PR. El dueño afirmó al solicitar esta etapa que acababa de finalizar PR 3; el registro anterior conserva el detalle de los recorridos en preview pendientes de documentar.
 - Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción hasta PR 5.
-- Pruebas automáticas: TypeScript, lint, contrato de RPC y build con flag encendido aprobados localmente; ver también `supabase/tests/tournaments_teams.sql` y el CI del PR.
+- Pruebas automáticas: TypeScript, lint, contrato de RPC, build con flag encendido, reconstrucción PostgreSQL, regresiones 1v1/2v2, permisos y `supabase/tests/tournaments_teams.sql` aprobados en [GitHub Actions](https://github.com/santibpapa/trucazo/actions/runs/36189617651).
 - Recorridos manuales: pendientes en preview tras aplicar la migración en un entorno de prueba.
 - Decisiones técnicas: emparejamiento aleatorio persistido al completar el cupo o iniciar; cada equipo ocupa una inscripción competitiva; cruce y mesa 2v2 comparten resultado idempotente; cuatro asientos fijados en el servidor; las misiones 2v2 usan eventos propios y los premios permanecen para PR 5.
-- Problemas pendientes o riesgos: validar CI PostgreSQL, recorrer ambos formatos y los reemplazos en preview, fusionar y aplicar SQL antes de declarar la etapa completa.
+- Problemas pendientes o riesgos: recorrer ambos formatos y los reemplazos en preview, fusionar y aplicar SQL antes de declarar la etapa completa.
 - Para que empiece PR 5 falta: cumplir la definición de terminado de PR 4, sin habilitar el lanzamiento general.
