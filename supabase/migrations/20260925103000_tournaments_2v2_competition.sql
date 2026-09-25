@@ -150,6 +150,10 @@ declare
   v_group integer;
   v_round integer;
   v_pair integer;
+  v_free integer;
+  v_waiting_team uuid;
+  v_waiting_solo_a uuid;
+  v_waiting_solo_b uuid;
   v_indices integer[][] := array[
     array[1,4,2,3], array[1,3,4,2], array[1,2,3,4]
   ];
@@ -166,7 +170,47 @@ begin
   update public.tournament_entries e set status = 'replaced', updated_at = now()
    where e.tournament_id = t.id and e.status = 'active'
      and not exists (select 1 from public.tournament_checkins c where c.entry_id = e.id);
-  perform tournament_internal.promote_waitlist(t.id, p_actor_id);
+  if t.mode = '2v2' then
+    -- Un hueco de equipo se llena primero con una pareja confirmada, aunque
+    -- un solo tenga mayor prioridad. Sin parejas, hacen falta dos solos.
+    v_free := t.capacity - tournament_internal.active_player_count(t.id, null);
+    while v_free >= 2 loop
+      select e.id into v_waiting_team from public.tournament_entries e
+        where e.tournament_id = t.id and e.status = 'waitlisted'
+          and e.kind = 'team' and (select count(*) from public.tournament_entry_members mem
+            where mem.entry_id = e.id and mem.status = 'accepted') = 2
+        order by e.priority_at, e.sequence_no limit 1 for update of e;
+      if found then
+        update public.tournament_entries set status = 'active', updated_at = now()
+          where id = v_waiting_team;
+        perform tournament_internal.audit(t.id, p_actor_id,
+          'entry_promoted_from_waitlist', v_waiting_team, jsonb_build_object('players', 2));
+      else
+        select e.id into v_waiting_solo_a from public.tournament_entries e
+          where e.tournament_id = t.id and e.status = 'waitlisted'
+            and e.kind = 'solo' and (select count(*) from public.tournament_entry_members mem
+              where mem.entry_id = e.id and mem.status = 'accepted') = 1
+          order by e.priority_at, e.sequence_no limit 1 for update of e;
+        if not found then exit; end if;
+        select e.id into v_waiting_solo_b from public.tournament_entries e
+          where e.tournament_id = t.id and e.status = 'waitlisted'
+            and e.kind = 'solo' and e.id <> v_waiting_solo_a
+            and (select count(*) from public.tournament_entry_members mem
+              where mem.entry_id = e.id and mem.status = 'accepted') = 1
+          order by e.priority_at, e.sequence_no limit 1 for update of e;
+        if not found then exit; end if;
+        update public.tournament_entries set status = 'active', updated_at = now()
+          where id in (v_waiting_solo_a, v_waiting_solo_b);
+        perform tournament_internal.audit(t.id, p_actor_id,
+          'entry_promoted_from_waitlist', v_waiting_solo_a, jsonb_build_object('players', 1));
+        perform tournament_internal.audit(t.id, p_actor_id,
+          'entry_promoted_from_waitlist', v_waiting_solo_b, jsonb_build_object('players', 1));
+      end if;
+      v_free := v_free - 2;
+    end loop;
+  else
+    perform tournament_internal.promote_waitlist(t.id, p_actor_id);
+  end if;
   insert into public.tournament_checkins(entry_id, tournament_id, confirmed_by)
     select e.id, t.id, m.user_id from public.tournament_entries e
     join public.tournament_entry_members m on m.entry_id = e.id and m.status = 'accepted'
@@ -584,10 +628,10 @@ begin
       or (r.event_type_snapshot='game_won' and p_won) then 1 else 0 end;
     if r.event_type_snapshot='human_unique_opponent' then
       -- De los dos rivales se usa una identidad estable para la misión única.
-      select min(s.user_id) into v_partner from public.team_seats s
+      select s.user_id into v_partner from public.team_seats s
         join public.team_seats mine on mine.table_id=s.table_id
           and mine.user_id=p_user and s.seat%2<>mine.seat%2
-        where s.table_id=p_game;
+        where s.table_id=p_game order by s.user_id limit 1;
       if v_partner is not null then
         insert into public.weekly_challenge_uniques(profile_id,week_start,unique_key)
           values(p_user,v_week,v_partner) on conflict do nothing;
