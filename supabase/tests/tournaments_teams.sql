@@ -22,7 +22,8 @@ select name,'PR4 local','2v2',format,capacity,15,now()+interval '20 minutes',
   'published',now(),'cc100000-0000-4000-a000-000000000000',
   'cc100000-0000-4000-a000-000000000000'
 from (values ('Directa equipos','knockout',8),('Grupos equipos','groups',16),
-  ('Solo impar','knockout',16),('Ausencia integrante','knockout',8)) x(name,format,capacity);
+  ('Solo impar','knockout',16),('Ausencia integrante','knockout',8),
+  ('Preferir pareja','knockout',8)) x(name,format,capacity);
 
 create function pg_temp.player(i integer) returns uuid language sql immutable as $$
   select ('cc100000-0000-4000-a000-'||lpad(i::text,12,'0'))::uuid;
@@ -61,6 +62,14 @@ begin
   for i in 1..9 loop perform pg_temp.add_player(t,i); end loop;
   select id into t from public.tournaments where name='Ausencia integrante';
   for i in 1..8 by 2 loop perform pg_temp.add_pair(t,i); end loop;
+  perform pg_temp.add_player(t,20,'solo','waitlisted');
+  insert into public.tournament_entry_members(tournament_id,entry_id,user_id,role,status,accepted_at)
+  select t,pg_temp.add_player(t,22,'team','waitlisted'),pg_temp.player(23),
+    'invitee','accepted',now();
+  select id into t from public.tournaments where name='Preferir pareja';
+  for i in 1..8 by 2 loop perform pg_temp.add_pair(t,i); end loop;
+  delete from public.tournament_checkins where entry_id=(select id
+    from public.tournament_entries where tournament_id=t and created_by=pg_temp.player(1));
   perform pg_temp.add_player(t,20,'solo','waitlisted');
   insert into public.tournament_entry_members(tournament_id,entry_id,user_id,role,status,accepted_at)
   select t,pg_temp.add_player(t,22,'team','waitlisted'),pg_temp.player(23),
@@ -109,6 +118,16 @@ begin
     'dieciséis jugadores no formaron dos grupos');
   perform pg_temp.check((select count(*) from public.tournament_matches
     where tournament_id=t and phase='group')=12,'faltan partidos de grupos');
+  select id into t from public.tournaments where name='Preferir pareja';
+  perform pg_temp.check((select count(*) from public.tournament_entries where
+    tournament_id=t and status='active' and kind='team')=4,
+    'no se pudo iniciar aunque había una pareja completa en espera');
+  perform pg_temp.check((select status='waitlisted' from public.tournament_entries
+    where tournament_id=t and created_by=pg_temp.player(20)),
+    'se ascendió al solo en vez de priorizar la pareja completa');
+  perform pg_temp.check((select status='active' from public.tournament_entries
+    where tournament_id=t and created_by=pg_temp.player(22)),
+    'no se ascendió a la pareja confirmada');
 end $$;
 
 -- El torneo usa una mesa privada: cuenta como partida humana terminada,
@@ -121,6 +140,23 @@ from generate_series(1,8) i
 cross join public.daily_mission_templates template
 where template.slug in ('finish_1','public_human_1')
 on conflict (profile_id,local_date,template_slug) do update set progress=0,completed_at=null;
+
+-- Fuerza "Tres rivales" en la semana: el cierre real tiene que guardar
+-- resultado y progreso para los cuatro participantes, no revertirse.
+insert into public.weekly_challenges(week_start,template_slug,name_snapshot,
+  description_snapshot,event_type_snapshot,target_value_snapshot,reward_amount_snapshot)
+select (now() at time zone 'America/Argentina/Buenos_Aires')::date
+    - (extract(isodow from now() at time zone 'America/Argentina/Buenos_Aires')::integer-1),
+  template.slug,template.name,template.description,template.event_type,
+  template.target_value,template.reward_amount
+from public.weekly_challenge_templates template
+where template.event_type='human_unique_opponent' limit 1
+on conflict (week_start) do update set
+  template_slug=excluded.template_slug,name_snapshot=excluded.name_snapshot,
+  description_snapshot=excluded.description_snapshot,
+  event_type_snapshot=excluded.event_type_snapshot,
+  target_value_snapshot=excluded.target_value_snapshot,
+  reward_amount_snapshot=excluded.reward_amount_snapshot;
 
 create function pg_temp.enter(m uuid,u uuid) returns jsonb language plpgsql as $$
 declare j jsonb;
@@ -172,6 +208,22 @@ begin
       from public.profiles where id=v_member.user_id),
       'un jugador no sumó una sola partida por cruce');
   end loop;
+end $$;
+
+do $$
+declare t uuid; m uuid; game_id uuid; v_week date;
+begin
+  select id into t from public.tournaments where name='Directa equipos';
+  select id into m from public.tournament_matches where tournament_id=t
+    and status='ready' order by match_number limit 1;
+  perform pg_temp.play(m);
+  select team_game_id into game_id from public.tournament_matches where id=m;
+  v_week := (now() at time zone 'America/Argentina/Buenos_Aires')::date
+    - (extract(isodow from now() at time zone 'America/Argentina/Buenos_Aires')::integer-1);
+  perform pg_temp.check((select count(*)=4 from public.weekly_challenge_uniques u
+    join public.team_seats seat on seat.user_id=u.profile_id
+    where seat.table_id=game_id and u.week_start=v_week),
+    'Tres rivales no registró a los cuatro jugadores');
 end $$;
 
 -- Recorrido completo: las rondas se abren al terminar todos sus partidos.
