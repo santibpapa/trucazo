@@ -363,8 +363,8 @@ begin
     where entry_id=v_wait.id and status='accepted';
   update public.tournament_entry_members set status='replaced',replaced_at=now(),
     replaced_by=v_new where entry_id=v_side and user_id=v_missing and status='accepted';
-  update public.tournament_entry_members set status='replaced',replaced_at=now(),
-    replaced_by=v_side where entry_id=v_wait.id and status='accepted';
+  update public.tournament_entry_members set status='replaced',replaced_at=now()
+    where entry_id=v_wait.id and status='accepted';
   update public.tournament_entries set status='replaced',replaced_entry_id=v_side,
     updated_at=now() where id=v_wait.id;
   insert into public.tournament_entry_members(tournament_id,entry_id,user_id,role,status,accepted_at)
