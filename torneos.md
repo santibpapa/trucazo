@@ -28,7 +28,7 @@ Reglas de trabajo:
 | PR 1 — Base de datos y contrato | Completo | `codex/tournaments-base-contract` | [#75](https://github.com/santibpapa/trucazo/pull/75) | `20260921082456_tournaments_base_contract.sql` | Fusionado, SQL aplicado y verificado; la funcionalidad sigue apagada |
 | PR 2 — Administración e inscripciones | Completo | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | Fusionado, SQL aplicado y recorridos validados; producción sigue apagada |
 | PR 3 — Competencia 1v1 | Completo | `codex/tournaments-1v1-competition` | [#84](https://github.com/santibpapa/trucazo/pull/84) | `20260924172158_tournaments_1v1_competition.sql` | Fusionado; SQL aplicado; cron #8 activo y verificado. Recorridos 1v1 en preview diferidos antes de PR 4; flag apagado |
-| PR 4 — Competencia 2v2 | En curso | `codex/tournaments-2v2-competition` | [#88](https://github.com/santibpapa/trucazo/pull/88) | `20260925103000_tournaments_2v2_competition.sql` | Implementación y pruebas en revisión; SQL sin aplicar y flag apagado |
+| PR 4 — Competencia 2v2 | En curso | `codex/tournaments-2v2-competition` | [#89](https://github.com/santibpapa/trucazo/pull/89) | `20260925103000_tournaments_2v2_competition.sql` | Implementación y pruebas en revisión; SQL sin aplicar y flag apagado |
 | PR 5 — Comunicaciones, espectadores y lanzamiento | Pendiente | — | — | — | Habilitación pública al final |
 
 La sesión que trabaje una etapa debe actualizar su fila y agregar una entrada al registro de traspaso. Los estados válidos son `Pendiente`, `En curso`, `Bloqueado` y `Completo`.
@@ -676,7 +676,7 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 
 - Estado: En curso; implementación pendiente de revisión, merge, SQL y recorridos reales.
 - Rama: `codex/tournaments-2v2-competition`.
-- PR: [#88 — feat: competencia 2v2 de torneos](https://github.com/santibpapa/trucazo/pull/88).
+- PR: [#89 — feat: competencia 2v2 de torneos](https://github.com/santibpapa/trucazo/pull/89).
 - Migraciones nuevas: `supabase/migrations/20260925103000_tournaments_2v2_competition.sql`; ejecutar completa una sola vez en el SQL Editor después del merge.
 - SQL aplicado en: ninguno por este PR. El dueño afirmó al solicitar esta etapa que acababa de finalizar PR 3; el registro anterior conserva el detalle de los recorridos en preview pendientes de documentar.
 - Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción hasta PR 5.
