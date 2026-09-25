@@ -146,6 +146,7 @@ export default async function GamePage({ params }: { params: { id: string } }) {
       myAccessory={myAccessory}
       opponentAccessory={opponentAccessory}
       opponentIsBot={opponentIsBot}
+      tournamentId={table.tournament_id ?? null}
     />
   )
 }

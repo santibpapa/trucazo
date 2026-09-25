@@ -27,7 +27,7 @@ Reglas de trabajo:
 | Documento base | Completo | `codex/plan-sistema-torneos` | [#74](https://github.com/santibpapa/trucazo/pull/74) | Ninguna | Especificación y división en cinco etapas |
 | PR 1 — Base de datos y contrato | Completo | `codex/tournaments-base-contract` | [#75](https://github.com/santibpapa/trucazo/pull/75) | `20260921082456_tournaments_base_contract.sql` | Fusionado, SQL aplicado y verificado; la funcionalidad sigue apagada |
 | PR 2 — Administración e inscripciones | Completo | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | Fusionado, SQL aplicado y recorridos validados; producción sigue apagada |
-| PR 3 — Competencia 1v1 | Pendiente | — | — | — | Primer flujo jugable completo |
+| PR 3 — Competencia 1v1 | En curso | `codex/tournaments-1v1-competition` | [#84](https://github.com/santibpapa/trucazo/pull/84) | `20260924172158_tournaments_1v1_competition.sql` | SQL sin aplicar; falta merge y recorrido en preview; flag apagado |
 | PR 4 — Competencia 2v2 | Pendiente | — | — | — | Integra el motor de equipos |
 | PR 5 — Comunicaciones, espectadores y lanzamiento | Pendiente | — | — | — | Habilitación pública al final |
 
@@ -653,3 +653,17 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 - Decisiones técnicas tomadas: primer render con Server Components; mutaciones solo por las RPC seguras del PR 1; refresco controlado cada 8 segundos en detalles y 15 segundos en listados para no abrir lectura directa ni publicar tablas privadas en Realtime; horario de formularios fijado a Argentina; los borradores cancelados dejan de filtrarse a jugadores y el servidor rechaza fechas nuevas en el pasado
 - Problemas pendientes o riesgos: no se crean partidas, sorteos, emails ni premios porque pertenecen a etapas posteriores; no quedan bloqueos propios del PR 2
 - Para que empiece PR 3 falta: nada; el PR 2 está fusionado, su SQL está aplicado y los recorridos fueron validados. La próxima sesión debe partir del último `master` y mantener el flag apagado en producción
+
+### 2026-09-24 — PR 3 — Competencia 1v1
+
+- Estado: En curso; el PR está preparado para revisión, pero todavía no está fusionado ni se aplicó SQL
+- Rama: `codex/tournaments-1v1-competition`
+- PR: [#84 — feat: implementar competencia 1v1 de torneos](https://github.com/santibpapa/trucazo/pull/84)
+- Migraciones nuevas: `supabase/migrations/20260924172158_tournaments_1v1_competition.sql`; aplicar únicamente después del merge, en el SQL Editor de Supabase, copiando y ejecutando el archivo completo una vez
+- SQL aplicado en: ninguno; producción conserva los contratos de PR 1 y 2
+- Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción; no encender hasta PR 5
+- Pruebas automáticas ejecutadas: reconstrucción de PostgreSQL y `supabase/tests/tournaments_competition.sql` para eliminación directa de cuatro, grupos de ocho y doce, pases, ausencia, revancha prohibida, apuestas cero, estadísticas y misiones sin duplicados, pausa, reapertura, reemplazo tardío sin check-in, descalificación después de grupos, doble descalificación en semifinales, mesa 2v2 preexistente e identidad histórica; además TypeScript, ESLint, controles de RPC, regresiones y build con el flag encendido. Verificar el resultado final en el PR antes de fusionar
+- Recorridos manuales ejecutados: revisión del flujo de administrador, participante, mesa y pantalla de resultado contra el contrato; el recorrido en preview con personas reales queda pendiente hasta aplicar SQL a un entorno de prueba
+- Decisiones técnicas tomadas: cada sorteo y desempate se persiste en PostgreSQL; el cron por minuto abre el torneo lleno y resuelve plazos; los dos ingresos crean una sola mesa privada sin apuesta; una partida anulada conserva su historial y cada reapertura crea otra; el cierre existente contabiliza estadísticas y misiones en la misma transacción que avanza el torneo; las funciones privadas mantienen permisos cerrados. La revisión de #84 agregó confirmación automática al reemplazo manual después del cierre, grupos incompletos válidos con pases en la llave, bloqueo al iniciar un 2v2 ya armado y nombre histórico guardado al cerrar cada cruce. Si ambos perdedores de semifinales fueron descalificados, el tercer puesto queda vacante y la final puede cerrar sin inventar un ganador ni acreditar bronce
+- Problemas pendientes o riesgos: revisar y fusionar #84, aplicar la migración manualmente, recorrer un torneo 1v1 de cuatro y otro de ocho con grupos en preview; los premios, emails, espectadores y competencia 2v2 corresponden a etapas posteriores
+- Para que empiece PR 4 falta: cerrar estos recorridos, confirmar los controles automáticos, fusionar #84 y aplicar/verificar su SQL; dejar el flag apagado

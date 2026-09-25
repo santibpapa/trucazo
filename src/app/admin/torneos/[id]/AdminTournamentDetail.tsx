@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Alert, Avatar, Button, Input, Panel } from '@/components/ui'
+import Competition from '@/components/tournaments/Competition'
 import { createClient } from '@/lib/supabase/client'
 import {
   argentinaInputToIso,
@@ -35,7 +36,8 @@ export default function AdminTournamentDetail({
   const [profiles, setProfiles] = useState(initialProfiles)
   const [startsAt, setStartsAt] = useState(isoToArgentinaInput(initialDetail.tournament.starts_at))
   const [reason, setReason] = useState('')
-  const [busy, setBusy] = useState<'reschedule' | 'cancel' | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [replacement, setReplacement] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
@@ -124,6 +126,23 @@ export default function AdminTournamentDetail({
     setBusy(null)
   }
 
+  const competitionAction = async (
+    action: string,
+    success: string,
+    mutation: () => PromiseLike<{ error: { message: string } | null }>,
+  ) => {
+    setBusy(action)
+    setError('')
+    setMessage('')
+    const result = await mutation()
+    if (result.error) setError(result.error.message)
+    else {
+      setMessage(success)
+      await refresh()
+    }
+    setBusy(null)
+  }
+
   return (
     <main className="mx-auto min-h-[100dvh] w-full max-w-6xl px-4 py-6 pb-20 sm:px-6">
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -155,6 +174,91 @@ export default function AdminTournamentDetail({
         <Metric label="Check-ins" value={`${checkedInEntries}/${detail.participants.length}`} />
         <Metric label="Invitaciones pendientes" value={String(pendingInvitations)} />
       </section>
+
+      {tournament.mode === '1v1' && tournament.status === 'published'
+        && Date.now() >= new Date(tournament.starts_at).getTime() && (
+        <Panel as="section" className="mb-5 border-gold/40 p-5">
+          <h2 className="font-display text-xl font-extrabold text-cream">Iniciar competencia</h2>
+          <p className="mt-1 text-sm text-muted">
+            {tournament.format === 'groups'
+              ? 'Se necesitan al menos ocho participantes confirmados, en grupos completos de cuatro.'
+              : 'Se necesitan al menos cuatro participantes. Si faltan lugares, habrá pases directos.'}
+            {' '}Los ausentes del check-in se reemplazan según la lista de espera.
+          </p>
+          <Button className="mt-3" onClick={() => void competitionAction('start',
+            'Se sorteó el plantel y comenzaron los cruces.', () => api.adminStart(tournament.id))}
+            disabled={busy !== null}>Iniciar torneo</Button>
+        </Panel>
+      )}
+
+      {tournament.mode === '1v1' && tournament.status === 'running' && (
+        <Panel as="section" className="mb-5 p-5">
+          <h2 className="font-display text-xl font-extrabold text-cream">Control de competencia</h2>
+          <p className="mt-1 text-sm text-muted">{tournament.paused_at
+            ? 'Pausado. Las partidas en curso pueden terminar; la próxima ronda esperará.'
+            : 'Las rondas y ausencias se procesan automáticamente.'}</p>
+          <Button className="mt-3" variant="secondary"
+            onClick={() => void competitionAction('pause',
+              tournament.paused_at ? 'Torneo reanudado.' : 'Torneo pausado.',
+              () => api.adminPause(tournament.id, !tournament.paused_at))}
+            disabled={busy !== null}>
+            {tournament.paused_at ? 'Reanudar' : 'Pausar'}
+          </Button>
+          {detail.matches.filter(match => match.finish_reason === 'attendance_review').map(match => (
+            <div key={match.id} className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface2 p-3 text-sm">
+              <span>Partida detenida por ausencia · cruce {match.match_number}</span>
+              <Button variant="secondary" disabled={busy !== null}
+                onClick={() => void competitionAction(`retry:${match.id}`,
+                  'Los jugadores tienen otros cinco minutos para entrar.',
+                  () => api.adminRetryMatch(match.id))}>Reabrir cruce</Button>
+            </div>
+          ))}
+        </Panel>
+      )}
+
+      {tournament.mode === '1v1' && ['published', 'running'].includes(tournament.status) && (
+        <Panel as="section" className="mb-5 p-5">
+          <h2 className="font-display text-xl font-extrabold text-cream">Reemplazos y descalificaciones</h2>
+          <p className="mt-1 text-sm text-muted">Un reemplazo conserva el lugar y los resultados previos del titular.</p>
+          <div className="mt-4 space-y-3">
+            {entries.filter(item => item.entry.status === 'active').map(item => (
+              <div key={item.entry.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-line p-3 text-sm">
+                <span className="min-w-28 flex-1 font-semibold text-cream">
+                  {profiles[item.members.find(m => m.status === 'accepted')?.user_id ?? '']?.username ?? 'Jugador'}
+                </span>
+                {entries.some(candidate => candidate.entry.status === 'waitlisted') && (
+                  <>
+                    <label className="sr-only" htmlFor={`replacement-${item.entry.id}`}>Reemplazo</label>
+                    <select id={`replacement-${item.entry.id}`} value={replacement[item.entry.id] ?? ''}
+                      onChange={event => setReplacement(current => ({ ...current, [item.entry.id]: event.target.value }))}
+                      className="min-w-32 rounded-xl border border-line bg-surface2 px-2 py-2 text-cream">
+                      <option value="">Elegir de espera</option>
+                      {entries.filter(candidate => candidate.entry.status === 'waitlisted').map(candidate => (
+                        <option key={candidate.entry.id} value={candidate.entry.id}>
+                          {profiles[candidate.members.find(m => m.status === 'accepted')?.user_id ?? '']?.username ?? 'Jugador'}
+                        </option>
+                      ))}
+                    </select>
+                    <Button variant="secondary" disabled={busy !== null || !replacement[item.entry.id]}
+                      onClick={() => void competitionAction(`replace:${item.entry.id}`,
+                        'Jugador reemplazado.', () => api.adminReplace(tournament.id,
+                          item.entry.id, replacement[item.entry.id]))}>Reemplazar</Button>
+                  </>
+                )}
+                <Button variant="danger" disabled={busy !== null}
+                  onClick={() => {
+                    if (window.confirm('¿Descalificar a este participante? No se reescriben partidas terminadas.')) {
+                      void competitionAction(`dq:${item.entry.id}`, 'Jugador descalificado.',
+                        () => api.adminDisqualify(tournament.id, item.entry.id))
+                    }
+                  }}>Descalificar</Button>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
+
+      <div className="mb-5"><Competition detail={detail} /></div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(19rem,0.6fr)]">
         <Panel as="section" className="p-5">

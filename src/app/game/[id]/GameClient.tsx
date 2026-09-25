@@ -43,6 +43,7 @@ interface Props {
   salonSlug?: string
   // El rival es uno de los bots del lobby (partida normal, con monedas).
   opponentIsBot?: boolean
+  tournamentId?: string | null
 }
 
 type EnvidoType = 'envido' | 'real_envido' | 'falta_envido'
@@ -59,7 +60,7 @@ const TRUCO_LABEL: Record<string, string> = {
 
 const EMOTE_COOLDOWN_MS = 3000
 
-export default function GameClient({ game: initialGame, currentUserId, isGuest = false, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory, opponentIsBot = false }: Props) {
+export default function GameClient({ game: initialGame, currentUserId, isGuest = false, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory, opponentIsBot = false, tournamentId = null }: Props) {
   const router = useRouter()
   const [game, setGame] = useState<Game>(initialGame)
   const cardFlight = useCardFlight(game.hand_number)
@@ -952,6 +953,31 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
     )
   }
 
+  if (game.status === 'finished' && showFinish && tournamentId) {
+    const voided = game.winner_id == null
+    const won = game.winner_id === currentUserId
+    return (
+      <FinishScreen
+        won={won}
+        salonSlug={salonSlug}
+        hand={lastHandCards}
+        title={voided ? 'Partida detenida' : won ? '¡Ganaste el cruce!' : 'Terminó el cruce'}
+        subtitle={voided ? 'Un administrador revisará esta partida.' : won
+          ? <>Le ganaste a <b className="font-semibold text-cream">{opponentUsername}</b> {myScore} a {opponentScore}</>
+          : <><b className="font-semibold text-cream">{opponentUsername}</b> te ganó {opponentScore} a {myScore}</>}
+        note={voided ? 'Volvé al torneo para seguir las novedades.' : 'Consultá el cuadro para ver la próxima ronda.'}
+        me={{ url: myAvatarUrl, name: myUsername, score: myScore, highlight: !voided && won }}
+        opponent={{ url: opponentAvatarUrl, name: opponentUsername, score: opponentScore, highlight: !voided && !won }}
+      >
+        {!voided && <ObjectiveProgressDelta gameId={game.id} isGuest={isGuest} />}
+        <Button variant="primary" size="md" fullWidth
+          onClick={() => router.push(`/torneos/${tournamentId}`)}>
+          Volver al torneo
+        </Button>
+      </FinishScreen>
+    )
+  }
+
   if (game.status === 'finished' && showFinish) {
     // Partida anulada (abandonada por ambos): sin ganador, se reembolsa la apuesta.
     const voided = game.winner_id == null
@@ -1328,4 +1354,3 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
     </main>
   )
 }
-

@@ -121,6 +121,12 @@ jobs:
       - name: Reconstruir la base entera desde cero
         run: scripts/rebuild-db.sh
 
+      - name: Competencia 1v1, grupos, ausencia e idempotencia
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournaments_competition.sql
+
+      - name: Permisos de las funciones
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql
+
       - name: Progresión, acceso y decisiones de la Ruta del Noroeste
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/ruta_noroeste.sql
 
@@ -136,9 +142,6 @@ jobs:
       # termina distinto de 0 si encuentra algo, así que alcanza con correrlas.
       - name: Trampas contra la base (PR 1)
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_pr1.sql
-
-      - name: Permisos de las funciones
-        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql
 
       - name: Límites y conservación de la analítica
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/analytics.sql
