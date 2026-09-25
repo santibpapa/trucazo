@@ -194,11 +194,11 @@ begin
     if (select name from public.tournaments where id=t.id)='Directa equipos' then
       perform pg_temp.check((select count(*)=8 from public.daily_mission_assignments
         where template_slug='finish_1' and profile_id in
-          (select pg_temp.player(i) from generate_series(1,8) i)
+          (select pg_temp.player(players.idx) from generate_series(1,8) as players(idx))
           and progress=1),'no avanzó la misión de partida terminada');
       perform pg_temp.check((select count(*)=8 from public.daily_mission_assignments
         where template_slug='public_human_1' and profile_id in
-          (select pg_temp.player(i) from generate_series(1,8) i)
+          (select pg_temp.player(players.idx) from generate_series(1,8) as players(idx))
           and progress=0),'la mesa privada avanzó una misión pública');
     end if;
   end loop;
