@@ -124,6 +124,9 @@ jobs:
       - name: Competencia 1v1, grupos, ausencia e idempotencia
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournaments_competition.sql
 
+      - name: Competencia 2v2, parejas, grupos y reemplazos
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournaments_teams.sql
+
       - name: Permisos de las funciones
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql
 

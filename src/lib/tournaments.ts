@@ -148,6 +148,7 @@ export interface TournamentDetailData {
     score_a: number | null
     score_b: number | null
     game_id: string | null
+    team_game_id: string | null
   }>
   admin_entries?: Array<{
     entry: TournamentEntry
@@ -269,6 +270,13 @@ export function tournamentApi(client: SupabaseClient) {
       client.rpc('tournament_admin_replace', {
         p_tournament_id: tournamentId,
         p_outgoing_entry_id: outgoing,
+        p_waitlist_entry_id: incoming,
+      }),
+    adminReplaceTeamMember: (tournamentId: string, outgoing: string, userId: string, incoming: string) =>
+      client.rpc('tournament_admin_replace_team_member', {
+        p_tournament_id: tournamentId,
+        p_outgoing_entry_id: outgoing,
+        p_outgoing_user_id: userId,
         p_waitlist_entry_id: incoming,
       }),
     adminDisqualify: (tournamentId: string, entryId: string) =>
