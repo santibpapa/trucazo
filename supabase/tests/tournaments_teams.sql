@@ -148,6 +148,16 @@ begin
     where team_game_id=v_table),'misiones ausentes o duplicadas');
   perform pg_temp.check((select coins=v_coins from public.profiles where id=pg_temp.player(1)),
     'el torneo movió monedas de apuesta');
+  for v_member in select seat.user_id,seat.seat from public.team_seats seat
+    where seat.table_id=v_table loop
+    perform pg_temp.check((select games_played =
+      (select count(*) from tournament_internal.team_objective_events events
+        join public.team_seats s on s.table_id=events.team_game_id
+          and s.user_id=events.profile_id
+        where events.profile_id=v_member.user_id)
+      from public.profiles where id=v_member.user_id),
+      'un jugador no sumó una sola partida por cruce');
+  end loop;
 end $$;
 
 -- Recorrido completo: las rondas se abren al terminar todos sus partidos.

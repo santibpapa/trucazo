@@ -238,7 +238,7 @@ export default function AdminTournamentDetail({
                       <option value="">Elegir de espera</option>
                       {entries.filter(candidate => candidate.entry.status === 'waitlisted'
                         && (tournament.mode === '1v1'
-                          || candidate.entry.kind === 'team' || item.entry.kind === 'team')).map(candidate => (
+                          || item.entry.kind === 'team' || candidate.entry.kind === 'solo')).map(candidate => (
                         <option key={candidate.entry.id} value={candidate.entry.id}>
                           {candidate.members.filter(m => m.status === 'accepted')
                             .map(m => profiles[m.user_id]?.username ?? 'Jugador').join(' + ')}
@@ -264,7 +264,7 @@ export default function AdminTournamentDetail({
                       onClick={() => void competitionAction(`replace:${item.entry.id}`,
                         'Reemplazo realizado.', () => {
                           const incoming = replacement[item.entry.id]
-                          if (tournament.mode === '2v2'
+                          if (tournament.mode === '2v2' && item.entry.kind === 'team'
                             && entries.find(candidate => candidate.entry.id === incoming)?.entry.kind === 'solo') {
                             const member = outgoingMember[item.entry.id]
                             return member ? api.adminReplaceTeamMember(tournament.id,

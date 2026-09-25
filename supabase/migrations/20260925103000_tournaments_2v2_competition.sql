@@ -955,7 +955,7 @@ declare
 begin
   if p_outgoing_entry_id = p_waitlist_entry_id then raise exception 'Elegí otro jugador'; end if;
   select * into t from public.tournaments where id = p_tournament_id for update;
-  if not found or t.mode <> '1v1' or t.status not in ('published', 'running') then
+  if not found or t.mode not in ('1v1','2v2') or t.status not in ('published', 'running') then
     raise exception 'Torneo no disponible'; end if;
   if not exists(select 1 from public.tournament_entries e where e.id = p_outgoing_entry_id
       and e.tournament_id = t.id and e.status = 'active')
@@ -1006,7 +1006,10 @@ begin
   select * into t from public.tournaments where id=p_tournament_id for update;
   if not found or t.status not in ('published','running') then
     raise exception 'Torneo no disponible'; end if;
-  if t.mode='1v1' then
+  if t.mode='1v1' or (exists(select 1 from public.tournament_entries
+      where id=p_outgoing_entry_id and tournament_id=t.id and kind='solo')
+    and exists(select 1 from public.tournament_entries
+      where id=p_waitlist_entry_id and tournament_id=t.id and kind='solo')) then
     return tournament_internal.replace_one_player(
       p_tournament_id,p_outgoing_entry_id,p_waitlist_entry_id,v_actor);
   end if;
