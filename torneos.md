@@ -2,7 +2,7 @@
 
 > Documento fuente de verdad para implementar el sistema de torneos en cinco PR/sesiones.
 >
-> Última actualización: 2026-09-20  
+> Última actualización: 2026-09-25
 > Repositorio base: `santibpapa/trucazo`  
 > Commit base al redactar este documento: `4d5857359b4b33612c0633421beff4aa5d1ddf81`
 
@@ -27,7 +27,7 @@ Reglas de trabajo:
 | Documento base | Completo | `codex/plan-sistema-torneos` | [#74](https://github.com/santibpapa/trucazo/pull/74) | Ninguna | Especificación y división en cinco etapas |
 | PR 1 — Base de datos y contrato | Completo | `codex/tournaments-base-contract` | [#75](https://github.com/santibpapa/trucazo/pull/75) | `20260921082456_tournaments_base_contract.sql` | Fusionado, SQL aplicado y verificado; la funcionalidad sigue apagada |
 | PR 2 — Administración e inscripciones | Completo | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | Fusionado, SQL aplicado y recorridos validados; producción sigue apagada |
-| PR 3 — Competencia 1v1 | En curso | `codex/tournaments-1v1-competition` | [#84](https://github.com/santibpapa/trucazo/pull/84) | `20260924172158_tournaments_1v1_competition.sql` | SQL sin aplicar; falta merge y recorrido en preview; flag apagado |
+| PR 3 — Competencia 1v1 | Completo | `codex/tournaments-1v1-competition` | [#84](https://github.com/santibpapa/trucazo/pull/84) | `20260924172158_tournaments_1v1_competition.sql` | Fusionado; SQL aplicado; cron #8 activo y verificado. Recorridos 1v1 en preview diferidos antes de PR 4; flag apagado |
 | PR 4 — Competencia 2v2 | Pendiente | — | — | — | Integra el motor de equipos |
 | PR 5 — Comunicaciones, espectadores y lanzamiento | Pendiente | — | — | — | Habilitación pública al final |
 
@@ -58,7 +58,7 @@ Estas decisiones no se vuelven a consultar en cada sesión. Solo cambian si el d
 
 ### 4.2 Combinaciones válidas
 
-El partido por el tercer puesto es obligatorio y los grupos siempre tienen cuatro competidores. Por eso, no todas las combinaciones de modalidad, formato y cupo permiten cumplir las reglas:
+El partido por el tercer puesto se genera siempre que haya semifinales (salvo si ambos aspirantes están descalificados) y los grupos siempre tienen cuatro competidores. Por eso, no todas las combinaciones de modalidad, formato y cupo permiten cumplir las reglas:
 
 | Modalidad | Formato | Cupos válidos | Motivo |
 | --- | --- | --- | --- |
@@ -111,6 +111,7 @@ Si llega la hora y el torneo no está lleno, el administrador ve el plantel conf
 
 - En eliminación directa se puede iniciar con `bye` siempre que existan al menos cuatro competidores: cuatro jugadores en 1v1 o cuatro equipos completos en 2v2.
 - En grupos solo se puede iniciar con grupos completos de cuatro y al menos dos grupos. Si la cantidad confirmada no cumple esa estructura, el panel debe explicar por qué todavía no se puede iniciar; el administrador puede completar/reemplazar el plantel o cancelar.
+- Por ejemplo, 12 confirmados de un cupo de 16 permiten iniciar tres grupos completos de cuatro, con pases directos donde corresponda en la llave.
 - Nunca se elimina el partido por el tercer puesto para acomodar un plantel incompleto.
 
 ### 4.7 Competencia
@@ -126,7 +127,7 @@ Si llega la hora y el torneo no está lleno, el administrador ve el plantel conf
   4. sorteo persistido por el servidor si todavía existe igualdad total, para que el resultado sea determinista al recargar.
 - En la primera ronda eliminatoria posterior a grupos se enfrentan ganadores contra segundos; se evita repetir un rival del mismo grupo cuando la cantidad de clasificados lo permite.
 - La ronda eliminatoria siguiente empieza cuando terminan todas las partidas de la ronda actual.
-- Siempre se disputa partido por el tercer puesto entre quienes pierdan las semifinales.
+- El partido por el tercer puesto enfrenta a quienes pierdan las semifinales; si ambos están descalificados, se cancela, el bronce queda vacante y la final puede cerrar el torneo.
 - La mesa de cada cruce la crea el sistema. En el detalle aparece un botón **Entrar a la partida**.
 - Desde que el cruce queda listo, los participantes tienen cinco minutos para entrar.
 - Si al vencer el plazo un lado está completo y el otro no, el lado completo gana por ausencia. Si ambos lados están incompletos, el cruce queda detenido para resolución administrativa; no se inventa un ganador.
@@ -444,6 +445,8 @@ Para espectadores se usa una RPC o vista específica con puntaje, turno, jugador
 - Lint, build, pruebas SQL, pruebas de concurrencia y verificaciones existentes pasan.
 - El traspaso enumera partidas de prueba y cualquier decisión técnica tomada.
 
+El PR 3 se cierra como entrega de código y SQL por decisión del dueño el 2026-09-25. Los recorridos manuales completos de cuatro jugadores por eliminación y ocho con grupos no se informaron como realizados; su aceptación queda como condición explícita para empezar PR 4, no como prueba ya superada.
+
 ### Entrega a la sesión siguiente
 
 - Fusionar y aplicar SQL.
@@ -656,14 +659,15 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 
 ### 2026-09-24 — PR 3 — Competencia 1v1
 
-- Estado: En curso; el PR está preparado para revisión, pero todavía no está fusionado ni se aplicó SQL
+- Estado: Completo como entrega de código y SQL por decisión del dueño el 2026-09-25; aceptación manual en preview diferida antes de PR 4
 - Rama: `codex/tournaments-1v1-competition`
 - PR: [#84 — feat: implementar competencia 1v1 de torneos](https://github.com/santibpapa/trucazo/pull/84)
-- Migraciones nuevas: `supabase/migrations/20260924172158_tournaments_1v1_competition.sql`; aplicar únicamente después del merge, en el SQL Editor de Supabase, copiando y ejecutando el archivo completo una vez
-- SQL aplicado en: ninguno; producción conserva los contratos de PR 1 y 2
+- Commit final: `6649caa866dde4a4324c87a52100c30f9e3b36d4`; merge en `master`: `4afae7afa0e36a16ed64d80ca46a72b0a06acc80`
+- Migraciones nuevas: `supabase/migrations/20260924172158_tournaments_1v1_competition.sql`
+- SQL aplicado en: proyecto Supabase conectado, manualmente después del merge; el SQL Editor devolvió `schedule 8`. Lectura posterior de `cron.job` confirmó el trabajo `trucazo-tournament-1v1-minute`, activo cada minuto con `select tournament_internal.advance_due()`; sus tres ejecuciones recientes terminaron correctamente
 - Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción; no encender hasta PR 5
-- Pruebas automáticas ejecutadas: reconstrucción de PostgreSQL y `supabase/tests/tournaments_competition.sql` para eliminación directa de cuatro, grupos de ocho y doce, pases, ausencia, revancha prohibida, apuestas cero, estadísticas y misiones sin duplicados, pausa, reapertura, reemplazo tardío sin check-in, descalificación después de grupos, doble descalificación en semifinales, mesa 2v2 preexistente e identidad histórica; además TypeScript, ESLint, controles de RPC, regresiones y build con el flag encendido. Verificar el resultado final en el PR antes de fusionar
-- Recorridos manuales ejecutados: revisión del flujo de administrador, participante, mesa y pantalla de resultado contra el contrato; el recorrido en preview con personas reales queda pendiente hasta aplicar SQL a un entorno de prueba
+- Pruebas automáticas ejecutadas: reconstrucción de PostgreSQL y `supabase/tests/tournaments_competition.sql` para eliminación directa de cuatro, grupos de ocho y doce, pases, ausencia, revancha prohibida, apuestas cero, estadísticas y misiones sin duplicados, pausa, reapertura, reemplazo tardío sin check-in, descalificación después de grupos, doble descalificación en semifinales, mesa 2v2 preexistente e identidad histórica; además TypeScript, ESLint, controles de RPC, regresiones y build con el flag encendido. Todo pasó en [GitHub Actions](https://github.com/santibpapa/trucazo/actions/runs/36069141146)
+- Recorridos manuales ejecutados: revisión del flujo de administrador, participante, mesa y pantalla de resultado contra el contrato; los torneos completos de cuatro jugadores por eliminación y ocho con grupos en preview siguen pendientes, no se presumen validados por el SQL ni por la CI
 - Decisiones técnicas tomadas: cada sorteo y desempate se persiste en PostgreSQL; el cron por minuto abre el torneo lleno y resuelve plazos; los dos ingresos crean una sola mesa privada sin apuesta; una partida anulada conserva su historial y cada reapertura crea otra; el cierre existente contabiliza estadísticas y misiones en la misma transacción que avanza el torneo; las funciones privadas mantienen permisos cerrados. La revisión de #84 agregó confirmación automática al reemplazo manual después del cierre, grupos incompletos válidos con pases en la llave, bloqueo al iniciar un 2v2 ya armado y nombre histórico guardado al cerrar cada cruce. Si ambos perdedores de semifinales fueron descalificados, el tercer puesto queda vacante y la final puede cerrar sin inventar un ganador ni acreditar bronce
-- Problemas pendientes o riesgos: revisar y fusionar #84, aplicar la migración manualmente, recorrer un torneo 1v1 de cuatro y otro de ocho con grupos en preview; los premios, emails, espectadores y competencia 2v2 corresponden a etapas posteriores
-- Para que empiece PR 4 falta: cerrar estos recorridos, confirmar los controles automáticos, fusionar #84 y aplicar/verificar su SQL; dejar el flag apagado
+- Problemas pendientes o riesgos: completar y registrar los dos recorridos 1v1 en preview antes de iniciar PR 4; los premios, emails, espectadores y competencia 2v2 corresponden a etapas posteriores
+- Para que empiece PR 4 falta: validar en preview un torneo 1v1 de cuatro por eliminación y otro de ocho con grupos, incluida final, tercer puesto y estado completado; mantener el flag apagado en producción. El merge, el SQL y los controles automáticos ya están confirmados
