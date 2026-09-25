@@ -92,9 +92,9 @@ begin
         replaced_by=v_member where entry_id=v_second and status='accepted';
       update public.tournament_entries set status='replaced', replaced_entry_id=v_first,
         updated_at=now() where id=v_second;
+      update public.tournament_entries set kind='team',updated_at=now() where id=v_first;
       insert into public.tournament_entry_members(tournament_id,entry_id,user_id,role,status,accepted_at)
         values(p_tournament_id,v_first,v_member,'assigned','accepted',now());
-      update public.tournament_entries set kind='team',updated_at=now() where id=v_first;
       if v_checkin.entry_id is not null then
         insert into public.tournament_checkins(entry_id,tournament_id,confirmed_by)
           values(v_first,p_tournament_id,v_checkin.confirmed_by)
@@ -122,6 +122,7 @@ language plpgsql security definer set search_path = '' as $$
 declare t public.tournaments;
 begin
   if new.status<>'accepted' then return new; end if;
+  if pg_trigger_depth()>1 then return new; end if;
   select * into t from public.tournaments where id=new.tournament_id for update;
   if t.mode='2v2' and t.status='published'
     and tournament_internal.active_player_count(t.id,null)=t.capacity then
