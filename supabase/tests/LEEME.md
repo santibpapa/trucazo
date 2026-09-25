@@ -20,9 +20,11 @@ sola protección de racha por semana.
 cuenta invitada, bot o de prueba, crear combinaciones inválidas y duplicar una
 aceptación/check-in. `tournaments_concurrency.sh` hace competir dos conexiones
 reales por el último lugar y comprueba que una pase a lista de espera.
-`tournaments_competition.sql` recorre torneos 1v1 de cuatro y ocho jugadores,
+`tournaments_competition.sql` recorre torneos 1v1 de cuatro, ocho y doce jugadores,
 grupos, pases directos, ausencias, pausa y reanudación, resultado repetido,
-apuesta cero, revancha prohibida y bloqueo de mesas normales.
+apuesta cero, revancha prohibida y bloqueo de mesas normales incluso al comenzar
+una 2v2 ya armada. También cubre reemplazos tardíos con check-in, descalificación
+después de grupos, dos descalificados en semifinales e historial de nombres.
 
 La prueba ranking_emails.sql comprueba que un cambio de podio avise a todos los
 puestos afectados, que cada jugador tenga un máximo de un correo cada 24 horas
