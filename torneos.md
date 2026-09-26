@@ -27,9 +27,9 @@ Reglas de trabajo:
 | Documento base | Completo | `codex/plan-sistema-torneos` | [#74](https://github.com/santibpapa/trucazo/pull/74) | Ninguna | Especificación y división en cinco etapas |
 | PR 1 — Base de datos y contrato | Completo | `codex/tournaments-base-contract` | [#75](https://github.com/santibpapa/trucazo/pull/75) | `20260921082456_tournaments_base_contract.sql` | Fusionado, SQL aplicado y verificado; la funcionalidad sigue apagada |
 | PR 2 — Administración e inscripciones | Completo | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | Fusionado, SQL aplicado y recorridos validados; producción sigue apagada |
-| PR 3 — Competencia 1v1 | Completo | `codex/tournaments-1v1-competition` | [#84](https://github.com/santibpapa/trucazo/pull/84) | `20260924172158_tournaments_1v1_competition.sql` | Fusionado; SQL aplicado; cron #8 activo y verificado. Recorridos 1v1 en preview diferidos antes de PR 4; flag apagado |
-| PR 4 — Competencia 2v2 | En curso | `codex/tournaments-2v2-competition` | [#89](https://github.com/santibpapa/trucazo/pull/89) | `20260925103000_tournaments_2v2_competition.sql` | Implementación y pruebas en revisión; SQL sin aplicar y flag apagado |
-| PR 5 — Comunicaciones, espectadores y lanzamiento | Pendiente | — | — | — | Habilitación pública al final |
+| PR 3 — Competencia 1v1 | Completo | `codex/tournaments-1v1-competition` | [#84](https://github.com/santibpapa/trucazo/pull/84) | `20260924172158_tournaments_1v1_competition.sql` | Fusionado; SQL aplicado; cron #8 activo y verificado. Recorridos 1v1 aún sin constancia; validar antes del lanzamiento |
+| PR 4 — Competencia 2v2 | Completo | `codex/tournaments-2v2-competition` | [#89](https://github.com/santibpapa/trucazo/pull/89) | `20260925103000_tournaments_2v2_competition.sql` | Fusionado y SQL aplicado según el dueño; CI verde. Recorridos manuales todavía sin registrar; flag apagado |
+| PR 5 — Comunicaciones, espectadores y lanzamiento | Pendiente | — | — | — | Puede empezar la implementación; las pruebas manuales pendientes bloquean la activación pública |
 
 La sesión que trabaje una etapa debe actualizar su fila y agregar una entrada al registro de traspaso. Los estados válidos son `Pendiente`, `En curso`, `Bloqueado` y `Completo`.
 
@@ -445,7 +445,7 @@ Para espectadores se usa una RPC o vista específica con puntaje, turno, jugador
 - Lint, build, pruebas SQL, pruebas de concurrencia y verificaciones existentes pasan.
 - El traspaso enumera partidas de prueba y cualquier decisión técnica tomada.
 
-El PR 3 se cierra como entrega de código y SQL por decisión del dueño el 2026-09-25. Los recorridos manuales completos de cuatro jugadores por eliminación y ocho con grupos no se informaron como realizados; su aceptación queda como condición explícita para empezar PR 4, no como prueba ya superada.
+El PR 3 se cierra como entrega de código y SQL por decisión del dueño el 2026-09-25. Los recorridos manuales completos de cuatro jugadores por eliminación y ocho con grupos no se informaron como realizados; la condición prevista para empezar PR 4 quedó diferida y se arrastra como requisito del lanzamiento de PR 5, no como prueba ya superada.
 
 ### Entrega a la sesión siguiente
 
@@ -501,9 +501,11 @@ El PR 3 se cierra como entrega de código y SQL por decisión del dueño el 2026
 ### Empieza cuando
 
 - PR 4 está fusionado y aplicado.
-- 1v1 y 2v2 completan sus matrices mínimas de aceptación.
+- Los recorridos manuales mínimos de 1v1 y 2v2 deben estar confirmados antes del lanzamiento. Si todavía no se registraron, PR 5 puede empezar su implementación, pero debe mantenerlos como pendientes explícitos: ni CI ni SQL sustituyen esa aceptación.
 - La funcionalidad continúa apagada para el lanzamiento general.
 - No existen errores abiertos de integridad, permisos, cupos, resultados o monedas.
+
+Al iniciar PR 5, partir del último `master` que incluye el merge de PR 4 (`8cdb5149d0bc612f9595176d2619428523467c3c`). No volver a ejecutar las migraciones de PR 1–4; cualquier corrección del SQL ya aplicado necesita una migración nueva y posterior. Confirmar que el flag sigue apagado antes de cambiar comunicaciones, premios o espectadores. La aceptación manual pendiente de PR 3 y PR 4 es condición para activar el flag y dar por terminado PR 5, no motivo para inventar resultados ni para repetir etapas anteriores.
 
 ### Alcance exacto
 
@@ -674,15 +676,16 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 
 ### 2026-09-25 — PR 4 — Competencia 2v2
 
-- Estado: Código y pruebas automáticas completos; pendientes revisión, merge, SQL y recorridos reales.
+- Estado: Completo como entrega de código y SQL tras confirmación del dueño el 2026-09-25; aceptación manual en preview diferida antes del lanzamiento de PR 5.
 - Rama: `codex/tournaments-2v2-competition`.
 - PR: [#89 — feat: competencia 2v2 de torneos](https://github.com/santibpapa/trucazo/pull/89).
-- Migraciones nuevas: `supabase/migrations/20260925103000_tournaments_2v2_competition.sql`; ejecutar completa una sola vez en el SQL Editor después del merge.
-- SQL aplicado en: ninguno por este PR. El dueño afirmó al solicitar esta etapa que acababa de finalizar PR 3; el registro anterior conserva el detalle de los recorridos en preview pendientes de documentar.
+- Commit final de PR 4: `77b5fc8032d9bb042ac7c84541356362eb578da9`; merge en `master`: `8cdb5149d0bc612f9595176d2619428523467c3c`.
+- Migraciones nuevas: `supabase/migrations/20260925103000_tournaments_2v2_competition.sql`; no repetirla en el mismo proyecto.
+- SQL aplicado en: proyecto Supabase conectado, manualmente después del merge según confirmación del dueño; no se informó resultado del SQL Editor ni se realizó una lectura posterior independiente de la base.
 - Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción hasta PR 5.
-- Pruebas automáticas: TypeScript, lint, contrato de RPC, build con flag encendido, reconstrucción PostgreSQL, regresiones 1v1/2v2, permisos y `supabase/tests/tournaments_teams.sql`; consultar los checks vigentes del [PR #89](https://github.com/santibpapa/trucazo/pull/89).
-- Recorridos manuales: pendientes en preview tras aplicar la migración en un entorno de prueba.
+- Pruebas automáticas: TypeScript, lint, contrato de RPC, build con flag encendido, reconstrucción PostgreSQL, regresiones 1v1/2v2, permisos y `supabase/tests/tournaments_teams.sql`. La última ejecución de [GitHub Actions](https://github.com/santibpapa/trucazo/actions/runs/36193479947) terminó correctamente, incluidos el cierre con «Tres rivales» y la prioridad de una pareja completa en espera.
+- Recorridos manuales: no se informaron como realizados ni los torneos 2v2 de ocho jugadores por eliminación y dieciséis con grupos ni los reemplazos en preview. Los dos recorridos 1v1 de PR 3 tampoco constan como validados; verificar ambos modos antes del lanzamiento.
 - Decisiones técnicas: emparejamiento aleatorio persistido al completar el cupo o iniciar; cada equipo ocupa una inscripción competitiva; cruce y mesa 2v2 comparten resultado idempotente; cuatro asientos fijados en el servidor; las misiones 2v2 usan eventos propios y los premios permanecen para PR 5.
 - Revisión posterior: el desafío semanal de rivales humanos debía ordenar UUID en vez de aplicar `min(uuid)`, que impedía cerrar la partida; al iniciar con un equipo ausente y esperar primero un solo y después una pareja, la promoción debía elegir la pareja completa. Ambos escenarios se incorporaron a `supabase/tests/tournaments_teams.sql`.
-- Problemas pendientes o riesgos: recorrer ambos formatos y los reemplazos en preview, fusionar y aplicar SQL antes de declarar la etapa completa.
-- Para que empiece PR 5 falta: cumplir la definición de terminado de PR 4, sin habilitar el lanzamiento general.
+- Problemas pendientes o riesgos: confirmar el resultado de la aplicación del SQL mediante una comprobación segura si hiciera falta; completar y registrar las matrices manuales 1v1/2v2, incluidos grupos, final, tercer puesto y reemplazos; no habilitar el flag mientras falten esas verificaciones.
+- Para que empiece PR 5 falta: nada de código ni SQL de PR 4. Partir del último `master` y mantener el flag apagado; las pruebas manuales pendientes son obligatorias antes de declarar PR 5 terminado o activar el lanzamiento general.
