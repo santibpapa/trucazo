@@ -38,6 +38,7 @@ export default function AdminTournamentDetail({
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
   const [replacement, setReplacement] = useState<Record<string, string>>({})
+  const [outgoingMember, setOutgoingMember] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
@@ -175,14 +176,15 @@ export default function AdminTournamentDetail({
         <Metric label="Invitaciones pendientes" value={String(pendingInvitations)} />
       </section>
 
-      {tournament.mode === '1v1' && tournament.status === 'published'
+      {tournament.status === 'published'
         && Date.now() >= new Date(tournament.starts_at).getTime() && (
         <Panel as="section" className="mb-5 border-gold/40 p-5">
           <h2 className="font-display text-xl font-extrabold text-cream">Iniciar competencia</h2>
           <p className="mt-1 text-sm text-muted">
             {tournament.format === 'groups'
-              ? 'Se necesitan al menos ocho participantes confirmados, en grupos completos de cuatro.'
-              : 'Se necesitan al menos cuatro participantes. Si faltan lugares, habrá pases directos.'}
+              ? 'Se necesitan al menos ocho competidores completos, en grupos de cuatro.'
+              : 'Se necesitan al menos cuatro competidores completos. Si faltan lugares, habrá pases directos.'}
+            {tournament.mode === '2v2' && ' Cada competidor es una pareja.'}
             {' '}Los ausentes del check-in se reemplazan según la lista de espera.
           </p>
           <Button className="mt-3" onClick={() => void competitionAction('start',
@@ -191,7 +193,7 @@ export default function AdminTournamentDetail({
         </Panel>
       )}
 
-      {tournament.mode === '1v1' && tournament.status === 'running' && (
+      {tournament.status === 'running' && (
         <Panel as="section" className="mb-5 p-5">
           <h2 className="font-display text-xl font-extrabold text-cream">Control de competencia</h2>
           <p className="mt-1 text-sm text-muted">{tournament.paused_at
@@ -216,7 +218,7 @@ export default function AdminTournamentDetail({
         </Panel>
       )}
 
-      {tournament.mode === '1v1' && ['published', 'running'].includes(tournament.status) && (
+      {['published', 'running'].includes(tournament.status) && (
         <Panel as="section" className="mb-5 p-5">
           <h2 className="font-display text-xl font-extrabold text-cream">Reemplazos y descalificaciones</h2>
           <p className="mt-1 text-sm text-muted">Un reemplazo conserva el lugar y los resultados previos del titular.</p>
@@ -224,7 +226,8 @@ export default function AdminTournamentDetail({
             {entries.filter(item => item.entry.status === 'active').map(item => (
               <div key={item.entry.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-line p-3 text-sm">
                 <span className="min-w-28 flex-1 font-semibold text-cream">
-                  {profiles[item.members.find(m => m.status === 'accepted')?.user_id ?? '']?.username ?? 'Jugador'}
+                  {item.members.filter(m => m.status === 'accepted')
+                    .map(m => profiles[m.user_id]?.username ?? 'Jugador').join(' + ')}
                 </span>
                 {entries.some(candidate => candidate.entry.status === 'waitlisted') && (
                   <>
@@ -233,16 +236,43 @@ export default function AdminTournamentDetail({
                       onChange={event => setReplacement(current => ({ ...current, [item.entry.id]: event.target.value }))}
                       className="min-w-32 rounded-xl border border-line bg-surface2 px-2 py-2 text-cream">
                       <option value="">Elegir de espera</option>
-                      {entries.filter(candidate => candidate.entry.status === 'waitlisted').map(candidate => (
+                      {entries.filter(candidate => candidate.entry.status === 'waitlisted'
+                        && (tournament.mode === '1v1'
+                          || item.entry.kind === 'team' || candidate.entry.kind === 'solo')).map(candidate => (
                         <option key={candidate.entry.id} value={candidate.entry.id}>
-                          {profiles[candidate.members.find(m => m.status === 'accepted')?.user_id ?? '']?.username ?? 'Jugador'}
+                          {candidate.members.filter(m => m.status === 'accepted')
+                            .map(m => profiles[m.user_id]?.username ?? 'Jugador').join(' + ')}
                         </option>
                       ))}
                     </select>
+                    {tournament.mode === '2v2'
+                      && entries.find(candidate => candidate.entry.id === replacement[item.entry.id])?.entry.kind === 'solo'
+                      && <select aria-label="Integrante a reemplazar"
+                        value={outgoingMember[item.entry.id] ?? ''}
+                        onChange={event => setOutgoingMember(current => ({
+                          ...current, [item.entry.id]: event.target.value,
+                        }))}
+                        className="min-w-32 rounded-xl border border-line bg-surface2 px-2 py-2 text-cream">
+                        <option value="">Elegir integrante</option>
+                        {item.members.filter(member => member.status === 'accepted').map(member => (
+                          <option key={member.user_id} value={member.user_id}>
+                            {profiles[member.user_id]?.username ?? 'Jugador'}
+                          </option>
+                        ))}
+                      </select>}
                     <Button variant="secondary" disabled={busy !== null || !replacement[item.entry.id]}
                       onClick={() => void competitionAction(`replace:${item.entry.id}`,
-                        'Jugador reemplazado.', () => api.adminReplace(tournament.id,
-                          item.entry.id, replacement[item.entry.id]))}>Reemplazar</Button>
+                        'Reemplazo realizado.', () => {
+                          const incoming = replacement[item.entry.id]
+                          if (tournament.mode === '2v2' && item.entry.kind === 'team'
+                            && entries.find(candidate => candidate.entry.id === incoming)?.entry.kind === 'solo') {
+                            const member = outgoingMember[item.entry.id]
+                            return member ? api.adminReplaceTeamMember(tournament.id,
+                              item.entry.id, member, incoming)
+                              : Promise.resolve({ error: { message: 'Elegí el integrante a reemplazar.' } })
+                          }
+                          return api.adminReplace(tournament.id, item.entry.id, incoming)
+                        })}>Reemplazar</Button>
                   </>
                 )}
                 <Button variant="danger" disabled={busy !== null}

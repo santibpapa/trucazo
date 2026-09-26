@@ -59,7 +59,7 @@ export default function Competition({
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[19rem] text-left text-sm">
                       <thead className="text-xs text-muted"><tr>
-                        <th className="px-4 py-2" scope="col">Jugador</th>
+                        <th className="px-4 py-2" scope="col">{detail.tournament.mode === '2v2' ? 'Pareja' : 'Jugador'}</th>
                         <th className="px-2 py-2" scope="col">G</th>
                         <th className="px-2 py-2" scope="col">P</th>
                         <th className="px-4 py-2 text-right" scope="col">Dif.</th>
@@ -126,8 +126,8 @@ export default function Competition({
                             {enteringMatchId === match.id ? 'Entrando…' : waitingMatchId === match.id ? 'Esperando rival…' : 'Entrar a la partida'}
                           </button>
                         )}
-                        {mine && match.status === 'playing' && match.game_id && (
-                          <Link href={`/game/${match.game_id}`} className="mt-3 inline-block rounded-xl bg-gold px-3 py-2 text-sm font-bold text-ink">Ir a la partida</Link>
+                        {mine && match.status === 'playing' && (match.game_id || match.team_game_id) && (
+                          <Link href={match.team_game_id ? `/game/parejas/${match.team_game_id}` : `/game/${match.game_id}`} className="mt-3 inline-block rounded-xl bg-gold px-3 py-2 text-sm font-bold text-ink">Ir a la partida</Link>
                         )}
                       </article>
                     )

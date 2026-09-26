@@ -20,6 +20,7 @@ export interface TeamTable {
   private_code: string | null
   status: 'waiting' | 'playing' | 'finished' | 'cancelled'
   version: number
+  tournament_id?: string | null
 }
 export interface TeamGame {
   id: string

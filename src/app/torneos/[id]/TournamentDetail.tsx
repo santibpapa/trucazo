@@ -189,12 +189,13 @@ export default function TournamentDetail({
       setError(friendlyTournamentError(result.error.message))
       return
     }
-    const gameId = (result.data as { game_id?: string | null } | null)?.game_id
+    const entryResult = result.data as { game_id?: string | null; team_game_id?: string | null } | null
+    const gameId = entryResult?.team_game_id ?? entryResult?.game_id
     if (gameId) {
-      router.push(`/game/${gameId}`)
+      router.push(entryResult?.team_game_id ? `/game/parejas/${gameId}` : `/game/${gameId}`)
     } else {
       setWaitingMatchId(matchId)
-      setMessage('Ya entraste al cruce. Esperando al rival…')
+      setMessage('Ya entraste al cruce. Esperando a los demás jugadores…')
       await refresh()
     }
   }
@@ -202,7 +203,10 @@ export default function TournamentDetail({
   useEffect(() => {
     if (!waitingMatchId) return
     const match = detail.matches.find(item => item.id === waitingMatchId)
-    if (match?.status === 'playing' && match.game_id) router.push(`/game/${match.game_id}`)
+    if (match?.status === 'playing' && (match.game_id || match.team_game_id)) {
+      router.push(match.team_game_id
+        ? `/game/parejas/${match.team_game_id}` : `/game/${match.game_id}`)
+    }
     if (match && match.status !== 'ready' && match.status !== 'playing') setWaitingMatchId(null)
   }, [detail.matches, router, waitingMatchId])
 

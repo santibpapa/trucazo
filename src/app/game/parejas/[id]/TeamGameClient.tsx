@@ -159,6 +159,7 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
   }, [state.game])
 
   const { table, members, game: g, my_seat: mySeat } = state
+  const tournament = !!table.tournament_id
   const member = (seat: number) => members.find(m => m.seat === seat)
   const lobby = () => { router.push('/lobby'); router.refresh() }
 
@@ -176,17 +177,20 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
     return <FinishScreen
       won={won} salonSlug={salonSlug} hand={lastHand.length ? lastHand : [null, null, null]}
       title={voided ? 'Partida anulada' : won ? '¡Ganaste!' : 'Perdiste'}
-      subtitle={voided ? 'Se devolvieron las apuestas.' : <>
+      subtitle={voided ? (tournament ? 'El cruce necesita revisión.' : 'Se devolvieron las apuestas.') : <>
         <b className="font-semibold text-cream">{partners.map(m => m.username).join(' + ')}</b><br />
         {won ? 'le ganó a' : 'perdió con'} {rivals.map(m => m.username).join(' + ')} · {g!.scores[team]} a {g!.scores[1 - team]}
       </>}
       note={g?.finish_reason === 'timeouts' ? 'Partida terminada por tres vencimientos de tiempo.' : g?.finish_reason === 'forfeit' ? 'Partida terminada por abandono.' : undefined}
       me={{ name: 'Nosotros', score: g?.scores[team] ?? 0, highlight: won, players: partners }}
       opponent={{ name: 'Ellos', score: g?.scores[1 - team] ?? 0, highlight: !voided && !won, players: rivals }}
-      extra={voided ? <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface2 px-4 py-2 font-display font-bold text-muted"><CoinIcon size={18} />Apuesta reembolsada</div> :
+      extra={tournament ? <div className="rounded-full border border-gold/40 bg-gold/10 px-4 py-2 text-sm font-bold text-gold">Partida de torneo · sin apuesta</div> : voided ? <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface2 px-4 py-2 font-display font-bold text-muted"><CoinIcon size={18} />Apuesta reembolsada</div> :
         <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 font-display text-lg font-bold tabular ${won ? 'border-positive/40 bg-positive/10 text-positive' : 'border-negative/40 bg-negative/10 text-negative'}`}><CoinIcon size={18} />{won ? '+' : '−'}{table.bet.toLocaleString('es-AR')}</div>}
     >
-      <Button variant="secondary" size="sm" fullWidth onClick={lobby}>Volver al lobby</Button>
+      <Button variant="secondary" size="sm" fullWidth onClick={() => {
+        if (table.tournament_id) router.push(`/torneos/${table.tournament_id}`)
+        else lobby()
+      }}>{tournament ? 'Volver al torneo' : 'Volver al lobby'}</Button>
     </FinishScreen>
   }
   if (!g || mySeat === null) return <main className={styles.result}><p>Recuperando tu partida…</p></main>
@@ -247,7 +251,7 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
         <button onClick={() => setShowExit(true)} disabled={busy || table.status !== 'playing'} className="self-center -my-1 py-1.5 px-3 inline-flex items-center text-xs text-subtle hover:text-negative transition-colors disabled:opacity-50">Abandonar partida</button>
       </div>
       {error && <div className={styles.error} role="alert" onClick={() => setError('')}>{error}</div>}
-      <Modal open={showExit} title="¿Abandonar la partida?" onClose={() => setShowExit(false)}><p className="text-sm text-muted">Tu equipo perderá la partida y la apuesta. Para perder solamente esta mano, usá «Irse al mazo» cuando sea tu turno.</p><Button variant="danger" disabled={busy} onClick={() => { setShowExit(false); void act('forfeit') }}>Abandonar partida</Button><Button variant="ghost" onClick={() => setShowExit(false)}>Seguir jugando</Button></Modal>
+      <Modal open={showExit} title="¿Abandonar la partida?" onClose={() => setShowExit(false)}><p className="text-sm text-muted">Tu equipo perderá la partida{tournament ? '.' : ' y la apuesta.'} Para perder solamente esta mano, usá «Irse al mazo» cuando sea tu turno.</p><Button variant="danger" disabled={busy} onClick={() => { setShowExit(false); void act('forfeit') }}>Abandonar partida</Button><Button variant="ghost" onClick={() => setShowExit(false)}>Seguir jugando</Button></Modal>
     </div>
   </main>
 }

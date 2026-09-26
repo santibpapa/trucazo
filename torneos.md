@@ -28,7 +28,7 @@ Reglas de trabajo:
 | PR 1 — Base de datos y contrato | Completo | `codex/tournaments-base-contract` | [#75](https://github.com/santibpapa/trucazo/pull/75) | `20260921082456_tournaments_base_contract.sql` | Fusionado, SQL aplicado y verificado; la funcionalidad sigue apagada |
 | PR 2 — Administración e inscripciones | Completo | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | Fusionado, SQL aplicado y recorridos validados; producción sigue apagada |
 | PR 3 — Competencia 1v1 | Completo | `codex/tournaments-1v1-competition` | [#84](https://github.com/santibpapa/trucazo/pull/84) | `20260924172158_tournaments_1v1_competition.sql` | Fusionado; SQL aplicado; cron #8 activo y verificado. Recorridos 1v1 en preview diferidos antes de PR 4; flag apagado |
-| PR 4 — Competencia 2v2 | Pendiente | — | — | — | Integra el motor de equipos |
+| PR 4 — Competencia 2v2 | En curso | `codex/tournaments-2v2-competition` | [#89](https://github.com/santibpapa/trucazo/pull/89) | `20260925103000_tournaments_2v2_competition.sql` | Implementación y pruebas en revisión; SQL sin aplicar y flag apagado |
 | PR 5 — Comunicaciones, espectadores y lanzamiento | Pendiente | — | — | — | Habilitación pública al final |
 
 La sesión que trabaje una etapa debe actualizar su fila y agregar una entrada al registro de traspaso. Los estados válidos son `Pendiente`, `En curso`, `Bloqueado` y `Completo`.
@@ -671,3 +671,18 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 - Decisiones técnicas tomadas: cada sorteo y desempate se persiste en PostgreSQL; el cron por minuto abre el torneo lleno y resuelve plazos; los dos ingresos crean una sola mesa privada sin apuesta; una partida anulada conserva su historial y cada reapertura crea otra; el cierre existente contabiliza estadísticas y misiones en la misma transacción que avanza el torneo; las funciones privadas mantienen permisos cerrados. La revisión de #84 agregó confirmación automática al reemplazo manual después del cierre, grupos incompletos válidos con pases en la llave, bloqueo al iniciar un 2v2 ya armado y nombre histórico guardado al cerrar cada cruce. Si ambos perdedores de semifinales fueron descalificados, el tercer puesto queda vacante y la final puede cerrar sin inventar un ganador ni acreditar bronce
 - Problemas pendientes o riesgos: completar y registrar los dos recorridos 1v1 en preview antes de iniciar PR 4; los premios, emails, espectadores y competencia 2v2 corresponden a etapas posteriores
 - Para que empiece PR 4 falta: validar en preview un torneo 1v1 de cuatro por eliminación y otro de ocho con grupos, incluida final, tercer puesto y estado completado; mantener el flag apagado en producción. El merge, el SQL y los controles automáticos ya están confirmados
+
+### 2026-09-25 — PR 4 — Competencia 2v2
+
+- Estado: Código y pruebas automáticas completos; pendientes revisión, merge, SQL y recorridos reales.
+- Rama: `codex/tournaments-2v2-competition`.
+- PR: [#89 — feat: competencia 2v2 de torneos](https://github.com/santibpapa/trucazo/pull/89).
+- Migraciones nuevas: `supabase/migrations/20260925103000_tournaments_2v2_competition.sql`; ejecutar completa una sola vez en el SQL Editor después del merge.
+- SQL aplicado en: ninguno por este PR. El dueño afirmó al solicitar esta etapa que acababa de finalizar PR 3; el registro anterior conserva el detalle de los recorridos en preview pendientes de documentar.
+- Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción hasta PR 5.
+- Pruebas automáticas: TypeScript, lint, contrato de RPC, build con flag encendido, reconstrucción PostgreSQL, regresiones 1v1/2v2, permisos y `supabase/tests/tournaments_teams.sql`; consultar los checks vigentes del [PR #89](https://github.com/santibpapa/trucazo/pull/89).
+- Recorridos manuales: pendientes en preview tras aplicar la migración en un entorno de prueba.
+- Decisiones técnicas: emparejamiento aleatorio persistido al completar el cupo o iniciar; cada equipo ocupa una inscripción competitiva; cruce y mesa 2v2 comparten resultado idempotente; cuatro asientos fijados en el servidor; las misiones 2v2 usan eventos propios y los premios permanecen para PR 5.
+- Revisión posterior: el desafío semanal de rivales humanos debía ordenar UUID en vez de aplicar `min(uuid)`, que impedía cerrar la partida; al iniciar con un equipo ausente y esperar primero un solo y después una pareja, la promoción debía elegir la pareja completa. Ambos escenarios se incorporaron a `supabase/tests/tournaments_teams.sql`.
+- Problemas pendientes o riesgos: recorrer ambos formatos y los reemplazos en preview, fusionar y aplicar SQL antes de declarar la etapa completa.
+- Para que empiece PR 5 falta: cumplir la definición de terminado de PR 4, sin habilitar el lanzamiento general.
