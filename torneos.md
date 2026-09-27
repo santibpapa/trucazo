@@ -29,7 +29,7 @@ Reglas de trabajo:
 | PR 2 — Administración e inscripciones | Completo | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | Fusionado, SQL aplicado y recorridos validados; producción sigue apagada |
 | PR 3 — Competencia 1v1 | Completo | `codex/tournaments-1v1-competition` | [#84](https://github.com/santibpapa/trucazo/pull/84) | `20260924172158_tournaments_1v1_competition.sql` | Fusionado; SQL aplicado; cron #8 activo y verificado. Recorridos 1v1 aún sin constancia; validar antes del lanzamiento |
 | PR 4 — Competencia 2v2 | Completo | `codex/tournaments-2v2-competition` | [#89](https://github.com/santibpapa/trucazo/pull/89) | `20260925103000_tournaments_2v2_competition.sql` | Fusionado y SQL aplicado según el dueño; CI verde. Recorridos manuales todavía sin registrar; flag apagado |
-| PR 5 — Comunicaciones, espectadores y lanzamiento | Pendiente | — | — | — | Puede empezar la implementación; las pruebas manuales pendientes bloquean la activación pública |
+| PR 5 — Comunicaciones, espectadores y lanzamiento | En curso | `codex/tournaments-pr5` | Pendiente | `20260927001608_tournaments_communications_awards.sql` | Código en preparación; SQL, smoke tests y recorridos manuales pendientes. Flag y despacho de emails apagados |
 
 La sesión que trabaje una etapa debe actualizar su fila y agregar una entrada al registro de traspaso. Los estados válidos son `Pendiente`, `En curso`, `Bloqueado` y `Completo`.
 
@@ -498,6 +498,16 @@ El PR 3 se cierra como entrega de código y SQL por decisión del dueño el 2026
 
 ## PR 5 — Comunicaciones, espectadores, premios y lanzamiento
 
+### Orden concreto de puesta en marcha
+
+1. Revisar y fusionar el PR 5. `NEXT_PUBLIC_ENABLE_TOURNAMENTS` permanece en `false` en producción.
+2. En el SQL Editor del proyecto Supabase de Trucazo, ejecutar **solo** `supabase/migrations/20260927001608_tournaments_communications_awards.sql`. No repetir las migraciones anteriores. El trabajo `trucazo-tournament-emails-minute` se instala cada minuto, pero su interruptor privado comienza en `false`: todavía no envía nada.
+3. En preview con flag encendido, completar y registrar los cuatro recorridos pendientes: 1v1 directa 4, 1v1 grupos 8, 2v2 directa 8 jugadores y 2v2 grupos 16 jugadores. Verificar final, tercer puesto, check-in, reemplazos, partidas normales y pruebas con dos clientes; revisar permisos de espectador registrado e invitado, correos en cola, monedas por jugador, insignias y cancelación/reprogramación. Los tests de CI comprueban el contrato SQL, pero no sustituyen estos recorridos.
+4. Revisar que no queden torneos de prueba publicados ni correos de prueba pendientes en la cola. Publicar el primer torneo real solo cuando corresponda. Habilitar el despacho desde el SQL Editor con `update tournament_internal.email_settings set enabled = true where singleton;`. Comprobar el cron y un correo de prueba real, preferencias y baja.
+5. Cambiar `NEXT_PUBLIC_ENABLE_TOURNAMENTS` a `true` para producción en Vercel y hacer un nuevo despliegue. Comprobar lobby, central, partida de espectador, panel de admin y avisos desde el dominio público. Vigilar trabajos `failed`, correos duplicados, plazos y premios en el primer torneo.
+
+**Reversión:** poner `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false`, redesplegar y correr `update tournament_internal.email_settings set enabled = false where singleton;` en el SQL Editor. El cron queda sin despacho; no borrar partidas, correos históricos ni premios ya acreditados. Toda corrección posterior de la base requiere una migración nueva.
+
 ### Empieza cuando
 
 - PR 4 está fusionado y aplicado.
@@ -689,3 +699,17 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 - Revisión posterior: el desafío semanal de rivales humanos debía ordenar UUID en vez de aplicar `min(uuid)`, que impedía cerrar la partida; al iniciar con un equipo ausente y esperar primero un solo y después una pareja, la promoción debía elegir la pareja completa. Ambos escenarios se incorporaron a `supabase/tests/tournaments_teams.sql`.
 - Problemas pendientes o riesgos: confirmar el resultado de la aplicación del SQL mediante una comprobación segura si hiciera falta; completar y registrar las matrices manuales 1v1/2v2, incluidos grupos, final, tercer puesto y reemplazos; no habilitar el flag mientras falten esas verificaciones.
 - Para que empiece PR 5 falta: nada de código ni SQL de PR 4. Partir del último `master` y mantener el flag apagado; las pruebas manuales pendientes son obligatorias antes de declarar PR 5 terminado o activar el lanzamiento general.
+
+### 2026-09-26 — PR 5 — Comunicaciones, espectadores y premios
+
+- Estado: En curso. Entrega de código preparada; lanzamiento general pendiente.
+- Rama: `codex/tournaments-pr5`.
+- PR: por abrir.
+- Migración nueva: `supabase/migrations/20260927001608_tournaments_communications_awards.sql` (hora UTC del archivo).
+- SQL aplicado en: todavía no; no ejecutar antes de fusionar el PR.
+- Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción. La migración instala la cola de emails con su interruptor privado en `false`.
+- Pruebas automáticas: TypeScript, lint, build con flag encendido, contrato de RPC, comprobaciones de emails y torneos. La migración y sus escenarios de premios, agenda, cancelación y espectador se agregaron a CI para su ejecución en PostgreSQL aislado. Su resultado debe verificarse en el PR.
+- Recorridos manuales: siguen sin registrarse los cuatro recorridos 1v1/2v2 pendientes de PR 3 y PR 4; también faltan las pruebas visuales y de envío en preview de PR 5.
+- Decisiones técnicas: la base acredita monedas e insignias en la misma transacción que pasa el torneo a `completed`; cada premio tiene una clave única. Los correos tienen cola durable, versión de agenda, límite de reintentos y validación de destinatario al enviar. La vista de espectador es una proyección explícita sin manos; el cron de emails se instala con un interruptor cerrado.
+- Problemas pendientes o riesgos: no consta aceptación manual de los modos y formatos; no se ha aplicado esta migración ni activado correo o flag. No declarar PR 5 completo hasta verificar esos puntos y el primer despliegue real.
+- Para cerrar PR 5 falta: PR fusionado, migración aplicada una sola vez, pruebas manuales y smoke test, habilitar el despacho de correo y luego el flag, registrar fecha de lanzamiento y monitorear el primer torneo real.

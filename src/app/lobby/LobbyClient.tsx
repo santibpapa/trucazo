@@ -493,7 +493,7 @@ export default function LobbyClient({
             isGuest={isGuest}
             onCoinsChange={setCoins}
           />
-          {tournamentModeEnabled && <TournamentLobbyAccess />}
+          {tournamentModeEnabled && <TournamentLobbyAccess isGuest={isGuest} />}
 
           {/* Anti-quiebra: si te quedaste sin monedas para jugar, reclamá el bonus */}
           {coins < 10 && (

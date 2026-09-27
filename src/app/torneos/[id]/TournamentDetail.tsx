@@ -264,6 +264,7 @@ export default function TournamentDetail({
           <Roster title="Lista de espera" empty="No hay nadie esperando un lugar." entries={detail.waitlist} waitlist />
           <Competition
             detail={detail}
+            canSpectate={!isGuest}
             myEntryId={entry?.entry.status === 'active' ? entry.entry.id : null}
             waitingMatchId={waitingMatchId}
             enteringMatchId={enteringMatchId}

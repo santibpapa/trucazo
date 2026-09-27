@@ -28,20 +28,31 @@ export async function POST(request: Request) {
   const oneClick = form?.get('List-Unsubscribe') === 'One-Click'
   const allOff = oneClick || form?.get('action') === 'all-off'
   const update = allOff
-    ? { news_enabled: false, reengagement_enabled: false, ranking_enabled: false, updated_at: new Date().toISOString() }
+    ? { news_enabled: false, reengagement_enabled: false, ranking_enabled: false, tournaments_enabled: false, updated_at: new Date().toISOString() }
     : {
         news_enabled: form?.get('news') === 'on',
         reengagement_enabled: form?.get('reengagement') === 'on',
         ranking_enabled: form?.get('ranking') === 'on',
+        tournaments_enabled: form?.get('tournaments') === 'on',
         updated_at: new Date().toISOString(),
       }
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('email_preferences')
     .update(update)
     .eq('unsubscribe_token', token)
     .select('user_id')
     .maybeSingle()
+
+  if (error?.code === '42703') {
+    const fallback = await supabase.from('email_preferences').update({
+      news_enabled: update.news_enabled, reengagement_enabled: update.reengagement_enabled,
+      ranking_enabled: update.ranking_enabled, updated_at: update.updated_at,
+    })
+      .eq('unsubscribe_token', token).select('user_id').maybeSingle()
+    data = fallback.data
+    error = fallback.error
+  }
 
   if (error || !data) return NextResponse.json({ ok: false }, { status: 404 })
   if (oneClick) return new Response(null, { status: 200 })
