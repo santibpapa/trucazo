@@ -18,6 +18,45 @@ export type RankingMailInput = BaseMail & {
   passedByUsername?: string | null
 }
 
+export type TournamentMailKind = 'announcement' | 'registration' | 'reminder' | 'checkin' | 'match' | 'rescheduled' | 'cancelled'
+
+export function tournamentMail({ kind, username, tournamentName, tournamentId, startsAt, preferencesUrl }: BaseMail & {
+  kind: TournamentMailKind
+  tournamentName: string
+  tournamentId: string
+  startsAt: string
+}): MailContent {
+  const date = new Intl.DateTimeFormat('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires', dateStyle: 'full', timeStyle: 'short', hour12: false,
+  }).format(new Date(startsAt))
+  const messages: Record<TournamentMailKind, { subject: string; title: string; message: string; cta: string }> = {
+    announcement: { subject: `Nuevo torneo: ${tournamentName}`, title: 'Se viene un torneo',
+      message: `${tournamentName} empieza el ${date}. Entrá al detalle para ver las reglas y anotarte: abrir el enlace no te inscribe.`, cta: 'Ver torneo' },
+    registration: { subject: `Te anotaste en ${tournamentName}`, title: 'Inscripción confirmada',
+      message: `Ya estás anotado en ${tournamentName}. Se juega el ${date}.`, cta: 'Ver mi inscripción' },
+    reminder: { subject: `Mañana empieza ${tournamentName}`, title: 'Falta un día',
+      message: `El torneo comienza el ${date}. El check-in abre 30 minutos antes.`, cta: 'Ver torneo' },
+    checkin: { subject: `Confirmá tu presencia en ${tournamentName}`, title: 'Abrió el check-in',
+      message: `Entrá y confirmá tu presencia antes del inicio, ${date}. En parejas alcanza con que confirme uno de los dos.`, cta: 'Hacer check-in' },
+    match: { subject: `Tu partida de ${tournamentName} está lista`, title: 'Te esperan en la mesa',
+      message: 'Tu cruce ya está listo. Tenés cinco minutos para entrar desde el detalle del torneo.', cta: 'Entrar a la partida' },
+    rescheduled: { subject: `Nueva fecha para ${tournamentName}`, title: 'El torneo cambió de fecha',
+      message: `La nueva fecha es ${date}. Si ya habías confirmado tu presencia, vas a tener que hacer check-in otra vez.`, cta: 'Ver nueva fecha' },
+    cancelled: { subject: `Se canceló ${tournamentName}`, title: 'Torneo cancelado',
+      message: `El torneo ${tournamentName} fue cancelado. Podés consultar el detalle en Trucazo.`, cta: 'Ver torneo' },
+  }
+  const item = messages[kind]
+  const url = trackedUrl(`/torneos/${tournamentId}`, `torneo-${kind}`)
+  const greeting = `Hola, ${username}.`
+  return {
+    subject: item.subject,
+    html: layout({ preview: item.message, title: item.title,
+      body: `<p style="margin:0 0 14px">${escapeHtml(greeting)}</p><p style="margin:0">${escapeHtml(item.message)}</p>`,
+      cta: item.cta, ctaUrl: url, preferencesUrl }),
+    text: `${greeting}\n\n${item.title}\n\n${item.message}\n\n${item.cta}: ${url}\n\nPreferencias: ${preferencesUrl}`,
+  }
+}
+
 function escapeHtml(value: string) {
   return value
     .replaceAll('&', '&amp;')

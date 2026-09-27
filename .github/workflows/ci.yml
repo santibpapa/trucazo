@@ -127,6 +127,9 @@ jobs:
       - name: Competencia 2v2, parejas, grupos y reemplazos
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournaments_teams.sql
 
+      - name: Torneos PR5, premios, correos y espectadores
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournaments_final.sql
+
       - name: Permisos de las funciones
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql
 

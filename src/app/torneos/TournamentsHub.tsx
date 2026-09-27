@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Alert, Panel } from '@/components/ui'
 import TournamentCard from '@/components/tournaments/TournamentCard'
+import TournamentNotifications from '@/components/tournaments/TournamentNotifications'
 import { createClient } from '@/lib/supabase/client'
 import { tournamentApi, type Tournament, type TournamentListData } from '@/lib/tournaments'
 
@@ -70,6 +71,7 @@ export default function TournamentsHub({
       )}
 
       {refreshError && <Alert className="mb-5">{refreshError}</Alert>}
+      {!isGuest && <TournamentNotifications />}
 
       {!hasAny ? (
         <Panel className="p-8 text-center">

@@ -42,7 +42,9 @@ declare
     'tournament_admin_retry_match', 'tournament_admin_replace',
     'tournament_admin_replace_team_member',
     'tournament_admin_disqualify', 'tournament_enter_match',
-    'tournament_ready_match'
+    'tournament_ready_match', 'tournament_notifications_list',
+    'tournament_notification_read', 'tournament_spectator_snapshot',
+    'tournament_admin_monitor', 'tournament_admin_retry_email'
   ];
   v_bad text[];
   v_owner record;

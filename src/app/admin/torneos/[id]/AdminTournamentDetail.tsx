@@ -22,6 +22,8 @@ import {
 } from '@/lib/tournaments'
 
 type ProfileSummary = { id: string; username: string; avatar_url: string | null }
+type Monitor = { jobs: Record<string, number>; matches: Record<string, number>;
+  failed: { id: string; kind: string; attempts: number; error: string; due_at: string }[] }
 
 export default function AdminTournamentDetail({
   initialDetail,
@@ -41,6 +43,7 @@ export default function AdminTournamentDetail({
   const [outgoingMember, setOutgoingMember] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [monitor, setMonitor] = useState<Monitor | null>(null)
 
   const loadProfiles = useCallback(async (next: TournamentDetailData) => {
     const ids = Array.from(new Set(
@@ -58,7 +61,10 @@ export default function AdminTournamentDetail({
 
   const refresh = useCallback(async () => {
     if (document.visibilityState === 'hidden') return
-    const result = await api.detail(initialDetail.tournament.id)
+    const [result, monitorResult] = await Promise.all([
+      api.detail(initialDetail.tournament.id), api.adminMonitor(initialDetail.tournament.id),
+    ])
+    if (monitorResult.data) setMonitor(monitorResult.data as Monitor)
     if (result.error || !result.data) {
       setError('No pudimos actualizar el torneo. Vamos a reintentar.')
       return
@@ -70,6 +76,7 @@ export default function AdminTournamentDetail({
   }, [api, initialDetail.tournament.id, loadProfiles])
 
   useEffect(() => {
+    void refresh()
     const interval = window.setInterval(() => void refresh(), 8_000)
     const onFocus = () => void refresh()
     window.addEventListener('focus', onFocus)
@@ -175,6 +182,19 @@ export default function AdminTournamentDetail({
         <Metric label="Check-ins" value={`${checkedInEntries}/${detail.participants.length}`} />
         <Metric label="Invitaciones pendientes" value={String(pendingInvitations)} />
       </section>
+
+      {monitor && <Panel as="section" className="mb-5 p-5">
+        <h2 className="font-display text-lg font-bold text-cream">Estado de envíos y partidas</h2>
+        <p className="mt-2 text-sm text-muted">
+          Emails: {monitor.jobs.pending ?? 0} pendientes · {monitor.jobs.sent ?? 0} enviados · {monitor.jobs.failed ?? 0} fallidos · {monitor.jobs.cancelled ?? 0} cancelados.
+          {' '}Partidas: {monitor.matches.ready ?? 0} listas · {monitor.matches.playing ?? 0} en juego.
+        </p>
+        {monitor.failed.map(job => <div key={job.id} className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface2 p-2 text-sm text-cream">
+          <span>{job.kind} · {job.attempts} intentos · {job.error ?? 'Sin respuesta del servidor'}</span>
+          <Button variant="secondary" disabled={busy !== null} onClick={() => void competitionAction(`email:${job.id}`,
+            'Correo puesto nuevamente en cola.', () => api.adminRetryEmail(job.id))}>Reintentar</Button>
+        </div>)}
+      </Panel>}
 
       {tournament.status === 'published'
         && Date.now() >= new Date(tournament.starts_at).getTime() && (

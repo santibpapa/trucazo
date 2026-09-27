@@ -12,13 +12,18 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 export default async function EmailPreferencesPage({ searchParams }: Props) {
   const token = searchParams.token ?? ''
   const supabase = createEmailAdminClient()
-  const { data } = supabase && UUID_PATTERN.test(token)
+  const result = supabase && UUID_PATTERN.test(token)
     ? await supabase
         .from('email_preferences')
-        .select('news_enabled, reengagement_enabled, ranking_enabled')
+        .select('news_enabled, reengagement_enabled, ranking_enabled, tournaments_enabled')
         .eq('unsubscribe_token', token)
         .maybeSingle()
     : { data: null }
+  const fallback = result.data || !supabase || !UUID_PATTERN.test(token)
+    ? null : await supabase.from('email_preferences')
+      .select('news_enabled, reengagement_enabled, ranking_enabled')
+      .eq('unsubscribe_token', token).maybeSingle()
+  const data = result.data ?? (fallback?.data ? { ...fallback.data, tournaments_enabled: false } : null)
 
   if (!data) {
     return (
@@ -63,6 +68,12 @@ export default async function EmailPreferencesPage({ searchParams }: Props) {
             defaultChecked={data.ranking_enabled}
             title="Movimientos del ranking"
             description="Avisos cuando entrás o cambiás de puesto en el top 3 online."
+          />
+          <Preference
+            name="tournaments"
+            defaultChecked={data.tournaments_enabled}
+            title="Torneos"
+            description="Anuncios, inscripciones, fechas, check-in y partidas de torneos."
           />
           <button className="mt-2 rounded-xl bg-gold px-5 py-3 font-bold text-base hover:bg-gold-600">Guardar preferencias</button>
           <button name="action" value="all-off" className="rounded-xl border border-line px-5 py-3 text-sm font-semibold text-muted hover:text-cream">No quiero recibir ningún email</button>

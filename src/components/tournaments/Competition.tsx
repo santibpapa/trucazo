@@ -20,12 +20,14 @@ export default function Competition({
   waitingMatchId,
   enteringMatchId,
   onEnter,
+  canSpectate = true,
 }: {
   detail: TournamentDetailData
   myEntryId?: string | null
   waitingMatchId?: string | null
   enteringMatchId?: string | null
   onEnter?: (matchId: string) => void
+  canSpectate?: boolean
 }) {
   if (!detail.matches.length) return null
   const names = new Map(detail.competition_entries.map(entry => [entry.entry_id, entry.username]))
@@ -41,9 +43,9 @@ export default function Competition({
         <Panel as="section" className="border-gold/40 p-5">
           <h2 className="font-display text-xl font-extrabold text-cream">Posiciones finales</h2>
           <ol className="mt-3 space-y-2 text-sm text-cream">
-            <li>🥇 {name(final.winner_entry_id)}</li>
-            <li>🥈 {name(runnerUp ?? null)}</li>
-            <li>🥉 {third.winner_entry_id ? name(third.winner_entry_id) : 'Vacante'}</li>
+            <li>🥇 {name(final.winner_entry_id)} · {detail.tournament.prize_first.toLocaleString('es-AR')} monedas por jugador</li>
+            <li>🥈 {name(runnerUp ?? null)} · {detail.tournament.prize_second.toLocaleString('es-AR')} monedas por jugador</li>
+            <li>🥉 {third.winner_entry_id ? `${name(third.winner_entry_id)} · ${detail.tournament.prize_third.toLocaleString('es-AR')} monedas por jugador` : 'Vacante'}</li>
           </ol>
         </Panel>
       )}
@@ -128,6 +130,9 @@ export default function Competition({
                         )}
                         {mine && match.status === 'playing' && (match.game_id || match.team_game_id) && (
                           <Link href={match.team_game_id ? `/game/parejas/${match.team_game_id}` : `/game/${match.game_id}`} className="mt-3 inline-block rounded-xl bg-gold px-3 py-2 text-sm font-bold text-ink">Ir a la partida</Link>
+                        )}
+                        {canSpectate && match.status === 'playing' && !mine && (
+                          <Link href={`/torneos/${detail.tournament.id}/partidas/${match.id}`} className="mt-3 inline-block rounded-xl border border-gold px-3 py-2 text-sm font-bold text-gold hover:bg-gold/10 focus-visible:ring-2 focus-visible:ring-gold">Ver partida</Link>
                         )}
                       </article>
                     )

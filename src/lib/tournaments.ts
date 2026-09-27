@@ -195,6 +195,10 @@ export function tournamentApi(client: SupabaseClient) {
     detail: (tournamentId: string) => client.rpc('tournament_detail', {
       p_tournament_id: tournamentId,
     }),
+    adminMonitor: (tournamentId: string) => client.rpc('tournament_admin_monitor', {
+      p_tournament_id: tournamentId,
+    }),
+    adminRetryEmail: (jobId: string) => client.rpc('tournament_admin_retry_email', { p_job_id: jobId }),
     myEntry: (tournamentId: string) => client.rpc('tournament_my_entry', {
       p_tournament_id: tournamentId,
     }),

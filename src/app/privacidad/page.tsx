@@ -17,11 +17,11 @@ export default function PrivacidadPage() {
       path={path}
       title="Política de privacidad"
       breadcrumb="Privacidad"
-      intro="Esta página explica en lenguaje claro qué información necesita Trucazo para funcionar. Última actualización: 29 de agosto de 2026."
+      intro="Esta página explica en lenguaje claro qué información necesita Trucazo para funcionar. Última actualización: 26 de septiembre de 2026."
       showPlayCta={false}
       showByline={false}
     >
-      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebPage', name: title, description, url: SITE_URL + path, inLanguage: 'es-AR', dateModified: '2026-08-29' }} />
+      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebPage', name: title, description, url: SITE_URL + path, inLanguage: 'es-AR', dateModified: '2026-09-26' }} />
       <JsonLd data={createBreadcrumbJsonLd('Política de privacidad', path)} />
 
       <Section title="Datos que puede tratar el servicio">
@@ -47,6 +47,13 @@ export default function PrivacidadPage() {
           período de inactividad. Cada mensaje permite desactivar uno o ambos tipos de
           correo de forma inmediata.
         </p>
+        <p>
+          Los torneos pueden generar anuncios, confirmaciones, recordatorios de check-in,
+          avisos de partidas y cambios de fecha. Podés desactivar esos emails desde el enlace
+          de preferencias de cada mensaje. Los avisos dentro del juego se guardan con su estado
+          de lectura. En partidas de torneo, otros usuarios registrados pueden ver puntajes,
+          participantes y cartas ya jugadas; las cartas de la mano permanecen ocultas.
+        </p>
       </Section>
 
       <Section title="Modo invitado">
@@ -64,7 +71,7 @@ export default function PrivacidadPage() {
           <li><strong>Vercel:</strong> alojamiento, entrega del sitio, analítica y métricas de rendimiento.</li>
           <li><strong>Google:</strong> autenticación opcional cuando se elige “Continuar con Google”.</li>
           <li><strong>Web3Forms:</strong> aviso opcional de nuevas reseñas cuando esa integración está configurada.</li>
-          <li><strong>Resend:</strong> entrega de novedades e invitaciones para volver a jugar cuando esa integración está configurada.</li>
+          <li><strong>Resend:</strong> entrega de novedades, invitaciones para volver, avisos del ranking y correos de torneos cuando esa integración está configurada.</li>
         </ul>
         <p>
           Cada proveedor puede procesar datos técnicos según sus propias políticas y la
