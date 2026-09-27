@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     admin.from('email_deliveries').select('status').eq('dedupe_key', job.dedupe_key).maybeSingle(),
   ])
   if (tournament.error || preference.error || profile.error || authUser.error || delivery.error) {
-    await fail(admin, id, token, 'No se pudo verificar el destinatario.')
+    await fail(admin, id, token, 'No se pudo verificar el destinatario.', job.job_type)
     return NextResponse.json({ ok: false }, { status: 503 })
   }
   const current = tournament.data
@@ -62,13 +62,13 @@ export async function POST(request: Request) {
   if (job.job_type === 'match') {
     const matchId = (job.audience as { match_id?: string } | null)?.match_id
     if (!matchId || !UUID.test(matchId)) {
-      await fail(admin, id, token, 'El cruce no tiene identificador válido.')
+      await fail(admin, id, token, 'El cruce no tiene identificador válido.', job.job_type)
       return NextResponse.json({ ok: false }, { status: 503 })
     }
     const match = await admin.from('tournament_matches').select('status,entry_deadline,side_a_entry_id,side_b_entry_id')
       .eq('id', matchId).eq('tournament_id', job.tournament_id).maybeSingle()
     if (match.error) {
-      await fail(admin, id, token, 'No se pudo verificar el cruce.')
+      await fail(admin, id, token, 'No se pudo verificar el cruce.', job.job_type)
       return NextResponse.json({ ok: false }, { status: 503 })
     }
     if (match.data?.status !== 'ready' || !match.data.entry_deadline
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     const membership = await admin.from('tournament_entry_members').select('entry_id')
       .eq('tournament_id', job.tournament_id).eq('user_id', job.user_id).eq('status', 'accepted')
     if (membership.error) {
-      await fail(admin, id, token, 'No se pudo verificar la inscripción.')
+      await fail(admin, id, token, 'No se pudo verificar la inscripción.', job.job_type)
       return NextResponse.json({ ok: false }, { status: 503 })
     }
     if (!membership.data?.length || (matchSides && !membership.data.some(member => matchSides.includes(member.entry_id)))) {
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
         admin.from('tournament_checkins').select('entry_id').in('entry_id', entryIds),
       ])
       if (entries.error || checkins.error) {
-        await fail(admin, id, token, 'No se pudo verificar el check-in.')
+        await fail(admin, id, token, 'No se pudo verificar el check-in.', job.job_type)
         return NextResponse.json({ ok: false }, { status: 503 })
       }
       if (!entries.data?.length || checkins.data?.length) {
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
   }
   const key = process.env.RESEND_API_KEY
   if (!key) {
-    await fail(admin, id, token, 'Falta configurar Resend.')
+    await fail(admin, id, token, 'Falta configurar Resend.', job.job_type)
     return NextResponse.json({ ok: false }, { status: 503 })
   }
   const preferencesUrl = `${SITE_URL}/email/preferencias?token=${preference.data.unsubscribe_token}`
@@ -168,12 +168,13 @@ export async function POST(request: Request) {
     const reason = cause instanceof Error ? cause.message : 'No se pudo enviar el correo.'
     await admin.from('email_deliveries').update({ status: 'failed', last_error: reason.slice(0, 500) })
       .eq('dedupe_key', job.dedupe_key)
-    await fail(admin, id, token, reason)
+    await fail(admin, id, token, reason, job.job_type)
     return NextResponse.json({ ok: false }, { status: 502 })
   }
 }
 
-async function fail(admin: NonNullable<ReturnType<typeof createEmailAdminClient>>, id: string, token: string, message: string) {
+async function fail(admin: NonNullable<ReturnType<typeof createEmailAdminClient>>, id: string, token: string, message: string, kind: string) {
   await admin.from('tournament_email_jobs').update({ status: 'failed', last_error: message.slice(0, 500),
-    next_attempt_at: new Date(Date.now() + 15 * 60_000).toISOString() }).eq('id', id).eq('token', token)
+    next_attempt_at: new Date(Date.now() + (kind === 'match' ? 15_000 : 15 * 60_000)).toISOString() })
+    .eq('id', id).eq('token', token)
 }

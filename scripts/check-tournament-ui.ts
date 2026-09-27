@@ -10,6 +10,7 @@ import {
   validateTournamentDraft,
 } from '../src/lib/tournament-ui'
 import type { Tournament, TournamentDraftInput } from '../src/lib/tournaments'
+import { visibleSpectatorCards } from '../src/lib/tournaments/spectator'
 
 assert.deepEqual(TOURNAMENT_CAPACITIES['1v1'].knockout, [4, 8, 16, 32])
 assert.deepEqual(TOURNAMENT_CAPACITIES['1v1'].groups, [8, 16, 32])
@@ -77,5 +78,15 @@ const tournament: Tournament = {
 assert.equal(tournamentCheckInState(tournament, Date.parse('2027-01-10T21:29:59Z')), 'not_open')
 assert.equal(tournamentCheckInState(tournament, Date.parse('2027-01-10T21:30:00Z')), 'open')
 assert.equal(tournamentCheckInState(tournament, Date.parse('2027-01-10T22:00:00Z')), 'closed')
+
+for (const count of [2, 4]) {
+  const completed = Array.from({ length: count }, (_, seat) => ({ round: 1, seat }))
+  assert.deepEqual(visibleSpectatorCards(completed, 2), completed,
+    'La última carta debe seguir visible cuando el servidor cambia de baza')
+  const next = { round: 2, seat: 0 }
+  assert.deepEqual(visibleSpectatorCards([...completed, next], 2), [next],
+    'Al jugar en la baza nueva, deben verse sus cartas')
+  assert.deepEqual(visibleSpectatorCards([], 1), [], 'Una mano nueva empieza sin cartas visibles')
+}
 
 console.log('Formularios, reintentos, usuarios, horarios y combinaciones de torneos verificados.')

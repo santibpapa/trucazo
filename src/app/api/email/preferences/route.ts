@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     .select('user_id')
     .maybeSingle()
 
-  if (error?.code === '42703') {
+  if (error?.code === '42703' || error?.code === 'PGRST204') {
     const fallback = await supabase.from('email_preferences').update({
       news_enabled: update.news_enabled, reengagement_enabled: update.reengagement_enabled,
       ranking_enabled: update.ranking_enabled, updated_at: update.updated_at,

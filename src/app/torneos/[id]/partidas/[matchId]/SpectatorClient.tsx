@@ -5,6 +5,7 @@ import { Alert, Panel } from '@/components/ui'
 import PlayingCard from '@/components/game/PlayingCard'
 import { createClient } from '@/lib/supabase/client'
 import type { Card } from '@/lib/truco'
+import { visibleSpectatorCards } from '@/lib/tournaments/spectator'
 
 export type SpectatorSnapshot = {
   match_id: string
@@ -47,7 +48,7 @@ export default function SpectatorClient({ initial }: { initial: SpectatorSnapsho
   }, [refresh])
 
   const game = snapshot.game
-  const played = game?.played.filter(item => item.round === game.round) ?? []
+  const played = game ? visibleSpectatorCards(game.played, game.round) : []
   return (
     <div className="mt-5 space-y-5">
       <header>
@@ -77,7 +78,7 @@ export default function SpectatorClient({ initial }: { initial: SpectatorSnapsho
         </div>
       </Panel>}
       {game && <Panel as="section" className="p-5">
-        <h2 className="font-bold text-cream">Cartas jugadas en esta baza</h2>
+        <h2 className="font-bold text-cream">{played.length && played[0].round !== game.round ? 'Cartas de la baza anterior' : 'Cartas jugadas en esta baza'}</h2>
         {played.length ? <div className="mt-4 flex flex-wrap justify-center gap-4">
           {played.map((item, i) => <div key={i} className="w-20 text-center sm:w-24">
             <PlayingCard card={item.card} />
