@@ -111,14 +111,32 @@ revoke all on function tournament_internal.schedule_member(uuid,uuid,boolean) fr
 
 create function tournament_internal.member_communications() returns trigger
 language plpgsql security definer set search_path = '' as $$
+declare ready_match record;
 begin
  if tg_op='INSERT' then
-  if new.status='accepted' then
-   perform tournament_internal.schedule_member(new.tournament_id,new.user_id,true);
-  end if;
+  if new.status<>'accepted' then return new; end if;
+  perform tournament_internal.schedule_member(new.tournament_id,new.user_id,true);
  elsif new.status='accepted' and old.status is distinct from 'accepted' then
   perform tournament_internal.schedule_member(new.tournament_id,new.user_id,true);
+ else
+  return new;
  end if;
+ -- Un reemplazo admitido después de abrir un cruce también necesita el aviso.
+ for ready_match in select m.id,m.ready_at,t.schedule_version from public.tournament_matches m
+  join public.tournaments t on t.id=m.tournament_id
+  where m.tournament_id=new.tournament_id and t.status='running'
+   and m.status='ready' and m.entry_deadline>now()
+   and new.entry_id in (m.side_a_entry_id,m.side_b_entry_id)
+ loop
+  perform tournament_internal.queue_email(new.tournament_id,new.user_id,'match',now(),
+   ready_match.schedule_version,ready_match.id::text||':'||ready_match.ready_at::text);
+  update public.tournament_email_jobs set audience=jsonb_build_object('match_id',ready_match.id)
+   where dedupe_key=new.tournament_id::text||':'||ready_match.schedule_version::text||
+    ':match:'||new.user_id::text||':'||ready_match.id::text||':'||ready_match.ready_at::text;
+  perform tournament_internal.notify(new.tournament_id,new.user_id,'match',
+   ready_match.id::text||':match:'||ready_match.ready_at::text||':'||new.user_id::text,
+   jsonb_build_object('match_id',ready_match.id));
+ end loop;
  return new;
 end; $$;
 create trigger tournament_member_communications after insert or update of status
@@ -334,7 +352,11 @@ begin
   where j.status in ('pending','failed','processing') and j.attempts<6
    and j.next_attempt_at<=now() and j.due_at<=now()
    and (j.job_type='cancelled' or (t.status<>'cancelled' and j.schedule_version=t.schedule_version))
-  order by j.due_at limit 20 for update of j skip locked
+  -- Un anuncio masivo nunca debe retrasar el aviso de un cruce de cinco minutos.
+  order by case j.job_type when 'match' then 0 when 'checkin' then 1
+    when 'cancelled' then 2 when 'rescheduled' then 2
+    when 'registration' then 3 when 'reminder' then 4 else 5 end,
+    j.due_at limit 20 for update of j skip locked
  loop
   perform net.http_post(url:='https://www.trucazo.com.ar/api/email/tournament?id='||job.id::text,
    headers:=jsonb_build_object('Content-Type','application/json','Authorization','Bearer '||job.token::text),
