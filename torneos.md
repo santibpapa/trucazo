@@ -29,7 +29,7 @@ Reglas de trabajo:
 | PR 2 — Administración e inscripciones | Completo | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | Fusionado, SQL aplicado y recorridos validados; producción sigue apagada |
 | PR 3 — Competencia 1v1 | Completo | `codex/tournaments-1v1-competition` | [#84](https://github.com/santibpapa/trucazo/pull/84) | `20260924172158_tournaments_1v1_competition.sql` | Fusionado; SQL aplicado; cron #8 activo y verificado. Recorridos 1v1 aún sin constancia; validar antes del lanzamiento |
 | PR 4 — Competencia 2v2 | Completo | `codex/tournaments-2v2-competition` | [#89](https://github.com/santibpapa/trucazo/pull/89) | `20260925103000_tournaments_2v2_competition.sql` | Fusionado y SQL aplicado según el dueño; CI verde. Recorridos manuales todavía sin registrar; flag apagado |
-| PR 5 — Comunicaciones, espectadores y lanzamiento | En curso | `codex/tournaments-pr5` | Pendiente | `20260927001608_tournaments_communications_awards.sql` | Código en preparación; SQL, smoke tests y recorridos manuales pendientes. Flag y despacho de emails apagados |
+| PR 5 — Comunicaciones, espectadores y lanzamiento | En curso | `codex/tournaments-pr5` | [#91](https://github.com/santibpapa/trucazo/pull/91) | `20260927001608_tournaments_communications_awards.sql` | PR en revisión; SQL, smoke tests y recorridos manuales pendientes. Flag y despacho de emails apagados |
 
 La sesión que trabaje una etapa debe actualizar su fila y agregar una entrada al registro de traspaso. Los estados válidos son `Pendiente`, `En curso`, `Bloqueado` y `Completo`.
 
@@ -704,7 +704,7 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 
 - Estado: En curso. Entrega de código preparada; lanzamiento general pendiente.
 - Rama: `codex/tournaments-pr5`.
-- PR: por abrir.
+- PR: [#91 — feat: completar comunicaciones, espectadores y premios de torneos](https://github.com/santibpapa/trucazo/pull/91).
 - Migración nueva: `supabase/migrations/20260927001608_tournaments_communications_awards.sql` (hora UTC del archivo).
 - SQL aplicado en: todavía no; no ejecutar antes de fusionar el PR.
 - Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción. La migración instala la cola de emails con su interruptor privado en `false`.
