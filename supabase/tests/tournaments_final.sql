@@ -21,7 +21,7 @@ create function pg_temp.uid(i integer) returns uuid language sql immutable as $$
 
 do $$
 declare t uuid; t2 uuid; t3 uuid; e uuid[]:='{}'; e2 uuid[]:='{}';
- v_e uuid; v_game uuid; i integer; final_id uuid;
+ v_e uuid; v_game uuid; i integer; final_id uuid; v_visible_hands integer;
 begin
  insert into public.tournaments(name,mode,format,capacity,target_score,
   prize_first,prize_second,prize_third,starts_at,status,published_at,created_by,updated_by)
@@ -150,9 +150,9 @@ begin
   and not ((public.tournament_spectator_snapshot(final_id)->'game') ? 'cards'),
   'se filtró una mano');
  set local role authenticated;
- perform pg_temp.check((select count(*)=0 from public.game_hands where game_id=v_game),
-  'un espectador leyó manos directamente');
+ select count(*) into v_visible_hands from public.game_hands where game_id=v_game;
  reset role;
+ perform pg_temp.check(v_visible_hands=0, 'un espectador leyó manos directamente');
  perform set_config('request.jwt.claim.sub',pg_temp.uid(9)::text,true);
  begin
   perform public.tournament_spectator_snapshot(final_id);

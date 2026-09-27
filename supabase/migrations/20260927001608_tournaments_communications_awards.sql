@@ -225,7 +225,10 @@ end; $$;
 create function public.tournament_notification_read(p_id uuid) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
- if auth.uid() is null then raise exception 'No autenticado'; end if;
+ if auth.uid() is null or not exists(select 1 from auth.users
+   where id=auth.uid() and not coalesce(is_anonymous,false)) then
+  raise exception 'Necesitás una cuenta registrada';
+ end if;
  update public.tournament_notifications set read_at=coalesce(read_at,now())
  where id=p_id and user_id=auth.uid();
 end; $$;
