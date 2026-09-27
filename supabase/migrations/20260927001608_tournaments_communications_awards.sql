@@ -157,7 +157,7 @@ begin
  if new.status='published' and new.schedule_version<>old.schedule_version then
   update public.tournament_email_jobs set status='cancelled',updated_at=now()
    where tournament_id=new.id and schedule_version<>new.schedule_version
-     and status in ('pending','failed');
+     and status in ('pending','failed','processing');
   for recipient in select distinct em.user_id from public.tournament_entry_members em
    where em.tournament_id=new.id and em.status='accepted' loop
    perform tournament_internal.queue_email(new.id,recipient.user_id,'rescheduled',now(),new.schedule_version);
@@ -169,7 +169,7 @@ begin
  end if;
  if new.status='cancelled' and old.status is distinct from 'cancelled' then
   update public.tournament_email_jobs set status='cancelled',updated_at=now()
-   where tournament_id=new.id and status in ('pending','failed');
+   where tournament_id=new.id and status in ('pending','failed','processing');
   if old.published_at is not null then
    for recipient in select distinct em.user_id from public.tournament_entry_members em
     where em.tournament_id=new.id and em.status='accepted' loop

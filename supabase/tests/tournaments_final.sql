@@ -12,7 +12,9 @@ select '00000000-0000-0000-0000-000000000000',
  '{}','{}',i=9,now(),now() from generate_series(0,9) i;
 insert into public.profiles(id,username,is_admin,is_bot,coins)
 select ('dd100000-0000-4000-a000-'||lpad(i::text,12,'0'))::uuid,
- 'Finalista'||i,i=0,false,100 from generate_series(0,9) i;
+ 'Finalista'||i,i=0,false,100 from generate_series(0,9) i
+on conflict(id) do update set username=excluded.username,is_admin=excluded.is_admin,
+ is_bot=false,coins=100;
 
 create function pg_temp.uid(i integer) returns uuid language sql immutable as $$
  select ('dd100000-0000-4000-a000-'||lpad(i::text,12,'0'))::uuid $$;
