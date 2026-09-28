@@ -26,7 +26,7 @@ declare
     'play_card', 'player_medals', 'publish_news', 'remove_friend',
     'request_rematch', 'respond_envido', 'respond_friend_request',
     'respond_game_invite', 'respond_group_invite', 'respond_truco',
-    'send_chat_message', 'send_friend_request', 'set_active_accessory',
+    'send_chat_message', 'send_match_chat_message', 'send_friend_request', 'set_active_accessory',
     'set_active_frame', 'set_active_medal', 'set_active_salon',
     'set_avatar_url', 'sing_envido', 'sing_truco', 'start_campaign_duel',
     'start_game', 'submit_feedback', 'timeout_mazo', 'touch_online',

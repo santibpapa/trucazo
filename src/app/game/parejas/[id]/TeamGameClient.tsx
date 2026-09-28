@@ -40,7 +40,7 @@ function Played({ card, seat, animate }: { card: Card; seat: number; animate: bo
   return <div ref={ref}><PlayingCard card={card} className={styles.tableCard} /></div>
 }
 
-export default function TeamGameClient({ initial, userId, salonSlug }: { initial: TeamSnapshot; userId: string; salonSlug: string }) {
+export default function TeamGameClient({ initial, userId, isGuest, salonSlug }: { initial: TeamSnapshot; userId: string; isGuest: boolean; salonSlug: string }) {
   const [state, setState] = useState(initial)
   const current = useRef(initial)
   const [error, setError] = useState('')
@@ -222,7 +222,7 @@ export default function TeamGameClient({ initial, userId, salonSlug }: { initial
       <section className={styles.stage} data-team-stage aria-label="Mesa de cuatro jugadores">
         <SalonTable slug={salonSlug} />
         <MesaDeck className={styles.deck} />
-        <TeamToolbar chat={g.chat ?? []} members={members} mySeat={mySeat} playing={table.status === 'playing'} offset={offset.current} onSay={text => { void say(text) }} />
+        <TeamToolbar chat={g.chat ?? []} members={members} mySeat={mySeat} userId={userId} isGuest={isGuest} tableId={table.id} playing={table.status === 'playing'} offset={offset.current} onSay={text => { void say(text) }} />
         {announce && <MesaAnnouncement key={g.announcement?.at} announce={announce} />}
         {relativeSeats.map((seat, relative) => seatView(member(seat), relative))}
         {relativeSeats.map((seat, relative) => <TableAccessory key={seat} slug={cosmetics[member(seat)?.user_id ?? '']?.accessory} who={relative === 0 ? 'me' : 'opponent'} className={styles[`accessory${relative}`]} />)}

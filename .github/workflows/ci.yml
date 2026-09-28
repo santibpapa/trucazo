@@ -47,6 +47,9 @@ jobs:
       - name: Que ninguna función del servidor quede abierta al cliente
         run: node scripts/check-rpc-allowlist.mjs
 
+      - name: Reconexión y rechazos del chat
+        run: npm run check:match-chat
+
       - name: Verificar actualización de mesas al volver al lobby
         run: node --import tsx scripts/check-lobby-tables.ts
 
@@ -132,6 +135,12 @@ jobs:
 
       - name: Permisos de las funciones
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql
+
+      - name: Chat de partida, permisos y límites
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/match_chat.sql
+
+      - name: Envíos simultáneos del mismo jugador
+        run: supabase/tests/match_chat_concurrency.sh
 
       - name: Progresión, acceso y decisiones de la Ruta del Noroeste
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/ruta_noroeste.sql

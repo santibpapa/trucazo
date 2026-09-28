@@ -9,6 +9,8 @@ import { Button, CoinIcon } from '@/components/ui'
 import PlayingCard from '@/components/game/PlayingCard'
 import FinishScreen from '@/components/game/FinishScreen'
 import { SeatAvatar, TableAccessory, MesaButton, MesaAnnouncement, MesaHeader, MesaTurn, MesaToolbar, EmoteTray, MesaDeck, DEAL_ORIGINS, type Announce } from '@/components/game/MesaUI'
+import MatchChat from '@/components/game/MatchChat'
+import { EMOTES } from '@/lib/emotes'
 import CardBack from '@/components/game/CardBack'
 import { TableCard, useCardFlight } from '@/components/game/CardMotion'
 import { playSound, isMuted, setMuted } from '@/lib/sounds'
@@ -1086,8 +1088,9 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
         <TableAccessory slug={opponentAccessory} who="opponent" />
         <TableAccessory slug={myAccessory} who="me" />
 
-        <MesaToolbar muted={muted} onToggleMute={toggleMute} emoteTray={emoteTray} onToggleEmotes={() => setEmoteTray(v => !v)} />
-        {emoteTray && (
+        <MesaToolbar muted={muted} onToggleMute={toggleMute} emoteTray={emoteTray} onToggleEmotes={() => setEmoteTray(v => !v)} chatControl={process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isBotGame
+          ? <MatchChat key={game.id} mode="game" matchId={game.id} userId={currentUserId} isGuest={isGuest} quick={EMOTES} onQuickSend={sendEmote} quickCooldown={emoteCooldown} /> : undefined} />
+        {emoteTray && !(process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isBotGame) && (
           <EmoteTray onSend={sendEmote} cooldown={emoteCooldown} />
         )}
 

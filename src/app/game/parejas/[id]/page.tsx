@@ -13,5 +13,5 @@ export default async function TeamGamePage({ params }: { params: { id: string } 
     supabase.from('profiles').select('active_salon').eq('id', user.id).single(),
   ])
   if (error || !data) redirect('/lobby')
-  return <TeamGameClient initial={data as TeamSnapshot} userId={user.id} salonSlug={profile?.active_salon ?? 'clasico'} />
+  return <TeamGameClient initial={data as TeamSnapshot} userId={user.id} isGuest={user.is_anonymous === true} salonSlug={profile?.active_salon ?? 'clasico'} />
 }

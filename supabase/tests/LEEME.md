@@ -45,6 +45,8 @@ psql -f supabase/tests/seguridad_pr2.sql
 psql -f supabase/tests/ciclo_retorno.sql
 psql -f supabase/tests/tournaments.sql
 psql -f supabase/tests/tournaments_competition.sql
+psql -f supabase/tests/match_chat.sql
+supabase/tests/match_chat_concurrency.sh
 supabase/tests/tournaments_concurrency.sh
 psql -f supabase/tests/ranking_emails.sql
 ```
