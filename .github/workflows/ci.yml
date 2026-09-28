@@ -133,6 +133,12 @@ jobs:
       - name: Permisos de las funciones
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql
 
+      - name: Chat de partida, permisos y límites
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/match_chat.sql
+
+      - name: Envíos simultáneos del mismo jugador
+        run: supabase/tests/match_chat_concurrency.sh
+
       - name: Progresión, acceso y decisiones de la Ruta del Noroeste
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/ruta_noroeste.sql
 
@@ -166,12 +172,6 @@ jobs:
 
       - name: Motor, bots y privacidad de partidas 2vs2
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/team_games.sql
-
-      - name: Chat de partida, permisos y límites
-        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/match_chat.sql
-
-      - name: Envíos simultáneos del mismo jugador
-        run: supabase/tests/match_chat_concurrency.sh
 
       - name: Concurrencia real entre participantes 2vs2
         run: supabase/tests/team_concurrency.sh
