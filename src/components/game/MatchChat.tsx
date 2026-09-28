@@ -19,6 +19,7 @@ export default function MatchChat({ mode, matchId, userId, isGuest, quick, onQui
   const [error, setError] = useState('')
   const [viewport, setViewport] = useState({ top: 0, height: 0 })
   const attempt = useRef<{ body: string; id: string } | null>(null)
+  const inFlight = useRef<string | null>(null)
   const trigger = useRef<HTMLButtonElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLElement>(null)
@@ -55,20 +56,41 @@ export default function MatchChat({ mode, matchId, userId, isGuest, quick, onQui
     if (open && tab === 'messages' && follow.current && list.current) list.current.scrollTop = list.current.scrollHeight
   }, [messages, open, tab])
 
+  useEffect(() => {
+    const accepted = messages.find(message => message.client_request_id === attempt.current?.id && message.sender_id === userId)
+    if (!accepted) return
+    setDraft(previous => previous.trim() === accepted.body ? '' : previous)
+    attempt.current = null
+    setError('')
+    if (inFlight.current === accepted.client_request_id) {
+      inFlight.current = null
+      setSending(false)
+    }
+  }, [messages, userId])
+
   async function submit() {
     const body = draft.trim()
     if (sending || !body) return
     if (Array.from(body).length > 200) { setError('El mensaje puede tener hasta 200 caracteres.'); return }
     if (attempt.current?.body !== body) attempt.current = { body, id: crypto.randomUUID() }
+    const requestId = attempt.current.id
+    inFlight.current = requestId
     setSending(true)
     setError('')
     try {
-      await send(body, attempt.current.id)
-      setDraft(previous => previous.trim() === body ? '' : previous)
-      attempt.current = null
+      await send(body, requestId)
+      if (attempt.current?.id === requestId) {
+        setDraft(previous => previous.trim() === body ? '' : previous)
+        attempt.current = null
+      }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo enviar. Volvé a intentar.')
-    } finally { setSending(false) }
+      if (attempt.current?.id === requestId) setError(cause instanceof Error ? cause.message : 'No se pudo enviar. Volvé a intentar.')
+    } finally {
+      if (inFlight.current === requestId) {
+        inFlight.current = null
+        setSending(false)
+      }
+    }
   }
 
   return <>
