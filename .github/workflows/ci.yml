@@ -47,6 +47,9 @@ jobs:
       - name: Que ninguna función del servidor quede abierta al cliente
         run: node scripts/check-rpc-allowlist.mjs
 
+      - name: Reconexión y rechazos del chat
+        run: npm run check:match-chat
+
       - name: Verificar actualización de mesas al volver al lobby
         run: node --import tsx scripts/check-lobby-tables.ts
 

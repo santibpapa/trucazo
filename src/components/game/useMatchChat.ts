@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { createMatchChatReadiness } from '@/lib/match-chat'
 
 export type MatchChatMessage = {
   id: string
@@ -48,8 +49,18 @@ export function useMatchChat(mode: 'game' | 'team', matchId: string, open: boole
 
   useEffect(() => {
     let alive = true
+    let readyTimer: ReturnType<typeof setTimeout> | null = null
+    const clearReadyTimer = () => { if (readyTimer) clearTimeout(readyTimer); readyTimer = null }
+    const readiness = createMatchChatReadiness(() => {
+      clearReadyTimer()
+      setConnection('connecting')
+      void refresh().then(() => { if (alive && readiness.ready) setConnection('connected') })
+        .catch(() => { if (alive) setConnection('offline') })
+    })
     const column = mode === 'game' ? 'game_id' : 'team_table_id'
-    const channel = supabase.channel(`match-chat-${mode}-${matchId}`)
+    const channel = supabase.channel(`match-chat-${mode}-${matchId}`, {
+      config: { broadcast: { replication_ready: true } },
+    })
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'match_chat_messages', filter: `${column}=eq.${matchId}`,
       }, ({ new: row }) => {
@@ -61,22 +72,33 @@ export function useMatchChat(mode: 'game' | 'team', matchId: string, open: boole
         // El indicador se controla con el estado actual, sin afectar el motor.
         if (message.sender_id !== userId && !quiet.current) setUnread(count => count + 1)
       })
+      .on('system', {}, payload => {
+        if (!alive || (payload.extension !== 'system' && payload.extension !== 'postgres_changes')) return
+        readiness.system(payload)
+        if (payload.status === 'error') { clearReadyTimer(); setConnection('offline') }
+      })
       .subscribe(status => {
         if (!alive) return
         if (status === 'SUBSCRIBED') {
-          setConnection('connected')
-          void refresh().catch(() => { if (alive) setConnection('offline') })
+          if (!readiness.ready) {
+            setConnection('connecting')
+            clearReadyTimer()
+            readyTimer = setTimeout(() => { if (alive && !readiness.ready) setConnection('offline') }, 12000)
+          }
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          clearReadyTimer()
+          readiness.disconnect()
           setConnection('offline')
         }
       })
     const recover = () => {
-      if (document.visibilityState === 'visible') void refresh().catch(() => { if (alive) setConnection('offline') })
+      if (readiness.ready && document.visibilityState === 'visible') void refresh().catch(() => { if (alive) setConnection('offline') })
     }
     document.addEventListener('visibilitychange', recover)
     window.addEventListener('focus', recover)
     return () => {
       alive = false
+      clearReadyTimer()
       document.removeEventListener('visibilitychange', recover)
       window.removeEventListener('focus', recover)
       void supabase.removeChannel(channel)

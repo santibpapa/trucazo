@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChatIcon, EmoteTray } from './MesaUI'
 import { useMatchChat } from './useMatchChat'
+import { matchChatSendError } from '@/lib/match-chat'
 import salon from './salon.module.css'
 import styles from './matchChat.module.css'
 
@@ -84,7 +85,7 @@ export default function MatchChat({ mode, matchId, userId, isGuest, quick, onQui
         attempt.current = null
       }
     } catch (cause) {
-      if (attempt.current?.id === requestId) setError(cause instanceof Error ? cause.message : 'No se pudo enviar. Volvé a intentar.')
+      if (attempt.current?.id === requestId) setError(matchChatSendError(cause))
     } finally {
       if (inFlight.current === requestId) {
         inFlight.current = null
