@@ -1,6 +1,6 @@
 # Chat escrito en partidas — implementación
 
-Estado: chat escrito activado en producción con la migración inicial. Hay una segunda migración pendiente para incluir a los bots.
+Estado: chat escrito activado en producción con la migración inicial. La migración para incluir a los bots se aplica antes de desplegar el PR correspondiente.
 
 ## Alcance
 
@@ -22,8 +22,8 @@ Los últimos 100 mensajes se recuperan al conectar, al reconectar y al volver a 
 
 ## Activación
 
-1. Mergear el PR de chat con bots y ejecutar **solo la migración nueva** `20260928165300_match_chat_bots.sql` en el SQL Editor del proyecto Supabase de producción. La primera ya se aplicó.
-2. En Vercel, hacer redeploy de Production para incluir la pantalla actualizada. `NEXT_PUBLIC_ENABLE_MATCH_CHAT=true` ya está configurada y no necesita volver a crearse.
+1. Ejecutar **solo la migración nueva** `20260928165300_match_chat_bots.sql` en el SQL Editor del proyecto Supabase de producción. La primera ya se aplicó. Este paso puede hacerse antes del merge porque la pantalla publicada todavía oculta el chat en partidas con bots.
+2. Mergear el PR de chat con bots y esperar a que Vercel complete el despliegue de Production. Si no se dispara solo, hacer un redeploy. `NEXT_PUBLIC_ENABLE_MATCH_CHAT=true` ya está configurada y no necesita volver a crearse.
 3. En una partida con bot 1v1, en campaña y en una mesa 2vs2 con un humano y tres bots, comprobar el envío, la respuesta y las frases rápidas. Revisar el panel con el teclado móvil abierto y cerrado.
 
 Para ocultar el panel: poner el flag en `false` y redeploy. Las frases rápidas siguen funcionando. Si hace falta cerrar también el envío en la base, ejecutar `revoke execute on function public.send_match_chat_message(text,uuid,text,uuid) from authenticated;`. Para volver a habilitarlo tras revisar el problema: `grant execute on function public.send_match_chat_message(text,uuid,text,uuid) to authenticated;`.
