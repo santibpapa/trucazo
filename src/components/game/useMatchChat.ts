@@ -4,7 +4,7 @@ import { createMatchChatReadiness } from '@/lib/match-chat'
 
 export type MatchChatMessage = {
   id: string
-  sender_id: string | null
+  sender_id: string
   sender_name: string
   body: string
   created_at: string
@@ -27,39 +27,10 @@ export function useMatchChat(mode: 'game' | 'team', matchId: string, open: boole
   const [retry, setRetry] = useState(0)
   const quiet = useRef(open || muted)
   const known = useRef(new Set<string>())
-  const delayed = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const initialized = useRef(false)
   quiet.current = open || muted
 
   useEffect(() => { if (open || muted) setUnread(0) }, [open, muted])
-  const receive = useCallback((incoming: MatchChatMessage[], notify: boolean) => {
-    const due: MatchChatMessage[] = []
-    for (const message of incoming) {
-      if (known.current.has(message.id) || delayed.current.has(message.id)) continue
-      // Las respuestas del bot viajan por Realtime enseguida, pero se muestran
-      // a la hora indicada por el servidor en todas las sesiones de la mesa.
-      const wait = Math.min(5000, Date.parse(message.created_at) - Date.now())
-      if (wait > 0) {
-        delayed.current.set(message.id, setTimeout(() => {
-          delayed.current.delete(message.id)
-          if (known.current.has(message.id)) return
-          known.current.add(message.id)
-          setMessages(previous => merge(previous, [message]))
-          if (notify && !quiet.current && message.sender_id !== userId) setUnread(count => count + 1)
-        }, wait))
-      } else {
-        known.current.add(message.id)
-        due.push(message)
-      }
-    }
-    if (due.length) {
-      setMessages(previous => merge(previous, due))
-      if (notify && !quiet.current) {
-        const count = due.filter(message => message.sender_id !== userId).length
-        if (count) setUnread(previous => previous + count)
-      }
-    }
-  }, [userId])
   const refresh = useCallback(async () => {
     const column = mode === 'game' ? 'game_id' : 'team_table_id'
     const { data, error } = await supabase.from('match_chat_messages')
@@ -68,13 +39,16 @@ export function useMatchChat(mode: 'game' | 'team', matchId: string, open: boole
       .order('id', { ascending: false }).limit(100)
     if (error) throw error
     const incoming = (data ?? []) as MatchChatMessage[]
-    receive(incoming, initialized.current)
+    const newCount = initialized.current && !quiet.current
+      ? incoming.filter(message => !known.current.has(message.id) && message.sender_id !== userId).length : 0
+    for (const message of incoming) known.current.add(message.id)
     initialized.current = true
-  }, [supabase, mode, matchId, receive])
+    if (newCount) setUnread(count => count + newCount)
+    setMessages(previous => merge(previous, incoming))
+  }, [supabase, mode, matchId, userId])
 
   useEffect(() => {
     let alive = true
-    const pendingTimers = delayed.current
     let readyTimer: ReturnType<typeof setTimeout> | null = null
     const clearReadyTimer = () => { if (readyTimer) clearTimeout(readyTimer); readyTimer = null }
     const readiness = createMatchChatReadiness(() => {
@@ -91,7 +65,12 @@ export function useMatchChat(mode: 'game' | 'team', matchId: string, open: boole
         event: 'INSERT', schema: 'public', table: 'match_chat_messages', filter: `${column}=eq.${matchId}`,
       }, ({ new: row }) => {
         if (!alive) return
-        receive([row as MatchChatMessage], true)
+        const message = row as MatchChatMessage
+        if (known.current.has(message.id)) return
+        known.current.add(message.id)
+        setMessages(previous => merge(previous, [message]))
+        // El indicador se controla con el estado actual, sin afectar el motor.
+        if (message.sender_id !== userId && !quiet.current) setUnread(count => count + 1)
       })
       .on('system', {}, payload => {
         if (!alive || (payload.extension !== 'system' && payload.extension !== 'postgres_changes')) return
@@ -122,11 +101,9 @@ export function useMatchChat(mode: 'game' | 'team', matchId: string, open: boole
       clearReadyTimer()
       document.removeEventListener('visibilitychange', recover)
       window.removeEventListener('focus', recover)
-      pendingTimers.forEach(timer => clearTimeout(timer))
-      pendingTimers.clear()
       void supabase.removeChannel(channel)
     }
-  }, [supabase, mode, matchId, refresh, receive, retry])
+  }, [supabase, mode, matchId, userId, refresh, retry])
 
   const send = useCallback(async (body: string, requestId: string) => {
     const { data, error } = await supabase.rpc('send_match_chat_message', {

@@ -54,6 +54,7 @@ declare
   b uuid := 'c1000000-0000-4000-a000-000000000002';
   c uuid := 'c1000000-0000-4000-a000-000000000003';
   guest uuid := 'c1000000-0000-4000-a000-000000000004';
+  bot uuid := 'c1000000-0000-4000-a000-000000000005';
   game uuid := 'c1100000-0000-4000-a000-000000000001';
   team uuid := 'c1200000-0000-4000-a000-000000000001';
   request uuid := gen_random_uuid();
@@ -66,6 +67,8 @@ declare
 begin
   perform pg_temp.chat_check(has_table_privilege('authenticated','public.match_chat_messages','SELECT'), 'SELECT permitido');
   perform pg_temp.chat_check(not has_table_privilege('authenticated','public.match_chat_messages','INSERT,UPDATE,DELETE,TRUNCATE'), 'escritura de tabla cerrada');
+  perform pg_temp.chat_check((select attnotnull from pg_attribute where attrelid='public.match_chat_messages'::regclass and attname='sender_id'),
+                             'sender_id obligatorio para todo mensaje escrito');
   perform pg_temp.chat_check(not has_function_privilege('anon','public.send_match_chat_message(text,uuid,text,uuid)','EXECUTE'), 'anon sin RPC');
   perform pg_temp.chat_check(not has_function_privilege('authenticated','match_chat_internal.cleanup()','EXECUTE'), 'limpieza inaccesible');
   select version into version_before from public.team_tables where id=team;
@@ -96,14 +99,12 @@ begin
   perform public.send_match_chat_message('team',team,'Mensaje para toda la mesa',gen_random_uuid());
   reset role;
   perform pg_temp.chat_check((select version from public.team_tables where id=team)=version_before, 'chat no mueve equipo');
-  perform pg_temp.chat_check(exists (
-    select 1 from public.match_chat_messages where team_table_id=team and sender_id is null
-      and sender_name='Bot' and created_at > clock_timestamp() and char_length(body) between 1 and 200
-  ), 'bot compañero responde después sin tocar la partida');
+  perform pg_temp.chat_check((select count(*) from public.match_chat_messages where team_table_id=team)=1,
+                             '2vs2 mixto acepta texto sin respuesta del bot');
   perform set_config('request.jwt.claim.sub',guest::text,true);
   set local role authenticated;
   select count(*) into seen from public.match_chat_messages where team_table_id=team;
-  reset role; perform pg_temp.chat_check(seen=2,'invitado sentado puede leer mensajes y respuestas');
+  reset role; perform pg_temp.chat_check(seen=1,'invitado sentado puede leer mensajes');
   blocked:=false;
   begin set local role authenticated; perform public.send_match_chat_message('team',team,'invitado',gen_random_uuid());
   exception when others then blocked:=true; end;
@@ -128,18 +129,21 @@ begin
   row_again := public.send_match_chat_message('game',game,'Hola, ¿jugamos?',row_one.client_request_id);
   reset role;
   perform pg_temp.chat_check(row_again.id=row_one.id, 'reintento con bot es idempotente');
-  perform pg_temp.chat_check((select count(*) from public.match_chat_messages where game_id=game)=2,
-                             '1v1 normal con bot recibe texto y responde una vez');
-  perform pg_temp.chat_check(exists (
-    select 1 from public.match_chat_messages where game_id=game and sender_id is null
-      and sender_name='Bot' and created_at > row_one.created_at + interval '1 second'
-  ), 'la respuesta 1v1 sale a nombre del rival con demora');
+  perform pg_temp.chat_check((select count(*) from public.match_chat_messages where game_id=game)=1,
+                             '1v1 normal con bot acepta texto sin responder');
+  perform pg_temp.chat_check(row_one.created_at <= clock_timestamp(), 'mensaje humano visible sin espera artificial');
   update public.match_chat_messages set created_at=clock_timestamp()-interval '4 seconds' where id=row_one.id;
   set local role authenticated;
   perform public.send_match_chat_message('game',game,'Otro mensaje',gen_random_uuid());
   reset role;
   perform pg_temp.chat_check((select count(*) from public.match_chat_messages
-    where game_id=game and sender_id is null)=1,'el bot no responde como loro');
+    where game_id=game)=2,'el bot nunca escribe en 1v1');
+  perform set_config('request.jwt.claim.sub',bot::text,true);
+  blocked:=false;
+  begin set local role authenticated; perform public.send_match_chat_message('game',game,'Yo soy el bot',gen_random_uuid());
+  exception when others then blocked:=true; end;
+  reset role; perform pg_temp.chat_check(blocked,'perfil bot no puede mandar mensajes escritos');
+  perform set_config('request.jwt.claim.sub',a::text,true);
 
   foreach game in array array['c1100000-0000-4000-a000-000000000004'::uuid,'c1100000-0000-4000-a000-000000000005'::uuid] loop
     blocked:=false;
@@ -161,7 +165,7 @@ begin
   perform public.send_match_chat_message('team','c1200000-0000-4000-a000-000000000002','Vamos a jugar',gen_random_uuid());
   reset role;
   perform pg_temp.chat_check((select count(*) from public.match_chat_messages
-    where team_table_id='c1200000-0000-4000-a000-000000000002')=2,'1P+3B también tiene chat');
+    where team_table_id='c1200000-0000-4000-a000-000000000002')=1,'1P+3B tiene chat sin respuesta de bots');
   update public.match_chat_messages set created_at=clock_timestamp()-interval '20 seconds' where sender_id=a;
   set local role authenticated;
   perform public.send_match_chat_message('team','c1200000-0000-4000-a000-000000000003','Mesa de personas',gen_random_uuid());
@@ -197,6 +201,6 @@ begin
   reset role; perform pg_temp.chat_check(seen=0,'caducidad de lectura');
   perform match_chat_internal.cleanup();
   perform pg_temp.chat_check(not exists(select 1 from public.match_chat_messages where id=row_one.id),'limpieza solo vencidos');
-  perform pg_temp.chat_check((select count(*) from public.match_chat_messages where team_table_id=team)=2,'limpieza conserva recientes');
+  perform pg_temp.chat_check((select count(*) from public.match_chat_messages where team_table_id=team)=1,'limpieza conserva recientes');
 end $$;
 rollback;
