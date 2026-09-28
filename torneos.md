@@ -1,16 +1,16 @@
-# Sistema de torneos — especificación y plan de entrega
+# Sistema de torneos — especificación e historial de implementación
 
-> Documento fuente de verdad para implementar el sistema de torneos en cinco PR/sesiones.
+> Implementación de las cinco etapas **finalizada y habilitada en producción el 2026-09-27** (horario de Argentina). Este documento conserva el contrato, las decisiones técnicas y el historial de entrega para futuras consultas.
 >
-> Última actualización: 2026-09-25
+> Última actualización: 2026-09-27
 > Repositorio base: `santibpapa/trucazo`  
 > Commit base al redactar este documento: `4d5857359b4b33612c0633421beff4aa5d1ddf81`
 
 ## 1. Cómo usar este documento
 
-Cada sesión futura debe leer **completo** este archivo y `AGENTS.md` antes de modificar código. Este documento evita volver a decidir requisitos ya cerrados y delimita qué corresponde a cada PR.
+Para futuras modificaciones de torneos, leer este archivo y `AGENTS.md`. Las instrucciones de etapas siguientes y los pasos de lanzamiento se conservan como historial: **las cinco etapas ya terminaron; no volver a ejecutar sus migraciones**. Toda corrección de la base requiere una migración nueva.
 
-Reglas de trabajo:
+Reglas que se siguieron durante la implementación:
 
 1. Empezar desde el `master` más reciente, con el PR anterior fusionado.
 2. Verificar las precondiciones de la etapa antes de programar. Si falta una migración aplicada o el PR anterior no está fusionado, la etapa todavía no empieza.
@@ -25,13 +25,13 @@ Reglas de trabajo:
 | Entrega | Estado | Rama | PR | Migraciones | Observaciones |
 | --- | --- | --- | --- | --- | --- |
 | Documento base | Completo | `codex/plan-sistema-torneos` | [#74](https://github.com/santibpapa/trucazo/pull/74) | Ninguna | Especificación y división en cinco etapas |
-| PR 1 — Base de datos y contrato | Completo | `codex/tournaments-base-contract` | [#75](https://github.com/santibpapa/trucazo/pull/75) | `20260921082456_tournaments_base_contract.sql` | Fusionado, SQL aplicado y verificado; la funcionalidad sigue apagada |
-| PR 2 — Administración e inscripciones | Completo | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | Fusionado, SQL aplicado y recorridos validados; producción sigue apagada |
-| PR 3 — Competencia 1v1 | Completo | `codex/tournaments-1v1-competition` | [#84](https://github.com/santibpapa/trucazo/pull/84) | `20260924172158_tournaments_1v1_competition.sql` | Fusionado; SQL aplicado; cron #8 activo y verificado. Recorridos 1v1 aún sin constancia; validar antes del lanzamiento |
-| PR 4 — Competencia 2v2 | Completo | `codex/tournaments-2v2-competition` | [#89](https://github.com/santibpapa/trucazo/pull/89) | `20260925103000_tournaments_2v2_competition.sql` | Fusionado y SQL aplicado según el dueño; CI verde. Recorridos manuales todavía sin registrar; flag apagado |
-| PR 5 — Comunicaciones, espectadores y lanzamiento | En curso | `codex/tournaments-pr5` | [#91](https://github.com/santibpapa/trucazo/pull/91) | `20260927001608_tournaments_communications_awards.sql` | PR en revisión; SQL, smoke tests y recorridos manuales pendientes. Flag y despacho de emails apagados |
+| PR 1 — Base de datos y contrato | Completo | `codex/tournaments-base-contract` | [#75](https://github.com/santibpapa/trucazo/pull/75) | `20260921082456_tournaments_base_contract.sql` | Fusionado, SQL aplicado y verificado |
+| PR 2 — Administración e inscripciones | Completo | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | Fusionado, SQL aplicado y recorridos validados |
+| PR 3 — Competencia 1v1 | Completo | `codex/tournaments-1v1-competition` | [#84](https://github.com/santibpapa/trucazo/pull/84) | `20260924172158_tournaments_1v1_competition.sql` | Fusionado, SQL aplicado y cron de torneos verificado; recorridos manuales confirmados por el dueño antes del lanzamiento |
+| PR 4 — Competencia 2v2 | Completo | `codex/tournaments-2v2-competition` | [#89](https://github.com/santibpapa/trucazo/pull/89) | `20260925103000_tournaments_2v2_competition.sql` | Fusionado, SQL aplicado y CI verde; recorridos manuales confirmados por el dueño antes del lanzamiento |
+| PR 5 — Comunicaciones, espectadores y lanzamiento | Completo | `codex/tournaments-pr5` | [#91](https://github.com/santibpapa/trucazo/pull/91) | `20260927001608_tournaments_communications_awards.sql` | Fusionado y SQL aplicado; cron de emails #9 activo, despacho y flag encendidos. Ajustes de lobby [#92](https://github.com/santibpapa/trucazo/pull/92) y [#93](https://github.com/santibpapa/trucazo/pull/93) fusionados y desplegados |
 
-La sesión que trabaje una etapa debe actualizar su fila y agregar una entrada al registro de traspaso. Los estados válidos son `Pendiente`, `En curso`, `Bloqueado` y `Completo`.
+El cierre y el alcance de las comprobaciones figuran en la última entrada del registro de traspaso (§12). Las entradas anteriores reflejan el estado en su fecha, aunque mencionen tareas que ya se resolvieron.
 
 ## 3. Objetivo del producto
 
@@ -500,6 +500,8 @@ El PR 3 se cierra como entrega de código y SQL por decisión del dueño el 2026
 
 ### Orden concreto de puesta en marcha
 
+**Secuencia histórica, completada el 2026-09-27.** Se conserva para entender el despliegue y la reversión; no volver a ejecutar la migración ni los comandos de activación como parte de esta implementación.
+
 1. Revisar y fusionar el PR 5. `NEXT_PUBLIC_ENABLE_TOURNAMENTS` permanece en `false` en producción.
 2. En el SQL Editor del proyecto Supabase de Trucazo, ejecutar **solo** `supabase/migrations/20260927001608_tournaments_communications_awards.sql`. No repetir las migraciones anteriores. El trabajo `trucazo-tournament-emails-minute` se instala cada minuto, pero su interruptor privado comienza en `false`: todavía no envía nada.
 3. En preview con flag encendido, completar y registrar los cuatro recorridos pendientes: 1v1 directa 4, 1v1 grupos 8, 2v2 directa 8 jugadores y 2v2 grupos 16 jugadores. Verificar final, tercer puesto, check-in, reemplazos, partidas normales y pruebas con dos clientes; revisar permisos de espectador registrado e invitado, correos en cola, monedas por jugador, insignias y cancelación/reprogramación. Los tests de CI comprueban el contrato SQL, pero no sustituyen estos recorridos.
@@ -599,7 +601,7 @@ Reversión operativa de lanzamiento:
 
 ## 12. Registro de traspaso entre sesiones
 
-Cada sesión agrega una entrada. No se borra el historial previo.
+Cada sesión agrega una entrada. No se borra el historial previo. Las entradas anteriores son fotografías fechadas; consultar la última entrada para el estado actual.
 
 ### Plantilla
 
@@ -702,7 +704,7 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 
 ### 2026-09-26 — PR 5 — Comunicaciones, espectadores y premios
 
-- Estado: En curso. Entrega de código preparada; lanzamiento general pendiente.
+- Estado a esa fecha: En curso. Entrega de código preparada; lanzamiento general pendiente. El cierre posterior está registrado en la entrada siguiente.
 - Rama: `codex/tournaments-pr5`.
 - PR: [#91 — feat: completar comunicaciones, espectadores y premios de torneos](https://github.com/santibpapa/trucazo/pull/91).
 - Migración nueva: `supabase/migrations/20260927001608_tournaments_communications_awards.sql` (hora UTC del archivo).
@@ -713,3 +715,12 @@ Cada sesión agrega una entrada. No se borra el historial previo.
 - Decisiones técnicas: la base acredita monedas e insignias en la misma transacción que pasa el torneo a `completed`; cada premio tiene una clave única. Los correos tienen cola durable, versión de agenda, límite de reintentos y validación de destinatario al enviar. La vista de espectador es una proyección explícita sin manos; el cron de emails se instala con un interruptor cerrado.
 - Problemas pendientes o riesgos: no consta aceptación manual de los modos y formatos; no se ha aplicado esta migración ni activado correo o flag. No declarar PR 5 completo hasta verificar esos puntos y el primer despliegue real.
 - Para cerrar PR 5 falta: PR fusionado, migración aplicada una sola vez, pruebas manuales y smoke test, habilitar el despacho de correo y luego el flag, registrar fecha de lanzamiento y monitorear el primer torneo real.
+
+### 2026-09-27 — Cierre de PR 5 y lanzamiento de torneos
+
+- Estado: **Completo**. El dueño confirmó las pruebas manuales y dio por cerrada toda la implementación. Las cinco entregas están fusionadas y aplicadas; torneos quedó habilitado en producción el 2026-09-27 (hora de Argentina).
+- Código: [#91 — comunicaciones, espectadores y premios](https://github.com/santibpapa/trucazo/pull/91), [#92 — logo de torneos en el lobby](https://github.com/santibpapa/trucazo/pull/92) y [#93 — ajuste del tamaño del logo](https://github.com/santibpapa/trucazo/pull/93) fusionados. El despliegue de producción verificado contiene el merge de #93 (`a31f17d1fe3e85c1a943d719693ce27a567e8ccb`).
+- SQL: `supabase/migrations/20260927001608_tournaments_communications_awards.sql` ejecutada manualmente por el dueño después de fusionar #91; el cron `trucazo-tournament-emails-minute` quedó instalado como trabajo **#9** y activo cada minuto. No volver a ejecutar este SQL.
+- Activación: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=true` en producción; la ruta pública `/torneos` existe y responde con redirección de acceso para visitantes sin sesión. El interruptor privado `tournament_internal.email_settings.enabled` está en `true`. En la comprobación posterior el cron estaba activo y no había trabajos de email fallidos; tampoco había torneos activos ni correos pendientes.
+- Pruebas: CI de #91 y #92 finalizó correctamente. El dueño informó que probó los recorridos manuales antes de la activación y confirmó el cierre; no se conservó aquí un acta detallada por combinación ni una evidencia independiente del primer correo real entregado.
+- Seguimiento operativo: observar la cola y la entrega real de emails, expiraciones, avisos y premios en el primer torneo real. Esto es monitoreo posterior al lanzamiento, no una etapa de implementación abierta. El procedimiento de reversión permanece en §9.
