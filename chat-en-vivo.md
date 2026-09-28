@@ -1,16 +1,16 @@
 # Chat escrito en partidas — implementación
 
-Estado: PR listo para revisión; activación en producción pendiente.
+Estado: chat escrito activado en producción con la migración inicial. Hay una segunda migración pendiente para incluir a los bots.
 
 ## Alcance
 
-En mesas 1v1 y 2vs2 con al menos dos personas, incluidos torneos, el botón de chat abre «Mensajes» y «Frases rápidas». Toda la mesa lee los mensajes. Los invitados sentados leen y siguen usando frases rápidas; el panel les avisa que solo registrados pueden escribir. Las mesas contra bots y la campaña conservan el chat rápido. El texto libre no se usa para hablar con bots.
+En mesas 1v1 y 2vs2, incluidos torneos, partidas con bots y campaña, el botón de chat abre «Mensajes» y «Frases rápidas». Toda la mesa lee los mensajes. Los invitados sentados leen y siguen usando frases rápidas; el panel les avisa que solo registrados pueden escribir. Los bots también responden brevemente al chat escrito desde la base, con una pausa de 2 a 5 segundos y un límite para evitar respuestas constantes. Las respuestas son frases predefinidas; no mantienen una conversación abierta.
 
 El panel se superpone a la partida y tiene su propia lista desplazable. Silenciar chat oculta avisos del texto libre durante esa partida, sin silenciar frases, cantos o sonidos. El chat no modifica la versión, los turnos ni los relojes del juego. Se desmonta al finalizar la mesa.
 
 ## Datos y controles
 
-La migración nueva es `supabase/migrations/20260928023421_match_live_chat.sql`. Crea `match_chat_messages`, con lectura limitada por RLS a jugadores sentados, y `send_match_chat_message`, que exige usuario registrado, pertenencia, partida en juego y al menos dos personas. Limita los mensajes a 200 caracteres, un envío cada 3 segundos por autor, y el mismo texto cada 10 segundos por mesa. Cada intento usa un UUID: repetirlo con el mismo texto devuelve el mismo mensaje.
+La migración inicial es `supabase/migrations/20260928023421_match_live_chat.sql`. Crea `match_chat_messages`, con lectura limitada por RLS a jugadores sentados, y `send_match_chat_message`, que exige usuario registrado, pertenencia y partida en juego. La migración posterior `supabase/migrations/20260928165300_match_chat_bots.sql` permite las mesas con bots, agrega sus respuestas desde el servidor y conserva esas reglas. Los mensajes se limitan a 200 caracteres, un envío cada 3 segundos por autor, y el mismo texto cada 10 segundos por mesa. Cada intento usa un UUID: repetirlo con el mismo texto devuelve el mismo mensaje.
 
 Los últimos 100 mensajes se recuperan al conectar, al reconectar y al volver a la pestaña. Realtime envía solo INSERT de la tabla; la consulta y los eventos se combinan por ID. Una tarea horaria borra mensajes de más de 72 horas. No hay archivo histórico. HTML y URLs se muestran como texto plano.
 
@@ -22,10 +22,8 @@ Los últimos 100 mensajes se recuperan al conectar, al reconectar y al volver a 
 
 ## Activación
 
-1. Con el PR en preview, usar una base de prueba con `20260928023421_match_live_chat.sql` aplicada y configurar `NEXT_PUBLIC_ENABLE_MATCH_CHAT=true` en el entorno Preview de Vercel. Hacer redeploy de preview. Probar con dos cuentas y un invitado.
-2. Mergear el PR con el flag de producción ausente o en `false`.
-3. Copiar el contenido completo de `supabase/migrations/20260928023421_match_live_chat.sql` en el SQL Editor del proyecto Supabase de producción y ejecutarlo una sola vez. Confirmar que existen la tabla, la RPC, la publicación `supabase_realtime` para esa tabla y el trabajo `trucazo-match-chat-cleanup`.
-4. En Vercel, configurar `NEXT_PUBLIC_ENABLE_MATCH_CHAT=true` para Production y hacer redeploy. La variable pública se incluye durante la compilación; cambiarla sin redeploy no alcanza.
-5. En una partida entre dos personas, comprobar envío y recepción, y con un invitado comprobar lectura y aviso. Revisar el panel con el teclado móvil abierto y cerrado.
+1. Mergear el PR de chat con bots y ejecutar **solo la migración nueva** `20260928165300_match_chat_bots.sql` en el SQL Editor del proyecto Supabase de producción. La primera ya se aplicó.
+2. En Vercel, hacer redeploy de Production para incluir la pantalla actualizada. `NEXT_PUBLIC_ENABLE_MATCH_CHAT=true` ya está configurada y no necesita volver a crearse.
+3. En una partida con bot 1v1, en campaña y en una mesa 2vs2 con un humano y tres bots, comprobar el envío, la respuesta y las frases rápidas. Revisar el panel con el teclado móvil abierto y cerrado.
 
 Para ocultar el panel: poner el flag en `false` y redeploy. Las frases rápidas siguen funcionando. Si hace falta cerrar también el envío en la base, ejecutar `revoke execute on function public.send_match_chat_message(text,uuid,text,uuid) from authenticated;`. Para volver a habilitarlo tras revisar el problema: `grant execute on function public.send_match_chat_message(text,uuid,text,uuid) to authenticated;`.
