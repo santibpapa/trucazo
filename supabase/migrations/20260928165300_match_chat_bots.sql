@@ -5,6 +5,23 @@ begin;
 -- nombre de ese asiento; ninguna cuenta cliente puede insertar en esta tabla.
 alter table public.match_chat_messages alter column sender_id drop not null;
 
+-- Ningún mensaje de campaña se expone, incluso si una fila se insertara desde
+-- un proceso interno ajeno a la RPC de jugadores.
+alter policy match_chat_participants on public.match_chat_messages using (
+  created_at > now() - interval '72 hours'
+  and (
+    (game_id is not null and exists (
+      select 1 from public.games g
+      where g.id = game_id and g.campaign_rival_id is null
+        and auth.uid() in (g.player1_id, g.player2_id)
+    ))
+    or (team_table_id is not null and exists (
+      select 1 from public.team_seats s
+      where s.table_id = team_table_id and s.user_id = auth.uid() and s.seat is not null
+    ))
+  )
+);
+
 create function match_chat_internal.bot_answer(p_body text) returns text
 language plpgsql volatile set search_path = '' as $$
 declare options text[];
@@ -53,11 +70,10 @@ begin
     from public.games g join public.profiles rival
       on rival.id = case when g.player1_id = v_user then g.player2_id else g.player1_id end
     where g.id = p_match_id and v_user in (g.player1_id, g.player2_id)
-      and rival.is_bot
-      and not exists (select 1 from public.campaign_rivals cr
-                      where cr.id = g.campaign_rival_id and cr.slug = 'mudo');
+      and g.campaign_rival_id is null and rival.is_bot;
     if not exists (select 1 from public.games g
-                   where g.id = p_match_id and v_user in (g.player1_id, g.player2_id)) then
+                   where g.id = p_match_id and v_user in (g.player1_id, g.player2_id)
+                     and g.campaign_rival_id is null) then
       raise exception 'Chat no disponible en esta partida'; end if;
   else
     select s.seat into v_seat from public.team_seats s
