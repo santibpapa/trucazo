@@ -53,7 +53,9 @@ begin
     from public.games g join public.profiles rival
       on rival.id = case when g.player1_id = v_user then g.player2_id else g.player1_id end
     where g.id = p_match_id and v_user in (g.player1_id, g.player2_id)
-      and rival.is_bot;
+      and rival.is_bot
+      and not exists (select 1 from public.campaign_rivals cr
+                      where cr.id = g.campaign_rival_id and cr.slug = 'mudo');
     if not exists (select 1 from public.games g
                    where g.id = p_match_id and v_user in (g.player1_id, g.player2_id)) then
       raise exception 'Chat no disponible en esta partida'; end if;

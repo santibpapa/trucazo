@@ -22,13 +22,15 @@ insert into public.tables(id,name,creator_id,creator_username,opponent_id,oppone
   ('c1100000-0000-4000-a000-000000000001','Chat 1v1','c1000000-0000-4000-a000-000000000001','Chat A','c1000000-0000-4000-a000-000000000002','Chat B',100,false,'playing',15,30),
   ('c1100000-0000-4000-a000-000000000002','Chat bot','c1000000-0000-4000-a000-000000000001','Chat A','c1000000-0000-4000-a000-000000000005','Bot',100,false,'playing',15,30),
   ('c1100000-0000-4000-a000-000000000003','Chat invitado','c1000000-0000-4000-a000-000000000004','Invitado','c1000000-0000-4000-a000-000000000002','Chat B',100,false,'playing',15,30),
-  ('c1100000-0000-4000-a000-000000000004','Chat campaña','c1000000-0000-4000-a000-000000000001','Chat A','c1000000-0000-4000-a000-000000000005','Bot',100,false,'playing',15,30);
+  ('c1100000-0000-4000-a000-000000000004','Chat campaña','c1000000-0000-4000-a000-000000000001','Chat A','c1000000-0000-4000-a000-000000000005','Bot',100,false,'playing',15,30),
+  ('c1100000-0000-4000-a000-000000000005','Chat Mudo','c1000000-0000-4000-a000-000000000001','Chat A','c1000000-0000-4000-a000-000000000005','Bot',100,false,'playing',15,30);
 
 insert into public.games(id,player1_id,player2_id,player1_username,player2_username,current_turn,mano_player,bet,status,campaign_rival_id) values
   ('c1100000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000002','Chat A','Chat B','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001',100,'playing',null),
   ('c1100000-0000-4000-a000-000000000002','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000005','Chat A','Bot','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001',100,'playing',null),
   ('c1100000-0000-4000-a000-000000000003','c1000000-0000-4000-a000-000000000004','c1000000-0000-4000-a000-000000000002','Invitado','Chat B','c1000000-0000-4000-a000-000000000004','c1000000-0000-4000-a000-000000000004',100,'playing',null),
-  ('c1100000-0000-4000-a000-000000000004','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000005','Chat A','Rival de campaña','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001',100,'playing',(select id from public.campaign_rivals limit 1));
+  ('c1100000-0000-4000-a000-000000000004','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000005','Chat A','Rival de campaña','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001',100,'playing',(select id from public.campaign_rivals where slug <> 'mudo' limit 1)),
+  ('c1100000-0000-4000-a000-000000000005','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000005','Chat A','Don Salvador','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001',100,'playing',(select id from public.campaign_rivals where slug = 'mudo'));
 insert into public.team_tables(id,creator_id,name,bet,target_score,time_limit,status) values
   ('c1200000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001','Chat mixto',100,15,30,'playing'),
   ('c1200000-0000-4000-a000-000000000002','c1000000-0000-4000-a000-000000000001','Chat solo',100,15,30,'playing');
@@ -137,6 +139,12 @@ begin
         where game_id=game and sender_id is null)=1,'el bot no responde como loro');
     end if;
   end loop;
+  update public.match_chat_messages set created_at=clock_timestamp()-interval '20 seconds' where sender_id=a;
+  set local role authenticated;
+  perform public.send_match_chat_message('game','c1100000-0000-4000-a000-000000000005','Hola, Salvador',gen_random_uuid());
+  reset role;
+  perform pg_temp.chat_check((select count(*) from public.match_chat_messages
+    where game_id='c1100000-0000-4000-a000-000000000005')=1,'el Mudo recibe texto y no habla');
   update public.match_chat_messages set created_at=clock_timestamp()-interval '20 seconds' where sender_id=a;
   set local role authenticated;
   perform public.send_match_chat_message('team','c1200000-0000-4000-a000-000000000002','Vamos a jugar',gen_random_uuid());

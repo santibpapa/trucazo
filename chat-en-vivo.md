@@ -4,7 +4,7 @@ Estado: chat escrito activado en producción con la migración inicial. Hay una 
 
 ## Alcance
 
-En mesas 1v1 y 2vs2, incluidos torneos, partidas con bots y campaña, el botón de chat abre «Mensajes» y «Frases rápidas». Toda la mesa lee los mensajes. Los invitados sentados leen y siguen usando frases rápidas; el panel les avisa que solo registrados pueden escribir. Los bots también responden brevemente al chat escrito desde la base, con una pausa de 2 a 5 segundos y un límite para evitar respuestas constantes. Las respuestas son frases predefinidas; no mantienen una conversación abierta.
+En mesas 1v1 y 2vs2, incluidos torneos, partidas con bots y campaña, el botón de chat abre «Mensajes» y «Frases rápidas». Toda la mesa lee los mensajes. Los invitados sentados leen y siguen usando frases rápidas; el panel les avisa que solo registrados pueden escribir. Los bots también responden brevemente al chat escrito desde la base, con una pausa de 2 a 5 segundos y un límite para evitar respuestas constantes. La excepción es el rival de campaña Don Salvador, el Mudo, que conserva su silencio. Las respuestas son frases predefinidas; no mantienen una conversación abierta.
 
 El panel se superpone a la partida y tiene su propia lista desplazable. Silenciar chat oculta avisos del texto libre durante esa partida, sin silenciar frases, cantos o sonidos. El chat no modifica la versión, los turnos ni los relojes del juego. Se desmonta al finalizar la mesa.
 
