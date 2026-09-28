@@ -1,0 +1,29 @@
+.trigger { position: relative; }
+.badge { position: absolute; top: -6px; right: -7px; min-width: 18px; height: 18px; padding: 0 3px; border-radius: 10px; background: #e8cf84; color: #17130d; font: bold 11px/18px sans-serif; }
+.overlay { position: fixed; left: 0; right: 0; z-index: 1000; display: flex; align-items: flex-end; justify-content: center; padding: 8px; background: #080705ae; }
+.panel { width: min(100%, 410px); max-height: 100%; height: min(480px, 100%); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #a27e48; border-radius: 16px; background: #17130d; color: #f5e9cf; box-shadow: 0 16px 50px #000b; }
+.header { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; font-size: 16px; }
+.close { width: 36px; height: 36px; font-size: 19px; border: 1px solid #a27e48; border-radius: 8px; }
+.tabs { display: flex; border-bottom: 1px solid #755d3a; }
+.tabs button { flex: 1; min-height: 38px; font-size: 14px; }
+.tabs button[aria-current] { color: #e8cf84; border-bottom: 2px solid #e8cf84; }
+.messages { flex: 1; min-height: 0; overflow: auto; padding: 8px 12px; overscroll-behavior: contain; }
+.empty { margin: 14px 0; text-align: center; color: #bcb5a8; font-size: 14px; }
+.message { margin: 0 0 10px; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.author { color: #e8cf84; font-weight: 700; margin-right: 7px; }
+.time { color: #bcb5a8; font-size: 11px; }
+.body { display: block; white-space: pre-wrap; }
+.footer { border-top: 1px solid #755d3a; padding: 8px 10px; }
+.footer form { display: flex; align-items: end; gap: 7px; }
+.footer textarea { min-width: 0; flex: 1; resize: none; border: 1px solid #755d3a; border-radius: 8px; background: #29231b; padding: 8px; color: #f5e9cf; font-size: 16px; }
+.footer form button { border-radius: 8px; padding: 10px; background: #d8b577; color: #17130d; font-weight: 700; }
+.footer form button:disabled { opacity: .55; }
+.notice, .error, .connection { font-size: 13px; margin: 3px 0 7px; }
+.notice { color: #e8cf84; }
+.error { color: #ffaaa4; }
+.connection { color: #e8cf84; }
+.connection button { text-decoration: underline; }
+.mute { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; color: #d7c7ac; font-size: 12px; }
+.mute input { accent-color: #d8b577; }
+.quick { min-height: 0; overflow-y: auto; }
+.panel :is(button, textarea, input):focus-visible { outline: 2px solid #e8cf84; outline-offset: 2px; }

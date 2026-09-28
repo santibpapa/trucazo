@@ -46,6 +46,7 @@ drop schema if exists storage cascade;
 drop schema if exists cron    cascade;
 drop schema if exists email_internal cascade;
 drop schema if exists team_internal cascade;
+drop schema if exists match_chat_internal cascade;
 drop schema if exists tournament_internal cascade;
 drop schema if exists net cascade;
 create schema public;
@@ -208,6 +209,8 @@ grant all on all sequences in schema public to anon, authenticated, service_role
 revoke all on public.bot_decisions from anon, authenticated;
 revoke all on public.team_tables, public.team_seats, public.team_games, public.team_hands from anon, authenticated;
 grant select on public.team_tables, public.team_seats, public.team_games, public.team_hands to authenticated;
+revoke all on public.match_chat_messages from public, anon, authenticated;
+grant select on public.match_chat_messages to authenticated;
 revoke all on public.news_email_campaign, public.news_email_jobs from anon, authenticated;
 revoke all on public.tournaments,
   public.tournament_entries,
