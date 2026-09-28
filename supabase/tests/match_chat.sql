@@ -37,9 +37,9 @@ insert into public.team_seats(table_id,user_id,seat,username,paid) values
   ('c1200000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000004',1,'Invitado',100),
   ('c1200000-0000-4000-a000-000000000002','c1000000-0000-4000-a000-000000000001',0,'Chat A',100);
 insert into public.team_seats(table_id,seat,username,paid)
-select 'c1200000-0000-4000-a000-000000000001',s,'Bot',100 from generate_series(2,3) s
+select 'c1200000-0000-4000-a000-000000000001'::uuid,s,'Bot',100 from generate_series(2,3) s
 union all
-select 'c1200000-0000-4000-a000-000000000002',s,'Bot',100 from generate_series(1,3) s;
+select 'c1200000-0000-4000-a000-000000000002'::uuid,s,'Bot',100 from generate_series(1,3) s;
 
 do $$
 declare
