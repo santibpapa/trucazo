@@ -22,20 +22,27 @@ insert into public.tables(id,name,creator_id,creator_username,opponent_id,oppone
   ('c1100000-0000-4000-a000-000000000001','Chat 1v1','c1000000-0000-4000-a000-000000000001','Chat A','c1000000-0000-4000-a000-000000000002','Chat B',100,false,'playing',15,30),
   ('c1100000-0000-4000-a000-000000000002','Chat bot','c1000000-0000-4000-a000-000000000001','Chat A','c1000000-0000-4000-a000-000000000005','Bot',100,false,'playing',15,30),
   ('c1100000-0000-4000-a000-000000000003','Chat invitado','c1000000-0000-4000-a000-000000000004','Invitado','c1000000-0000-4000-a000-000000000002','Chat B',100,false,'playing',15,30),
-  ('c1100000-0000-4000-a000-000000000004','Chat campaña','c1000000-0000-4000-a000-000000000001','Chat A','c1000000-0000-4000-a000-000000000005','Bot',100,false,'playing',15,30);
+  ('c1100000-0000-4000-a000-000000000004','Chat campaña','c1000000-0000-4000-a000-000000000001','Chat A','c1000000-0000-4000-a000-000000000005','Bot',100,false,'playing',15,30),
+  ('c1100000-0000-4000-a000-000000000005','Chat Mudo','c1000000-0000-4000-a000-000000000001','Chat A','c1000000-0000-4000-a000-000000000005','Bot',100,false,'playing',15,30);
 
 insert into public.games(id,player1_id,player2_id,player1_username,player2_username,current_turn,mano_player,bet,status,campaign_rival_id) values
   ('c1100000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000002','Chat A','Chat B','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001',100,'playing',null),
   ('c1100000-0000-4000-a000-000000000002','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000005','Chat A','Bot','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001',100,'playing',null),
   ('c1100000-0000-4000-a000-000000000003','c1000000-0000-4000-a000-000000000004','c1000000-0000-4000-a000-000000000002','Invitado','Chat B','c1000000-0000-4000-a000-000000000004','c1000000-0000-4000-a000-000000000004',100,'playing',null),
-  ('c1100000-0000-4000-a000-000000000004','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000005','Chat A','Bot','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001',100,'playing',(select id from public.campaign_rivals limit 1));
+  ('c1100000-0000-4000-a000-000000000004','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000005','Chat A','Rival de campaña','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001',100,'playing',(select id from public.campaign_rivals where slug <> 'mudo' limit 1)),
+  ('c1100000-0000-4000-a000-000000000005','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000005','Chat A','Don Salvador','c1000000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001',100,'playing',(select id from public.campaign_rivals where slug = 'mudo'));
 insert into public.team_tables(id,creator_id,name,bet,target_score,time_limit,status) values
   ('c1200000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001','Chat mixto',100,15,30,'playing'),
-  ('c1200000-0000-4000-a000-000000000002','c1000000-0000-4000-a000-000000000001','Chat solo',100,15,30,'playing');
+  ('c1200000-0000-4000-a000-000000000002','c1000000-0000-4000-a000-000000000001','Chat solo',100,15,30,'playing'),
+  ('c1200000-0000-4000-a000-000000000003','c1000000-0000-4000-a000-000000000001','Chat personas',100,15,30,'playing');
 insert into public.team_seats(table_id,user_id,seat,username,paid) values
   ('c1200000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000001',0,'Chat A',100),
   ('c1200000-0000-4000-a000-000000000001','c1000000-0000-4000-a000-000000000004',1,'Invitado',100),
-  ('c1200000-0000-4000-a000-000000000002','c1000000-0000-4000-a000-000000000001',0,'Chat A',100);
+  ('c1200000-0000-4000-a000-000000000002','c1000000-0000-4000-a000-000000000001',0,'Chat A',100),
+  ('c1200000-0000-4000-a000-000000000003','c1000000-0000-4000-a000-000000000001',0,'Chat A',100),
+  ('c1200000-0000-4000-a000-000000000003','c1000000-0000-4000-a000-000000000002',1,'Chat B',100),
+  ('c1200000-0000-4000-a000-000000000003','c1000000-0000-4000-a000-000000000003',2,'Chat C',100),
+  ('c1200000-0000-4000-a000-000000000003','c1000000-0000-4000-a000-000000000004',3,'Invitado',100);
 insert into public.team_seats(table_id,seat,username,paid)
 select 'c1200000-0000-4000-a000-000000000001'::uuid,s,'Bot',100 from generate_series(2,3) s
 union all
@@ -47,17 +54,21 @@ declare
   b uuid := 'c1000000-0000-4000-a000-000000000002';
   c uuid := 'c1000000-0000-4000-a000-000000000003';
   guest uuid := 'c1000000-0000-4000-a000-000000000004';
+  bot uuid := 'c1000000-0000-4000-a000-000000000005';
   game uuid := 'c1100000-0000-4000-a000-000000000001';
   team uuid := 'c1200000-0000-4000-a000-000000000001';
   request uuid := gen_random_uuid();
   row_one public.match_chat_messages;
   row_again public.match_chat_messages;
+  campaign_row uuid;
   version_before bigint;
   blocked boolean;
   seen integer;
 begin
   perform pg_temp.chat_check(has_table_privilege('authenticated','public.match_chat_messages','SELECT'), 'SELECT permitido');
   perform pg_temp.chat_check(not has_table_privilege('authenticated','public.match_chat_messages','INSERT,UPDATE,DELETE,TRUNCATE'), 'escritura de tabla cerrada');
+  perform pg_temp.chat_check((select attnotnull from pg_attribute where attrelid='public.match_chat_messages'::regclass and attname='sender_id'),
+                             'sender_id obligatorio para todo mensaje escrito');
   perform pg_temp.chat_check(not has_function_privilege('anon','public.send_match_chat_message(text,uuid,text,uuid)','EXECUTE'), 'anon sin RPC');
   perform pg_temp.chat_check(not has_function_privilege('authenticated','match_chat_internal.cleanup()','EXECUTE'), 'limpieza inaccesible');
   select version into version_before from public.team_tables where id=team;
@@ -88,10 +99,12 @@ begin
   perform public.send_match_chat_message('team',team,'Mensaje para toda la mesa',gen_random_uuid());
   reset role;
   perform pg_temp.chat_check((select version from public.team_tables where id=team)=version_before, 'chat no mueve equipo');
+  perform pg_temp.chat_check((select count(*) from public.match_chat_messages where team_table_id=team)=1,
+                             '2vs2 mixto acepta texto sin respuesta del bot');
   perform set_config('request.jwt.claim.sub',guest::text,true);
   set local role authenticated;
   select count(*) into seen from public.match_chat_messages where team_table_id=team;
-  reset role; perform pg_temp.chat_check(seen=1,'invitado sentado puede leer');
+  reset role; perform pg_temp.chat_check(seen=1,'invitado sentado puede leer mensajes');
   blocked:=false;
   begin set local role authenticated; perform public.send_match_chat_message('team',team,'invitado',gen_random_uuid());
   exception when others then blocked:=true; end;
@@ -109,16 +122,56 @@ begin
   select count(*) into seen from public.match_chat_messages where game_id=game;
   reset role; perform pg_temp.chat_check(seen=1,'rival ve mensaje 1v1');
   perform set_config('request.jwt.claim.sub',a::text,true);
-  foreach game in array array['c1100000-0000-4000-a000-000000000002'::uuid,'c1100000-0000-4000-a000-000000000004'::uuid] loop
-    blocked:=false;
-    begin set local role authenticated; perform public.send_match_chat_message('game',game,'bot',gen_random_uuid());
-    exception when others then blocked:=true; end;
-    reset role; perform pg_temp.chat_check(blocked,'bot/campaña no recibe texto');
-  end loop;
+  game := 'c1100000-0000-4000-a000-000000000002';
+  update public.match_chat_messages set created_at=clock_timestamp()-interval '20 seconds' where sender_id=a;
+  set local role authenticated;
+  row_one := public.send_match_chat_message('game',game,'Hola, ¿jugamos?',gen_random_uuid());
+  row_again := public.send_match_chat_message('game',game,'Hola, ¿jugamos?',row_one.client_request_id);
+  reset role;
+  perform pg_temp.chat_check(row_again.id=row_one.id, 'reintento con bot es idempotente');
+  perform pg_temp.chat_check((select count(*) from public.match_chat_messages where game_id=game)=1,
+                             '1v1 normal con bot acepta texto sin responder');
+  perform pg_temp.chat_check(row_one.created_at <= clock_timestamp(), 'mensaje humano visible sin espera artificial');
+  update public.match_chat_messages set created_at=clock_timestamp()-interval '4 seconds' where id=row_one.id;
+  set local role authenticated;
+  perform public.send_match_chat_message('game',game,'Otro mensaje',gen_random_uuid());
+  reset role;
+  perform pg_temp.chat_check((select count(*) from public.match_chat_messages
+    where game_id=game)=2,'el bot nunca escribe en 1v1');
+  perform set_config('request.jwt.claim.sub',bot::text,true);
   blocked:=false;
-  begin set local role authenticated; perform public.send_match_chat_message('team','c1200000-0000-4000-a000-000000000002','solo',gen_random_uuid());
+  begin set local role authenticated; perform public.send_match_chat_message('game',game,'Yo soy el bot',gen_random_uuid());
   exception when others then blocked:=true; end;
-  reset role; perform pg_temp.chat_check(blocked,'1P+3B sin texto');
+  reset role; perform pg_temp.chat_check(blocked,'perfil bot no puede mandar mensajes escritos');
+  perform set_config('request.jwt.claim.sub',a::text,true);
+
+  foreach game in array array['c1100000-0000-4000-a000-000000000004'::uuid,'c1100000-0000-4000-a000-000000000005'::uuid] loop
+    blocked:=false;
+    begin set local role authenticated; perform public.send_match_chat_message('game',game,'Hola, ¿jugamos?',gen_random_uuid());
+    exception when others then blocked:=true; end;
+    reset role; perform pg_temp.chat_check(blocked,'ningún rival de campaña recibe chat escrito');
+    perform pg_temp.chat_check(not exists(select 1 from public.match_chat_messages where game_id=game),
+                               'campaña sin mensajes escritos');
+  end loop;
+  insert into public.match_chat_messages(game_id,sender_id,sender_name,body,client_request_id)
+    values('c1100000-0000-4000-a000-000000000004',a,'Prueba interna','No visible',gen_random_uuid())
+    returning id into campaign_row;
+  set local role authenticated;
+  select count(*) into seen from public.match_chat_messages where id=campaign_row;
+  reset role; perform pg_temp.chat_check(seen=0,'ni una fila interna de campaña es visible por RLS');
+  delete from public.match_chat_messages where id=campaign_row;
+  update public.match_chat_messages set created_at=clock_timestamp()-interval '20 seconds' where sender_id=a;
+  set local role authenticated;
+  perform public.send_match_chat_message('team','c1200000-0000-4000-a000-000000000002','Vamos a jugar',gen_random_uuid());
+  reset role;
+  perform pg_temp.chat_check((select count(*) from public.match_chat_messages
+    where team_table_id='c1200000-0000-4000-a000-000000000002')=1,'1P+3B tiene chat sin respuesta de bots');
+  update public.match_chat_messages set created_at=clock_timestamp()-interval '20 seconds' where sender_id=a;
+  set local role authenticated;
+  perform public.send_match_chat_message('team','c1200000-0000-4000-a000-000000000003','Mesa de personas',gen_random_uuid());
+  reset role;
+  perform pg_temp.chat_check((select count(*) from public.match_chat_messages
+    where team_table_id='c1200000-0000-4000-a000-000000000003')=1,'2vs2 con personas tiene chat sin respuesta de bot');
   blocked:=false;
   begin set local role authenticated; perform public.send_match_chat_message('team',team,repeat('🧉',201),gen_random_uuid());
   exception when others then blocked:=true; end;

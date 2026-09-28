@@ -22,7 +22,7 @@ export default function TeamToolbar({ chat, members, mySeat, userId, isGuest, ta
   const [cooldown, setCooldown] = useState(false)
   const [, redraw] = useState(0)
   const lastSent = useRef(0)
-  const liveChat = process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && playing && members.filter(m => m.seat !== null && m.user_id !== null).length >= 2
+  const liveChat = process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && playing
   useEffect(() => { updateMuted(isMuted()) }, [])
   // Las frases traen su hora del servidor: hay que repasar sola cuál toca
   // mostrar, porque las de los bots llegan agendadas un momento después.

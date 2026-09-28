@@ -1088,9 +1088,9 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
         <TableAccessory slug={opponentAccessory} who="opponent" />
         <TableAccessory slug={myAccessory} who="me" />
 
-        <MesaToolbar muted={muted} onToggleMute={toggleMute} emoteTray={emoteTray} onToggleEmotes={() => setEmoteTray(v => !v)} chatControl={process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isBotGame
+        <MesaToolbar muted={muted} onToggleMute={toggleMute} emoteTray={emoteTray} onToggleEmotes={() => setEmoteTray(v => !v)} chatControl={process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isCampaign
           ? <MatchChat key={game.id} mode="game" matchId={game.id} userId={currentUserId} isGuest={isGuest} quick={EMOTES} onQuickSend={sendEmote} quickCooldown={emoteCooldown} /> : undefined} />
-        {emoteTray && !(process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isBotGame) && (
+        {emoteTray && !(process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isCampaign) && (
           <EmoteTray onSend={sendEmote} cooldown={emoteCooldown} />
         )}
 
