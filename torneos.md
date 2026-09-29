@@ -161,6 +161,7 @@ Si llega la hora y el torneo no está lleno, el administrador ve el plantel conf
 - Los envíos reutilizan Resend, el procesamiento por lotes, las bajas y el registro de entregas existentes.
 - Los eventos con hora exacta se procesan con el patrón existente de Supabase `pg_cron` + `pg_net` y una cola durable a resolución de minutos. El cron diario de Vercel no sirve para abrir check-in, vencer plazos ni avisar una partida.
 - Reprogramar incrementa una versión de agenda. Los recordatorios de versiones anteriores se cancelan o se ignoran. Los anuncios aún no enviados se conservan con la agenda actual y la misma clave de entrega; no se repiten los ya enviados.
+- El despacho de torneos envía como máximo cinco solicitudes por minuto, preservando la prioridad de partidas y check-in. Los rechazos por exceso de solicitudes vuelven a pendientes y se reintentan automáticamente sin consumir intentos.
 - El cupo diario de Resend posterga los correos de torneos hasta las 00:01 UTC, sin consumir el máximo de seis intentos. Los demás fallos mantienen ese máximo y los avisos vencidos siguen descartándose al enviar.
 - Cada aviso dentro del juego tiene fecha de lectura y puede alimentar un indicador de no leídos.
 
@@ -733,3 +734,11 @@ Cada sesión agrega una entrada. No se borra el historial previo. Las entradas a
 - Recuperación: 141 destinatarios elegibles volvieron a la cola con la agenda actual; la dirección de prueba restante quedó descartada. Se conservaron los siete anuncios enviados.
 - Comportamiento: una reprogramación conserva los anuncios pendientes y su clave de entrega; invalida el intento anterior y espera dos minutos si ya estaba en curso. Los recordatorios mantienen la cancelación por agenda. Alcanzar el cupo diario espera al siguiente día UTC sin consumir intentos.
 - Validación local: reconstrucción PostgreSQL, pruebas de anuncios/reprogramación/cupo diario, torneos PR5, contrato de torneos y permisos de funciones. El cron de producción quedó activo y la cola recuperada se verificó después de aplicar el SQL.
+
+### 2026-09-29 — Ritmo de envío de torneos
+
+- Incidente: el despacho de veinte pedidos simultáneos superaba el límite por segundo de Resend. Los destinatarios rechazados aparecían como fallidos en administración.
+- Migración: `supabase/migrations/20260929210343_tournament_email_rate_limit.sql`, aplicada directamente al proyecto conectado con autorización del dueño. **No volver a ejecutarla después del merge.**
+- Corrección: máximo cinco solicitudes por minuto con un control persistente que evita otra tanda en el mismo período. Se mantiene la prioridad de partidas y check-in. Un rechazo `Too many requests` vuelve a pendientes para el próximo minuto sin consumir el máximo de intentos; los demás fallos conservan su tratamiento.
+- Recuperación: los rechazos temporales aún válidos volvieron a pendientes, manteniendo sus claves de entrega. Se verificó una tanda de cinco aceptada por el proveedor; en ese momento había 83 anuncios enviados y 65 pendientes, sin fallos por exceso de pedidos.
+- Validación local: pedidos HTTP simulados en una transacción, límite de cinco, repetición del despacho dentro del mismo minuto, reapertura del período, prioridad de partidas, reintento temporal, cupo diario, torneos PR5 y permisos de funciones.

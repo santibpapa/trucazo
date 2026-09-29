@@ -1,6 +1,16 @@
 -- Reprogramación y límite diario: base local, sin red; todo se revierte.
 \set ON_ERROR_STOP on
 begin;
+create temporary table email_http_calls(job_id uuid);
+-- Sustituye pg_net sólo en esta transacción local para contar pedidos reales.
+create or replace function net.http_post(
+ url text,body jsonb default '{}'::jsonb,params jsonb default '{}'::jsonb,
+ headers jsonb default '{"Content-Type":"application/json"}'::jsonb,
+ timeout_milliseconds integer default 2000) returns bigint language plpgsql as $$
+begin
+ insert into pg_temp.email_http_calls values(split_part(url,'id=',2)::uuid);
+ return 1;
+end $$;
 create function pg_temp.check(ok boolean,msg text) returns void language plpgsql as $$
 begin if ok is distinct from true then raise exception 'Anuncios: %',msg; end if; end $$;
 create function pg_temp.uid(i integer) returns uuid language sql immutable as $$
@@ -15,7 +25,7 @@ select pg_temp.uid(i),'Anuncio'||i,i=0,false from generate_series(0,8) i
 on conflict(id) do update set username=excluded.username,is_admin=excluded.is_admin,is_bot=false;
 
 do $$
-declare t uuid; processing_id uuid; old_token uuid; old_key text; changed integer;
+declare t uuid; processing_id uuid; old_token uuid; old_key text; changed integer; match_job uuid;
  daily_due timestamptz;
 begin
  insert into public.tournaments(name,mode,format,capacity,target_score,
@@ -24,6 +34,23 @@ begin
   'published',now(),pg_temp.uid(0),pg_temp.uid(0)) returning id into t;
  perform pg_temp.check((select count(*)=9 from public.tournament_email_jobs
   where tournament_id=t),'no se generaron los nueve anuncios');
+ insert into public.tournament_email_jobs(tournament_id,user_id,job_type,due_at,
+  schedule_version,dedupe_key) values(t,pg_temp.uid(7),'match',now(),1,t::text||':match-priority')
+  returning id into match_job;
+ update tournament_internal.email_settings set enabled=true,next_dispatch_at='-infinity';
+ perform tournament_internal.dispatch_emails();
+ perform pg_temp.check((select count(*)=5 from pg_temp.email_http_calls),
+  'se despacharon más de cinco solicitudes');
+ perform pg_temp.check(exists(select 1 from pg_temp.email_http_calls where job_id=match_job),
+  'los anuncios postergaron un aviso de partida');
+ perform tournament_internal.dispatch_emails();
+ perform pg_temp.check((select count(*)=5 from pg_temp.email_http_calls),
+  'un segundo despacho superó el límite del minuto');
+ update tournament_internal.email_settings set next_dispatch_at='-infinity';
+ perform tournament_internal.dispatch_emails();
+ perform pg_temp.check((select count(*)=10 from pg_temp.email_http_calls),
+  'el despacho no volvió a habilitarse');
+ delete from public.tournament_email_jobs where id=match_job;
  update public.tournament_email_jobs set status='sent',sent_at=now()
   where tournament_id=t and user_id=pg_temp.uid(0);
  update public.tournament_email_jobs set status='failed',attempts=3,last_error='Error temporal'
@@ -88,6 +115,13 @@ begin
   last_error='You have exceeded your daily email sending quota.' where id=processing_id;
  perform pg_temp.check((select attempts=4 from public.tournament_email_jobs where id=processing_id),
   'dos días de cuota diaria agotaron los intentos');
+ update public.tournament_email_jobs set status='processing',attempts=5,next_attempt_at=now()
+  where id=processing_id;
+ update public.tournament_email_jobs set status='failed',last_error='Too many requests. 10 requests per second.',
+  next_attempt_at=now()+interval '15 minutes' where id=processing_id;
+ perform pg_temp.check((select status='pending' and attempts=4 and next_attempt_at=now()+interval '1 minute'
+  from public.tournament_email_jobs where id=processing_id),
+  'un rechazo temporal por segundo agotó intentos o esperó quince minutos');
  update public.tournament_email_jobs set status='failed',attempts=6,
   last_error='You have exceeded your monthly email sending quota.',next_attempt_at=now()
   where id=processing_id;
