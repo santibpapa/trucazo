@@ -2,7 +2,7 @@
 
 > Implementación de las cinco etapas **finalizada y habilitada en producción el 2026-09-27** (horario de Argentina). Este documento conserva el contrato, las decisiones técnicas y el historial de entrega para futuras consultas.
 >
-> Última actualización: 2026-09-27
+> Última actualización: 2026-09-29
 > Repositorio base: `santibpapa/trucazo`  
 > Commit base al redactar este documento: `4d5857359b4b33612c0633421beff4aa5d1ddf81`
 
@@ -160,7 +160,8 @@ Si llega la hora y el torneo no está lleno, el administrador ve el plantel conf
 - Se agrega una preferencia de email `tournaments_enabled`, visible en la página de preferencias y respetada por todos estos envíos.
 - Los envíos reutilizan Resend, el procesamiento por lotes, las bajas y el registro de entregas existentes.
 - Los eventos con hora exacta se procesan con el patrón existente de Supabase `pg_cron` + `pg_net` y una cola durable a resolución de minutos. El cron diario de Vercel no sirve para abrir check-in, vencer plazos ni avisar una partida.
-- Reprogramar incrementa una versión de agenda. Los trabajos de email de versiones anteriores se cancelan o se ignoran para no enviar recordatorios obsoletos.
+- Reprogramar incrementa una versión de agenda. Los recordatorios de versiones anteriores se cancelan o se ignoran. Los anuncios aún no enviados se conservan con la agenda actual y la misma clave de entrega; no se repiten los ya enviados.
+- El cupo diario de Resend posterga los correos de torneos hasta las 00:01 UTC, sin consumir el máximo de seis intentos. Los demás fallos mantienen ese máximo y los avisos vencidos siguen descartándose al enviar.
 - Cada aviso dentro del juego tiene fecha de lectura y puede alimentar un indicador de no leídos.
 
 ### 4.10 Administración
@@ -724,3 +725,11 @@ Cada sesión agrega una entrada. No se borra el historial previo. Las entradas a
 - Activación: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=true` en producción; la ruta pública `/torneos` existe y responde con redirección de acceso para visitantes sin sesión. El interruptor privado `tournament_internal.email_settings.enabled` está en `true`. En la comprobación posterior el cron estaba activo y no había trabajos de email fallidos; tampoco había torneos activos ni correos pendientes.
 - Pruebas: CI de #91 y #92 finalizó correctamente. El dueño informó que probó los recorridos manuales antes de la activación y confirmó el cierre; no se conservó aquí un acta detallada por combinación ni una evidencia independiente del primer correo real entregado.
 - Seguimiento operativo: observar la cola y la entrega real de emails, expiraciones, avisos y premios en el primer torneo real. Esto es monitoreo posterior al lanzamiento, no una etapa de implementación abierta. El procedimiento de reversión permanece en §9.
+
+### 2026-09-29 — Corrección de anuncios al reprogramar
+
+- Incidente: al reprogramar el primer torneo después de publicarlo se cancelaron 142 anuncios pendientes. Trece direcciones de prueba ya se habían descartado y siete anuncios ya estaban enviados.
+- Migración: `supabase/migrations/20260929205313_tournament_announcement_delivery.sql`, aplicada directamente al proyecto Supabase conectado con autorización del dueño el 2026-09-29. **No volver a ejecutarla después del merge.**
+- Recuperación: 141 destinatarios elegibles volvieron a la cola con la agenda actual; la dirección de prueba restante quedó descartada. Se conservaron los siete anuncios enviados.
+- Comportamiento: una reprogramación conserva los anuncios pendientes y su clave de entrega; invalida el intento anterior y espera dos minutos si ya estaba en curso. Los recordatorios mantienen la cancelación por agenda. Alcanzar el cupo diario espera al siguiente día UTC sin consumir intentos.
+- Validación local: reconstrucción PostgreSQL, pruebas de anuncios/reprogramación/cupo diario, torneos PR5, contrato de torneos y permisos de funciones. El cron de producción quedó activo y la cola recuperada se verificó después de aplicar el SQL.

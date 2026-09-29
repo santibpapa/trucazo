@@ -20,6 +20,9 @@ sola protección de racha por semana.
 cuenta invitada, bot o de prueba, crear combinaciones inválidas y duplicar una
 aceptación/check-in. `tournaments_concurrency.sh` hace competir dos conexiones
 reales por el último lugar y comprueba que una pase a lista de espera.
+`tournament_announcement_delivery.sql` comprueba anuncios pendientes tras
+reprogramaciones repetidas, recuperación sin duplicar, intentos anteriores,
+bajas y espera por cupo diario sin agotar los reintentos.
 `tournaments_competition.sql` recorre torneos 1v1 de cuatro, ocho y doce jugadores,
 grupos, pases directos, ausencias, pausa y reanudación, resultado repetido,
 apuesta cero, revancha prohibida y bloqueo de mesas normales incluso al comenzar
