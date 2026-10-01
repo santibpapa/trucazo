@@ -47,7 +47,7 @@ export default function AdminTournamentDetail({
 
   const loadProfiles = useCallback(async (next: TournamentDetailData) => {
     const ids = Array.from(new Set(
-      (next.admin_entries ?? []).flatMap(item => item.members.map(member => member.user_id)),
+      (next.admin_entries ?? []).flatMap(item => item.members.map(member => member.user_id).filter((id): id is string => id !== null)),
     ))
     const missing = ids.filter(id => !profiles[id])
     if (missing.length === 0) return
@@ -247,7 +247,7 @@ export default function AdminTournamentDetail({
               <div key={item.entry.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-line p-3 text-sm">
                 <span className="min-w-28 flex-1 font-semibold text-cream">
                   {item.members.filter(m => m.status === 'accepted')
-                    .map(m => profiles[m.user_id]?.username ?? 'Jugador').join(' + ')}
+                    .map(m => profiles[m.user_id ?? '']?.username ?? 'Jugador').join(' + ')}
                 </span>
                 {entries.some(candidate => candidate.entry.status === 'waitlisted') && (
                   <>
@@ -261,7 +261,7 @@ export default function AdminTournamentDetail({
                           || item.entry.kind === 'team' || candidate.entry.kind === 'solo')).map(candidate => (
                         <option key={candidate.entry.id} value={candidate.entry.id}>
                           {candidate.members.filter(m => m.status === 'accepted')
-                            .map(m => profiles[m.user_id]?.username ?? 'Jugador').join(' + ')}
+                            .map(m => profiles[m.user_id ?? '']?.username ?? 'Jugador').join(' + ')}
                         </option>
                       ))}
                     </select>
@@ -275,8 +275,8 @@ export default function AdminTournamentDetail({
                         className="min-w-32 rounded-xl border border-line bg-surface2 px-2 py-2 text-cream">
                         <option value="">Elegir integrante</option>
                         {item.members.filter(member => member.status === 'accepted').map(member => (
-                          <option key={member.user_id} value={member.user_id}>
-                            {profiles[member.user_id]?.username ?? 'Jugador'}
+                          <option key={member.id} value={member.user_id ?? ''}>
+                            {profiles[member.user_id ?? '']?.username ?? 'Jugador'}
                           </option>
                         ))}
                       </select>}
@@ -404,18 +404,18 @@ function AdminEntryRow({
   profiles: Record<string, ProfileSummary>
   checkedIn: boolean
 }) {
-  const accepted = members.filter(member => member.status === 'accepted')
+  const accepted = members.filter(member => member.status === 'accepted' || member.identity_deleted)
   const pending = members.filter(member => member.status === 'pending')
   return (
     <article className="rounded-2xl border border-line bg-surface2 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-3">
           {accepted.map(member => {
-            const profile = profiles[member.user_id]
+            const profile = profiles[member.user_id ?? '']
             return (
               <span key={member.id} className="flex items-center gap-2">
                 <Avatar url={profile?.avatar_url} name={profile?.username ?? 'Jugador'} size={34} />
-                <span className="font-semibold text-cream">{profile?.username ?? member.user_id.slice(0, 8)}</span>
+                <span className="font-semibold text-cream">{profile?.username ?? member.user_id?.slice(0, 8) ?? 'Cuenta eliminada'}</span>
               </span>
             )
           })}
@@ -427,10 +427,10 @@ function AdminEntryRow({
         </div>
       </div>
       {pending.map(member => {
-        const profile = profiles[member.user_id]
+        const profile = profiles[member.user_id ?? '']
         return (
           <p key={member.id} className="mt-3 border-t border-line pt-3 text-sm text-info">
-            Invitación pendiente para <b>{profile?.username ?? member.user_id.slice(0, 8)}</b>
+            Invitación pendiente para <b>{profile?.username ?? member.user_id?.slice(0, 8) ?? 'Cuenta eliminada'}</b>
           </p>
         )
       })}

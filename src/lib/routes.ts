@@ -151,7 +151,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/contacto',
-    updated: '2026-08-15',
+    updated: '2026-10-01',
     label: 'Contacto',
     blurb: 'canales para reportar problemas o consultar.',
     group: 'institucional',
@@ -160,9 +160,18 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/privacidad',
-    updated: '2026-08-15',
+    updated: '2026-10-01',
     label: 'Política de privacidad',
     blurb: 'qué datos se usan y para qué.',
+    group: 'institucional',
+    priority: 0.3,
+    frequency: 'yearly',
+  },
+  {
+    path: '/eliminar-cuenta',
+    updated: '2026-10-01',
+    label: 'Eliminar cuenta',
+    blurb: 'eliminación de cuenta y datos personales.',
     group: 'institucional',
     priority: 0.3,
     frequency: 'yearly',

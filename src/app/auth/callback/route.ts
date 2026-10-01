@@ -20,7 +20,10 @@ export async function GET(request: NextRequest) {
   }
 
   // Respuesta que devolvemos; el cliente de Supabase escribe las cookies acá.
-  const response = NextResponse.redirect(`${origin}/lobby`)
+  const destination = request.cookies.get('trucazo_auth_next')?.value === '/eliminar-cuenta'
+    ? '/eliminar-cuenta' : '/lobby'
+  const response = NextResponse.redirect(`${origin}${destination}`)
+  response.cookies.set('trucazo_auth_next', '', { path: '/', maxAge: 0 })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

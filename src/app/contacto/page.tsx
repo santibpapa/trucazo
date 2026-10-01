@@ -50,10 +50,11 @@ export default function ContactoPage() {
 
       <Section title="Privacidad o eliminación de datos">
         <p>
-          Para una consulta relacionada con datos personales, abrí una incidencia en el
-          repositorio indicando únicamente que necesitás un canal privado. No publiques
-          allí tu email, identificador de cuenta ni otra información personal. Revisá
-          antes la{' '}
+          Podés eliminar tu cuenta desde{' '}
+          <Link href="/eliminar-cuenta" className="text-gold underline underline-offset-2">Eliminar mi cuenta</Link>.
+          Si no podés entrar o necesitás consultar por datos personales, escribí a{' '}
+          <a href="mailto:hola@trucazo.com.ar" className="text-gold underline underline-offset-2">hola@trucazo.com.ar</a>
+          {' '}desde el email de tu cuenta. No envíes contraseñas. Revisá la{' '}
           <Link href="/privacidad" className="text-gold underline underline-offset-2">política de privacidad</Link>.
         </p>
       </Section>

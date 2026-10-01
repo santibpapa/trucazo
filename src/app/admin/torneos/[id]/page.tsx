@@ -33,7 +33,7 @@ export default async function AdminTournamentPage({ params }: { params: { id: st
   }
 
   const userIds = Array.from(new Set(
-    (detail.admin_entries ?? []).flatMap(entry => entry.members.map(member => member.user_id)),
+    (detail.admin_entries ?? []).flatMap(entry => entry.members.map(member => member.user_id).filter((id): id is string => id !== null)),
   ))
   const profilesResult = userIds.length > 0
     ? await supabase.from('profiles').select('id, username, avatar_url').in('id', userIds)

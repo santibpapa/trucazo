@@ -17,11 +17,11 @@ export default function PrivacidadPage() {
       path={path}
       title="Política de privacidad"
       breadcrumb="Privacidad"
-      intro="Esta página explica en lenguaje claro qué información necesita Trucazo para funcionar. Última actualización: 26 de septiembre de 2026."
+      intro="Esta página explica en lenguaje claro qué información necesita Trucazo para funcionar. Última actualización: 1 de octubre de 2026."
       showPlayCta={false}
       showByline={false}
     >
-      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebPage', name: title, description, url: SITE_URL + path, inLanguage: 'es-AR', dateModified: '2026-09-26' }} />
+      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebPage', name: title, description, url: SITE_URL + path, inLanguage: 'es-AR', dateModified: '2026-10-01' }} />
       <JsonLd data={createBreadcrumbJsonLd('Política de privacidad', path)} />
 
       <Section title="Datos que puede tratar el servicio">
@@ -102,10 +102,22 @@ export default function PrivacidadPage() {
           controles técnicos y limita el acceso según el tipo de dato.
         </p>
         <p>
-          Podés evitar crear una cuenta usando el modo invitado, no utilizar funciones
-          sociales, no adjuntar imágenes y borrar el almacenamiento local. Para consultar,
-          corregir o solicitar la eliminación de datos asociados a una cuenta, seguí el
-          canal indicado en{' '}
+          Podés eliminar tu cuenta desde el perfil o desde{' '}
+          <Link href="/eliminar-cuenta" className="text-gold underline underline-offset-2">Eliminar mi cuenta</Link>,
+          sin tener la aplicación instalada. Se borran el acceso, email, perfil,
+          archivos propios, progreso, monedas, mensajes, reseñas, relaciones,
+          preferencias y registros de navegación vinculados. Los resultados
+          compartidos se conservan sin tu identidad como “Cuenta eliminada”.
+        </p>
+        <p>
+          Normalmente el borrado termina al confirmar. Si un proveedor falla, se
+          conserva temporalmente el identificador y la lista de archivos pendientes
+          para reintentar; ambos se eliminan al completar el proceso. Si no termina
+          dentro de 48 horas o no podés entrar, escribí a{' '}
+          <a href="mailto:hola@trucazo.com.ar" className="text-gold underline underline-offset-2">hola@trucazo.com.ar</a>
+          {' '}desde el email de tu cuenta. Los proveedores pueden conservar copias
+          de seguridad o registros durante sus propios plazos de conservación.
+          Para consultar o corregir datos, visitá{' '}
           <Link href="/contacto" className="text-gold underline underline-offset-2">Contacto</Link>.
         </p>
       </Section>
