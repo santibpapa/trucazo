@@ -47,6 +47,9 @@ jobs:
       - name: Que ninguna función del servidor quede abierta al cliente
         run: node scripts/check-rpc-allowlist.mjs
 
+      - name: Eliminación de cuentas y reintentos de proveedores
+        run: node --import tsx scripts/check-account-deletion.ts
+
       - name: Reconexión y rechazos del chat
         run: npm run check:match-chat
 
@@ -123,6 +126,9 @@ jobs:
 
       - name: Reconstruir la base entera desde cero
         run: scripts/rebuild-db.sh
+
+      - name: Eliminación de cuentas, privacidad y continuidad de torneos
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/account_deletion.sql
 
       - name: Competencia 1v1, grupos, ausencia e idempotencia
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournaments_competition.sql

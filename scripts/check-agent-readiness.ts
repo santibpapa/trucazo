@@ -152,6 +152,7 @@ const EXPECTED: [string, number][] = [
   ['/acerca-de-trucazo', 0.5],
   ['/contacto', 0.4],
   ['/privacidad', 0.3],
+  ['/eliminar-cuenta', 0.3],
   ['/terminos', 0.3],
 ]
 

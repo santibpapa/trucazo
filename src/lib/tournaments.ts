@@ -53,7 +53,8 @@ export interface TournamentAdminMember {
   id: string
   tournament_id: string
   entry_id: string
-  user_id: string
+  user_id: string | null
+  identity_deleted?: boolean
   role: 'captain' | 'invitee' | 'assigned' | 'replacement'
   status: TournamentMemberStatus
   invited_by: string | null
@@ -75,7 +76,7 @@ export interface TournamentEntry {
   priority_at: string
   draw_seed: string
   replaced_entry_id: string | null
-  created_by: string
+  created_by: string | null
   created_at: string
   updated_at: string
 }
@@ -86,7 +87,7 @@ export interface TournamentEntrySnapshot {
   checkin: {
     entry_id: string
     tournament_id: string
-    confirmed_by: string
+    confirmed_by: string | null
     confirmed_at: string
   } | null
 }

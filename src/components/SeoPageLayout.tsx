@@ -125,6 +125,9 @@ export default function SeoPageLayout({
           <Link href="/privacidad" className="hover:text-gold transition-colors">
             Privacidad
           </Link>
+          <Link href="/eliminar-cuenta" className="hover:text-gold transition-colors">
+            Eliminar cuenta
+          </Link>
           <Link href="/terminos" className="hover:text-gold transition-colors">
             Términos
           </Link>

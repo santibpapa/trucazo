@@ -119,6 +119,14 @@ export default async function ProfilePage() {
           </div>
         )}
       </section>
+
+      {!user.is_anonymous && (
+        <Panel className="p-5 flex flex-col gap-2">
+          <h2 className="font-display font-bold text-cream">Tu cuenta</h2>
+          <p className="text-sm text-muted">Podés eliminar tu cuenta y sus datos de forma permanente.</p>
+          <Link href="/eliminar-cuenta" className="text-sm text-negative underline underline-offset-2 w-fit">Eliminar mi cuenta</Link>
+        </Panel>
+      )}
     </main>
   )
 }

@@ -11,7 +11,7 @@ export interface TeamMember {
 }
 export interface TeamTable {
   id: string
-  creator_id: string
+  creator_id: string | null
   name: string
   bet: number
   target_score: number
