@@ -127,7 +127,7 @@ function getHandWinner(results: RR[], mano: string): string | null | undefined {
   if (results.length === 3) {
     if (p1Wins > p2Wins) return P1
     if (p2Wins > p1Wins) return P2
-    return mano
+    return results[0]?.winner_id ?? mano
   }
   if (ties === 1 && results.length === 2) {
     const nonTie = results.find(r => r.winner_id !== null)
@@ -135,6 +135,14 @@ function getHandWinner(results: RR[], mano: string): string | null | undefined {
   }
   return undefined
 }
+
+// Regresión: la tercera parda favorece la primera, aunque el rival sea mano.
+check(getHandWinner([{ round: 1, winner_id: P1 }, { round: 2, winner_id: P2 },
+  { round: 3, winner_id: null }], P2) === P1, 'primera P1, segunda P2, tercera parda')
+check(getHandWinner([{ round: 1, winner_id: P2 }, { round: 2, winner_id: P1 },
+  { round: 3, winner_id: null }], P1) === P2, 'primera P2, segunda P1, tercera parda')
+check(getHandWinner([1, 2, 3].map(round => ({ round, winner_id: null })), P2) === P2,
+  'tres pardas favorecen al mano')
 
 // ===============================================================
 // 4) Partidas completas: que SIEMPRE terminen con un ganador a >=30

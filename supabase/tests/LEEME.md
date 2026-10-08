@@ -37,12 +37,18 @@ y que la cola y sus credenciales no sean visibles desde el navegador.
 Sirve para que los agujeros que se cerraron no vuelvan a abrirse sin que nadie se
 dé cuenta.
 
+`tercera_parda.sql` juega los 15 caminos de resolución de una mano contra
+`play_card`, con ambos jugadores como mano, campaña y 1vs1, valores 1/2/4
+y cierre de partida. Verifica que la tercera parda favorezca al ganador de la
+primera y que tres pardas favorezcan a quien es mano.
+
 ## Cómo se corre
 
 Contra una base **local de prueba**, nunca contra la de producción (crea usuarios
 y partidas de mentira; al final deshace todo, pero igual):
 
 ```
+psql -f supabase/tests/tercera_parda.sql
 psql -f supabase/tests/seguridad_pr1.sql
 psql -f supabase/tests/seguridad_privilegios_funciones.sql
 psql -f supabase/tests/seguridad_pr2.sql
