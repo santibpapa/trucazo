@@ -139,6 +139,9 @@ jobs:
       - name: Torneos PR5, premios, correos y espectadores
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournaments_final.sql
 
+      - name: Eliminar torneos terminados sin perder premios
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournaments_delete.sql
+
       - name: Anuncios de torneos, reprogramación y cupo diario
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournament_announcement_delivery.sql
 
