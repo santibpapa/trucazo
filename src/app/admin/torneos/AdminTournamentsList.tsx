@@ -6,6 +6,7 @@ import { Alert, buttonClass, Panel } from '@/components/ui'
 import TournamentCard from '@/components/tournaments/TournamentCard'
 import { createClient } from '@/lib/supabase/client'
 import { tournamentApi, type Tournament, type TournamentListData } from '@/lib/tournaments'
+import DeleteTournamentButton from './DeleteTournamentButton'
 
 export default function AdminTournamentsList({ initialData }: { initialData: TournamentListData }) {
   const supabase = useMemo(() => createClient(), [])
@@ -65,14 +66,22 @@ export default function AdminTournamentsList({ initialData }: { initialData: Tou
           <AdminSection title="Borradores" tournaments={data.drafts} />
           <AdminSection title="Próximos" tournaments={data.upcoming} />
           <AdminSection title="En curso" tournaments={data.active} />
-          <AdminSection title="Anteriores" tournaments={data.past} />
+          <AdminSection title="Anteriores" tournaments={data.past} api={api}
+            onDeleted={id => setData(current => ({
+              ...current, past: current.past.filter(tournament => tournament.id !== id),
+            }))} />
         </div>
       )}
     </main>
   )
 }
 
-function AdminSection({ title, tournaments }: { title: string; tournaments: Tournament[] }) {
+function AdminSection({ title, tournaments, api, onDeleted }: {
+  title: string
+  tournaments: Tournament[]
+  api?: ReturnType<typeof tournamentApi>
+  onDeleted?: (id: string) => void
+}) {
   if (tournaments.length === 0) return null
   return (
     <section>
@@ -82,11 +91,12 @@ function AdminSection({ title, tournaments }: { title: string; tournaments: Tour
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {tournaments.map(tournament => (
-          <TournamentCard
-            key={tournament.id}
-            tournament={tournament}
-            href={`/admin/torneos/${tournament.id}`}
-          />
+          <div key={tournament.id} className="space-y-2">
+            <TournamentCard tournament={tournament} href={`/admin/torneos/${tournament.id}`} />
+            {api && onDeleted && (
+              <DeleteTournamentButton tournament={tournament} api={api} onDeleted={onDeleted} />
+            )}
+          </div>
         ))}
       </div>
     </section>

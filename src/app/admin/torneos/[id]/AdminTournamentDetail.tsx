@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import DeleteTournamentButton from '../DeleteTournamentButton'
 import { Alert, Avatar, Button, Input, Panel } from '@/components/ui'
 import Competition from '@/components/tournaments/Competition'
 import { createClient } from '@/lib/supabase/client'
@@ -32,6 +34,7 @@ export default function AdminTournamentDetail({
   initialDetail: TournamentDetailData
   initialProfiles: Record<string, ProfileSummary>
 }) {
+  const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const api = useMemo(() => tournamentApi(supabase), [supabase])
   const [detail, setDetail] = useState(initialDetail)
@@ -175,6 +178,16 @@ export default function AdminTournamentDetail({
 
       {error && <Alert className="mb-4">{error}</Alert>}
       {message && <Alert tone="info" className="mb-4">{message}</Alert>}
+
+      {(tournament.status === 'completed' || tournament.status === 'cancelled') && (
+        <Panel className="mb-5 flex flex-wrap items-center justify-between gap-3 p-5">
+          <p className="text-sm text-muted">Podés eliminar este torneo de las listas. Los premios y las estadísticas se conservan.</p>
+          <DeleteTournamentButton tournament={tournament} api={api} onDeleted={() => {
+            router.replace('/admin/torneos')
+            router.refresh()
+          }} />
+        </Panel>
+      )}
 
       <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Metric label="Jugadores activos" value={`${detail.active_players}/${tournament.capacity}`} />

@@ -2,7 +2,7 @@
 
 > Implementación de las cinco etapas **finalizada y habilitada en producción el 2026-09-27** (horario de Argentina). Este documento conserva el contrato, las decisiones técnicas y el historial de entrega para futuras consultas.
 >
-> Última actualización: 2026-09-29
+> Última actualización: 2026-10-07
 > Repositorio base: `santibpapa/trucazo`  
 > Commit base al redactar este documento: `4d5857359b4b33612c0633421beff4aa5d1ddf81`
 
@@ -21,6 +21,14 @@ Reglas que se siguieron durante la implementación:
 7. Una etapa termina únicamente cuando cumple toda su definición de terminado. Abrir un PR no equivale a terminarla.
 
 ## 2. Estado del programa
+
+### Eliminación de torneos anteriores (2026-10-07)
+
+- En `/admin/torneos`, cada tarjeta de **Anteriores** muestra **Eliminar torneo**. También aparece dentro del detalle administrativo si está finalizado o cancelado.
+- Pide confirmación, quita el torneo de ambas listas (administradores y jugadores) y deja de ofrecer su detalle. No permite borrar borradores, publicados ni torneos en curso; el servidor valida administrador y estado bajo bloqueo de fila.
+- Es un borrado lógico (`tournaments.deleted_at`): conserva participantes, resultados, premios, monedas, insignias y auditoría. Cancela correos sin enviar y retira avisos del torneo para no dejar enlaces al detalle eliminado. Los reintentos no repiten la auditoría.
+- SQL nuevo a aplicar manualmente al fusionar: `supabase/migrations/20261008022514_tournaments_delete_old.sql`. No requiere cambiar flags ni configurar un cron.
+- Pruebas: `supabase/tests/tournaments_delete.sql`, incluidas en CI. Entrega pendiente de fusionar y aplicar SQL en producción.
 
 | Entrega | Estado | Rama | PR | Migraciones | Observaciones |
 | --- | --- | --- | --- | --- | --- |
