@@ -10,6 +10,8 @@ Estado: **implementación iniciada el 09/10/2026 por pedido del dueño**, a part
 
 ### Primera entrega: PR 1A — Base web de arranque sin conexión
 
+**PR de GitHub:** [#106 — Play Store 1A: base web de arranque sin conexión](https://github.com/santibpapa/trucazo/pull/106). Código inicial: `e3f3a1f`. Abierto para revisión; no integrado ni desplegado por esta sesión.
+
 **Alcance:** `src/app/manifest.ts`, `src/components/RegisterSW.tsx`, `public/sw.js`, `public/offline.html`, cabeceras en `next.config.mjs`, pruebas y este documento. No incluye todavía un paquete Android ni la campaña jugable offline. La autorización para comenzar corresponde al pedido del dueño del 09/10; el texto de retoma histórico al final no es una autorización pendiente.
 
 - Manifest con `id: '/'`, `scope: '/'` e idioma `es-AR`. Se conserva la portada como entrada de la PWA existente y su identidad; el identificador del paquete Android es una decisión distinta.
@@ -342,4 +344,4 @@ La elección de empaquetado, formato de guardado, validación de recompensas y r
 - **28/09/2026:** revisión original de repositorio y plan de siete etapas.
 - **08/10/2026:** PR 4 marcado como implementado por confirmación del dueño; seis etapas base restantes sujetas a revisión; incorporadas las decisiones pendientes de campaña offline, la separación entre trabajo de código y pruebas Android y las instrucciones de retoma. Solo se actualizó este documento.
 - **08/10/2026, decisiones posteriores:** confirmados offline desde la primera versión, descarga inicial online, sincronización, cuenta obligatoria Android y push en lanzamiento; Play Console por crear, nombre Santiago Barbeira Papalia y distribución mundial. Público 14–65 recibido como propuesta, con recomendación de no fijar máximo; soporte pendiente. Actualizadas instrucciones de retoma para no repetir preguntas ya respondidas. No se modificó código, no se creó cuenta externa ni se publicaron datos.
-- **09/10/2026:** el dueño pidió comenzar. Contrastado `master` en `d4aef04`; registrada eliminación del PR #101 y desempate del PR #104. Preparada la base web PR 1A con pruebas; separado su cierre del prototipo Android PR 1B, motor, bots, descarga y sincronización. No se aplicó SQL ni se publicó en Play.
+- **09/10/2026:** el dueño pidió comenzar. Contrastado `master` en `d4aef04`; registrada eliminación del PR #101 y desempate del PR #104. Base web PR 1A abierta como [PR #106](https://github.com/santibpapa/trucazo/pull/106), código `e3f3a1f`, con las pruebas registradas arriba. Separado su cierre del prototipo Android PR 1B, motor, bots, descarga y sincronización. No se aplicó SQL ni se publicó en Play.
