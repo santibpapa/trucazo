@@ -48,7 +48,7 @@ Resultados:
 | --- | --- |
 | `android/generated/app/build/outputs/apk/debug/app-debug.apk` | Instalar el prototipo en un Android de prueba. |
 | `android/generated/app/build/outputs/bundle/release/app-release.aab` | Verificar construcción del bundle; no subir a Play sin firma/publicación de PR 7. |
-| `android/artifacts/assetlinks-debug.json` | Asociación con el certificado debug real de esa computadora/construcción. |
+| `android/artifacts/assetlinks-debug.json` | Asociación extraída del certificado real del APK generado, después de verificar su firma. |
 
 `generated/`, `artifacts/`, APKs y claves quedan fuera de Git. No editar el proyecto generado: cualquier cambio propio debe hacerse en la configuración o generación. El certificado debug local se conserva normalmente en `~/.android/debug.keystore`; borrarlo o cambiar de computadora cambia la huella. El certificado de carga y el de **Play App Signing** serán distintos y se configuran al publicar.
 
