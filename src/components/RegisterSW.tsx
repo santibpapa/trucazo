@@ -2,11 +2,11 @@
 
 import { useEffect } from 'react'
 
-/** Registra el service worker mínimo (necesario para poder instalar la app). */
+/** Registra la pantalla de recuperación sin guardar páginas de la cuenta. */
 export default function RegisterSW() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {})
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => {})
     }
   }, [])
   return null
