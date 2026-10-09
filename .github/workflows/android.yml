@@ -1,0 +1,47 @@
+name: Prototipo Android
+
+on:
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'public/icon-512.png'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    name: APK de prueba (no publicación)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: android/tools/package-lock.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - run: npm ci --prefix android/tools
+      - run: node android/tools/generate.mjs
+      - run: bash android/generated/gradlew -p android/generated assembleDebug bundleRelease --no-daemon
+      - run: node android/tools/certificate.mjs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: trucazo-android-prototype
+          path: |
+            android/generated/app/build/outputs/apk/debug/app-debug.apk
+            android/generated/app/build/outputs/bundle/release/app-release.aab
+            android/artifacts/assetlinks-debug.json
+          retention-days: 7

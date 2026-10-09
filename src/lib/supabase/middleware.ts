@@ -24,7 +24,10 @@ export async function updateSession(request: NextRequest) {
     '/comunidad',
     '/historia',
   ]
-  const isPrivate = privatePaths.some(path =>
+  // Solo la entrada dinámica. Los archivos públicos de la prueba local deben
+  // poder descargarse sin cookies y abrirse sin renovar sesión por red.
+  const isAndroidEntry = pathname === '/android'
+  const isPrivate = isAndroidEntry || privatePaths.some(path =>
     pathname === path || pathname.startsWith(`${path}/`),
   )
   const isApi = pathname.startsWith('/api/') || pathname === '/auth/callback'
@@ -64,6 +67,13 @@ export async function updateSession(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+
+  if (isAndroidEntry && (!user || user.is_anonymous)) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('android', '1')
+    return NextResponse.redirect(url)
+  }
 
   if (!user && isPrivate) {
     const url = request.nextUrl.clone()

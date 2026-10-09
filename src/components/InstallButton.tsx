@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui'
+import { isAndroidEntry } from '@/lib/android-entry'
 
 // El evento que dispara Chrome/Android cuando la app se puede instalar.
 interface BeforeInstallPromptEvent extends Event {
@@ -25,7 +26,7 @@ export default function InstallButton() {
   useEffect(() => {
     const nav = window.navigator as Navigator & { standalone?: boolean }
     const installed =
-      window.matchMedia('(display-mode: standalone)').matches || nav.standalone === true
+      isAndroidEntry() || window.matchMedia('(display-mode: standalone)').matches || nav.standalone === true
     setStandalone(installed)
     setIsIOS(/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase()))
 

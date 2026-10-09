@@ -67,3 +67,12 @@ fallo.md
 
 # Caché local de Supabase CLI
 /supabase/.temp/
+
+# Android: fuentes generadas y certificados privados quedan fuera del repo.
+/android/generated/
+/android/tools/node_modules/
+*.keystore
+*.jks
+*.apk
+*.aab
+/android/artifacts/

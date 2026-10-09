@@ -5,10 +5,16 @@ on:
     paths:
       - 'public/sw.js'
       - 'public/offline.html'
+      - 'public/android/**'
       - 'src/app/manifest.ts'
       - 'src/components/RegisterSW.tsx'
       - 'next.config.mjs'
       - 'scripts/check-pwa*'
+      - 'scripts/check-android*'
+      - 'src/lib/android-*.ts'
+      - 'src/app/android/**'
+      - 'src/app/api/android/**'
+      - 'src/app/.well-known/**'
       - '.github/workflows/pwa.yml'
   workflow_dispatch:
 
@@ -34,3 +40,5 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run check:pwa
       - run: npm run check:pwa:browser
+      - run: npm run check:android
+      - run: npm run check:android:browser
