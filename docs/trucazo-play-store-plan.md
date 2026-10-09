@@ -1,0 +1,296 @@
+# Trucazo en Google Play — revisión y plan propuesto
+
+Revisión original: 28 de septiembre de 2026. Última actualización del plan: 8 de octubre de 2026.
+
+Repositorio de referencia: `santibpapa/trucazo`, rama `master`. La revisión original corresponde al commit `1138de8f29248960a80d5796d01122467866257d`, con el PR #96 integrado; no representa necesariamente el estado actual.
+
+Estado: plan de implementación actualizado para retomar en otra sesión. **La eliminación de cuentas (PR 4 del plan) está implementada, según confirmación del dueño del 8 de octubre de 2026. No volver a planificarla como desarrollo pendiente.** Esta actualización solo modifica el documento: no se volvió a auditar el repositorio ni se verificaron despliegues, migraciones o cumplimiento de Play. La revisión original tampoco incluyó pruebas de APK en teléfono, inspección de Play Console ni configuración de producción.
+
+## Punto de retoma
+
+- Se conservan las siete etapas originales: PR 4 implementado y seis etapas base por revisar/completar. Los números son etiquetas del plan, no números reales de PR de GitHub.
+- **Alcance confirmado:** campaña offline desde la primera versión, con conexión inicial para descargar, progreso y recompensas sincronizados al reconectar, cuenta obligatoria en la app y notificaciones push en el lanzamiento.
+- No exigir crear una cuenta nueva a jugadores existentes: pueden iniciar sesión. La preparación requiere conexión, pero la campaña descargada debe poder abrirse después sin validar la sesión por red en cada arranque. No se autorizó quitar invitados de la web.
+- Antes de iniciar el empaquetado, validar técnicamente TWA con campaña local, persistencia y push. La descarga inicial aceptada permite estudiar este camino; no garantiza por sí sola su viabilidad con el repositorio actual.
+- Al retomar, comparar este documento con el `master` actual y descontar cualquier otro trabajo ya integrado. No repetir implementación ni SQL de eliminación de cuentas.
+- Las fuentes y requisitos externos pertenecen a la revisión original salvo la consulta del 08/10 sobre público objetivo, clasificación y contacto de desarrollador. Volver a verificarlos antes de publicar.
+
+### Decisiones confirmadas por el dueño — 08/10/2026
+
+| Tema | Decisión |
+| --- | --- |
+| Campaña offline | Incluida en la primera versión. |
+| Preparación inicial | Con internet para acceder con cuenta y descargar lo necesario. |
+| Sincronización | Progreso y recompensas se sincronizan con la cuenta al volver a tener conexión; falta diseñar validación y conflictos, no volver a preguntar si se quiere sincronizar. |
+| Acceso a la app | Cuenta obligatoria, sin modo invitado en Android. Cuentas existentes válidas; web sin cambios de política no solicitados. |
+| Push | Incluidas en el lanzamiento; permiso opcional para el jugador, no condición para jugar. |
+| Play Console | No existe cuenta; hay que crearla. No se creó ninguna en esta sesión. |
+| Nombre indicado | Santiago Barbeira Papalia. Confirmar coincidencia con documentación al verificar la identidad. |
+| Distribución | Intención de disponibilidad mundial, sujeta a países habilitados y requisitos aplicables. No implica traducir la app a todos los idiomas. |
+| Público | El dueño propuso tentativamente 14–65 y pidió sugerencias. Recomendación: sin límite superior; edad mínima y grupos de Play aún por confirmar. |
+| Soporte | Falta elegir y comprobar un correo atendido. Candidato: hola@trucazo.com.ar; que sea remitente no prueba recepción/atención. |
+
+## Camino técnico candidato: TWA con offline y push, pendiente de prueba
+
+La revisión original propuso una **Trusted Web Activity (TWA)**, generada con Bubblewrap: una aplicación instalable desde Google Play que presenta la web de Trucazo utilizando un navegador compatible, sin la barra de direcciones dentro del dominio verificado. Con las decisiones confirmadas, evaluar este camino junto con motor local, descarga de campaña, persistencia, sincronización y push. Una versión solo online ya no satisface el lanzamiento solicitado.
+
+Para el objetivo actual —facilitar encontrar, instalar y abrir el juego— es el camino que mejor aprovecha lo construido. Se conservan el diseño, las cuentas, las monedas, el progreso, los torneos, los rivales y el servidor. Los jugadores de Android y de la web siguen compartiendo las mismas mesas. La mayoría de las mejoras del juego seguirían llegando con los despliegues web; los cambios del paquete Android se publicarían en Play.
+
+Sin el trabajo adicional de campaña offline, la aplicación seguiría necesitando conexión y dependería del sitio y del navegador compatible. En la revisión original, la campaña también dependía del servidor. Instalar desde Play no agrega juego sin conexión, notificaciones push ni mejoras automáticas de velocidad. La TWA cubre Android; una futura publicación en la App Store requeriría otro trabajo. Ver la sección de campaña sin internet antes de elegir el empaquetado definitivo.
+
+La asociación del dominio y la firma debe verificarse: si falla, puede aparecer la interfaz del navegador. Los flujos externos de autenticación pueden mostrar una pestaña de navegador legítima. Fuentes: [TWA](https://developer.chrome.com/docs/android/trusted-web-activity/), [Bubblewrap y asociación del dominio](https://developer.chrome.com/docs/android/trusted-web-activity/quick-start).
+
+## Comparación de caminos
+
+| Camino | Encaje con este repositorio | Evaluación |
+| --- | --- | --- |
+| TWA + Bubblewrap | Mantiene Next.js en Vercel y Supabase; reutiliza la aplicación web completa. | Recomendación inicial para la versión online. La campaña offline requiere trabajo propio y preparación local previa. |
+| Capacitor con interfaz empaquetada | Exige adaptar la separación entre cliente y servidor, acceso, cookies, rutas y recursos. Aporta integración mediante plugins nativos. | Evaluarlo si se exige campaña offline desde el primer arranque tras instalar, integraciones nativas o una estrategia conjunta con iOS. No resuelve por sí solo el motor offline. |
+| Interfaz nueva en React Native/Flutter | Podría conservar parte del servidor, pero supone rehacer pantallas, navegación e integración del juego. | Requiere otro alcance y otra estimación. |
+
+Trucazo usa páginas dinámicas de servidor, cookies, middleware y rutas `/api`. No es una web estática lista para copiar dentro de Capacitor. Next.js documenta esas restricciones en su [exportación estática](https://nextjs.org/docs/app/guides/static-exports). Además, Capacitor describe `server.url` como una opción de recarga durante desarrollo, no destinada a producción: no conviene basar la propuesta en configurar una URL y dar por resuelta la integración. [Configuración de Capacitor](https://capacitorjs.com/docs/config).
+
+## Hallazgos del repositorio
+
+Los caminos de esta tabla son relativos a la raíz del repositorio revisado el 28 de septiembre. Son una referencia histórica que debe contrastarse con el código actual, no una auditoría renovada. Se actualizó el estado de eliminación de cuentas según lo informado por el dueño.
+
+| Área | Lo que existe | Trabajo pendiente |
+| --- | --- | --- |
+| PWA | `src/app/manifest.ts`, iconos 192/512, modo `standalone`, `InstallButton.tsx`, `RegisterSW.tsx`. | Identidad estable, alcance, entrada Android, iconos adaptativos y configuración del paquete. Verificar recortes de iconos en dispositivos. |
+| Sin conexión | `public/sw.js` deja pasar todo a la red; no implementa caché ni pantalla de recuperación. | Pantalla propia de desconexión y reintento, incluyendo el primer arranque sin red. Evitar almacenar partidas o respuestas autenticadas como si fueran estáticas. |
+| Android | No se encontró proyecto Android, configuración Bubblewrap/Capacitor, archivo `assetlinks.json` ni proceso de construcción Android. | Crear el paquete, firma, asociación del dominio y artefactos de distribución. |
+| Acceso | Email/usuario y contraseña; Google mediante Supabase; invitado; cookies de sesión. La raíz ya envía al lobby a cuentas registradas con sesión. | Validar Google dentro de TWA, persistencia, confirmación de email y enlaces que regresan a la app. Agregar recuperación de contraseña: no se encontró ese flujo. |
+| Destino después del acceso | `src/app/auth/callback/route.ts` dirige al lobby. El login también termina allí. | Conservar el destino permitido cuando el usuario llega a un torneo o partida y debe autenticarse. |
+| Regreso al juego | 2vs2 tiene recuperación por `online`, foco y visibilidad. 1v1 tiene Realtime y consultas de respaldo cada 2,5 segundos, sin el mismo manejo explícito de regreso. | Verificar suspensión, bloqueo, reconexión, reloj y cartas actuales en ambos modos. Esto es un riesgo a probar, no un fallo demostrado en Android. |
+| Invitados | `GuestSessionGuard.tsx` usa un marcador que vence a los 90 segundos y lo comprueba al montar. | Probar recuperación tras suspensión o recreación de la app; no convertir automáticamente una interrupción breve en pérdida de acceso. |
+| Interfaz móvil | Altura adaptable, zonas seguras, bloqueo de scroll en partida y chat sensible al teclado. | Pruebas Android: gesto Atrás, teclado, barras del sistema, pantalla chica y fuentes grandes, conservando la mesa en una pantalla. |
+| Eliminación de cuenta | Implementada según confirmación del dueño del 8 de octubre. No se inspeccionó la implementación en esta actualización. | No rehacer. Localizar cambios existentes y comprobar el acceso desde la app y la URL web para la ficha durante las pruebas de publicación. |
+| Relaciones entre datos | La revisión original detectó referencias a perfiles y distintos comportamientos de borrado. La eliminación ya fue implementada después. | Revisar las pruebas de la solución existente; mantener regresiones de integridad de historiales ajenos, grupos y torneos. No inferir que sigue faltando una migración. |
+| Chat y contenido de usuarios | Chat global con borrado propio/admin. Chat de mesa con límites y opción para silenciar avisos. Avatares, nombres y descripciones de grupos. | Denunciar contenido y usuarios, bloquear interacciones, aceptación de reglas y administración de reportes. Silenciar avisos no equivale a bloquear a un usuario. |
+| Privacidad | Existen `/privacidad`, `/terminos` y `/contacto`. | Ajustar canales de soporte, responsable, conservación y datos declarados. La política menciona caché del service worker, pero el código actual no la implementa. |
+| Tienda | Los artículos se compran con monedas internas mediante funciones de Supabase. No se encontró cobro con dinero real ni SDK de anuncios en el código revisado. | La estimación asume que se conserva ese modelo. Monetización posterior requiere revisar alcance y políticas. |
+| Notificaciones | Correos y avisos dentro del juego en la revisión original. | Push incluidas en el lanzamiento por decisión del dueño; revisar si ya existe trabajo posterior antes de implementar. |
+| Verificaciones | CI de aplicación y PostgreSQL, incluyendo chat, torneos y motor. | Agregar construcción Android y pruebas en teléfono. Las comprobaciones actuales no prueban una TWA instalada. |
+
+## Alcance base: 7 etapas originales, 1 implementada
+
+Quedan **seis etapas base por revisar/completar**, sujetas al estado actual del repositorio. Esto no garantiza seis PRs nuevos: pueden reducirse por trabajo ya integrado o dividirse por complejidad, especialmente moderación. La campaña offline no está incluida en esta cuenta. Cada PR nuevo debe documentar pasos manuales y, solo cuando corresponda, la migración SQL nueva que el dueño debe aplicar.
+
+El lanzamiento ahora también incluye los bloques de campaña offline (estimación anterior: 5–7 PRs) y push (aproximadamente 2). La suma bruta sería 13–15 PRs restantes, **no un presupuesto validado**: hay solapamientos y falta revisar `master`. Replanificar el orden antes de implementar; no conservar un primer lanzamiento online como atajo de alcance.
+
+| Etapa | Estado de planificación | Condición para retomarla |
+| --- | --- | --- |
+| PR 1 — Base Android | Pendiente de contrastar con `master` | Validar arquitectura con offline, descarga inicial, cuenta obligatoria y push ya confirmados. |
+| PR 2 — Acceso y enlaces | Pendiente de contrastar con `master` | Reutilizar los flujos ya implementados. |
+| PR 3 — Recuperación Android | Pendiente de contrastar con `master` | Distinguir reconexión online de juego offline real. |
+| PR 4 — Eliminación | Implementado, confirmado por el dueño | Solo localizar evidencia y realizar regresiones de lanzamiento. |
+| PR 5 — Moderación | Pendiente de contrastar con `master` | Definir alcance y conservar reglas de chat actuales. |
+| PR 6 — Privacidad y ficha | Pendiente de contrastar con `master` | Incorporar el flujo de eliminación existente sin duplicarlo. |
+| PR 7 — Publicación | Pendiente de contrastar con `master` | Pruebas instaladas, firma, Play Console y requisitos vigentes. |
+
+### PR 1 — Base Android y prueba de viabilidad
+
+**Precondición:** revisar motor, bots, arranque, persistencia y push con el alcance confirmado. Lo siguiente describe el camino TWA candidato; si la prueba exige otra arquitectura, reformular la etapa antes de implementar el paquete definitivo.
+
+**Entrega:** proyecto TWA reproducible dentro del mismo repositorio, versión de Bubblewrap fijada, configuración de Android, iconos iniciales y manifest web ajustado. Definir identificador de aplicación definitivo; una posibilidad a confirmar es `ar.com.trucazo.app`.
+
+Preparar la asociación `https://trucazo.com.ar/.well-known/assetlinks.json` y distinguir certificados de pruebas, carga y firma de Google Play. Las huellas reales se obtienen de los certificados correspondientes; no se inventan. Preparar APK para instalación de prueba y construcción de AAB, el paquete de publicación.
+
+**Cierre:** abrir en un Android físico, comprobar asociación del dominio y acceso con Google/contraseña. Como prueba de arquitectura, demostrar descarga inicial y reapertura offline de un flujo mínimo local, guardado durable y viabilidad de push. La campaña completa y sincronización se cierran en sus bloques, pero no elegir empaquetado basándose solo en una partida online.
+
+**Complejidad:** media. **SQL esperado:** ninguno por el empaquetado.
+
+### PR 2 — Acceso y enlaces
+
+**Entrega:** recuperar contraseña; revisar confirmación de correo y cierre de sesión; volver al destino correcto después del login; abrir enlaces autorizados de Trucazo en la aplicación instalada. Ocultar las invitaciones redundantes a instalar dentro de la app.
+
+Conservar cuentas y progreso existentes. La app requiere registro o acceso con cuenta existente: quitar la entrada de invitado en Android sin cambiar la web por defecto. Validar el recorrido desde correo externo y Google; permitir únicamente destinos internos válidos en el retorno del login. Preparar identidad local vinculada a la cuenta para campaña descargada, sin obligar a renovar por red el token de sesión antes de cada partida offline. Al reconectar, validar la sesión antes de sincronizar.
+
+**Cierre:** entrar con una cuenta existente, registrar una nueva, cerrar y reabrir, recuperar acceso desde correo y abrir un torneo sin perder el destino. Comprobar que no hay acceso como invitado en Android y que la campaña preparada abre en modo avión. Probar expiración de sesión, cierre de sesión, cambio de cuenta y eliminación: no mezclar guardados ni sincronizar a otra cuenta. La revocación remota solo podrá conocerse al reconectar.
+
+**Complejidad:** media. **Configuración externa:** posibles ajustes de URLs permitidas y correos de Supabase. No se asumieron ya correctos en esta revisión.
+
+### PR 3 — Comportamiento Android y recuperación
+
+**Entrega:** recuperación coherente en 1v1 y 2vs2; estado de conexión; reintento; entrada sin red; regreso tras suspensión; navegación Atrás y cierre de paneles. Revisión del teclado, audio, selector de imágenes y zonas seguras.
+
+En el alcance online base, agregar únicamente la caché necesaria para la pantalla de desconexión y, si se justifica, recursos estáticos versionados. Las sesiones, APIs, cartas y resultados de partidas online deben conservar su autoridad en el servidor. No prometer que el turno online se pausa al salir de la app: siguen rigiendo los plazos del juego. La campaña offline tendrá un motor local separado según el alcance acordado; una pantalla de desconexión no equivale a poder jugar sin internet.
+
+**Cierre:** cambiar entre Wi-Fi y datos, activar modo avión, bloquear el teléfono, abrir otra app y volver; verificar que se recuperan turno, cartas y resultado sin duplicar jugadas. Probar un primer arranque sin red además del regreso tras una sesión previa. Mesa 1v1/2vs2 completa y legible sin scroll.
+
+**Complejidad:** media/alta. **SQL:** solo si las pruebas justifican un ajuste puntual de recuperación o tiempos del servidor.
+
+### PR 4 — Eliminación de cuenta y datos — IMPLEMENTADO
+
+**Estado:** implementado según confirmación del dueño del 8 de octubre de 2026. Se da por cerrada esta etapa de desarrollo del plan; no crear otro PR de eliminación ni repetir migraciones. No se dispone en esta actualización del número de PR, commit, rutas finales o evidencia de despliegue.
+
+**Al retomar:** localizar la implementación y su documentación en el repositorio actualizado, registrar la URL web de eliminación y los cambios asociados. Si falta evidencia de aplicación de SQL o despliegue, dejarlo como verificación pendiente, sin asumir que el trabajo no existe ni volver a ejecutar operaciones destructivas.
+
+**Regresión antes de publicar:** comprobar que el flujo existente puede iniciarse desde la app y desde la web indicada en Play Console. En un entorno autorizado y con una cuenta descartable, verificar eliminación de datos/archivos, invalidación de sesiones, solicitudes repetidas e integridad de datos de terceros. Nunca borrar una cuenta real para probar. Documentar cualquier retención y plazo que efectivamente tenga la implementación.
+
+**Trabajo nuevo estimado:** ninguno para reconstruir la funcionalidad. Cualquier defecto demostrado se tratará como corrección puntual. La confirmación de implementación no equivale a una certificación de cumplimiento de Google Play. [Requisito oficial a verificar antes de publicar](https://support.google.com/googleplay/android-developer/answer/13327111?hl=en).
+
+### PR 5 — Denuncias, bloqueos y moderación
+
+**Entrega:** reportar mensajes y usuarios, bloquear usuarios y administrar denuncias. Cubrir chat global, chat de partida y contenido de perfil/grupos accesible en la app. Incorporar aceptación de reglas antes de crear contenido, también para usuarios que entran con Google y cuentas existentes.
+
+Definir el alcance del bloqueo de mensajes e invitaciones sin modificar arbitrariamente los cruces competitivos. El administrador necesita revisar evidencias y aplicar medidas. El chat de mesa se purga a las 72 horas: conservar de forma restringida la evidencia denunciada por un plazo definido, si es necesaria para resolver el reporte.
+
+**Cierre:** un bloqueo persiste al reabrir; el contenido bloqueado deja de mostrarse donde corresponde; el reporte llega a administración; personas ajenas no pueden leer evidencias privadas. Una medida de moderación se aplica efectivamente.
+
+Se mantiene el comportamiento vigente: texto libre en mesas 1v1 y 2vs2 con o sin bots; bots sin respuestas escritas; campaña sin chat escrito. [Política de contenido de usuarios](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en).
+
+**Complejidad:** alta. **SQL esperado:** sí. Es el candidato principal a dividir en dos PRs si queda demasiado grande.
+
+### PR 6 — Privacidad, soporte y preparación de la ficha
+
+**Entrega:** actualizar privacidad, términos y contacto; poner soporte privado accesible; documento de datos para completar Play Console; textos de la ficha y materiales gráficos basados en la aplicación real. Registrar público objetivo y países elegidos.
+
+Reutilizar el flujo de eliminación ya implementado y su URL pública. Ajustar los textos a su funcionamiento real; no crear una segunda vía técnica ni describirlo como función futura.
+
+Declarar lo que trata la aplicación completa: cuentas, fotos, mensajes, estadísticas, analítica y proveedores configurados. Revisar la clasificación por edades contestando sobre el contenido real del juego, las monedas ficticias y el chat; la clasificación se obtiene del cuestionario, no se supone por ser un juego de cartas.
+
+**Cierre:** enlaces públicos accesibles, ficha coherente con la app y decisiones de conservación/moderación implementadas. Preparar instrucciones y cuenta de prueba sin privilegios administrativos para los revisores de Google. La titularidad y las declaraciones de Play Console las confirma el dueño.
+
+**Complejidad:** media. **SQL esperado:** normalmente ninguno adicional.
+
+Fuentes: [Seguridad de los datos](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en), [clasificación](https://support.google.com/googleplay/android-developer/answer/9898843?hl=en), [acceso para revisión](https://support.google.com/googleplay/android-developer/answer/15748846?hl=en).
+
+### PR 7 — Construcción de publicación y cierre de pruebas
+
+**Entrega:** AAB de publicación, numeración de versiones, firma y asociación con el certificado de Play App Signing; automatización de construcción, documentación de publicación y lista de pruebas. Guardar claves fuera del repositorio. Ejecutar el trabajo Android cuando cambien sus archivos o en una publicación, para evitar alargar cada PR de contenido web.
+
+La revisión original propuso **Android 16 / API 36 como mínimo** como API objetivo. Es una referencia histórica, no una comprobación renovada: verificar y registrar el requisito vigente al preparar el AAB. La API objetivo no equivale a la versión mínima de Android compatible, que es otra decisión. [Requisito oficial](https://support.google.com/googleplay/android-developer/answer/11926878?hl=en).
+
+**Cierre técnico:** instalar desde el canal de pruebas de Play, verificar firma y dominio, y completar la matriz de pruebas inferior. Documentar qué se revierte en Vercel y qué exige un nuevo paquete Android.
+
+**Cierre de lanzamiento:** completar las pruebas y revisiones de Play Console, resolver hallazgos y publicar. Estas acciones y esperas no se convierten en automáticas por mergear un PR; pueden producir correcciones posteriores.
+
+**Complejidad:** media más validación en dispositivos. **SQL:** solo correcciones demostradas.
+
+## Pruebas necesarias antes de publicar
+
+| Flujo | Resultado a comprobar |
+| --- | --- |
+| Instalación desde Play | Icono correcto, asociación verificada, apertura y reapertura sin errores. |
+| Acceso | Google, email/usuario, registro obligatorio o cuenta existente, sin invitado Android, recuperación, cierre y retorno de correo; web sin regresiones. |
+| Cuentas existentes | Mismas monedas, medallas, progreso y estadísticas al acceder desde Android y web. |
+| 1v1 | Personas y bots; reconexión; revancha; abandono; relojes y fin de partida. |
+| 2vs2 | 1 persona + 3 bots, 2 + 2, 3 + 1 y 4 personas; recuperación, turnos y resultados. |
+| Campaña | Descarga inicial autenticada, partida y reapertura offline, progreso durable, sincronización validada sin duplicar recompensas; sin chat escrito. |
+| Push | Permiso aceptado/denegado, preferencias, app cerrada, destino correcto, duplicados, logout y cambio de cuenta. |
+| Torneos | Detalle, inscripción, check-in, acceso al cruce, regreso y premios. |
+| Chat | Teclado y botón Enviar; invitados sin escritura; bots sin texto; denuncias y bloqueos. |
+| Suspensión/red | Bloqueo del teléfono, otra aplicación, Wi-Fi/datos y arranque sin internet. |
+| Navegación | Atrás, enlaces de correo, paneles, subida de avatar y regreso al juego. |
+| Pantallas | Android de gama media, pantalla chica, Android reciente, gestos y botones de navegación. |
+| Privacidad | Eliminación real, canales de soporte y ausencia de datos personales en evidencias públicas. |
+
+Las verificaciones automatizadas de SQL se mantienen. No sustituyen los recorridos anteriores en una aplicación instalada.
+
+## Pasos fuera del repositorio
+
+Los importes, plazos y umbrales siguientes son los registrados en la revisión original. Confirmarlos en la documentación oficial y en la cuenta concreta antes de iniciar la publicación.
+
+1. Crear la cuenta de desarrollador de Google Play: el dueño confirmó que no tiene una. Elegir tipo de cuenta según la titularidad real y completar verificación; no se creó ni pagó nada en esta sesión. La revisión original registró **US$25 una sola vez**; verificar importe al realizar el alta. [Alta de Play Console](https://support.google.com/googleplay/android-developer/answer/6112435?hl=en).
+2. Nombre indicado: Santiago Barbeira Papalia. Confirmar los datos legales, el correo público atendido y la titularidad; elegir identificador definitivo y conservar claves de carga de forma segura.
+3. Preparar pruebas internas y luego cerradas. Para cuentas personales creadas después del 13/11/2023, Google exige al menos **12 testers inscritos continuamente durante 14 días** antes de solicitar acceso a producción. Hay que probar y recopilar resultados; cumplir el mínimo habilita la solicitud, no garantiza aprobación. [Pruebas requeridas](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en).
+4. Aplicar las migraciones SQL indicadas por cada PR y configurar los valores externos documentados. El repositorio no despliega automáticamente el backend.
+5. Completar ficha, países, público, clasificación, datos, privacidad y acceso para revisión. Subir el AAB y atender la revisión.
+
+Conviene iniciar el alta y reunir testers temprano. El plazo total depende tanto del desarrollo como del período de pruebas y la revisión de Google; esta propuesta no fija una fecha de aprobación.
+
+## Campaña sin internet — incluida en el lanzamiento
+
+El dueño confirmó campaña offline en la primera versión, descarga inicial con internet, sincronización posterior y cuenta obligatoria. No confundir este pedido con mostrar una pantalla de desconexión o guardar imágenes: reglas y rivales deben funcionar en el dispositivo sin llamadas al servidor.
+
+### Condiciones confirmadas y diseño técnico pendiente
+
+1. Primera versión: offline incluido, no opcional posterior.
+2. Antes de jugar offline: entrar con una cuenta y descargar la campaña con internet. Mostrar descarga completa/incompleta, permitir reintentar y no prometer disponibilidad si faltan recursos.
+3. Al reconectar: sincronizar progreso y recompensas con la misma cuenta. Diseñar reintentos idempotentes, validación de resultados y conflictos entre dispositivos; no limitar a progreso aislado sin aprobación.
+4. Cuenta obligatoria en la app; no pedir volver a registrarse a jugadores existentes. Definir manejo local de logout, cambio de cuenta y expiración de sesión sin romper el uso offline autorizado.
+
+Se aceptó preparación online previa: evaluar campaña web offline con caché y persistencia local dentro del camino TWA. Capacitor sigue siendo alternativa técnica si la prueba muestra limitaciones, no una obligación deducida del pedido. **Ninguno de los empaquetados traslada automáticamente las reglas y bots que en la revisión original dependían del servidor.** Validar con código actualizado antes de comprometer la solución.
+
+### Desglose preliminar: 5–7 PRs adicionales
+
+Es una estimación orientativa que requiere una nueva revisión técnica. Puede solaparse con acceso, recuperación y empaquetado de las seis etapas base; no sumar las cifras como un presupuesto cerrado.
+
+| Bloque | Entrega prevista |
+| --- | --- |
+| Motor local | Reglas de campaña ejecutables sin red y pruebas de equivalencia con las reglas actuales. |
+| Rivales locales | Decisiones de bots en el dispositivo y pruebas de dificultad/comportamiento. |
+| Recursos y arranque | Pantallas, cartas, sonidos y contenido disponibles según el requisito de primer arranque acordado. |
+| Guardado local | Partida/progreso durables, recuperación al cerrar, versionado y migración de partidas guardadas. |
+| Sincronización | Identidad, reintentos sin duplicados, conflictos entre dispositivos y recompensas según la decisión del dueño. Puede necesitar dividirse. |
+| Integración y pruebas | Separación clara entre campaña local y modalidades online; modo avión, cierre forzado, actualización y reconexión. Puede integrarse en otros bloques. |
+
+Los resultados guardados en un dispositivo pueden alterarse: sincronizar no significa confiar automáticamente en el saldo o las victorias enviados por el cliente. Diseñar validación y acreditación única de recompensas, tratamiento de resultados inválidos y conflictos. Si la solución necesita límites de producto, proponerlos al dueño antes de aplicarlos. No prometer prevención total de trampas offline. Mantener campaña sin chat escrito.
+
+**Aceptación mínima:** descargar tras acceder con cuenta, terminar partidas en modo avión, cerrar y reabrir conservando el avance y volver a internet sin duplicar resultados ni perder progreso. Explicar qué ocurre al desinstalar o borrar datos locales; no prometer recuperación en la nube antes de sincronizar.
+
+## Trabajo de código y pruebas en computadora
+
+La preparación de cambios de código, tests y documentación puede separarse de la validación Android. En cada sesión de ChatGPT Work se debe comprobar primero qué acceso al repositorio y herramientas de construcción están disponibles; no dar por generado o probado un APK solo porque el código esté listo.
+
+| Etapas | Trabajo preparable sobre el repositorio | Cuándo usar computadora/dispositivo |
+| --- | --- | --- |
+| PR 1 | Configuración, manifest, asociación del dominio y pasos de construcción. | Para construir e instalar con herramientas Android si no están disponibles en la sesión; comprobar firma y acceso. |
+| PR 2, 5 y 6 | Flujos de acceso, moderación, textos, tests y documentación. | Para recorridos reales de correo/Google, formularios de Play Console y comprobaciones finales. |
+| PR 3 | Recuperación, navegación y pruebas automatizadas. | Para suspensión, teclado, Atrás, red, audio y comportamiento instalado. |
+| PR 4 | No repetir: localizar lo implementado y revisar evidencia. | Solo regresiones autorizadas con una cuenta de prueba. |
+| PR 7 | Configuración de publicación, automatización y lista de pruebas. | Firma, subida a Play Console, instalación desde el canal de pruebas y validación final. |
+| Campaña offline y push | Motor, bots, persistencia, sincronización, entrega de notificaciones y tests con el alcance confirmado. | Modo avión, cierre forzado, pérdida de proceso, rendimiento, permiso de notificaciones y actualizaciones. |
+
+El emulador de Android Studio en la PC sirve como entorno de desarrollo y pruebas; confirmar sistema operativo y recursos de esa PC antes de indicar una instalación concreta. No sustituye una prueba final en un teléfono Android real, especialmente para rendimiento, suspensión y cambios de conexión.
+
+## Push — incluidas en el lanzamiento
+
+**Estimación orientativa: 2 PRs adicionales.** Uno para permisos, suscripciones, baja y entrega; otro para eventos, preferencias y pruebas con app cerrada. Propuesta inicial de eventos, todavía no aprobada en detalle: check-in de torneo, cruce listo e invitación. Definir categorías, frecuencia y enlaces; no activar por defecto campañas promocionales no acordadas. El jugador puede denegar el permiso y seguir jugando. Evitar duplicados y envíos vinculados a una cuenta tras cerrar sesión. No se consideran resueltas por los emails actuales. Validar el flujo en el empaquetado elegido. [Referencia Android](https://developer.android.com/reference/androidx/browser/trusted/TrustedWebActivityService).
+
+## Otros opcionales
+- **Cobros, anuncios o suscripciones:** nueva evaluación de producto, políticas e integración antes de estimar.
+- **App Store:** planificación específica para iOS.
+
+## Soporte, países y público objetivo
+
+**Soporte** significa un canal privado y atendido para que los jugadores informen problemas de acceso, errores, denuncias o dudas. No requiere contratar personal ni un sistema de tickets para empezar. Propuesta: usar `hola@trucazo.com.ar` si el dueño recibe y responde ahí; de lo contrario, elegir otra casilla. Probar recepción y respuesta antes de publicarla. Google exige un correo de contacto para la app; el teléfono de verificación de la cuenta no es lo mismo que ofrecer atención telefónica a jugadores. [Soporte oficial](https://support.google.com/googleplay/android-developer/answer/113477?hl=en).
+
+**Identidad:** el nombre indicado es Santiago Barbeira Papalia. Si publica como persona y no mediante una entidad, evaluar cuenta personal y confirmar esa titularidad en el alta. El nombre de desarrollador puede diferir del legal, pero Google verifica identidad y muestra determinados datos legales y de contacto; no prometer anonimato ni que elegir una marca oculte esos datos. La cuenta no está creada. [Información requerida](https://support.google.com/googleplay/android-developer/answer/13628312?hl=en).
+
+**Países:** se registra la intención de publicar mundialmente, en los países donde Play permita distribuir la app y se cumplan los requisitos aplicables. No se decidió una traducción ni atención multilingüe. Revisar especialmente privacidad y tratamiento de menores antes de marcar todos los mercados; disponibilidad mundial no equivale a aprobación universal automática.
+
+**Edades: propuesta, no decisión cerrada.** El dueño sugirió 14–65. Recomiendo no fijar un máximo de 65: permitir también adultos mayores y conservar la interfaz legible. Como producto, 14 años en adelante puede mantenerse como propuesta, condicionada a revisar protección de menores, chat, datos y contenido reales antes de fijar la edad mínima.
+
+Play Console utiliza franjas, entre ellas 13–15, 16–17 y 18 o más, no un selector exacto «14–65». Declarar los grupos realmente contemplados no implementa por sí solo una restricción de edad de 14 años. La clasificación del contenido se obtiene por separado mediante el cuestionario; no puede prometerse una clasificación determinada solo por elegir un público. Las reglas relativas a menores varían según el país. No marcar solo adultos para evitar obligaciones si en realidad se pretende admitir adolescentes. Fuentes consultadas el 08/10/2026: [público objetivo](https://support.google.com/googleplay/android-developer/answer/9867159?hl=en), [clasificación de contenido](https://support.google.com/googleplay/android-developer/answer/9898843?hl=en).
+
+## Decisiones que todavía faltan
+
+1. Correo de soporte atendido: confirmar si será `hola@trucazo.com.ar` y quién revisará mensajes y denuncias.
+2. Edad mínima final y público declarado, después de revisar chat, datos y contenido. Propuesta inicial: 14+ sin máximo, no aprobada todavía.
+3. Tipo de cuenta de Play Console según la titularidad real; completar luego alta, verificación y datos de contacto. El nombre ya fue indicado; no volver a preguntar si existe cuenta.
+4. Eventos concretos de push y preferencias: proponer un alcance acotado para lanzamiento. Su inclusión ya está aprobada.
+5. Identificador definitivo de aplicación; la propuesta `ar.com.trucazo.app` sigue sin confirmar.
+
+La elección de empaquetado, formato de guardado, validación de recompensas y resolución de conflictos son trabajo técnico a proponer con evidencia del repo. No exigir que el dueño elija herramientas o algoritmos sin explicar las consecuencias.
+
+## Instrucciones para la próxima sesión
+
+1. Leer este documento y las instrucciones `AGENTS.md` del repositorio; abrir el estado actual de `master`, respetando cambios ajenos. Si no hay acceso, solicitar el repositorio o su conexión; no asumir que queda una copia de la sesión anterior.
+2. Comparar las etapas con lo ya integrado. Localizar la eliminación de cuentas implementada y registrar PR/commit, rutas y documentación encontrados, sin reconstruirla ni ejecutar SQL por duplicado. Distinguir siempre código integrado de despliegue verificado.
+3. Tomar como definitivas las decisiones de alcance de esta versión: campaña offline desde lanzamiento, descarga inicial online, sincronización, cuenta obligatoria en Android y push. No volver a hacer esas mismas preguntas.
+4. Revisar motor, bots, recursos, identidad local, persistencia, sincronización y push; realizar propuesta de prueba técnica TWA y reformular arquitectura/orden de PRs según evidencia. No continuar automáticamente con el plan histórico de empaquetar una app solo online.
+5. Antes de implementar, presentar el alcance del primer PR: archivos afectados, criterios de aceptación, pruebas y pasos manuales. La autorización de esta sesión fue actualizar el documento, no modificar código ni publicar.
+6. Mantener el diseño actual, mesa completa sin scroll y diseño 2vs2 sin cambios no solicitados. Chat escrito en 1v1/2vs2 con personas o bots, bots sin escribir y campaña sin chat escrito. Explicar instrucciones sin asumir conocimientos de programación.
+7. Al cerrar cada etapa, actualizar aquí su estado y evidencia: PR/commit real, pruebas ejecutadas, SQL o configuración pendientes y próximo paso. No presentar pruebas no realizadas como aprobadas.
+
+### Texto para iniciar la próxima sesión
+
+> Retomemos Trucazo para Google Play usando este documento. La eliminación de cuentas ya está implementada: no la rehagas. La primera versión debe incluir campaña offline con descarga inicial online, sincronización de progreso y recompensas, cuenta obligatoria en la app y notificaciones push. Las cuentas existentes sirven; no quitar invitados de la web sin pedírmelo. No tengo Play Console y quiero distribución mundial. Revisá santibpapa/trucazo en master, descontá lo integrado y proponé arquitectura, orden actualizado y primer PR con pruebas y pasos manuales. Conservá diseño y reglas de chat. Quedan por cerrar soporte, edad mínima, tipo de cuenta, eventos push e identificador. No implementes ni publiques hasta que acordemos el primer PR.
+
+### Registro de actualización
+
+- **28/09/2026:** revisión original de repositorio y plan de siete etapas.
+- **08/10/2026:** PR 4 marcado como implementado por confirmación del dueño; seis etapas base restantes sujetas a revisión; incorporadas las decisiones pendientes de campaña offline, la separación entre trabajo de código y pruebas Android y las instrucciones de retoma. Solo se actualizó este documento.
+- **08/10/2026, decisiones posteriores:** confirmados offline desde la primera versión, descarga inicial online, sincronización, cuenta obligatoria Android y push en lanzamiento; Play Console por crear, nombre Santiago Barbeira Papalia y distribución mundial. Público 14–65 recibido como propuesta, con recomendación de no fijar máximo; soporte pendiente. Actualizadas instrucciones de retoma para no repetir preguntas ya respondidas. No se modificó código, no se creó cuenta externa ni se publicaron datos.
