@@ -145,6 +145,9 @@ jobs:
       - name: Anuncios de torneos, reprogramación y cupo diario
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournament_announcement_delivery.sql
 
+      - name: Pardas, ganador de la primera y cierre de campaña
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tercera_parda.sql
+
       - name: Permisos de las funciones
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql
 
