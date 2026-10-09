@@ -24,7 +24,11 @@ const securityHeaders = [
 
 const nextConfig = {
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }]
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache' }] },
+      { source: '/offline.html', headers: [{ key: 'Cache-Control', value: 'no-cache' }] },
+    ]
   },
   // La página de Objetivos se dio de baja: todo vive en la ventana del cofre
   // del lobby. Quien tenga el link guardado cae en el lobby.

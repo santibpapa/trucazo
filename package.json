@@ -13,7 +13,9 @@
     "check:emails": "node --import tsx scripts/check-email-notifications.ts && node --import tsx scripts/check-immediate-news.ts && node --import tsx scripts/check-ranking-emails.ts && node --import tsx scripts/check-tournament-emails.ts",
     "check:analytics": "node --import tsx scripts/check-analytics.ts",
     "check:tournaments": "node --import tsx scripts/check-tournament-ui.ts",
-    "check:agentes": "tsx scripts/check-agent-readiness.ts"
+    "check:agentes": "tsx scripts/check-agent-readiness.ts",
+    "check:pwa": "node --import tsx scripts/check-pwa.ts",
+    "check:pwa:browser": "node scripts/check-pwa-browser.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.6",
@@ -31,6 +33,7 @@
     "@types/turndown": "^5.0.6",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
+    "playwright": "1.62.1",
     "postcss": "^8",
     "sharp": "^0.35.4",
     "tailwindcss": "^3.4.1",

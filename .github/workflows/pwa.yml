@@ -1,0 +1,36 @@
+name: Base sin conexión
+
+on:
+  pull_request:
+    paths:
+      - 'public/sw.js'
+      - 'public/offline.html'
+      - 'src/app/manifest.ts'
+      - 'src/components/RegisterSW.tsx'
+      - 'next.config.mjs'
+      - 'scripts/check-pwa*'
+      - '.github/workflows/pwa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pwa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  navegador:
+    name: Arranque y guardado local
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run check:pwa
+      - run: npm run check:pwa:browser
