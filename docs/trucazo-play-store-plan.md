@@ -4,13 +4,13 @@ Revisión original: 28 de septiembre de 2026. Última actualización del plan: 9
 
 Repositorio de referencia: `santibpapa/trucazo`, rama `master`. La revisión original corresponde al commit `1138de8f29248960a80d5796d01122467866257d`, con el PR #96 integrado; no representa necesariamente el estado actual.
 
-Estado: **implementación iniciada el 09/10/2026 por pedido del dueño**, a partir de `master` en `d4aef04`. La primera entrega es la base web de arranque sin conexión (PR 1A); la etapa Android completa sigue abierta. **La eliminación de cuentas (PR 4 del plan) ya está integrada en el PR #101**, commit `953ea31`, merge `1be62d2`: no repetir desarrollo ni SQL. Se revisó nuevamente el código relacionado con arranque, campaña, bots y acceso; no se verificó producción, Play Console ni un APK en teléfono.
+Estado: **implementación iniciada el 09/10/2026 por pedido del dueño**. La base web PR 1A ya está integrada en el [PR #106](https://github.com/santibpapa/trucazo/pull/106), merge `250acfa`. La segunda entrega prepara el prototipo Android PR 1B desde ese `master`; la elección de arquitectura sigue pendiente de pruebas instaladas. **La eliminación de cuentas (PR 4 del plan) ya está integrada en el PR #101**, commit `953ea31`, merge `1be62d2`: no repetir desarrollo ni SQL. No se verificó producción, Play Console ni un APK en teléfono.
 
 ## Ejecución iniciada — 09/10/2026
 
 ### Primera entrega: PR 1A — Base web de arranque sin conexión
 
-**PR de GitHub:** [#106 — Play Store 1A: base web de arranque sin conexión](https://github.com/santibpapa/trucazo/pull/106). Código inicial: `e3f3a1f`. Abierto para revisión; no integrado ni desplegado por esta sesión.
+**PR de GitHub:** [#106 — Play Store 1A: base web de arranque sin conexión](https://github.com/santibpapa/trucazo/pull/106). Código inicial: `e3f3a1f`. **Integrado el 09/10/2026**, merge `250acfa`; confirmado al iniciar PR 1B. Despliegue en producción no comprobado.
 
 **Alcance:** `src/app/manifest.ts`, `src/components/RegisterSW.tsx`, `public/sw.js`, `public/offline.html`, cabeceras en `next.config.mjs`, pruebas y este documento. No incluye todavía un paquete Android ni la campaña jugable offline. La autorización para comenzar corresponde al pedido del dueño del 09/10; el texto de retoma histórico al final no es una autorización pendiente.
 
@@ -29,6 +29,28 @@ Estado: **implementación iniciada el 09/10/2026 por pedido del dueño**, a part
 
 **Reproducir las pruebas de navegador en una computadora/CI:** `npm ci`, `npx playwright install --with-deps chromium`, `npm run check:pwa` y `npm run check:pwa:browser`. No requiere cuentas, claves de producción ni un servidor de Supabase. El fixture HTTP y el perfil temporal se crean y borran dentro de la prueba.
 
+### Segunda entrega: PR 1B — Prototipo Android y prueba local
+
+**PR de GitHub:** [#108 — Play Store 1B: prototipo Android con cuenta, guardado local y prueba push](https://github.com/santibpapa/trucazo/pull/108). Implementación `074ada7`, rama `codex/android-twa-prototype`, a partir de `250acfa`. Abierto para revisión; no integrado ni desplegado por esta sesión. **No dar por cerrada la viabilidad TWA hasta completar las pruebas en Android físico.** Instrucciones completas, configuración y matriz de aceptación: [`android/README.md`](../android/README.md).
+
+**Alcance implementado:** generación reproducible con Bubblewrap Core 1.27.0 y lockfile separado; APK debug y AAB sin firma de publicación; entrada `/android` validada en servidor con cuenta registrada; destino de contraseña/Google y contexto Android por pestaña, conservando invitados web; ruta de asociación `/.well-known/assetlinks.json`; prueba local optativa de administración con IndexedDB, preparación completa y reapertura offline; permiso/suscripción/baja y envío de una notificación real de prueba desde servidor a FCM. Suscripciones no guardadas en el backend y sin eventos de torneos ni campañas promocionales.
+
+**Identificador:** `ar.com.trucazo.prototype` es provisional. El dueño pidió explicar el identificador antes de decidir; la propuesta `ar.com.trucazo.app` **no se consideró aprobada**. El paquete de prueba permite continuar sin fijar el identificador de publicación.
+
+**Separación del alcance:** el contador local es ficticio y no modifica progreso ni recompensas. No se portó el motor, no se descargan rivales para jugar offline y no se sincronizan resultados. Campaña sin chat escrito; motor/UI de partidas online sin cambios. PR 2/3 siguen pendientes para recuperación de contraseña, correos/enlaces externos, destinos de torneo/partida, suspensión y navegación completos. La eliminación existente se conserva.
+
+**Herramientas y compatibilidad:** Gradle 8.11.1, plugin Android 8.9.1 y Android Browser Helper 2.7.4 del generador fijado; API objetivo/compilación 36 y mínimo API 24, por requisito de la biblioteca actual. Se conserva el icono del repo; su recorte instalado todavía debe comprobarse. El origen de apertura configurado es **`https://www.trucazo.com.ar`**: asociar ese origen, no asumir que asociar solo el dominio sin www alcanza.
+
+**Construcción Android ejecutada en esta sesión:** `assembleDebug bundleRelease` terminó con `BUILD SUCCESSFUL`; APK debug y AAB generados. `apksigner verify --print-certs` comprobó la firma debug real; `aapt dump badging` verificó paquete provisional, versión `0.1.0`/código 1, mínimo 24, objetivo 36 y `POST_NOTIFICATIONS`. `certificate.mjs` extrajo la huella del certificado usado. SDK y JDK completo se prepararon localmente; se reparó un archivo incompleto del JDK descargado antes de la compilación final. Esto demuestra construcción/firma, no instalación ni recepción de notificaciones.
+
+**Validaciones de esta entrega:** 8 pruebas de base PWA y 4 pruebas de Android (asociación, rechazo de URLs arbitrarias de push, contexto por pestaña y worker/notificación); TypeScript, lint y build de Next con claves ficticias; versiones markdown; navegador Chromium 153 para preparación interrumpida/completa, guardado del contador, cierre del proceso, reapertura desde `/android` offline y cambio de identidad ficticia. La prueba de navegador usa una API de identidad simulada, no credenciales reales. El build real de Next se comprueba además sin sesión para entrada sin invitado, web independiente, registro, callback y rechazos de API. La instalación estándar de Chromium volvió a fallar en este entorno; se usó `PWA_BROWSER_EXECUTABLE` con un ejecutable disponible. Lint mantiene los avisos preexistentes de GameClient/LobbyClient.
+
+**Pendiente para cerrar PR 1 / arquitectura:** instalar el APK en Android, comprobar dominio/firma sin barra del navegador, contraseña y Google reales, reapertura tras reiniciar teléfono, almacenamiento y permisos, notificación visible con app abierta/cerrada y su destino, cambio/salida de cuenta. Un envío aceptado por FCM no se registra como recepción. No se creó cuenta de Play ni se subió ningún paquete. La arquitectura sigue candidata.
+
+**SQL:** ninguno. **Configuración externa pendiente:** después de integrar y desplegar, `ANDROID_SHA256_FINGERPRINTS` con la huella real del APK que se va a instalar; para push de prueba, `ANDROID_PROBE_VAPID_PUBLIC_KEY`, `ANDROID_PROBE_VAPID_PRIVATE_KEY` y `ANDROID_PROBE_VAPID_SUBJECT`. No se configuraron certificados ni claves en producción por esta sesión. Los pasos para obtenerlos están en `android/README.md`. Los certificados debug de GitHub pueden cambiar entre construcciones; no son los de Play App Signing.
+
+**Retoma inmediata:** revisar el PR 1B/merge actual, completar la matriz física de `android/README.md` y registrar resultados. Si TWA satisface las pruebas, continuar con el motor local y bots sobre las reglas actuales, diseñando a la vez el contrato de sincronización. Si falla la prueba de arquitectura, reevaluar Capacitor con el caso observado antes de fijar el paquete definitivo.
+
 ### Evidencia del código actual y orden actualizado
 
 | Área | Evidencia al 09/10 | Consecuencia |
@@ -37,8 +59,8 @@ Estado: **implementación iniciada el 09/10/2026 por pedido del dueño**, a part
 | Reglas actuales | PR #104 integrado; tercera parda favorece a quien ganó la primera baza. Pruebas en `scripts/sim.ts` y `supabase/tests/tercera_parda.sql`. | El motor local debe partir de estas reglas corregidas y demostrar equivalencia, no copiar la revisión vieja. |
 | Arranque | Next.js con rutas dinámicas, middleware y cookies; worker anterior sin caché. | Pantalla local autocontenida ahora; para campaña, una entrada local que no dependa del render de servidor ni de validar la sesión en cada arranque. |
 | Eliminación | PR #101; `/eliminar-cuenta`, `/api/account/delete`, `docs/eliminar-cuenta.md`, `20261001184850_account_deletion.sql`. | Desarrollo cerrado. URL para Play: `https://www.trucazo.com.ar/eliminar-cuenta`; falta regresión instalada, no otra migración. |
-| Identidad Android | Sin proyecto Android; `SITE_URL` usa `https://www.trucazo.com.ar` por defecto. | Usar el origen efectivo de apertura al asociar certificados. No inventar huellas ni fijar un paquete definitivo sin la decisión del dueño. |
-| Push | Sin suscripciones, permisos o envío web push implementados. | La TWA sigue siendo candidata, pendiente de envío real y permisos en Android instalado. |
+| Identidad Android | Prototipo reproducible de PR 1B, paquete provisional, entrada www y ruta de asociación por huella real. | Asociación/instalación física y paquete definitivo pendientes; no inventar huellas. |
+| Push | PR 1B agrega suscripción/baja y envío de prueba solo para administración; sin almacenamiento de suscripciones ni eventos productivos. | Verificar recepción/permiso en Android; implementación completa de push sigue pendiente. |
 
 Se mantiene **TWA como candidata**, aprovechando la descarga inicial online aceptada. La documentación de Chrome confirma que renderiza en el navegador; Chromium documenta delegación de notificaciones mediante `TrustedWebActivityService`. Esto respalda una prueba, no certifica el resultado en Trucazo. Fuentes revisadas el 09/10: [TWA](https://developer.chrome.com/docs/android/trusted-web-activity/), [delegación de permisos](https://chromium.googlesource.com/chromium/src/+/HEAD/chrome/android/java/src/org/chromium/chrome/browser/browserservices/permissiondelegation/README.md), [persistencia web](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist).
 
@@ -46,8 +68,8 @@ La persistencia de IndexedDB/Cache Storage debe comprobarse y solicitarse al des
 
 Orden de ejecución desde esta entrega (las etiquetas históricas se conservan):
 
-1. **PR 1A, esta entrega:** base de arranque web y pruebas de caché/persistencia.
-2. **PR 1B, siguiente:** prototipo TWA reproducible, firma de prueba y asociación del dominio; entrada Android con cuenta, flujo local mínimo y prueba de notificación real. Definir el identificador con el dueño antes de fijarlo. Probar en Android antes de dar por elegida la arquitectura; si no satisface reapertura/persistencia/push, revisar Capacitor.
+1. **PR 1A, integrado como #106:** base de arranque web y pruebas de caché/persistencia.
+2. **PR 1B, abierto como #108:** prototipo TWA reproducible, firma de prueba, asociación del dominio, cuenta y flujo local mínimo; notificación de prueba preparada. **Siguiente acción: revisión/merge, configuración y pruebas instaladas de `android/README.md`.** Definir el identificador con el dueño antes de fijarlo. Si no satisface reapertura/persistencia/push, revisar Capacitor.
 3. **Motor local y bots:** portar el motor de campaña y decisiones de rivales con pruebas contra el SQL actual, incluidos los desempates corregidos. No modificar motor/UI online para simular offline.
 4. **Descarga, identidad y guardado:** recursos versionados, instalación completa/incompleta, partida recuperable y datos separados por cuenta; integrar entrada local sin sesión renovada por red. Campaña sin chat escrito.
 5. **Sincronización:** validar en el servidor el historial de acciones/repartos autorizados y acreditar una sola vez; nunca confiar en saldos o victorias enviados por el cliente. Concretar el contrato y conflictos junto con el motor, antes de publicar el formato de guardado. Requiere SQL nuevo y pruebas de reintentos y dos dispositivos.
@@ -130,7 +152,7 @@ El lanzamiento ahora también incluye los bloques de campaña offline (estimaci�
 
 | Etapa | Estado de planificación | Condición para retomarla |
 | --- | --- | --- |
-| PR 1 — Base Android | En curso: base web PR 1A; empaquetado PR 1B pendiente | Completar prueba TWA con flujo local, cuenta y notificación real en Android. |
+| PR 1 — Base Android | PR 1A integrado; prototipo PR 1B preparado, validación instalada pendiente | Completar prueba TWA con flujo local, cuenta y notificación real en Android. |
 | PR 2 — Acceso y enlaces | Pendiente de contrastar con `master` | Reutilizar los flujos ya implementados. |
 | PR 3 — Recuperación Android | Pendiente de contrastar con `master` | Distinguir reconexión online de juego offline real. |
 | PR 4 — Eliminación | Implementado, confirmado por el dueño | Solo localizar evidencia y realizar regresiones de lanzamiento. |
@@ -321,7 +343,7 @@ Play Console utiliza franjas, entre ellas 13–15, 16–17 y 18 o más, no un se
 2. Edad mínima final y público declarado, después de revisar chat, datos y contenido. Propuesta inicial: 14+ sin máximo, no aprobada todavía.
 3. Tipo de cuenta de Play Console según la titularidad real; completar luego alta, verificación y datos de contacto. El nombre ya fue indicado; no volver a preguntar si existe cuenta.
 4. Eventos concretos de push y preferencias: proponer un alcance acotado para lanzamiento. Su inclusión ya está aprobada.
-5. Identificador definitivo de aplicación; la propuesta `ar.com.trucazo.app` sigue sin confirmar.
+5. Identificador definitivo de aplicación; la propuesta `ar.com.trucazo.app` sigue sin confirmar. PR 1B usa `ar.com.trucazo.prototype` hasta esa decisión; el dueño pidió explicación antes de decidir.
 
 La elección de empaquetado, formato de guardado, validación de recompensas y resolución de conflictos son trabajo técnico a proponer con evidencia del repo. No exigir que el dueño elija herramientas o algoritmos sin explicar las consecuencias.
 
@@ -331,13 +353,13 @@ La elección de empaquetado, formato de guardado, validación de recompensas y r
 2. Comparar las etapas con lo ya integrado. Localizar la eliminación de cuentas implementada y registrar PR/commit, rutas y documentación encontrados, sin reconstruirla ni ejecutar SQL por duplicado. Distinguir siempre código integrado de despliegue verificado.
 3. Tomar como definitivas las decisiones de alcance de esta versión: campaña offline desde lanzamiento, descarga inicial online, sincronización, cuenta obligatoria en Android y push. No volver a hacer esas mismas preguntas.
 4. Revisar motor, bots, recursos, identidad local, persistencia, sincronización y push; realizar propuesta de prueba técnica TWA y reformular arquitectura/orden de PRs según evidencia. No continuar automáticamente con el plan histórico de empaquetar una app solo online.
-5. La implementación fue autorizada el 09/10/2026. Continuar con el próximo bloque del orden actualizado, explicando archivos, criterios de aceptación, pruebas y pasos manuales. El primer PR cubre la base web, no cierra empaquetado ni campaña offline. Publicar en Play es una etapa posterior.
+5. La implementación fue autorizada el 09/10/2026. Continuar con el próximo bloque del orden actualizado, explicando archivos, criterios de aceptación, pruebas y pasos manuales. PR 1A integrado; PR 1B prepara prototipo y pruebas, sin cerrar viabilidad instalada ni campaña offline. La retoma inmediata es su matriz en `android/README.md`; después motor/bots y contrato de sincronización. Publicar en Play es una etapa posterior.
 6. Mantener el diseño actual, mesa completa sin scroll y diseño 2vs2 sin cambios no solicitados. Chat escrito en 1v1/2vs2 con personas o bots, bots sin escribir y campaña sin chat escrito. Explicar instrucciones sin asumir conocimientos de programación.
 7. Al cerrar cada etapa, actualizar aquí su estado y evidencia: PR/commit real, pruebas ejecutadas, SQL o configuración pendientes y próximo paso. No presentar pruebas no realizadas como aprobadas.
 
 ### Texto para iniciar la próxima sesión
 
-> Continuemos la implementación para Google Play desde el punto de retoma y el orden actualizado de este documento. Verificá primero si la base web del PR 1A ya fue integrada. La eliminación de cuentas del PR #101 ya está implementada: no la rehagas. La primera versión incluye campaña offline con descarga inicial online, sincronización de progreso y recompensas, cuenta obligatoria en Android y push; cuentas existentes válidas y web con invitados. Conservá diseño y reglas de chat. No tengo Play Console. Quedan por cerrar soporte, edad mínima, tipo de cuenta, eventos push e identificador; antes de fijar el paquete definitivo, resolvé esa decisión. Completá el bloque siguiente con pruebas y actualizá este plan sin confundir base web con Android/campaña terminados.
+> Continuemos Google Play desde el estado actualizado del repositorio. PR 1A ya está integrado como #106; revisá el estado del PR 1B y leé android/README.md para completar configuración y pruebas instaladas antes de dar por elegida TWA. No rehagas la eliminación del PR #101. Si la prueba Android pasa, seguí con motor local/bots y diseño del contrato de sincronización. La primera versión incluye campaña offline con descarga inicial online, progreso/recompensas sincronizados, cuenta obligatoria Android y push; cuentas existentes válidas y web con invitados. Conservá diseño y reglas de chat. No tengo Play Console. El identificador del prototipo es provisional; ar.com.trucazo.app sigue sin confirmar. Quedan soporte, edad mínima, tipo de cuenta y eventos push. Actualizá pruebas/evidencia sin confundir build del APK con instalación ni contador de prueba con campaña offline terminada.
 
 ### Registro de actualización
 
@@ -345,3 +367,4 @@ La elección de empaquetado, formato de guardado, validación de recompensas y r
 - **08/10/2026:** PR 4 marcado como implementado por confirmación del dueño; seis etapas base restantes sujetas a revisión; incorporadas las decisiones pendientes de campaña offline, la separación entre trabajo de código y pruebas Android y las instrucciones de retoma. Solo se actualizó este documento.
 - **08/10/2026, decisiones posteriores:** confirmados offline desde la primera versión, descarga inicial online, sincronización, cuenta obligatoria Android y push en lanzamiento; Play Console por crear, nombre Santiago Barbeira Papalia y distribución mundial. Público 14–65 recibido como propuesta, con recomendación de no fijar máximo; soporte pendiente. Actualizadas instrucciones de retoma para no repetir preguntas ya respondidas. No se modificó código, no se creó cuenta externa ni se publicaron datos.
 - **09/10/2026:** el dueño pidió comenzar. Contrastado `master` en `d4aef04`; registrada eliminación del PR #101 y desempate del PR #104. Base web PR 1A abierta como [PR #106](https://github.com/santibpapa/trucazo/pull/106), código `e3f3a1f`, con las pruebas registradas arriba. Separado su cierre del prototipo Android PR 1B, motor, bots, descarga y sincronización. No se aplicó SQL ni se publicó en Play.
+- **09/10/2026, segunda etapa:** confirmado merge de #106 en `250acfa`; abierto [PR #108](https://github.com/santibpapa/trucazo/pull/108), implementación `074ada7`, con generación Android, cuenta, asociación por certificado real y prueba aislada de guardado/push. APK debug y AAB construidos; firma y metadatos comprobados. Paquete provisional porque no se confirmó identificador definitivo. Actualizada la retoma y los pasos externos en `android/README.md`. Sin SQL, configuración productiva, instalación en teléfono ni publicación en Play.

@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui'
+import { isAndroidEntry } from '@/lib/android-entry'
 
 interface Props {
   variant?: 'primary' | 'secondary' | 'ghost'
   size?: 'sm' | 'md' | 'lg'
-  returnTo?: '/eliminar-cuenta'
+  returnTo?: '/eliminar-cuenta' | '/android'
 }
 
 /** Logo oficial de Google (multicolor). */
@@ -33,12 +34,13 @@ export default function GoogleButton({ variant = 'secondary', size = 'lg', retur
     const supabase = createClient()
 
     // Mantener la URL de callback ya autorizada en Supabase. Sólo recordar
-    // el destino local; el servidor admite exclusivamente /eliminar-cuenta.
-    document.cookie = `trucazo_auth_next=${returnTo ?? ''}; Path=/; Max-Age=600; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`
+    // el destino local; el servidor admite sólo los destinos explícitos.
+    const destination = returnTo ?? (isAndroidEntry() ? '/android' : undefined)
+    document.cookie = `trucazo_auth_next=${destination ?? ''}; Path=/; Max-Age=600; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`
     const { error: authErr } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback`,
-        ...(returnTo ? { queryParams: { prompt: 'select_account' } } : {}) },
+        ...(destination ? { queryParams: { prompt: 'select_account' } } : {}) },
     })
 
     if (authErr) {

@@ -14,14 +14,16 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const requestedDestination = request.cookies.get('trucazo_auth_next')?.value
+  const loginPath = requestedDestination === '/android' ? '/login?android=1' : '/login'
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login`)
+    return NextResponse.redirect(`${origin}${loginPath}`)
   }
 
   // Respuesta que devolvemos; el cliente de Supabase escribe las cookies acá.
-  const destination = request.cookies.get('trucazo_auth_next')?.value === '/eliminar-cuenta'
-    ? '/eliminar-cuenta' : '/lobby'
+  const destination = requestedDestination === '/eliminar-cuenta' || requestedDestination === '/android'
+    ? requestedDestination : '/lobby'
   const response = NextResponse.redirect(`${origin}${destination}`)
   response.cookies.set('trucazo_auth_next', '', { path: '/', maxAge: 0 })
 
@@ -49,7 +51,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
   if (error || !data.user) {
-    return NextResponse.redirect(`${origin}/login`)
+    return NextResponse.redirect(`${origin}${loginPath}`)
   }
   const user = data.user
 

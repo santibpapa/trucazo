@@ -15,7 +15,10 @@
     "check:tournaments": "node --import tsx scripts/check-tournament-ui.ts",
     "check:agentes": "tsx scripts/check-agent-readiness.ts",
     "check:pwa": "node --import tsx scripts/check-pwa.ts",
-    "check:pwa:browser": "node scripts/check-pwa-browser.mjs"
+    "check:pwa:browser": "node scripts/check-pwa-browser.mjs",
+    "check:android": "node --import tsx scripts/check-android.ts",
+    "check:android:browser": "node scripts/check-android-browser.mjs",
+    "check:android:app": "node scripts/check-android-app.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.6",
@@ -24,13 +27,15 @@
     "@vercel/speed-insights": "^2.0.0",
     "next": "14.2.35",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "web-push": "3.6.7"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/turndown": "^5.0.6",
+    "@types/web-push": "3.6.4",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "playwright": "1.62.1",

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { isAndroidEntry } from '@/lib/android-entry'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui'
 import { track } from '@vercel/analytics'
@@ -25,8 +26,15 @@ export default function GuestButton({
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [android, setAndroid] = useState(false)
+
+  useEffect(() => { setAndroid(isAndroidEntry()) }, [])
 
   async function enterAsGuest() {
+    if (isAndroidEntry()) {
+      router.push('/login?android=1')
+      return
+    }
     track('guest_cta_click', { source })
     setLoading(true)
     setError('')
@@ -55,6 +63,8 @@ export default function GuestButton({
     router.push('/lobby')
     router.refresh()
   }
+
+  if (android) return null
 
   return (
     <div className={`flex flex-col gap-2 ${fullWidth ? 'w-full' : ''}`}>

@@ -8,6 +8,7 @@ import { Panel, Logo, Input, Button, Alert } from '@/components/ui'
 import GuestButton from '@/components/GuestButton'
 import GoogleButton from '@/components/GoogleButton'
 import InstallButton from '@/components/InstallButton'
+import { loginDestination } from '@/lib/android-entry'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -51,7 +52,7 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/lobby')
+      router.push(loginDestination())
       router.refresh()
       return
     }
@@ -68,7 +69,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/lobby')
+    router.push(loginDestination())
     router.refresh()
   }
 

@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Panel, Logo, Input, Button, Alert, CoinIcon } from '@/components/ui'
 import { track } from '@vercel/analytics'
 import { trackFirstParty } from '@/lib/analytics/client'
+import { loginDestination } from '@/lib/android-entry'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -90,7 +91,7 @@ export default function RegisterPage() {
       return
     }
 
-    router.push('/lobby')
+    router.push(loginDestination())
     router.refresh()
   }
 
