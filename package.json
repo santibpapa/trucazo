@@ -21,7 +21,7 @@
     "check:android:app": "node scripts/check-android-app.mjs"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.12.6",
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.115.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
