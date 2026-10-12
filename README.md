@@ -118,3 +118,53 @@ scripts/               herramientas sueltas (reconstruir la base, simulaciones)
 - Cada jugador nuevo arranca con 1.000 monedas.
 - El backend **no tiene deploy automático**: cada migración se corre a mano en el SQL
   Editor de Supabase. Nunca se edita una migración ya aplicada; se agrega una nueva.
+
+## Seguimiento automático de reseñas
+
+Implementado el 12/10/2026 por pedido del dueño. Revisión del agente **lunes,
+miércoles y viernes a las 09:00 de Argentina** mediante una tarea de ChatGPT en
+la nube, independiente de esta PC. El agente investiga y documenta; las correcciones
+del juego se trabajan por separado. No envía correos ni contacta jugadores.
+
+- Fuente: `public.feedback` de Supabase; nunca depender de los emails Web3Forms.
+- Estado privado: `feedback_internal.reviews`, `findings`, `issues` y `runs`.
+- Una reseña puede aportar varios hallazgos. Cada problema conserva un issue
+  estable en GitHub, también si se cierra y luego reaparece.
+- Cola por ID, sin ventana de fechas: las pendientes de ejecuciones anteriores
+  se recuperan. La primera revisión cubrió las **23 reseñas existentes**, dejó
+  **24 hallazgos en 9 asuntos agrupados** y terminó sin pendientes de lectura.
+  Siete asuntos requieren trabajo o más información; tercera parda quedó
+  comprobada como resuelta en 360 escenarios; el pedido de participación en chat
+  quedó registrado sin implementar respuestas de bots, por decisión de producto.
+- Concesión exclusiva de 2 horas, renovable; recuperación de agentes interrumpidos,
+  reintento con espera y relectura cuando cambian las puntuaciones/comentario/capturas.
+  Se marca revisada sólo después de guardar todos los hallazgos y comprobar GitHub.
+- Issues públicos con paráfrasis técnicas y referencias opacas a reseñas: no
+  publicar nombres, emails, IDs de usuario, conversaciones, imágenes privadas ni
+  URLs firmadas. Distinguir reseñas repetidas de usuarios distintos.
+- No confundir `reviewed` con problema resuelto. `needs_info` conserva lo que falta
+  y su issue abierto. Capturas inaccesibles bloquean el cierre de la reseña, se
+  reintentan y se informan; nunca afirmar que se vieron imágenes sin verlas.
+- Se avisan fallos y acumulación (>50 pendientes o antigüedad >7 días). Una
+  ejecución omitida por el programador sólo se detecta en el próximo arranque;
+  no hay un segundo agente permanente. Accesos de GitHub/Supabase deben seguir
+  conectados. La tarea puede terminar parcial por límites de ejecución y retomar
+  pendientes en el próximo horario.
+
+Contrato operativo del agente: [`scripts/feedback-review-agent.txt`](scripts/feedback-review-agent.txt).
+La tarea carga este contrato y puede seguir una versión actualizada sin rehacerla.
+La guía central es este README; no crear documentos de estado paralelos.
+
+Migración reproducible: `20261012020747_feedback_review_tracking.sql`. En producción
+se aplicó el mismo SQL en cinco bloques (`feedback_private_schema`,
+`feedback_review_tracking`, `feedback_review_claims`, `feedback_review_findings`,
+`feedback_review_completion`) porque el conector falló al recibirlo completo.
+No hay que volver a correrla para activar la tarea. La foto está en
+`supabase/schema/feedback_review.sql`; la reconstrucción y el CI incluyen la prueba
+`supabase/tests/feedback_review.sql`. Todas las funciones son `security invoker`,
+con `search_path` vacío, schema privado y RLS sin políticas para jugadores.
+
+Validación realizada: suite de seguimiento dentro de una transacción con ROLLBACK
+(lotes, exclusión de ejecuciones, reintentos, varios hallazgos, ediciones, recuperación,
+cierre parcial, deduplicación, borrado en cascada y permisos); allowlist de RPCs
+aprobada; primera revisión real terminada con `completed`, 23 revisadas y 0 pendientes.

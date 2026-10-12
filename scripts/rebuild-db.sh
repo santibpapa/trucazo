@@ -48,6 +48,7 @@ drop schema if exists email_internal cascade;
 drop schema if exists team_internal cascade;
 drop schema if exists match_chat_internal cascade;
 drop schema if exists account_internal cascade;
+drop schema if exists feedback_internal cascade;
 drop schema if exists tournament_internal cascade;
 drop schema if exists net cascade;
 create schema public;
@@ -111,6 +112,7 @@ echo "==> 3/5  Funciones"
 
 echo "==> 4/5  Llaves, restricciones y reglas de seguridad"
 "${PSQL[@]}" -f supabase/schema/policies.sql
+"${PSQL[@]}" -f supabase/schema/feedback_review.sql
 
 echo "==> 5/5  Migraciones (en orden alfabético)"
 

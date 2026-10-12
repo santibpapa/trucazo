@@ -127,6 +127,9 @@ jobs:
       - name: Reconstruir la base entera desde cero
         run: scripts/rebuild-db.sh
 
+      - name: Reseñas, recuperación, deduplicación y permisos del agente
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/feedback_review.sql
+
       - name: Eliminación de cuentas, privacidad y continuidad de torneos
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/account_deletion.sql
 
