@@ -32,6 +32,10 @@ function fixture(effect: Function, game = { id: 'game-a', status: 'playing' }, i
   let offline = false
   const client = createClient('https://presence.test', 'test-key', {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    // Node 20 del CI no tiene WebSocket nativo. Estos efectos sólo usan HTTP.
+    realtime: { transport: class {
+      constructor() { throw new Error('La prueba de presencia no debe abrir Realtime') }
+    } as unknown as typeof WebSocket },
     global: { fetch: async (input, init) => {
       requests.push({ rpc: String(input).split('/').at(-1)!, body: JSON.parse(String(init?.body ?? '{}')) })
       if (offline) throw new Error('offline')
