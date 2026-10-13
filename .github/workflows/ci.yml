@@ -56,6 +56,9 @@ jobs:
       - name: Verificar actualización de mesas al volver al lobby
         run: node --import tsx scripts/check-lobby-tables.ts
 
+      - name: Presencia real al entrar, intervalos y salida
+        run: node --import tsx scripts/check-presence.ts
+
       - name: Contenido y economía de la Ruta del Noroeste
         run: node scripts/check-noroeste-expansion.mjs
 
@@ -126,6 +129,22 @@ jobs:
 
       - name: Reconstruir la base entera desde cero
         run: scripts/rebuild-db.sh
+
+      - name: Instalar la protección safeupdate en la base descartable
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          docker exec --user root "$POSTGRES_CONTAINER" sh -ec '
+            apt-get update
+            apt-get install -y --no-install-recommends build-essential postgresql-server-dev-16 curl ca-certificates
+            mkdir /tmp/pg-safeupdate
+            curl -fsSL https://github.com/eradman/pg-safeupdate/archive/37dbc9c4acf5e2504adf2b218e9c6b41751022f3.tar.gz | tar -xz --strip-components=1 -C /tmp/pg-safeupdate
+            make -C /tmp/pg-safeupdate
+            make -C /tmp/pg-safeupdate install
+          '
+
+      - name: Victoria con cambio de podio y barrido con presencia reciente
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/game_completion_presence.sql
 
       - name: Reseñas, recuperación, deduplicación y permisos del agente
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/feedback_review.sql

@@ -336,7 +336,7 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
   // para reembolsar partidas donde ambos jugadores desaparecieron hace rato.
   useEffect(() => {
     if (game.status === 'finished') return
-    const touch = () => { supabase.rpc('touch_presence', { p_game_id: game.id }) }
+    const touch = async () => { await supabase.rpc('touch_presence', { p_game_id: game.id }) }
     touch()
     const iv = setInterval(touch, 8000)
     return () => clearInterval(iv)

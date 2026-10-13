@@ -168,3 +168,37 @@ Validación realizada: suite de seguimiento dentro de una transacción con ROLLB
 (lotes, exclusión de ejecuciones, reintentos, varios hallazgos, ediciones, recuperación,
 cierre parcial, deduplicación, borrado en cascada y permisos); allowlist de RPCs
 aprobada; primera revisión real terminada con `completed`, 23 revisadas y 0 pendientes.
+
+## Corrección de cierres y presencia — 13/10/2026
+
+La investigación confirmó dos causas independientes. Una victoria que cambia el
+podio disparaba un `DELETE` sin filtro en `refresh_ranking_top3`: la protección
+`safeupdate` lo rechazaba al confirmar la transacción y revertía toda la jugada.
+Pausar los emails no evita ese error. La nueva migración limita el borrado a los
+puestos 1–3, conservando los permisos privados y el comportamiento de los avisos.
+
+Los latidos `touch_presence` y `touch_online` creaban una consulta del SDK sin
+esperarla: no enviaban solicitudes. Ahora se ejecutan al entrar y cada 8/30 segundos.
+Una partida con presencia reciente queda fuera del barrido; las abandonadas siguen
+anulándose con su reembolso. No se cambian las reglas del juego ni el cron.
+
+Pruebas: `scripts/check-presence.ts` ejecuta los efectos originales con el SDK real
+y red simulada; falla antes del arreglo y verifica entrada, intervalos, salida y
+reintento. El CI instala una versión fija de `pg-safeupdate` en su PostgreSQL
+descartable. `supabase/tests/game_completion_presence.sql` reproduce el fallo
+anterior y verifica victoria, podio por desempate, monedas, historial, cierre
+idempotente, presencia reciente y reembolso único por ausencia real.
+
+**Aplicación pendiente en producción:**
+
+1. En GitHub, abrí `supabase/migrations/20261013185704_ranking_top3_safeupdate.sql`
+   y copiá todo su contenido.
+2. En Supabase, entrá al proyecto de Trucazo → **SQL Editor** → **New query**,
+   pegá el contenido y apretá **Run**. Este paso actualiza el backend; el PR no lo
+   aplica automáticamente.
+3. Incorporá el PR y verificá el despliegue del sitio. Comprobá una victoria que
+   cambie el podio y una partida de más de 15 minutos sin anulación inesperada.
+
+Último traspaso: arreglo preparado desde `master` de GitHub, sin los cambios locales
+futuros. Retomar esta misma corrección: revisar los controles del PR y aplicar la
+migración indicada antes de dar el incidente por resuelto en producción.
