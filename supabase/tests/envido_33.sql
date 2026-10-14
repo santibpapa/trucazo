@@ -97,7 +97,9 @@ begin
               perform set_config('request.jwt.claim.sub',pie::text,true);
               set local role authenticated;
               select * into g from public.games where id=gid;
+              reset role;
               perform pg_temp.envido_check(g.envido_state->>'declare_turn'=pie::text,'estado accesible al reconectar');
+              set local role authenticated;
               g := public.envido_say(gid,response);
               reset role;
               expected := case when response='son_buenas' or rival_points=33 then mano else a end;

@@ -742,8 +742,8 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
       .select('cards')
       .eq('game_id', game.id)
       .eq('player_id', currentUserId)
-      .single()
       .abortSignal(AbortSignal.timeout(8000))
+      .single()
     if (data) setMyHand((data.cards as Card[]) ?? [])
   }
 
@@ -754,8 +754,8 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
         .from('games')
         .select('*')
         .eq('id', game.id)
-        .single()
         .abortSignal(AbortSignal.timeout(8000))
+        .single()
       if (data) applyServerGame(data as Game)
       await refetchMyHand()
     } catch (error) {
@@ -847,8 +847,10 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
       chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text: bubble } })
       setMyEmote(bubble)
       const { data, error } = await supabase.rpc('envido_say', { p_game_id: game.id, p_action: action }).abortSignal(AbortSignal.timeout(8000))
-      if (!rpcFailed('envido_say RPC:', error) && data) setGame(data as Game)
-      await refetchMyHand()
+      if (rpcFailed('envido_say RPC:', error) || !data) return
+      setGame(data as Game)
+      // La relectura de cartas no debe mantener bloqueados los controles.
+      void refetchMyHand().catch(error => { console.error('refetch envido hand:', error) })
     } catch (error) {
       rpcFailed('envidoSay RPC:', error instanceof Error ? error : { message: 'No se pudo completar la acción. Volvé a intentar.' })
     } finally {

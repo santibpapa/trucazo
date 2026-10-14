@@ -43,8 +43,12 @@ function fixture(name, rpcResult = { data: null, error: null }, handFails = fals
     lastActionRef: { current: 0 }, chatChannelRef: { current: null }, myEnvido: 33,
     setLoading: value => { loading = value }, setGame: value => { state = value },
     setMyEmote() {}, setActionError() {},
+    console: { error() {} },
     rpcFailed: (_label, error) => { if (error) errors.push(error); return !!error },
-    refetchMyHand: async () => { if (handFails) throw new Error('hand read failed') },
+    refetchMyHand: async () => {
+      if (handFails === 'pending') return new Promise(() => {})
+      if (handFails) throw new Error('hand read failed')
+    },
     // Acortamos solamente el reloj del test, comprobando el límite de producción.
     AbortSignal: { timeout(ms) { assert.equal(ms, 8000); return AbortSignal.timeout(10) } },
   }
@@ -89,6 +93,12 @@ test('Tengo 33: la relectura fallida de cartas no deja el botón bloqueado', asy
   assert.equal(f.state(), game)
   assert.equal(f.loading(), false)
   assert.deepEqual(f.calls, [{ name: 'envido_say', args: { p_game_id: 'game-test', p_action: 'tengo' } }])
+})
+
+test('Tengo 33: libera el botón aunque la relectura de cartas no termine', async () => {
+  const f = fixture('envidoSay', { data: { envido_state: { status: 'declaring', declare_turn: 'opponent' } }, error: null }, 'pending')
+  await Promise.race([f.run('tengo'), new Promise((_, reject) => setTimeout(() => reject(new Error('la relectura retuvo el control')), 80))])
+  assert.equal(f.loading(), false)
 })
 
 test('el botón de declaración sigue declare_turn, incluso si current_turn es del rival', () => {
