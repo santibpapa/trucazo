@@ -59,6 +59,9 @@ jobs:
       - name: Presencia real al entrar, intervalos y salida
         run: node --import tsx scripts/check-presence.ts
 
+      - name: Recuperación de reparto y temporizador tras reconexión
+        run: node --import tsx scripts/check-game-recovery.ts
+
       - name: Contenido y economía de la Ruta del Noroeste
         run: node scripts/check-noroeste-expansion.mjs
 
@@ -145,6 +148,9 @@ jobs:
 
       - name: Victoria con cambio de podio y barrido con presencia reciente
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/game_completion_presence.sql
+
+      - name: Rival inactivo, tres vencimientos y recuperación de reparto
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/game_inactivity.sql
 
       - name: Reseñas, recuperación, deduplicación y permisos del agente
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/feedback_review.sql

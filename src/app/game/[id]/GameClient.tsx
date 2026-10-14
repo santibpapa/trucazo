@@ -24,6 +24,7 @@ import ObjectiveProgressDelta from '@/components/objectives/ObjectiveProgressDel
 
 interface Props {
   game: Game
+  serverNow: number
   currentUserId: string
   isGuest?: boolean
   myHand: Card[]
@@ -62,7 +63,7 @@ const TRUCO_LABEL: Record<string, string> = {
 
 const EMOTE_COOLDOWN_MS = 3000
 
-export default function GameClient({ game: initialGame, currentUserId, isGuest = false, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory, opponentIsBot = false, tournamentId = null }: Props) {
+export default function GameClient({ game: initialGame, serverNow, currentUserId, isGuest = false, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory, opponentIsBot = false, tournamentId = null }: Props) {
   const router = useRouter()
   const [game, setGame] = useState<Game>(initialGame)
   const cardFlight = useCardFlight(game.hand_number)
@@ -81,6 +82,7 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
   const prevTrucoRef = useRef<{ status: string; singer: string | null; value: number; hand: number } | null>(null)
   // El timeout por jugada se dispara una sola vez por turno (clave = turn_started_at)
   const timeoutFiredRef = useRef<string | null>(null)
+  const serverClockRef = useRef({ serverNow, startedAt: performance.now() })
   // Para detectar cuándo sube el contador de mazos por tiempo y mostrar el cartel
   const prevMazoRef = useRef<{ p1: number; p2: number } | null>(null)
   // Momento de la última acción local; el polling de respaldo se pausa un toque
@@ -271,27 +273,27 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
     return () => clearInterval(interval)
   }, [game.id, game.status])
 
-  // Reloj por jugada. Lo medimos con el PROPIO reloj de este equipo: anclamos al
-  // momento en que ve el turno nuevo y contamos los segundos transcurridos. Así no
-  // importa si el reloj del equipo está desfasado respecto al servidor (antes
-  // mezclábamos la hora del server con la del cliente y un reloj atrasado mostraba
-  // de más). Al agotarse, cualquiera de los dos dispara timeout_mazo y el server
-  // valida el plazo real (turn_started_at + time_limit), así no se hace trampa.
+  // Estimamos la hora del servidor desde el render y un reloj monotónico local.
+  // Recargar o recibir tarde un turno no vuelve a regalar el límite completo.
+  // Postgres sigue validando el plazo real: este reloj sólo decide cuándo pedirlo.
   useEffect(() => {
     if (game.status !== 'playing' || game.awaiting_deal || !game.turn_started_at) {
       setSecondsLeft(null)
       return
     }
-    const anchor = Date.now()       // momento en que este cliente ve el turno
     const limit = game.time_limit
+    let disposed = false
     const tick = () => {
-      const elapsed = (Date.now() - anchor) / 1000
-      const left = Math.max(0, Math.ceil(limit - elapsed))
+      const clock = serverClockRef.current
+      const now = clock.serverNow + performance.now() - clock.startedAt
+      const elapsed = (now - Date.parse(game.turn_started_at)) / 1000
+      const left = Math.max(0, Math.min(limit, Math.ceil(limit - elapsed)))
       setSecondsLeft(left)
       if (left <= 0 && timeoutFiredRef.current !== game.turn_started_at) {
         timeoutFiredRef.current = game.turn_started_at
         supabase.rpc('timeout_mazo', { p_game_id: game.id }).then(({ data, error }) => {
-          if (data) setGame(data as Game)
+          if (disposed) return
+          if (data) applyServerGame(data as Game)
           // El server rechaza si todavía no venció: liberamos el guard para reintentar.
           else if (error) timeoutFiredRef.current = null
         })
@@ -299,7 +301,11 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
     }
     tick()
     const iv = setInterval(tick, 500)
-    return () => clearInterval(iv)
+    return () => {
+      disposed = true
+      clearInterval(iv)
+      if (timeoutFiredRef.current === game.turn_started_at) timeoutFiredRef.current = null
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.status, game.awaiting_deal, game.turn_started_at, game.time_limit, game.id])
 
@@ -395,8 +401,10 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
   // Reparte la próxima mano (server-side, idempotente). Lo dispara el delay.
   async function advanceHand() {
     const { data, error } = await supabase.rpc('advance_hand', { p_game_id: game.id })
-    if (!rpcFailed('advance_hand RPC:', error) && data) setGame(data as Game)
+    if (rpcFailed('advance_hand RPC:', error) || !data) return false
+    applyServerGame(data as Game)
     await refetchMyHand()
+    return true
   }
 
   // Delay para apreciar el cierre de la mano: cuando queda awaiting_deal, se
@@ -405,10 +413,17 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
   useEffect(() => {
     if (game.status !== 'playing' || !game.awaiting_deal) return
     // Si hay cartas de envido para mostrar, damos un poco más de tiempo para verlas.
-    const t = setTimeout(() => { advanceHand() }, game.envido_reveal ? 2600 : 1800)
-    return () => clearTimeout(t)
+    let disposed = false
+    const advance = async () => {
+      const done = await advanceHand()
+      // El polling puede seguir recibiendo awaiting_deal=true tras un fallo.
+      // Ese estado no cambia las dependencias del efecto: hay que reintentarlo.
+      if (!done && !disposed) timer = setTimeout(advance, 3000)
+    }
+    let timer = setTimeout(advance, game.envido_reveal ? 2600 : 1800)
+    return () => { disposed = true; clearTimeout(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.awaiting_deal, game.status, game.id])
+  }, [game.awaiting_deal, game.status, game.id, game.hand_number])
 
   // La pantalla de fin ("Ganaste/Perdiste") se muestra con un pequeño delay tras
   // terminar la partida, para alcanzar a ver la última jugada resuelta en la mesa
@@ -741,11 +756,13 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
     if (data) setMyHand((data.cards as Card[]) ?? [])
   }
 
-  // Aplica un estado que llega del server por realtime/polling. Si la partida ya
-  // terminó, ignora cualquier aviso atrasado que la quiera volver a "en juego"
-  // (evita que el tablero reaparezca un instante después del cartel de fin).
+  // Realtime, polling y reintentos pueden llegar fuera de orden. Un snapshot
+  // anterior no debe revivir una espera de reparto ni una partida terminada.
   function applyServerGame(next: Game) {
-    setGame(prev => (prev.status === 'finished' && next.status !== 'finished' ? prev : next))
+    setGame(prev => (
+      (prev.status === 'finished' && next.status !== 'finished') ||
+      Date.parse(next.updated_at) < Date.parse(prev.updated_at) ? prev : next
+    ))
   }
 
   // Jugar una carta: el servidor valida turno/carta, resuelve la ronda y la mano,
