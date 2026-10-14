@@ -46,6 +46,16 @@ Para atribuir la causa histórica faltan el identificador exacto de partida y el
 
 ## Despliegue y comprobación manual
 
-No requiere SQL, migraciones ni cambios de cron en Supabase. El arreglo del cliente se despliega al mergear el PR.
+El arreglo está integrado en `master` mediante el [PR #127](https://github.com/santibpapa/trucazo/pull/127),
+mergeado el 14/10/2026 a las 12:50 de Argentina (`cd958efa`). La implementación de
+#124 fue consolidada con envido y capturas; no requiere otro merge de esa rama.
+El control completo de [GitHub Actions](https://github.com/santibpapa/trucazo/actions/runs/38591431710)
+aprobó para `c82be9d`, con las 13 pruebas de recuperación y la suite SQL de inactividad.
+
+La recuperación de este issue no requiere SQL ni cambios de cron. La migración de
+capturas incluida en #127 ya está aplicada en Trucazo. El PR no registra una
+comprobación manual entre dos dispositivos posterior al merge; la atribución a la
+reseña histórica sigue pendiente. No confundir ese seguimiento con una corrección
+todavía sin integrar.
 
 Para comprobarlo con dos sesiones 1v1: dejar inactivo al rival, bloquear el primer pedido HTTP de `advance_hand` tras el primer vencimiento y restaurar la red. La siguiente mano debe repartirse sin recargar. Jugar cuando le toque al activo y dejar vencer al rival tres veces: el activo debe ganar y cobrar. Recargar a mitad de turno debe mostrar lo restante; recargar después del plazo debe solicitar la resolución sin esperar otro límite completo.

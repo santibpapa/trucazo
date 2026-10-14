@@ -133,7 +133,7 @@ del juego se trabajan por separado. No envía correos ni contacta jugadores.
 - Cola por ID, sin ventana de fechas: las pendientes de ejecuciones anteriores
   se recuperan. La primera revisión cubrió las **23 reseñas existentes**, dejó
   **24 hallazgos en 9 asuntos agrupados** y terminó sin pendientes de lectura.
-  Siete asuntos requieren trabajo o más información; tercera parda quedó
+  En esa primera revisión, siete asuntos requerían trabajo o más información; tercera parda quedó
   comprobada como resuelta en 360 escenarios; el pedido de participación en chat
   quedó registrado sin implementar respuestas de bots, por decisión de producto.
 - Concesión exclusiva de 2 horas, renovable; recuperación de agentes interrumpidos,
@@ -189,19 +189,16 @@ descartable. `supabase/tests/game_completion_presence.sql` reproduce el fallo
 anterior y verifica victoria, podio por desempate, monedas, historial, cierre
 idempotente, presencia reciente y reembolso único por ausencia real.
 
-**Aplicación pendiente en producción:**
+**Aplicado en producción:** el [PR #120](https://github.com/santibpapa/trucazo/pull/120)
+se integró el 13/10/2026. La revisión del 14/10 comprobó la función corregida en
+Supabase y su despliegue. La migración
+`supabase/migrations/20261013185704_ranking_top3_safeupdate.sql` ya está aplicada
+en Trucazo; no volver a ejecutarla como paso pendiente.
 
-1. En GitHub, abrí `supabase/migrations/20261013185704_ranking_top3_safeupdate.sql`
-   y copiá todo su contenido.
-2. En Supabase, entrá al proyecto de Trucazo → **SQL Editor** → **New query**,
-   pegá el contenido y apretá **Run**. Este paso actualiza el backend; el PR no lo
-   aplica automáticamente.
-3. Incorporá el PR y verificá el despliegue del sitio. Comprobá una victoria que
-   cambie el podio y una partida de más de 15 minutos sin anulación inesperada.
-
-Último traspaso: arreglo preparado desde `master` de GitHub, sin los cambios locales
-futuros. Retomar esta misma corrección: revisar los controles del PR y aplicar la
-migración indicada antes de dar el incidente por resuelto en producción.
+Las pruebas automatizadas de cierre, podio, monedas, historial, idempotencia,
+presencia y reembolso aprobaron. El seguimiento de #109 y #111 conserva la
+validación del flujo real y la atribución de los incidentes históricos. Ver el
+estado de integración del 14/10 más abajo.
 
 ## Capturas de reseñas y lectura privada — 14/10/2026
 
@@ -270,3 +267,54 @@ actualizaciones en #109, #110, #111 y #114. Una imagen confirma DELETE requires 
 WHERE clause; la otra muestra turno rival a 0 segundos. Completar su lectura no
 resuelve automáticamente los bugs históricos ni demuestra regresión del parche
 #120. Las capturas, rutas, tokens e identidades no se publican.
+
+## Integración de correcciones de reseñas — 14/10/2026
+
+**Implementación integrada en master:** el
+[PR #127](https://github.com/santibpapa/trucazo/pull/127) se mergeó el 14/10 a las
+12:50 de Argentina, commit `cd958efa51ee15c058a603cf5bb61cfeba56eccf`.
+Reúne los cambios de #124, #125 y #126, resuelve sus conflictos y agrega protección
+contra solicitudes de reparto o turno vencido que nunca responden. Las ramas
+originales no son pasos de merge pendientes.
+
+| Tema | Corrección integrada | Verificación |
+| --- | --- | --- |
+| Rival inactivo / espera detenida (#110, origen #124) | Reintento de reparto cada 3 s, reloj basado en la antigüedad del turno, rechazo de estados atrasados y límite HTTP de 8 s para reparto y timeout. Los fallos liberan el siguiente intento y salir de la mesa cancela la recuperación. | 13 pruebas de recuperación con SDK real y transporte/reloj controlados; RPCs reales de inactividad en base descartable. |
+| Declaración de envido / 33 (#123, origen #125) | Los cantos, respuestas y declaración liberan los controles ante errores, excepciones o espera HTTP de 8 s. La relectura de cartas no mantiene el botón bloqueado; se relee el estado al reconectar o volver a la pestaña. | 13 pruebas de recuperación de envido y suite SQL de falta envido, 33, orden de mano, empate, cartas ya jugadas y rechazo. |
+| Capturas y correos (origen #126) | Lectura de la carpeta propia para firmar enlaces, aviso explícito si falla una firma y lectura privada del agente mediante tickets de un uso. | Pruebas de permisos/tickets y del servicio de imágenes; las dos capturas reales se leyeron y sus reseñas se completaron. |
+| Victoria que cambia el podio y presencia (#109/#111, origen #120) | Se conserva la corrección del 13/10, ya aplicada. #127 no introduce un nuevo arreglo del ranking ni cambia el barrido. | Se mantienen las pruebas de presencia y de cierre con safeupdate, resultado, monedas, historial e idempotencia. |
+
+**CI completo aprobado** para `c82be9d4919b35fd8a06da40eac187fab9f8c6b4`:
+[GitHub Actions](https://github.com/santibpapa/trucazo/actions/runs/38591431710),
+Aplicación (tipos, ESLint, pruebas y build), Base de datos (reconstrucción y batería
+completa) y control de Vercel del PR. ESLint conserva advertencias preexistentes.
+Estas comprobaciones no equivalen a una partida manual posterior al merge.
+
+**Supabase:** #127 no requiere SQL adicional. La migración y Edge Function de
+capturas ya están aplicadas, como se detalla en la sección anterior. No modificar
+partidas, monedas ni estadísticas para validar reseñas históricas.
+
+**Lectura completa:** la revisión del 14/10 a las 11:22 dejó **26 de 26 reseñas
+revisadas, 32 hallazgos en 10 asuntos y 0 pendientes de lectura**. Las dos capturas
+ya no bloquean el seguimiento. El [tablero #118](https://github.com/santibpapa/trucazo/issues/118)
+mantiene el estado vigente; no se crea otro registro paralelo.
+
+**Seguimiento restante:** las correcciones comprobadas están integradas. No queda
+una implementación pendiente de esos defectos. #110 y #123 conservan la atribución
+histórica y la comprobación manual, porque los reportes no identifican su partida;
+#109 y #111 conservan la validación del flujo real. El PR #127 no documenta una
+partida manual entre dos dispositivos ni una nueva prueba contra producción.
+Conservar estos límites al informar el estado, sin presentar los arreglos como
+pendientes de merge ni tratar todos los incidentes históricos como reproducidos.
+
+Para la comprobación manual: usar dos sesiones 1v1, verificar recuperación de red
+durante reparto y turno vencido, declarar 33 tras aceptar falta envido y reconectar,
+y comprobar resultado/monedas/historial al finalizar. La guía de inactividad está
+en [docs/issue-110-inactivity.md](docs/issue-110-inactivity.md). Las señales de
+comprensión (#113), estética (#114), reclamos sin detalle (#115) y sospecha sin
+evidencia (#117) siguen esperando información concreta. La tercera parda (#112)
+ya está resuelta; los bots mantienen la decisión de no responder chat escrito (#116).
+
+La tarea continúa lunes, miércoles y viernes a las 09:00 de Argentina. El agente
+lee este README y el contrato vigente, conserva los issues existentes y distingue
+corrección integrada, validación pendiente y posible regresión posterior.
