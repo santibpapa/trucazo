@@ -77,6 +77,9 @@ jobs:
       - name: Validar formularios y horarios de torneos
         run: npm run check:tournaments
 
+      - name: Capturas privadas y enlaces de reseñas
+        run: node scripts/check-feedback-images.mjs
+
       - name: Build de producción
         # Claves de mentira a propósito: el build no se conecta a ningún lado,
         # solo necesita que las variables existan.
@@ -148,6 +151,9 @@ jobs:
 
       - name: Reseñas, recuperación, deduplicación y permisos del agente
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/feedback_review.sql
+
+      - name: Capturas privadas, aislamiento y caducidad de tickets
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/feedback_images.sql
 
       - name: Eliminación de cuentas, privacidad y continuidad de torneos
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/account_deletion.sql

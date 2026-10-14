@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Panel, Button, Logo, Alert } from '@/components/ui'
+import { feedbackImageLinks } from '@/lib/feedback-images.mjs'
 
 // Genera un nombre único de archivo (con fallback por si crypto.randomUUID no
 // está disponible en contextos no seguros, p.ej. http en la red local).
@@ -133,12 +134,7 @@ export default function ResenaPage() {
       if (w3fKey) {
         try {
           // Enlaces temporales (7 días) a las imágenes del depósito privado
-          const links: string[] = []
-          for (const p of paths) {
-            const { data: signed } = await supabase.storage
-              .from('feedback-images').createSignedUrl(p, 60 * 60 * 24 * 7)
-            if (signed?.signedUrl) links.push(signed.signedUrl)
-          }
+          const images = await feedbackImageLinks(supabase.storage.from('feedback-images'), paths)
           await fetch('https://api.web3forms.com/submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -151,7 +147,7 @@ export default function ResenaPage() {
               'Entendió el desarrollo': understood ? 'Sí' : 'No',
               'Tuvo problemas': hadProblem ? 'Sí' : 'No',
               'Comentario': comment.trim() || '(sin comentario)',
-              'Imágenes': links.length ? links.join('\n') : '(ninguna)',
+              'Imágenes': images,
             }),
           })
         } catch {

@@ -1,0 +1,5 @@
+
+# Autenticación propia: ticket de 256 bits, un uso, 10 minutos, emitido por SQL privado.
+[functions.feedback-image]
+verify_jwt = false
+entrypoint = "./functions/feedback-image/index.mjs"
