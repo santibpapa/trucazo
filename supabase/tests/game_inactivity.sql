@@ -25,13 +25,14 @@ declare
   b uuid := 'af110000-0000-4000-a000-000000000002';
   outsider uuid := 'af110000-0000-4000-a000-000000000003';
   active uuid; absent uuid; gid uuid; g public.games; card jsonb; stamp timestamptz;
-  limit_seconds int; step int; count_before int;
+  limit_seconds int; step int; count_before int; wins_before int;
 begin
   foreach active in array array[a,b] loop
     absent := case when active=a then b else a end;
     foreach limit_seconds in array array[15,30] loop
       update public.profiles set coins=900 where id in(a,b);
-      select count(*) into count_before from public.game_history where player_id=active;
+      select count(*), count(*) filter(where result='win') into count_before,wins_before
+        from public.game_history where player_id=active;
       gid := gen_random_uuid();
       insert into public.tables(id,name,creator_id,creator_username,opponent_id,opponent_username,bet,status,time_limit)
         values(gid,'AFK regression',a,'AFK Active',b,'AFK Absent',50,'playing',limit_seconds);
@@ -110,7 +111,7 @@ begin
       perform pg_temp.afk_check((select coins=1000 from public.profiles where id=active),'pozo entregado al activo');
       perform pg_temp.afk_check((select coins=900 from public.profiles where id=absent),'el ausente no cobra');
       perform pg_temp.afk_check((select count(*)=count_before+1 from public.game_history where player_id=active),'historial una sola vez');
-      perform pg_temp.afk_check(not exists(select 1 from public.game_history where player_id=active and result='loss'), 'el activo nunca registra derrota');
+      perform pg_temp.afk_check((select count(*)=wins_before+1 from public.game_history where player_id=active and result='win'), 'el activo registra victoria en este caso');
     end loop;
   end loop;
 
