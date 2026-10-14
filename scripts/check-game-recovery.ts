@@ -91,7 +91,7 @@ function fixture(marker: string, overrides: Record<string, unknown> = {}) {
     advance: async (ms: number) => {
       const target = elapsed + ms
       for (;;) {
-        const next = [...timers.entries(), ...abortTimers.entries()].filter(([, t]) => t.due <= target).sort((a, b) => a[1].due - b[1].due)[0]
+        const next = Array.from(timers.entries()).concat(Array.from(abortTimers.entries())).filter(([, t]) => t.due <= target).sort((a, b) => a[1].due - b[1].due)[0]
         if (!next) break
         const [id, timer] = next
         elapsed = timer.due
