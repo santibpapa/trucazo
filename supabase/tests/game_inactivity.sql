@@ -39,7 +39,7 @@ begin
       insert into public.games(id,player1_id,player2_id,player1_username,player2_username,current_turn,mano_player,bet,time_limit)
         values(gid,a,b,'AFK Active','AFK Absent',absent,active,100,limit_seconds);
       insert into public.game_hands(game_id,player_id,cards)
-        select gid,uid,jsonb_agg(card) from unnest(array[a,b]) uid
+        select gid,uid,jsonb_agg(deck.card) from unnest(array[a,b]) uid
         cross join lateral (select value card from jsonb_array_elements(public._truco_deck()) limit 3) deck group by uid;
 
       select * into g from public.games where id=gid;

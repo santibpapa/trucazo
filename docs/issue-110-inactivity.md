@@ -37,7 +37,7 @@ La inspección de las funciones desplegadas confirmó:
 
 ## Hipótesis y límites
 
-Estos fallos pueden explicar una mesa detenida con un jugador activo, pero no está demostrado que hayan ocurrido en la reseña. Tampoco hay evidencia de que el rival haya provocado el problema a propósito. El fallo de cierre por cambio de podio, corregido por el PR #120, es otra posibilidad histórica sin vínculo comprobado con este reporte.
+Estos fallos pueden explicar una mesa detenida con un jugador activo, pero no está demostrado que hayan ocurrido en la reseña. Tampoco hay evidencia de que el rival haya provocado el problema a propósito. El PR #120 corrige otro fallo de cierre; no constituye evidencia de la causa de este reporte.
 
 Para atribuir la causa histórica faltan el identificador exacto de partida y el estado/error que veía el jugador. No se cambió el abandono voluntario ni se compensaron cuentas a partir de una partida hipotética.
 
