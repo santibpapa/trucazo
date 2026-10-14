@@ -18,6 +18,7 @@ Las primeras seis pruebas del cliente daban cuatro fallos antes del arreglo y pa
 ## Arreglo
 
 - Reintentar el reparto cada tres segundos después de un fallo, con un pedido a la vez. Cancelar el siguiente reintento al cambiar de mano, terminar o desmontar la mesa.
+- Limitar `advance_hand` y `timeout_mazo` a ocho segundos de espera HTTP. Una petición sin respuesta o una excepción libera el próximo intento; salir de la mesa impide que el pedido pendiente reactive el reintento.
 - Estimar la hora del servidor desde el render de Next.js y el tiempo monotónico transcurrido en el cliente. Usar `turn_started_at` para conservar la antigüedad del turno al recargar. El transporte/render puede introducir un pequeño retraso; Postgres sigue siendo la autoridad para sancionar.
 - Mantener reintentos de `timeout_mazo` cuando Postgres responde que aún queda tiempo o falla la red. Ignorar respuestas del temporizador cuyo efecto ya terminó.
 - Ignorar snapshots anteriores al estado actual para que polling/reintentos atrasados no revivan una espera de reparto ni una partida terminada.
@@ -32,6 +33,8 @@ La inspección de las funciones desplegadas confirmó:
 - `sweep_stale_games(10)`: el cron corre cada cinco minutos y anula/reembolsa sólo cuando ambos jugadores están ausentes. No concede victoria por la ausencia de uno.
 
 `scripts/check-game-recovery.ts` cubre fallos breves/prolongados, recarga parcial/vencida, reloj local desfasado, rechazo temprano de Postgres, reintentos, limpieza y snapshots atrasados. `scripts/check-presence.ts` conserva la cobertura de latidos HTTP reales.
+
+La revisión conjunta de #124, #125 y #126 agregó cuatro regresiones que fallaban antes del límite HTTP: reparto pendiente, timeout pendiente, salida con petición pendiente y excepciones inesperadas. Pasan las trece pruebas de recuperación con el SDK real y transporte/reloj controlados. La integración conserva además las pruebas de envido y capturas privadas.
 
 `supabase/tests/game_inactivity.sql` prueba las RPCs reales en una base descartable: ambos asientos, límites de 15/30 segundos, presencia, bloqueo de timeout temprano/de terceros, tres vencimientos, jugada del activo cuando le toca, reparto repetido, pozo/historial y turno de declaración. Todo se revierte al terminar. Ambas pruebas están integradas al CI.
 

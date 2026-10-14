@@ -249,9 +249,20 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
         { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${game.id}` },
         (payload) => { applyServerGame(payload.new as Game); refetchMyHand() }
       )
-      .subscribe()
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') void refreshGame()
+      })
 
-    return () => { supabase.removeChannel(channel) }
+    const recover = () => {
+      if (document.visibilityState === 'visible') void refreshGame()
+    }
+    window.addEventListener('online', recover)
+    document.addEventListener('visibilitychange', recover)
+    return () => {
+      supabase.removeChannel(channel)
+      window.removeEventListener('online', recover)
+      document.removeEventListener('visibilitychange', recover)
+    }
   }, [game.id, game.status])
 
   // Respaldo por polling, por si el realtime no entrega los cambios.
@@ -261,13 +272,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
 
     const interval = setInterval(async () => {
       if (Date.now() - lastActionRef.current < 2000) return
-      const { data } = await supabase
-        .from('games')
-        .select('*')
-        .eq('id', game.id)
-        .single()
-      if (data) applyServerGame(data as Game)
-      await refetchMyHand()
+      await refreshGame()
     }, 2500)
 
     return () => clearInterval(interval)
@@ -291,12 +296,23 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       setSecondsLeft(left)
       if (left <= 0 && timeoutFiredRef.current !== game.turn_started_at) {
         timeoutFiredRef.current = game.turn_started_at
-        supabase.rpc('timeout_mazo', { p_game_id: game.id }).then(({ data, error }) => {
-          if (disposed) return
-          if (data) applyServerGame(data as Game)
-          // El server rechaza si todavía no venció: liberamos el guard para reintentar.
-          else if (error) timeoutFiredRef.current = null
-        })
+        void (async () => {
+          let resolved = false
+          try {
+            const { data, error } = await supabase.rpc('timeout_mazo', { p_game_id: game.id })
+              .abortSignal(AbortSignal.timeout(8000))
+            if (disposed) return
+            if (!error && data) {
+              applyServerGame(data as Game)
+              resolved = true
+            }
+          } catch {
+            // También reintentamos si el transporte lanza una excepción.
+          } finally {
+            // Rechazo temprano, error o falta de respuesta: liberar el próximo intento.
+            if (!disposed && !resolved) timeoutFiredRef.current = null
+          }
+        })()
       }
     }
     tick()
@@ -400,11 +416,17 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
 
   // Reparte la próxima mano (server-side, idempotente). Lo dispara el delay.
   async function advanceHand() {
-    const { data, error } = await supabase.rpc('advance_hand', { p_game_id: game.id })
-    if (rpcFailed('advance_hand RPC:', error) || !data) return false
-    applyServerGame(data as Game)
-    await refetchMyHand()
-    return true
+    try {
+      const { data, error } = await supabase.rpc('advance_hand', { p_game_id: game.id })
+        .abortSignal(AbortSignal.timeout(8000))
+      if (rpcFailed('advance_hand RPC:', error) || !data) return false
+      applyServerGame(data as Game)
+      await refetchMyHand()
+      return true
+    } catch (error) {
+      rpcFailed('advance_hand RPC:', error instanceof Error ? error : { message: 'No se pudo repartir. Reintentando…' })
+      return false
+    }
   }
 
   // Delay para apreciar el cierre de la mano: cuando queda awaiting_deal, se
@@ -752,8 +774,25 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       .select('cards')
       .eq('game_id', game.id)
       .eq('player_id', currentUserId)
+      .abortSignal(AbortSignal.timeout(8000))
       .single()
     if (data) setMyHand((data.cards as Card[]) ?? [])
+  }
+
+  // Releer al conectar/volver: los cambios ocurridos durante el corte no se reproducen.
+  async function refreshGame() {
+    try {
+      const { data } = await supabase
+        .from('games')
+        .select('*')
+        .eq('id', game.id)
+        .abortSignal(AbortSignal.timeout(8000))
+        .single()
+      if (data) applyServerGame(data as Game)
+      await refetchMyHand()
+    } catch (error) {
+      console.error('refresh game:', error)
+    }
   }
 
   // Realtime, polling y reintentos pueden llegar fuera de orden. Un snapshot
@@ -796,25 +835,37 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     if (loading) return
     if (!isMyTurn && !hasPendingEnvido) return
     setLoading(true)
-    lastActionRef.current = Date.now()
-    const { data, error } = await supabase.rpc('sing_envido', { p_game_id: game.id, p_type: type })
-    if (!rpcFailed('sing_envido RPC:', error) && data) setGame(data as Game)
-    setLoading(false)
+    setActionError('')
+    try {
+      lastActionRef.current = Date.now()
+      const { data, error } = await supabase.rpc('sing_envido', { p_game_id: game.id, p_type: type }).abortSignal(AbortSignal.timeout(8000))
+      if (!rpcFailed('sing_envido RPC:', error) && data) setGame(data as Game)
+    } catch (error) {
+      rpcFailed('singEnvido RPC:', error instanceof Error ? error : { message: 'No se pudo completar la acción. Volvé a intentar.' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function respondEnvido(accept: boolean) {
     if (loading) return
     setLoading(true)
-    lastActionRef.current = Date.now()
-    // Burbuja del que responde (como en el chat rápido)
-    const bubble = accept ? '¡Quiero!' : '¡No quiero!'
-    chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text: bubble } })
-    setMyEmote(bubble)
-    // Si acepta, el servidor abre el diálogo de tantos (la mano declara primero).
-    // Si no, resuelve el "no quiero" como antes.
-    const { data, error } = await supabase.rpc('respond_envido', { p_game_id: game.id, p_accept: accept })
-    if (!rpcFailed('respond_envido RPC:', error) && data) setGame(data as Game)
-    setLoading(false)
+    setActionError('')
+    try {
+      lastActionRef.current = Date.now()
+      // Burbuja del que responde (como en el chat rápido)
+      const bubble = accept ? '¡Quiero!' : '¡No quiero!'
+      chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text: bubble } })
+      setMyEmote(bubble)
+      // Si acepta, el servidor abre el diálogo de tantos (la mano declara primero).
+      // Si no, resuelve el "no quiero" como antes.
+      const { data, error } = await supabase.rpc('respond_envido', { p_game_id: game.id, p_accept: accept }).abortSignal(AbortSignal.timeout(8000))
+      if (!rpcFailed('respond_envido RPC:', error) && data) setGame(data as Game)
+    } catch (error) {
+      rpcFailed('respondEnvido RPC:', error instanceof Error ? error : { message: 'No se pudo completar la acción. Volvé a intentar.' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Diálogo de tantos (después del "quiero"): 'tengo' revela tu tanto (lo calcula
@@ -822,15 +873,23 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   async function envidoSay(action: 'tengo' | 'son_buenas' | 'mazo') {
     if (loading) return
     setLoading(true)
-    lastActionRef.current = Date.now()
-    const bubble = action === 'tengo' ? `Tengo ${myEnvido}`
-      : action === 'son_buenas' ? 'Son buenas' : 'Me voy al mazo'
-    chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text: bubble } })
-    setMyEmote(bubble)
-    const { data, error } = await supabase.rpc('envido_say', { p_game_id: game.id, p_action: action })
-    if (!rpcFailed('envido_say RPC:', error) && data) setGame(data as Game)
-    await refetchMyHand()
-    setLoading(false)
+    setActionError('')
+    try {
+      lastActionRef.current = Date.now()
+      const bubble = action === 'tengo' ? `Tengo ${myEnvido}`
+        : action === 'son_buenas' ? 'Son buenas' : 'Me voy al mazo'
+      chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text: bubble } })
+      setMyEmote(bubble)
+      const { data, error } = await supabase.rpc('envido_say', { p_game_id: game.id, p_action: action }).abortSignal(AbortSignal.timeout(8000))
+      if (rpcFailed('envido_say RPC:', error) || !data) return
+      setGame(data as Game)
+      // La relectura de cartas no debe mantener bloqueados los controles.
+      void refetchMyHand().catch(error => { console.error('refetch envido hand:', error) })
+    } catch (error) {
+      rpcFailed('envidoSay RPC:', error instanceof Error ? error : { message: 'No se pudo completar la acción. Volvé a intentar.' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   // ---- TRUCO (resuelto en el servidor) ----

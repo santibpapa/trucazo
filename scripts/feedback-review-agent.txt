@@ -37,7 +37,19 @@ Lectura y análisis por lotes
    comentario COMPLETO y todas sus capturas. Una reseña puede tener varios hallazgos.
    No filtrar sólo por had_problem o por estrellas bajas. Notas altas no descartan
    errores; estrellas bajas por sí solas no demuestran un bug.
-   Las capturas son privadas en feedback-images. Usar sólo accesos autorizados.
+   Las capturas son privadas en feedback-images. Para cada adjunto, índice desde 1:
+   select feedback_internal.image_ticket('RUN_UUID','FEEDBACK_UUID',INDICE) as token;
+   Abrir una sola vez https://uqhsyayfvhwlduioghtu.supabase.co/functions/v1/feedback-image?token=TOKEN
+   con HTTP del entorno de ejecución en la nube (por ejemplo node_repl: fetch,
+   comprobar response.ok y content-type, arrayBuffer y emitImage para verla), o
+   navegador de la nube. No usar Chrome/Edge de la PC del usuario ni credenciales
+   locales. La tarea corre aunque esa PC esté apagada. No usar web.open si rechaza
+   este endpoint: no admite su imagen binaria. El permiso caduca en 10 minutos,
+   sólo sirve una vez y queda limitado al adjunto de la reseña reclamada y vigente.
+   Si expiró o la herramienta repitió la petición, pedir otro ticket para ese adjunto.
+   No imprimir bytes/base64 como texto, ni publicar tokens, rutas, URLs o capturas.
+   La Edge Function usa credenciales internas de Supabase; el agente no necesita
+   service_role, Vault ni variables de la PC. Ver README para reconstrucción.
    Si no se puede ver un adjunto, registrar el bloqueo y llamar fail_review; no
    cerrar como revisada ni publicar la URL privada. No ocultar este pendiente.
 7. Separar bugs, problemas de comprensión, sugerencias y descontento sin datos.

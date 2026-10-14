@@ -113,6 +113,7 @@ echo "==> 3/5  Funciones"
 echo "==> 4/5  Llaves, restricciones y reglas de seguridad"
 "${PSQL[@]}" -f supabase/schema/policies.sql
 "${PSQL[@]}" -f supabase/schema/feedback_review.sql
+"${PSQL[@]}" -f supabase/schema/feedback_images.sql
 
 echo "==> 5/5  Migraciones (en orden alfabético)"
 
