@@ -202,3 +202,71 @@ idempotente, presencia reciente y reembolso único por ausencia real.
 Último traspaso: arreglo preparado desde `master` de GitHub, sin los cambios locales
 futuros. Retomar esta misma corrección: revisar los controles del PR y aplicar la
 migración indicada antes de dar el incidente por resuelto en producción.
+
+## Capturas de reseñas y lectura privada — 14/10/2026
+
+Las imágenes se subían correctamente, pero Storage sólo concedía INSERT. La
+creación de URLs firmadas del correo necesita SELECT: ahora cada sesión puede leer
+sólo los archivos de su propia carpeta en feedback-images. El bucket sigue privado;
+el correo conserva sus enlaces de siete días. Si falla alguna firma, el aviso indica
+que esa captura está guardada y que su enlace no está disponible, en vez de decir
+que no hay imágenes. El guardado de la reseña sigue siendo independiente del correo.
+
+El agente programado de ChatGPT mantiene lunes/miércoles/viernes 09:00 de Argentina.
+Lee cada imagen con un ticket de 256 bits emitido por SQL administrativo para una
+reseña reclamada por la ejecución activa. El ticket dura diez minutos, sirve una
+vez y se invalida si cambia la reseña, termina su revisión o vence la ejecución.
+El registro guarda sólo SHA-256 del token. La Edge Function feedback-image consume
+el ticket y descarga únicamente esa imagen con una clave interna de Supabase.
+No entrega esa clave al agente, no recibe rutas arbitrarias y no necesita PC,
+credenciales locales ni nuevas variables en Vercel. Respuestas sin caché y sin
+referer; no admite SVG/HTML. El contrato contiene la lectura visual por HTTP del
+entorno en la nube y su manejo de errores. No usar web.open para esta imagen
+binaria si lo rechaza; usar fetch + emitImage o un navegador de la nube.
+
+### Estado de Supabase e instalación en otro entorno
+
+**Aplicado en producción**, con feedback-image ACTIVE. No hace falta volver a
+correr SQL en el proyecto de Trucazo. Los cambios se aplicaron en cinco bloques:
+feedback_image_owner_read (20261014133748), feedback_image_ticket_table
+(20261014135215), feedback_image_ticket_privileges (20261014135223),
+feedback_image_ticket_consume (20261014140841) y feedback_image_ticket_issue
+(20261014140919). La migración consolidada reproducible es
+20261014133748_feedback_private_image_access.sql; la foto es
+supabase/schema/feedback_images.sql. Las funciones son INVOKER con search_path
+vacío; el schema interno y sus tablas permanecen cerrados a anon/authenticated.
+La única RPC puente, consume_feedback_image_ticket, tiene EXECUTE sólo para
+service_role. La función de emisión ni siquiera se concede a service_role.
+
+Para reproducirlo en otro proyecto:
+
+1. Aplicar primero el seguimiento de reseñas y luego la migración consolidada en
+   Supabase → SQL Editor → New query → pegar el archivo → Run.
+2. Desplegar supabase/functions/feedback-image/index.mjs y handler.mjs como
+   feedback-image. Usar supabase/config.toml: verify_jwt=false porque la función
+   valida su propio ticket privado de un uso, no porque permita lectura pública.
+3. Usar SUPABASE_URL y SUPABASE_SECRET_KEYS.default del entorno interno de Edge;
+   se conserva compatibilidad con SUPABASE_SERVICE_ROLE_KEY. No copiar claves al
+   agente, al navegador, a variables NEXT_PUBLIC ni a GitHub.
+4. Cambiar en el contrato únicamente la URL del proyecto de destino.
+
+La reconstrucción y el CI incluyen supabase/tests/feedback_images.sql. La prueba
+con ROLLBACK pasó en Supabase: aislamiento de dueño/tercero/anon, rechazo de
+reseñas o índices ajenos, token no guardado en claro, replay, vencimiento, edición
+y revisión cerrada. scripts/check-feedback-images.mjs prueba la respuesta de
+imagen, autorización antes de descargar, credenciales legacy/modernas, métodos,
+formatos inseguros y fallos del proveedor de enlaces. Se abrieron los dos adjuntos
+reales mediante la Edge Function y se comprobó su lectura visual. La emisión y
+lectura de imágenes quedan auditadas por ejecución/reseña; los registros de
+tickets tienen la misma eliminación en cascada que el seguimiento.
+
+El asesor de seguridad sólo señala RLS sin políticas para image_tickets, que es
+intencional en este schema administrativo cerrado:
+https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy.
+No se añaden políticas de jugador para silenciar ese aviso.
+
+Las dos reseñas que bloqueaban #118 se completaron con evidencia privada y
+actualizaciones en #109, #110, #111 y #114. Una imagen confirma DELETE requires a
+WHERE clause; la otra muestra turno rival a 0 segundos. Completar su lectura no
+resuelve automáticamente los bugs históricos ni demuestra regresión del parche
+#120. Las capturas, rutas, tokens e identidades no se publican.

@@ -59,6 +59,12 @@ jobs:
       - name: Presencia real al entrar, intervalos y salida
         run: node --import tsx scripts/check-presence.ts
 
+      - name: Recuperación de reparto y temporizador tras reconexión
+        run: node --import tsx scripts/check-game-recovery.ts
+
+      - name: Declaración de envido y recuperación de controles
+        run: node scripts/check-envido-recovery.mjs
+
       - name: Contenido y economía de la Ruta del Noroeste
         run: node scripts/check-noroeste-expansion.mjs
 
@@ -76,6 +82,9 @@ jobs:
 
       - name: Validar formularios y horarios de torneos
         run: npm run check:tournaments
+
+      - name: Capturas privadas y enlaces de reseñas
+        run: node scripts/check-feedback-images.mjs
 
       - name: Build de producción
         # Claves de mentira a propósito: el build no se conecta a ningún lado,
@@ -146,8 +155,14 @@ jobs:
       - name: Victoria con cambio de podio y barrido con presencia reciente
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/game_completion_presence.sql
 
+      - name: Rival inactivo, tres vencimientos y recuperación de reparto
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/game_inactivity.sql
+
       - name: Reseñas, recuperación, deduplicación y permisos del agente
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/feedback_review.sql
+
+      - name: Capturas privadas, aislamiento y caducidad de tickets
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/feedback_images.sql
 
       - name: Eliminación de cuentas, privacidad y continuidad de torneos
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/account_deletion.sql
@@ -169,6 +184,9 @@ jobs:
 
       - name: Pardas, ganador de la primera y cierre de campaña
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tercera_parda.sql
+
+      - name: Falta envido, 33 como mano y pie, cartas jugadas y empate
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/envido_33.sql
 
       - name: Permisos de las funciones
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql
