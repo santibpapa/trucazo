@@ -2,6 +2,7 @@
 begin;
 create function pg_temp.check(ok boolean, message text) returns void language plpgsql as $$
 begin if ok is distinct from true then raise exception 'Invitaciones: %', message; end if; end $$;
+grant execute on function pg_temp.check(boolean, text) to anon, authenticated;
 create function pg_temp.person(guest boolean default false) returns uuid language plpgsql as $$
 declare u uuid := gen_random_uuid(); begin
   insert into auth.users(id, email, is_anonymous, raw_user_meta_data)
@@ -26,7 +27,7 @@ begin
       perform set_config('request.jwt.claim.sub', owner_id::text, true);
       set local role authenticated;
       if mode = '1v1' then
-        select id into t from public.create_table('Mesa invitada', 100, private, case when private then left(owner_id::text, 6) end, 15, 30);
+        select id into t from public.create_table('Mesa invitada', 100, private, case when private then upper(left(owner_id::text, 6)) end, 15, 30);
       else
         snap := public.team_create(gen_random_uuid(), 'Mesa invitada', 100, 15, 30, private);
         t := (snap->'table'->>'id')::uuid;
@@ -84,13 +85,14 @@ begin
         end loop;
       end if;
       perform set_config('request.jwt.claim.sub', stranger::text, true);
+      update public.profiles set coins = 1000 where id = stranger;
       set local role authenticated; p := public.preview_table_invite(invite_token); reset role;
       perform pg_temp.check(not (p->>'available')::boolean and p->>'destination' is null, 'mesa llena no admite terceros');
       blocked := false;
       begin set local role authenticated; perform public.join_table_invite(invite_token);
       exception when raise_exception then blocked := true; end;
       reset role; perform pg_temp.check(blocked, 'confirmación tardía rechazada');
-      perform pg_temp.check((select coins from public.profiles where id = stranger) = 0, 'rechazo no cobra');
+      perform pg_temp.check((select coins from public.profiles where id = stranger) = 1000, 'rechazo no cobra');
 
       perform set_config('request.jwt.claim.sub', owner_id::text, true);
       set local role authenticated; perform public.join_table_invite(invite_token); reset role;

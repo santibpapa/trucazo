@@ -1,5 +1,7 @@
 # Juego
 
+<a id="invitacion-por-enlace"></a>
+
 ## Invitación por enlace — 16/10/2026
 
 **Estado:** implementación preparada para revisión en GitHub. Falta aprobar la

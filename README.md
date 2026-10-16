@@ -5,7 +5,7 @@ Dos modalidades: **1 contra 1** (mano a mano) y **2 vs 2** (en parejas, cuatro j
 Construido con Next.js (App Router), React, TypeScript y Supabase (Auth + Postgres + Realtime).
 
 **Invitaciones por enlace:** decisiones, implementación, pruebas y pasos de
-activación en [Juego](docs/juego.md#invitacion-por-enlace--16102026).
+activación en [Juego](docs/juego.md#invitacion-por-enlace).
 
 ## Stack
 

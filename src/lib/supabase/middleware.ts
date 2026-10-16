@@ -36,11 +36,12 @@ export async function updateSession(request: NextRequest) {
     .getAll()
     .some(({ name }) => name.startsWith('sb-') && name.includes('auth-token'))
   const mayRedirectAuthenticatedUser = ['/', '/login', '/register'].includes(pathname)
+  const isInvitation = pathname.startsWith('/invitar/')
 
   // Una visita nueva a contenido público no necesita tocar Supabase. Esto mantiene
   // rápidas e independientes las landings, guías, imágenes OG, sitemap y robots.
   // Si existe una cookie o la ruta es privada/API, sí refrescamos y validamos sesión.
-  if (!isPrivate && !isApi && !(mayRedirectAuthenticatedUser && hasSupabaseSessionCookie)) {
+  if (!isPrivate && !isApi && !((mayRedirectAuthenticatedUser || isInvitation) && hasSupabaseSessionCookie)) {
     return NextResponse.next({ request })
   }
 
