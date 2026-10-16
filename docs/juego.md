@@ -145,3 +145,22 @@ enlace**, abrir el enlace desde otro navegador/dispositivo y confirmar **Unirme*
 Repetir en parejas y elegir un lugar libre. Comprobar también el regreso desde
 Google si se usa ese acceso. El merge, la publicación, el SQL y las pruebas
 integradas ya están completados; no volver a indicarlos como pasos pendientes.
+
+### Espera visible después del código — 16/10/2026
+
+Preparado para revisión: el estado de espera aparece justo debajo del código,
+en un recuadro dorado con el texto **Esperando que se una tu rival…** y tres
+puntos que se animan suavemente. Se muestra al crear la privada desde el lobby
+y en la sala de espera 1v1. En parejas indica que faltan jugadores, distingue
+al último que falta y desaparece cuando ya están los cuatro o se está reconectando.
+Se conservan los avisos de elegir lugar e iniciar la partida.
+
+La animación sólo modifica opacidad y posición, sin mover el resto de la pantalla.
+El texto queda visible desde el primer dibujo y los puntos se detienen con la
+preferencia de reducir movimiento. El lector de pantalla recibe un único estado;
+la animación no dispara anuncios repetidos.
+
+Verificado: tipos y ESLint (advertencias previas), inspección visual a 360 × 640
+en una vista temporal con los componentes reales, animación CSS activa y aviso
+ausente en la mesa 2v2 completa. La vista temporal no se publica. Sólo cambia la
+presentación: no requiere SQL ni altera el ingreso, los cobros o los asientos.

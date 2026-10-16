@@ -19,6 +19,7 @@ import { teamModeEnabled, type TeamSnapshot } from '@/lib/team-game'
 import { tournamentModeEnabled } from '@/lib/tournaments'
 import TeamTables from '@/components/game/TeamTables'
 import ShareTableInvite from '@/components/ShareTableInvite'
+import WaitingForPlayers from '@/components/WaitingForPlayers'
 
 interface Props {
   profile: Profile
@@ -376,8 +377,8 @@ export default function LobbyClient({
               {createdCode}
             </p>
           </div>
+          <WaitingForPlayers>Esperando que se una tu rival</WaitingForPlayers>
           <ShareTableInvite tableId={createdTableId} mode="1v1" />
-          <p className="text-sm text-subtle">Esperando que alguien se una…</p>
           <Button fullWidth onClick={() => router.push(`/game/${createdTableId}`)}>
             Ir a la sala de espera
           </Button>
