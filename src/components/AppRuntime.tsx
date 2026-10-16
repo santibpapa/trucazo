@@ -23,6 +23,7 @@ const APP_PATHS = [
   '/comunidad',
   '/historia',
   '/game',
+  '/invitar',
   '/resena',
 ]
 

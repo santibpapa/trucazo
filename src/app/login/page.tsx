@@ -9,8 +9,10 @@ import GuestButton from '@/components/GuestButton'
 import GoogleButton from '@/components/GoogleButton'
 import InstallButton from '@/components/InstallButton'
 import { loginDestination } from '@/lib/android-entry'
+import { invitationAuthLink, invitationPath } from '@/lib/table-invites'
 
-export default function LoginPage() {
+export default function LoginPage({ searchParams }: { searchParams: { next?: string } }) {
+  const next = invitationPath(searchParams.next)
   const router = useRouter()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -114,13 +116,13 @@ export default function LoginPage() {
 
         <div className="flex flex-col gap-3">
           <GoogleButton variant="secondary" size="lg" />
-          <GuestButton variant="ghost" size="lg" />
+          <GuestButton variant="ghost" size="lg" returnTo={next ?? undefined} />
           <InstallButton />
         </div>
 
         <p className="text-center text-sm text-muted">
           ¿No tenés cuenta?{' '}
-          <Link href="/register" className="text-gold font-semibold hover:underline">
+          <Link href={invitationAuthLink('/register', next)} className="text-gold font-semibold hover:underline">
             Registrate gratis
           </Link>
         </p>

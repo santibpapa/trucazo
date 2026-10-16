@@ -18,6 +18,7 @@ import type { ObjectivesData } from '@/lib/objectives'
 import { teamModeEnabled, type TeamSnapshot } from '@/lib/team-game'
 import { tournamentModeEnabled } from '@/lib/tournaments'
 import TeamTables from '@/components/game/TeamTables'
+import ShareTableInvite from '@/components/ShareTableInvite'
 
 interface Props {
   profile: Profile
@@ -362,12 +363,12 @@ export default function LobbyClient({
   if (createdCode) {
     return (
       <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-6 p-6">
-        <Panel className="w-full max-w-sm p-8 text-center flex flex-col gap-5 animate-fade-up">
+        <Panel className="w-full max-w-sm p-8 text-center flex flex-col gap-5">
           <div className="flex flex-col gap-1">
             <span className="text-xs font-semibold uppercase tracking-widest text-gold">
               Mesa creada
             </span>
-            <h2 className="font-display text-2xl font-bold text-cream">Compartí el código</h2>
+            <h2 className="font-display text-2xl font-bold text-cream">Invitá a tu rival</h2>
           </div>
           <p className="text-sm text-muted">Pasale este código a tu rival para que se una.</p>
           <div className="rounded-2xl border border-gold/30 bg-base py-5 shadow-gold-ring">
@@ -375,6 +376,7 @@ export default function LobbyClient({
               {createdCode}
             </p>
           </div>
+          <ShareTableInvite tableId={createdTableId} mode="1v1" />
           <p className="text-sm text-subtle">Esperando que alguien se una…</p>
           <Button fullWidth onClick={() => router.push(`/game/${createdTableId}`)}>
             Ir a la sala de espera

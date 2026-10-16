@@ -21,7 +21,8 @@ declare
     'create_group', 'create_table', 'delete_chat_message', 'delete_group',
     'delete_news', 'ensure_lobby_tables', 'envido_say', 'forfeit',
     'get_active_medals', 'get_campaign_map', 'get_campaign_ranking', 'get_my_objectives',
-    'get_community', 'invite_friend', 'invite_to_group', 'irse_al_mazo',
+    'get_community', 'get_table_invite', 'preview_table_invite', 'join_table_invite',
+    'invite_friend', 'invite_to_group', 'irse_al_mazo',
     'join_table', 'join_table_by_code', 'kick_group_member', 'leave_group',
     'play_card', 'player_medals', 'publish_news', 'remove_friend',
     'request_rematch', 'respond_envido', 'respond_friend_request',
@@ -52,7 +53,7 @@ declare
   v_rejected boolean;
 begin
   -- Toda función usada por el cliente debe existir, estar abierta para
-  -- authenticated y cerrada para anon.
+  -- authenticated y cerrada para anon, salvo la vista previa con clave opaca.
   select array_agg(p.oid::regprocedure::text order by p.oid::regprocedure::text)
     into v_bad
     from pg_proc p
@@ -60,7 +61,7 @@ begin
      and p.proname = any(v_client_functions)
      and (
        not has_function_privilege('authenticated', p.oid, 'execute')
-       or has_function_privilege('anon', p.oid, 'execute')
+       or (p.proname <> 'preview_table_invite' and has_function_privilege('anon', p.oid, 'execute'))
      );
 
   if v_bad is not null then

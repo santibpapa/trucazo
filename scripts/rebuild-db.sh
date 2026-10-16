@@ -46,6 +46,7 @@ drop schema if exists storage cascade;
 drop schema if exists cron    cascade;
 drop schema if exists email_internal cascade;
 drop schema if exists team_internal cascade;
+drop schema if exists invite_internal cascade;
 drop schema if exists match_chat_internal cascade;
 drop schema if exists account_internal cascade;
 drop schema if exists feedback_internal cascade;
