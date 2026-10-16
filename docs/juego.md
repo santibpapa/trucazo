@@ -4,8 +4,10 @@
 
 ## Invitación por enlace — 16/10/2026
 
-**Estado:** implementación probada en el [PR #128](https://github.com/santibpapa/trucazo/pull/128).
-Falta aplicar la migración en producción e integrar/publicar el PR; no está activada.
+**Estado:** activada en producción el 16/10/2026. El [PR #128](https://github.com/santibpapa/trucazo/pull/128)
+se integró y el dueño aplicó el SQL; ambos hechos fueron verificados. Publicación
+lista y permisos correctos. Queda la aceptación manual entre dos navegadores o
+dispositivos reales; las pruebas integradas ya aprobaron.
 
 ### Decisiones del dueño
 
@@ -50,7 +52,8 @@ La disponibilidad 2v2 sigue dependiendo de `NEXT_PUBLIC_ENABLE_2VS2=true`.
 
 ### Aplicación en producción
 
-El backend se aplica a mano, antes de integrar/publicar la interfaz:
+**Ya aplicado en Trucazo; no volver a ejecutarlo.** Estos pasos se conservan para
+otro entorno. El backend se aplica a mano, antes de integrar/publicar la interfaz:
 
 1. Abrir `supabase/migrations/20261016132353_table_link_invites.sql` en GitHub y
    copiar el archivo completo.
@@ -116,6 +119,29 @@ Google conserva el callback autorizado y el destino validado; su proveedor
 externo no se automatizó. La confirmación de email entre dispositivos tampoco
 forma parte de la prueba automática.
 
-**Próximo paso vigente:** aplicar el SQL siguiendo los pasos de arriba, integrar
-el PR y realizar la aceptación manual. No volver a tratar las pruebas integradas
-como pendientes ni afirmar que ya se aplicó la migración en producción.
+### Activación en producción — 16/10/2026
+
+El dueño informó que integró el PR y después ejecutó el SQL. Se comprobó el merge
+`98a27945950db441b519be4bee207d6ddab9c004`, del 16/10 a las 14:12 de Argentina.
+Vercel publicó ese commit con estado **READY**, región `gru1`, y los dominios
+`www.trucazo.com.ar` y `trucazo.com.ar` asociados. Despliegue:
+`dpl_6KqVsVg7xWiqBHLtosBRhZVwVA8a`.
+
+En Supabase se compararon los cuerpos de `get_table_invite`, `preview_table_invite`
+y `join_table_invite`: los tres coinciden exactamente con la migración probada.
+Se verificaron `security definer`, `search_path` vacío, ausencia de EXECUTE para
+PUBLIC y los permisos previstos: vista previa para anon/authenticated;
+generación e ingreso sólo para authenticated. `invite_internal.links` tiene RLS,
+sin acceso de esquema para jugadores/visitantes ni publicación en Realtime, con
+sus claves únicas, restricción de una sola mesa y relaciones de borrado en cascada.
+
+La página publicada se consultó con una clave inventada: respondió HTTP 200 con
+«Esta invitación ya no está disponible», sin error de carga, y conservó noindex y
+no-referrer. Estas comprobaciones fueron de sólo lectura. No demuestran por sí
+solas una invitación manual ni un ingreso con Google real en producción.
+
+**Próximo paso vigente:** aceptación manual. Crear una mesa, tocar **Invitar por
+enlace**, abrir el enlace desde otro navegador/dispositivo y confirmar **Unirme**.
+Repetir en parejas y elegir un lugar libre. Comprobar también el regreso desde
+Google si se usa ese acceso. El merge, la publicación, el SQL y las pruebas
+integradas ya están completados; no volver a indicarlos como pasos pendientes.
