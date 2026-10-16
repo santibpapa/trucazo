@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { invitationPath } from '@/lib/table-invites'
 
 export async function updateSession(request: NextRequest) {
   // Red de seguridad para el login con Google (OAuth): a veces Supabase nos
@@ -88,7 +89,8 @@ export async function updateSession(request: NextRequest) {
   // al hacerlo la sesión de invitado se reemplaza.
   if (user && !user.is_anonymous && mayRedirectAuthenticatedUser) {
     const url = request.nextUrl.clone()
-    url.pathname = '/lobby'
+    url.pathname = invitationPath(url.searchParams.get('next')) ?? '/lobby'
+    url.search = ''
     return NextResponse.redirect(url)
   }
 

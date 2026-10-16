@@ -4,6 +4,9 @@ Truco argentino online, a 15 o 30 puntos y sin flor, con monedas ficticias.
 Dos modalidades: **1 contra 1** (mano a mano) y **2 vs 2** (en parejas, cuatro jugadores).
 Construido con Next.js (App Router), React, TypeScript y Supabase (Auth + Postgres + Realtime).
 
+**Invitaciones por enlace:** decisiones, implementación, pruebas y pasos de
+activación en [Juego](docs/juego.md#invitacion-por-enlace--16102026).
+
 ## Stack
 
 - **Next.js 14** (App Router, Server Components + Client Components)

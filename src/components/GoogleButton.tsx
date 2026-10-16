@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui'
 import { isAndroidEntry } from '@/lib/android-entry'
+import { authDestination, invitationPath } from '@/lib/table-invites'
 
 interface Props {
   variant?: 'primary' | 'secondary' | 'ghost'
@@ -35,8 +36,9 @@ export default function GoogleButton({ variant = 'secondary', size = 'lg', retur
 
     // Mantener la URL de callback ya autorizada en Supabase. Sólo recordar
     // el destino local; el servidor admite sólo los destinos explícitos.
-    const destination = returnTo ?? (isAndroidEntry() ? '/android' : undefined)
-    document.cookie = `trucazo_auth_next=${destination ?? ''}; Path=/; Max-Age=600; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`
+    const next = invitationPath(new URLSearchParams(window.location.search).get('next'))
+    const destination = returnTo ?? next ?? (isAndroidEntry() ? '/android' : undefined)
+    document.cookie = `trucazo_auth_next=${destination ? authDestination(destination) : ''}; Path=/; Max-Age=600; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`
     const { error: authErr } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback`,

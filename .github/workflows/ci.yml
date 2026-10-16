@@ -71,6 +71,9 @@ jobs:
       - name: Verificar presentación de cantos por equipos
         run: node --import tsx scripts/check-team-presentation.ts
 
+      - name: Enlaces de invitación y regreso después de entrar
+        run: node --import tsx scripts/check-table-invites.ts
+
       - name: Que la lógica de truco del cliente y la del servidor coincidan
         run: npx tsx scripts/sim.ts
 
@@ -230,6 +233,9 @@ jobs:
 
       - name: Motor, bots y privacidad de partidas 2vs2
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/team_games.sql
+
+      - name: Invitaciones públicas y privadas, permisos y cobro único
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/table_invites.sql
 
       - name: Concurrencia real entre participantes 2vs2
         run: supabase/tests/team_concurrency.sh

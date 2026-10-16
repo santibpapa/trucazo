@@ -5,6 +5,7 @@ import { Panel } from '@/components/ui'
 import GameClient from './GameClient'
 import CancelTableButton from './CancelTableButton'
 import WaitingRoom from './WaitingRoom'
+import ShareTableInvite from '@/components/ShareTableInvite'
 
 export default async function GamePage({ params }: { params: { id: string } }) {
   const supabase = await createClient()
@@ -28,7 +29,7 @@ export default async function GamePage({ params }: { params: { id: string } }) {
   if (table.status === 'waiting') {
     return (
       <main className="flex flex-col items-center justify-center min-h-screen gap-6 p-6">
-        <Panel className="w-full max-w-sm p-8 text-center flex flex-col gap-5 animate-fade-up">
+        <Panel className="w-full max-w-sm p-8 text-center flex flex-col gap-5">
           <div className="flex flex-col items-center gap-3">
             <span className="flex gap-1.5" aria-hidden="true">
               <span className="w-2 h-2 rounded-full bg-gold animate-pulse [animation-delay:0ms]" />
@@ -49,6 +50,7 @@ export default async function GamePage({ params }: { params: { id: string } }) {
               </p>
             </div>
           )}
+          {!table.tournament_id && <ShareTableInvite tableId={params.id} mode="1v1" />}
           <p className="text-xs text-subtle">La pantalla se actualiza sola.</p>
           <WaitingRoom tableId={params.id} isPrivate={table.is_private} />
           <CancelTableButton tableId={params.id} />
