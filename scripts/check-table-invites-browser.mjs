@@ -9,7 +9,7 @@ import { join } from 'node:path'
 
 assert.equal(process.env.GITHUB_ACTIONS, 'true')
 assert.equal(process.env.NEXT_PUBLIC_SUPABASE_URL, 'http://127.0.0.1:54321')
-assert.equal(process.env.NEXT_PUBLIC_SITE_URL, 'http://127.0.0.1:3000')
+assert.equal(process.env.NEXT_PUBLIC_SITE_URL, 'http://localhost:3000')
 const api = process.env.NEXT_PUBLIC_SUPABASE_URL
 const origin = process.env.NEXT_PUBLIC_SITE_URL
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -34,7 +34,9 @@ async function browserSession(context) {
   assert.ok(session)
   const c = client()
   assert.equal((await c.auth.setSession(session)).error, null)
-  return { c, id: session.user.id }
+  const { data: { user }, error } = await c.auth.getUser()
+  assert.equal(error, null)
+  return { c, id: user.id }
 }
 async function ownerCookies(context, session) {
   const cookies = []
