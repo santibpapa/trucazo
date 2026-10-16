@@ -106,7 +106,10 @@ begin
       exception when raise_exception then blocked := true; end;
       reset role; perform pg_temp.check(blocked, 'no se reabre una mesa cerrada');
       if mode = '1v1' then delete from public.tables where id = t;
-      else delete from public.team_tables where id = t; end if;
+      else
+        delete from team_internal.requests where table_id = t;
+        delete from public.team_tables where id = t;
+      end if;
       perform pg_temp.check(not exists(select 1 from invite_internal.links where links.token = invite_token), 'borrar mesa borra enlace');
     end loop;
   end loop;
