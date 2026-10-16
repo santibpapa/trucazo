@@ -71,6 +71,14 @@ jobs:
           curl --fail --silent http://127.0.0.1:3000/login > /dev/null
       - name: Compartir, invitado, email, registro, asientos y enlaces cerrados
         run: node scripts/check-table-invites-browser.mjs
+      - name: Capturas de la copia móvil para revisión visual
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: invitaciones-movil
+          path: ${{ runner.temp }}/invite-screenshots/*.png
+          retention-days: 1
+          if-no-files-found: ignore
       - name: Apagar la copia
         if: always()
         run: supabase stop --workdir "$RUNNER_TEMP/trucazo-preview" --no-backup

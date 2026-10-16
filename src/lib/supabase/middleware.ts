@@ -90,8 +90,9 @@ export async function updateSession(request: NextRequest) {
   // al hacerlo la sesión de invitado se reemplaza.
   if (user && !user.is_anonymous && mayRedirectAuthenticatedUser) {
     const url = request.nextUrl.clone()
-    url.pathname = invitationPath(url.searchParams.get('next')) ?? '/lobby'
-    url.search = ''
+    const invitation = invitationPath(url.searchParams.get('next'))
+    url.pathname = invitation ?? '/lobby'
+    if (invitation) url.search = ''
     return NextResponse.redirect(url)
   }
 

@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto'
 import { chromium } from 'playwright'
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
+import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
 
 assert.equal(process.env.GITHUB_ACTIONS, 'true')
 assert.equal(process.env.NEXT_PUBLIC_SUPABASE_URL, 'http://127.0.0.1:54321')
@@ -11,6 +13,8 @@ assert.equal(process.env.NEXT_PUBLIC_SITE_URL, 'http://127.0.0.1:3000')
 const api = process.env.NEXT_PUBLIC_SUPABASE_URL
 const origin = process.env.NEXT_PUBLIC_SITE_URL
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const screenshots = join(process.env.RUNNER_TEMP, 'invite-screenshots')
+await mkdir(screenshots, { recursive: true })
 const client = () => createClient(api, key, { auth: { persistSession: false, autoRefreshToken: false } })
 async function rpc(c, name, args) {
   const r = await c.rpc(name, args)
@@ -72,6 +76,7 @@ try {
     page.on('request', r => { if (r.url().includes('/rpc/join_table_invite')) joins++ })
     await page.goto(`${origin}${t.path}`)
     await page.getByRole('heading', { name: 'Truco con amigos' }).waitFor()
+    if (privateTable) await page.screenshot({ path: join(screenshots, `invitacion-${mode}-movil.png`), fullPage: true })
     assert.equal(joins, 0, 'abrir no confirma')
     const preview = await rpc(owner.c, 'preview_table_invite', { p_token: t.token })
     assert.equal(preview.occupied, 1)
@@ -92,6 +97,7 @@ try {
       await page.getByRole('button', { name: 'Sentarme en el asiento 3', exact: true }).click()
       await page.getByRole('button', { name: 'Sentarme en el asiento 3', exact: true }).waitFor({ state: 'detached' })
       assert.equal((await rpc(guest.c, 'team_snapshot', { p_table_id: t.id })).my_seat, 2)
+      if (privateTable) await page.screenshot({ path: join(screenshots, 'asiento-parejas-movil.png'), fullPage: true })
     }
     await page.goto(`${origin}${t.path}`)
     await page.getByRole('button', { name: 'Volver a mi mesa', exact: true }).waitFor()
@@ -119,6 +125,9 @@ try {
     await page.getByRole('button', { name: 'Unirme', exact: true }).waitFor()
     const account = await browserSession(context)
     assert.equal(await coins(account.c, account.id), 1000, 'login/registro no cobra')
+    await page.goto(`${origin}/login?next=${encodeURIComponent(t.path)}`)
+    await page.waitForURL(`${origin}${t.path}`)
+    await page.getByRole('button', { name: 'Unirme', exact: true }).waitFor()
     await page.getByRole('button', { name: 'Unirme', exact: true }).click()
     await page.waitForURL(`${origin}/game/${t.id}`)
     assert.equal(await coins(account.c, account.id), 900)
