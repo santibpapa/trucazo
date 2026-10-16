@@ -4,8 +4,8 @@
 
 ## Invitación por enlace — 16/10/2026
 
-**Estado:** implementación preparada para revisión en GitHub. Falta aprobar la
-verificación automatizada y aplicar la migración en producción; no está activada.
+**Estado:** implementación probada en el [PR #128](https://github.com/santibpapa/trucazo/pull/128).
+Falta aplicar la migración en producción e integrar/publicar el PR; no está activada.
 
 ### Decisiones del dueño
 
@@ -61,11 +61,11 @@ El backend se aplica a mano, antes de integrar/publicar la interfaz:
    invitado y confirmar. Repetir con parejas eligiendo un asiento libre.
 
 No requiere variables nuevas, habilitar Realtime para las claves ni cambiar cron.
-La foto de este agregado está en `supabase/schema/table_invites.sql`; es una
-referencia posterior al esquema completo y no se ejecuta antes de las tablas 2v2.
-La reconstrucción continúa usando todas las migraciones en orden.
+La foto de este agregado está en `supabase/schema/table_invites.sql`; es sólo
+referencia y no se ejecuta además de la migración. La reconstrucción continúa
+usando todas las migraciones en orden, con las tablas 2v2 antes de este agregado.
 
-### Pruebas y próximo paso
+### Cobertura de pruebas
 
 Tipos, ESLint (sólo advertencias previas), compilación de Next y pruebas de destinos
 de invitación/Android aprobaron en una copia limpia de GitHub, aislada de la carpeta
@@ -81,6 +81,41 @@ sobre PostgreSQL descartable y revisa los permisos globales de las funciones.
 sesión, invitado con nombre, confirmación, saldo, reintento, asiento, email,
 registro y enlace cerrado. No automatiza el proveedor externo de Google.
 
-**Próximo paso:** revisar los resultados de GitHub, resolver cualquier fallo y
-registrar la evidencia antes de aplicar el SQL e integrar. La implementación no
-demuestra por sí sola una partida manual en producción.
+### Evidencia de cierre — 16/10/2026
+
+Código verificado: `742d4256949bf62a53737c7dd756f227d29e22ac`. La
+[prueba integrada](https://github.com/santibpapa/trucazo/actions/runs/38910753844)
+aprobó con Auth, Postgres, Realtime, Next y Chromium reales, sin datos ni claves
+de producción. Nueve recorridos aprobados: las cuatro combinaciones de modalidad
+y visibilidad, email, registro, último cupo concurrente 1v1, último cupo concurrente
+2v2 y enlaces cerrados/desconocidos. La misma ejecución reconstruyó la base y
+aprobó `table_invites.sql` antes de abrir el navegador.
+
+La [revisión general](https://github.com/santibpapa/trucazo/actions/runs/38910754149)
+también aprobó completa para ese código: aplicación, reconstrucción de la base,
+permisos y baterías de juego, seguridad, torneos, monedas y concurrencia. La
+[base sin conexión](https://github.com/santibpapa/trucazo/actions/runs/38910754613)
+aprobó sin cambios en sus reglas. El commit posterior a esta evidencia sólo
+actualiza este documento; conserva el mismo código y las mismas pruebas.
+
+En cada modalidad se comprobó que visitar/identificarse no descuenta monedas,
+confirmar cobra una sola apuesta y reintentar conserva el saldo. En parejas el
+asiento quedó vacío al ingresar y después se eligió el lugar 3. Dos personas
+disputando el último cupo produjeron un solo ingreso y un solo descuento.
+Volver al login con una cuenta ya iniciada conservó la invitación.
+
+Se inspeccionaron las tres capturas móviles: ambas invitaciones y el asiento
+elegido en parejas, sin desborde horizontal ni controles recortados. Las capturas
+de la última ejecución quedan en su artifact `invitaciones-movil` durante un día.
+Se usó `localhost` para la web de la copia: Next normaliza a ese nombre las
+redirecciones locales, y mezclarlo con `127.0.0.1` separaba las cookies del navegador.
+No se modificaron las redirecciones de producción para adaptar esa prueba.
+
+La revisión de React y los checks de tipos/ESLint no agregaron advertencias.
+Google conserva el callback autorizado y el destino validado; su proveedor
+externo no se automatizó. La confirmación de email entre dispositivos tampoco
+forma parte de la prueba automática.
+
+**Próximo paso vigente:** aplicar el SQL siguiendo los pasos de arriba, integrar
+el PR y realizar la aceptación manual. No volver a tratar las pruebas integradas
+como pendientes ni afirmar que ya se aplicó la migración en producción.
