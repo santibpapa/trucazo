@@ -169,11 +169,14 @@ presentación: no requiere SQL ni altera el ingreso, los cobros o los asientos.
 
 ## Vidas de Historia — 18/10/2026
 
-**Estado:** implementación preparada en el [PR #130](https://github.com/santibpapa/trucazo/pull/130),
-rama `codex/campaign-lives`. No integrada
-ni aplicada en producción. El trabajo parte de GitHub master `24f1da19`; la carpeta
-local del dueño no se usó ni modificó. Las pruebas se realizan en una copia temporal
-limpia y en los runners descartables de GitHub.
+**Estado:** el [PR #130](https://github.com/santibpapa/trucazo/pull/130) está integrado
+en master, commit `e707efb16eb9a96c2afbc02b84d45f8696638816`. El SQL y el estado de
+producción no se verificaron en esta sesión; no asumir que falta aplicarlo ni
+volver a ejecutarlo sin comprobarlo. El alta publicitaria está iniciada y se
+prepara la verificación de propiedad detallada al final de este documento.
+El trabajo partió de GitHub master `24f1da19`; la carpeta local del dueño no se
+usó ni modificó. Las pruebas se realizaron en una copia temporal limpia y en
+runners descartables de GitHub.
 
 ### Reglas acordadas
 
@@ -246,8 +249,8 @@ y [reglas de recompensa](https://support.google.com/admanager/answer/7496282).
    este PR no crea una cuenta ni asegura ingresos. Revisar en la cuenta la
    configuración de privacidad/consentimiento y, donde corresponda, la CMP
    requerida por Google antes de servir anuncios. Si pide verificar el dominio
-   o publicar `ads.txt`, usar los datos reales de esa cuenta; todavía no existe
-   un identificador de editor para prepararlo. Mantener los anuncios automáticos
+   o publicar `ads.txt`, usar los datos reales de esa cuenta. El identificador
+   de editor recibido y la verificación elegida se registran al final. Mantener los anuncios automáticos
    apagados: este flujo utiliza únicamente el bloque voluntario de recompensa.
 4. Copiar la ruta real del bloque (formato `/CODIGO_RED/BLOQUE`) en Vercel →
    proyecto Trucazo → Settings → Environment Variables →
@@ -311,11 +314,11 @@ la revisión completa también terminó aprobada, incluidas reconstrucción, jue
 seguridad, permisos, torneos, monedas y simulaciones Noroeste. El commit posterior
 a esta evidencia sólo actualiza documentación y conserva el mismo código probado.
 
-La integración y el SQL de producción siguen pendientes. La cuenta publicitaria,
-su aprobación, el consentimiento aplicable y una vista con inventario real tampoco
-se hicieron durante esta entrega. No se generan ingresos por tener el PR ni por
-las pruebas simuladas. Próximo paso: ejecutar la migración del paso 1 en Supabase,
-integrar el PR y completar el alta publicitaria si se quiere habilitar anuncios.
+Al cerrar aquella entrega todavía faltaban la integración y la comprobación de
+SQL en producción. La integración posterior de #130 y el inicio del alta
+publicitaria se registran en el estado actual y en la actualización siguiente.
+La aprobación publicitaria, el consentimiento aplicable y una vista con inventario
+real siguen sin comprobarse. No se generan ingresos por las pruebas simuladas.
 
 
 ### Compatibilidad con el PR #129 — 18/10/2026
@@ -326,3 +329,26 @@ después del código» como la de vidas. El único conflicto era la incorporaci�
 de ambas secciones al final de este documento; los archivos de código no se pisan.
 No se cambia la migración de vidas ni se aplica SQL o se publica #130 durante
 esta actualización. Las verificaciones automáticas vuelven a evaluar la combinación.
+
+
+### Alta de AdSense y verificación del sitio — 18/10/2026
+
+El dueño abrió el alta de `trucazo.com.ar` y mostró la pantalla «Su sitio necesita
+revisión». El identificador visible en su captura es `ca-pub-3485016002829591`.
+Se prepara únicamente la metaetiqueta `google-adsense-account` en los metadatos
+globales de `src/app/layout.tsx`, método admitido por Google para verificar la
+propiedad sin cargar el script de anuncios. Es un identificador público del
+editor. No se agregan anuncios automáticos, un bloque de recompensa ni SQL.
+
+Después de integrar este cambio y confirmar su publicación en la web:
+
+1. En la misma pantalla de AdSense elegir **Metaetiqueta**.
+2. Comprobar que muestra el mismo identificador de editor.
+3. Marcar la casilla de código/metaetiqueta colocada y tocar **Verificar**.
+4. Si Google confirma la propiedad, abrir **Solicitar revisión** y completar
+   las tareas obligatorias que indique la cuenta.
+
+Preparar la metaetiqueta no significa que ya esté publicada, que Google la haya
+verificado ni que el sitio esté aprobado para anuncios. La aprobación y el bloque
+rewarded siguen siendo pasos separados. Referencia oficial:
+[Conectar un sitio a AdSense](https://support.google.com/adsense/answer/7584263?hl=es-419).
