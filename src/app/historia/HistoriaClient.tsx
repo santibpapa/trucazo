@@ -326,7 +326,7 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
 
       {/* HUD: barra superior fija, con chips sólidos como los del lobby. Alineado
           arriba (items-start) para que Ranking y monedas queden en la línea del
-          botón de volver; la barra de fama cuelga debajo de las monedas. */}
+          botón de volver; vidas y fama quedan debajo, dentro del mismo HUD. */}
       <div className="fixed top-0 inset-x-0 z-20 flex items-start justify-between gap-3 p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
         {/* Chip principal: volver + título + puntos, todo junto. */}
         <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface2/95 pl-1.5 pr-4 py-1.5 shadow-card pointer-events-auto min-w-0">
@@ -345,13 +345,16 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
           </div>
         </div>
         <div className="flex items-start gap-2 pointer-events-auto shrink-0">
-          <button
-            onClick={() => setShowRanking(true)}
-            className="flex items-center gap-1.5 rounded-full border border-gold/50 bg-surface2/95 px-3 py-2.5 text-xs font-bold text-gold hover:bg-gold/10 transition-colors shadow-card"
-          >
-            <PodiumIcon />
-            Ranking
-          </button>
+          <div className="flex flex-col items-stretch gap-1.5">
+            <button
+              onClick={() => setShowRanking(true)}
+              className="flex items-center gap-1.5 rounded-full border border-gold/50 bg-surface2/95 px-3 py-2.5 text-xs font-bold text-gold hover:bg-gold/10 transition-colors shadow-card"
+            >
+              <PodiumIcon />
+              Ranking
+            </button>
+            <CampaignLives initial={lives} />
+          </div>
           {/* Monedas arriba; abajo, la barra de fama (discreta, se toca para ver
               tu estilo). */}
           <div className="flex flex-col items-stretch gap-1.5">
@@ -378,8 +381,6 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
           <Alert>{error}</Alert>
         </div>
       )}
-
-      <div className="fixed bottom-3 right-3 z-20"><CampaignLives initial={lives} /></div>
 
       {/* Modo ajuste: cartel compacto abajo-izquierda. */}
       {editing && (

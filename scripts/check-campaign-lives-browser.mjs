@@ -23,6 +23,16 @@ async function capture(page, name) {
   await page.locator('.animate-clouds-left').waitFor({ state: 'detached' })
   await page.screenshot({ path: join(screenshots, name), fullPage: true, animations: 'disabled' })
 }
+async function checkHud(page, lifeLabel) {
+  const ranking = await page.getByRole('button', { name: 'Ranking', exact: true }).boundingBox()
+  const lives = await page.getByRole('button', { name: lifeLabel, exact: true }).boundingBox()
+  const fame = await page.getByRole('button', { name: /^Fama / }).boundingBox()
+  assert.ok(lives.y >= ranking.y + ranking.height, 'vidas debajo de Ranking')
+  assert.ok(Math.abs(lives.x - ranking.x) < 1, 'vidas en la misma columna de Ranking')
+  assert.ok(lives.x + lives.width <= fame.x, 'vidas no tapa fama')
+  assert.ok(lives.y < 130, 'vidas queda en la barra superior')
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'sin desborde horizontal')
+}
 const rpc = async (c, name, args) => {
   const result = await c.rpc(name, args)
   assert.equal(result.error, null, `${name}: ${result.error?.message}`)
@@ -56,6 +66,42 @@ try {
   await rpc(b.c, 'respond_friend_request', { p_friendship_id: friendship.friendship_id, p_accept: true })
   const map = await rpc(a.c, 'get_campaign_map')
   const rival = map.provinces.flatMap(p => p.rivals).find(r => r.unlocked)
+  assert.equal((await rpc(a.c, 'get_campaign_lives')).lives_enabled, false, 'pausado por defecto')
+  let pausedDuel
+  for (let i = 0; i < 4; i++) {
+    pausedDuel = await rpc(a.c, 'start_campaign_duel', { p_rival_id: rival.id })
+    await rpc(a.c, 'forfeit', { p_game_id: pausedDuel.id })
+  }
+  assert.equal((await rpc(a.c, 'get_campaign_lives')).lives, 3, 'la cuarta derrota tampoco consume vidas')
+  sql(`update campaign_internal.lives set lives=0,next_life_at=statement_timestamp()+interval '20 minutes',depletion_id=gen_random_uuid() where user_id='${a.id}'`)
+  const pausedContext = await contextFor(browser, a)
+  const pausedPage = await pausedContext.newPage()
+  await pausedPage.goto(`${origin}/historia`)
+  const unlimited = 'Vidas ilimitadas de Historia. Ver información'
+  for (const width of [320, 360, 390, 1280]) {
+    await pausedPage.setViewportSize({ width, height: width === 1280 ? 800 : 640 })
+    await checkHud(pausedPage, unlimited)
+    await capture(pausedPage, `vidas-pausadas-mapa-${width}.png`)
+  }
+  await pausedPage.setViewportSize({ width: 360, height: 640 })
+  await pausedPage.getByRole('button', { name: unlimited, exact: true }).click()
+  await pausedPage.getByText('Por ahora podés jugar sin límite. Las derrotas no descuentan vidas.', { exact: true }).waitFor()
+  assert.equal(await pausedPage.getByRole('button', { name: 'Pedir', exact: true }).count(), 0)
+  assert.equal(await pausedPage.getByRole('button', { name: 'Ver anuncio para recuperar 1 vida', exact: true }).count(), 0)
+  assert.equal(await pausedPage.getByText(/Próxima vida en/).count(), 0)
+  await capture(pausedPage, 'vidas-pausadas-informacion.png')
+  await pausedPage.goto(`${origin}/game/${pausedDuel.id}`)
+  await pausedPage.getByRole('button', { name: unlimited, exact: true }).waitFor()
+  assert.equal(await pausedPage.evaluate(() => document.documentElement.scrollHeight <= innerHeight), true, 'resultado pausado sin scroll')
+  await pausedPage.getByRole('button', { name: 'Revancha', exact: true }).click()
+  await pausedPage.waitForURL(url => url.pathname.startsWith('/game/') && !url.pathname.endsWith(pausedDuel.id))
+  const resumedId = pausedPage.url().split('/').at(-1)
+  await rpc(a.c, 'forfeit', { p_game_id: resumedId })
+  assert.equal((await rpc(a.c, 'get_campaign_lives')).lives, 0, 'saldo previo cero tampoco impide Revancha')
+  await pausedContext.close()
+  sql(`update campaign_internal.lives set lives=3,next_life_at=null,depletion_id=null where user_id='${a.id}'`)
+  sql('update campaign_internal.ad_settings set lives_enabled=true where singleton')
+  console.log('PASS: pausa real, cuatro derrotas, Revancha con saldo previo cero y HUD junto a fama/ranking')
   const starts = await Promise.all([rpc(a.c, 'start_campaign_duel', { p_rival_id: rival.id }), rpc(a.c, 'start_campaign_duel', { p_rival_id: rival.id })])
   assert.equal(starts[0].id, starts[1].id, 'inicios concurrentes retoman el mismo duelo')
   let lastDuel
@@ -77,6 +123,7 @@ try {
   await page.getByRole('button', { name: 'Cerrar ventana', exact: true }).click()
   assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), true, 'resultado entra sin scroll')
   await page.goto(`${origin}/historia`)
+  await checkHud(page, '0 de 3 vidas de Historia. Ver opciones')
   await page.getByRole('button', { name: '0 de 3 vidas de Historia. Ver opciones' }).click()
   await page.getByRole('heading', { name: 'Vidas de Historia', exact: true }).waitFor()
   assert.equal(await page.getByRole('button', { name: 'Ver anuncio para recuperar 1 vida', exact: true }).count(), 0, 'apagado sin alta publicitaria')
@@ -134,6 +181,7 @@ try {
   await page.getByRole('button', { name: 'Cerrar ventana', exact: true }).click()
   await page.getByRole('button', { name: /de 3 vidas de Historia/ }).click()
   await page.getByRole('button', { name: '3 de 3 vidas de Historia. Ver opciones' }).waitFor({ timeout: 22000 })
+  await checkHud(page, '3 de 3 vidas de Historia. Ver opciones')
   await capture(page, 'vidas-completas-movil.png')
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
   await aContext.close(); await bContext.close()
