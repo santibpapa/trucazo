@@ -38,6 +38,7 @@ async function checkHud(page, lifeLabel) {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'sin desborde horizontal')
 }
 async function checkNoLives(page) {
+  assert.equal(await page.getByText(/\bvidas?\b|∞/i).count(), 0, 'sin mensajes de vidas durante la pausa')
   assert.equal(await page.getByRole('button', { name: /vidas de Historia|Vidas ilimitadas|Ver vidas/i }).count(), 0, 'sin indicador de vidas durante la pausa')
   assert.equal(await page.getByRole('heading', { name: 'Vidas de Historia', exact: true }).count(), 0, 'sin ventana de vidas durante la pausa')
   assert.equal(await page.getByText('∞', { exact: true }).count(), 0, 'sin símbolo de vidas infinitas')

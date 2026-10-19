@@ -449,7 +449,9 @@ directos durante la pausa, permisos privados y reactivación del límite. Se
 conserva íntegra la suite de vidas activas. La prueba de navegador con
 Auth/Postgres/Next reales comprueba que no haya indicador, ventana, infinito,
 pedidos ni anuncios a 320, 360, 390 y 1280 px; verifica la ausencia también en
-el resultado después de recibir el estado real del servidor. Prueba Revancha
+el resultado después de recibir el estado real del servidor. Se retira también
+el aviso fijo «Perdiste una vida» del resultado, que era incorrecto durante la
+pausa; la prueba rechaza cualquier texto de vidas mientras esté desactivado. Prueba Revancha
 desde cero, resultado sin scroll y que al reactivar vuelva el indicador real
 junto a Fama/Ranking. Sólo el SDK publicitario se simula.
 
