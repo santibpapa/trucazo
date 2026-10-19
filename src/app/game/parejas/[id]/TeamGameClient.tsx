@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { Button, CoinIcon, Modal } from '@/components/ui'
 import { SalonBackground, SalonTable } from '@/components/game/SalonScene'
 import PlayingCard from '@/components/game/PlayingCard'
 import CardBack from '@/components/game/CardBack'
-import FinishScreen from '@/components/game/FinishScreen'
 import { MesaHeader, MesaButton, MesaTurn, MesaAnnouncement, SeatAvatar, TableAccessory, MesaDeck, DEAL_ORIGINS } from '@/components/game/MesaUI'
 import { TEAM_LABELS as labels, teamActionRows } from '@/lib/team-presentation'
 import useTeamPresentation from './useTeamPresentation'
@@ -19,6 +19,8 @@ import type { TeamMember, TeamSnapshot } from '@/lib/team-game'
 import { getSalonTheme } from '@/lib/salones'
 import salon from '@/components/game/salon.module.css'
 import styles from './team.module.css'
+
+const FinishScreen = dynamic(() => import('@/components/game/FinishScreen'))
 
 function Played({ card, seat, animate }: { card: Card; seat: number; animate: boolean }) {
   const ref = useRef<HTMLDivElement>(null)

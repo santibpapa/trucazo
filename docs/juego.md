@@ -1,5 +1,115 @@
 # Juego
 
+<a id="rendimiento-del-lobby-y-la-mesa"></a>
+
+## Rendimiento del lobby y la mesa — 19/10/2026
+
+**Estado:** implementación y verificación preparadas sobre el `master` remoto
+`a6ddfc78870d51ae347888c40f37a732e0302fe0`, en una copia aislada. No usa cambios
+de la carpeta de trabajo del dueño. Esta sección no acredita integración ni
+publicación en producción; no requiere SQL ni ajustes de Supabase.
+
+### Cambios y comparación
+
+- El panel de amigos y chat de escritorio se importa y monta sólo desde 1280 px.
+  La insignia móvil de Comunidad mantiene sus datos. Cambiar el ancho monta o
+  desmonta el panel, sin dejar su lectura de historial activa en celulares.
+- El seguimiento de mesas propias usa Realtime y una consulta de respaldo cada
+  diez segundos, suspendida con la pestaña oculta. Relee al conectar o recuperar
+  visibilidad/red, agrupa avisos durante una lectura y descarta respuestas tras
+  salir. El pedido vence a los ocho segundos. `id,games(status)` reemplaza las
+  lecturas consecutivas de mesa y partida por una sola consulta con la relación
+  1:1 existente. Una lectura fallida no navega; una partida terminada tampoco.
+- Fondo y paño reutilizan su render mientras no cambie el salón. La pantalla
+  final, vidas y progreso de objetivos se cargan cuando se muestran.
+- Las tres cartas visibles mantienen prioridad. La precarga del resto espera a
+  que cargue la página y otros 1500 ms; luego pide de a dos con prioridad baja y
+  decodificación asíncrona. Al salir deja de pedir cartas nuevas. Se conserva el
+  mazo completo en memoria para las siguientes manos: no se reduce su tamaño.
+- Sólo `/cartas/`, `/mesa/` y `/personajes/` reciben caché pública de un día y
+  revalidación en segundo plano hasta siete días más. Son nombres estables: al
+  reemplazar arte que deba verse inmediatamente, usar un nombre nuevo. Sesiones,
+  partidas, RPCs y HTML privado no reciben esta caché; `sw.js` sigue en `no-cache`.
+
+Build de producción, mismos paquetes y variables ficticias, Node 24.19.0 y Next
+14.2.35. Suma de los archivos JavaScript iniciales de cada ruta en
+`.next/app-build-manifest.json`, comprimidos individualmente con gzip. No incluye
+los módulos diferidos que aún no se montaron:
+
+| Ruta | Antes, bytes gzip | Después, bytes gzip |
+| --- | ---: | ---: |
+| Lobby | 196.877 | 191.398 |
+| Partida 1v1 | 207.073 | 192.980 |
+| Partida 2vs2 | 187.593 | 187.420 |
+| Portada, control | 104.720 | 104.899 |
+
+La reducción inicial es 2,8% en lobby y 6,8% en 1v1. La portada aumenta 179 bytes
+por el código compartido del cargador; no se atribuye una mejora allí.
+
+Chrome sin ventana, componentes reales compilados en modo producción con React
+18, navegación y HTTP simulados, sin cuentas ni partidas de producción:
+
+| Prueba controlada | Antes | Después |
+| --- | ---: | ---: |
+| Lecturas de mesas en 6,2 s, móvil y escritorio | 7 | 2 |
+| Lecturas del chat oculto en móvil | 1 | 0 |
+| Lecturas del chat al ampliar a escritorio | 1 | 1 |
+| Ejecuciones de fondo + paño, montaje y 12 actualizaciones sin cambiar salón | 26 | 2 |
+| Ejecuciones tras cambiar realmente el salón | 28 | 4 |
+| Cartas solicitadas en los primeros 200 ms del escenario de partida | 40 | 3 |
+| Cartas solicitadas tras completar la precarga | 40 | 40 |
+
+El inicio de una mesa pasa de dos pedidos consecutivos a uno. Las dos lecturas
+totales del ensayo posterior incluyen la lista pública y el seguimiento propio;
+no son dos consultas cada segundo. En régimen estable, el respaldo propio baja
+de 60 a 6 consultas por minuto, más los avisos/reconexiones que realmente ocurran.
+
+### Consultas, fuentes y scripts revisados
+
+Se leyó `pg_stat_statements` de producción sin reiniciar estadísticas ni cambiar
+datos. Acumula desde el 19/06/2026: no es una ventana reciente ni una comparación
+antes/después del parche. Promedios agregados observados: `game_hands` 0,10 ms,
+lecturas relacionadas con `tables` 1,49 ms, `team_lobby` 3,01 ms, `get_community`
+16,66 ms, `bot_step` 22,91 ms y `get_my_objectives` 51,45 ms. Son tiempos de SQL,
+sin transporte ni render. Por volumen, se priorizó eliminar pedidos repetidos y
+la cadena mesa → partida; no se inventaron índices a partir de estos promedios.
+
+Los avatares de creadores/amigos ya usan `.in(...)` y las medallas se solicitan
+por lote: no se encontró un pedido HTTP por cada fila en esos recorridos.
+Se mantiene el aislamiento de `game_hands`. No se cambian funciones del juego,
+reglas, puntajes, monedas ni permisos. Las fuentes ya son locales
+(`GeistVF.woff2`, 55.744 bytes, `display: swap`) y el mazo ya usa WebP (925.628
+bytes en total). Se conservan las métricas de Vercel; no se añade otro SDK.
+
+### Verificación y reproducción
+
+- `npm run check:performance:browser`: contadores del lobby a 390/1440 px,
+  ampliación del panel social, renders con/sin cambio de salón, precarga y
+  aparición correcta de la pantalla final diferida. Playwright usa Chromium;
+  `PERF_BROWSER_CHANNEL=chrome` permite usar Chrome instalado. `--baseline` al
+  ejecutar el script informa los contadores sin exigir las optimizaciones.
+- `npm run check:performance:bundle`, después del build: imprime los bytes y
+  gzip iniciales para las cuatro rutas de la tabla.
+- `node --import tsx scripts/check-started-table.ts`: nueve casos con SDK HTTP
+  real y transporte/reloj controlados: lectura conjunta, evento inmediato,
+  finalización anterior, partida aún sin crear, error, avisos simultáneos,
+  pedido sin respuesta, visibilidad/red y salida. Se incorpora al CI junto al
+  ensayo de navegador.
+- Tipos, ESLint, build y generación de markdown aprobados. ESLint mantiene las
+  seis advertencias previas del 1v1; desaparece la del seguimiento del lobby.
+  Aprobaron también mesas del lobby, presencia, recuperación de reparto/tiempo,
+  declaración de envido, chat, invitaciones, allowlist y contenido para agentes.
+- El servidor de producción de Next en la copia aislada respondió el WebP de
+  carta y el del salón con `public, max-age=86400,
+  stale-while-revalidate=604800`; antes la carta respondía `public, max-age=0`.
+  Se comprobó que `sw.js` conserva `no-cache`.
+
+**Límites:** el ensayo de componentes no certifica SSR, Realtime por red real,
+LCP, INP ni una mejora porcentual de tiempo de carga en producción. Los avisos y
+fallos se prueban controladamente; los números de SQL son observaciones previas,
+no un aumento de velocidad de la base. Próxima comprobación al integrar: comparar
+las métricas de Vercel con tráfico real y entrar a una mesa desde dos dispositivos.
+
 <a id="invitacion-por-enlace"></a>
 
 ## Invitación por enlace — 16/10/2026
