@@ -352,3 +352,27 @@ Preparar la metaetiqueta no significa que ya esté publicada, que Google la haya
 verificado ni que el sitio esté aprobado para anuncios. La aprobación y el bloque
 rewarded siguen siendo pasos separados. Referencia oficial:
 [Conectar un sitio a AdSense](https://support.google.com/adsense/answer/7584263?hl=es-419).
+
+
+### AdSense en revisión y archivo ads.txt — 18/10/2026
+
+El dueño mostró `trucazo.com.ar` con estado **Preparando el sitio** y ads.txt
+**No encontrado**. Esto no es una aprobación ni un rechazo. El PR #131 ya está
+integrado (commit `1c801c62f0a09e7221b7e170d89ff030aa322ac8`); la metaetiqueta y la
+conexión del sitio se completaron antes de esa captura.
+
+Se prepara `public/ads.txt`, accesible después de publicar en
+`https://trucazo.com.ar/ads.txt`. Contiene una sola autorización DIRECT de Google
+con el mismo ID de editor de la metaetiqueta verificada. No hay otra ruta o archivo
+ads.txt en el árbol remoto. El middleware permite esta ruta pública sin sesión ni
+consulta a Supabase; la configuración no la redirige a login ni a una página HTML.
+No requiere SQL ni activa anuncios.
+
+Tras integrar/publicar este cambio, abrir esa URL y comprobar la línea de Google.
+Luego ir a AdSense → Sitios → `trucazo.com.ar` → **Buscar actualizaciones**, si
+aparece. El rastreador puede demorar en reflejarlo; publicar el archivo no demuestra
+que Google ya lo leyó ni cambia por sí solo la revisión a **Listo**. Falta la
+aprobación del sitio y la configuración del bloque rewarded.
+
+Referencias: [guía de ads.txt](https://support.google.com/adsense/answer/7532444?hl=es)
+y [estados de revisión](https://support.google.com/adsense/answer/12170222?hl=es).
