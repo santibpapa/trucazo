@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import CampaignLives from '@/components/CampaignLives'
+import type { CampaignLives as Lives } from '@/lib/useCampaignLives'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Panel, Coins, Alert, Modal, CoinIcon, cn } from '@/components/ui'
 
@@ -58,6 +60,7 @@ interface Props {
   style: Style | null
   provinces: Province[]
   coins: number
+  lives: Lives | null
 }
 
 type Pos = { x: number; y: number }
@@ -122,7 +125,7 @@ const LUGARES: Record<string, Pos[]> = {
   'jujuy':               [{ x: 33, y: 26 }, { x: 54.7, y: 48.4 }, { x: 22.6, y: 66.7 }, { x: 80.9, y: 82 }],
 }
 
-export default function HistoriaClient({ points, fama, style, provinces: initialProvinces, coins }: Props) {
+export default function HistoriaClient({ points, fama, style, provinces: initialProvinces, coins, lives }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -232,14 +235,21 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
   async function play(rivalId: string) {
     setLoadingId(rivalId)
     setError('')
-    const { data, error } = await supabase.rpc('start_campaign_duel', { p_rival_id: rivalId })
-    if (error || !data) {
-      setError('No se pudo empezar el duelo. Probá de nuevo.')
-      setLoadingId(null)
-      return
-    }
-    router.push(`/game/${(data as { id: string }).id}`)
-    router.refresh()
+    try {
+      const { data, error } = await supabase.rpc('start_campaign_duel', { p_rival_id: rivalId }).abortSignal(AbortSignal.timeout(8000))
+      if (error?.message.includes('CAMPAIGN_NO_LIVES')) {
+        setSelected(null)
+        window.dispatchEvent(new Event('campaign-no-lives'))
+        return
+      }
+      if (error || !data) {
+        setError('No se pudo empezar el duelo. Probá de nuevo.')
+        return
+      }
+      router.push(`/game/${(data as { id: string }).id}`)
+      router.refresh()
+    } catch { setError('No se pudo empezar el duelo. Probá de nuevo.') }
+    finally { setLoadingId(null) }
   }
 
   // Modo ajuste: arrastrar actualiza la posición en % (marcador del mapa o
@@ -368,6 +378,8 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
           <Alert>{error}</Alert>
         </div>
       )}
+
+      <div className="fixed bottom-3 right-3 z-20"><CampaignLives initial={lives} /></div>
 
       {/* Modo ajuste: cartel compacto abajo-izquierda. */}
       {editing && (

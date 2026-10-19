@@ -145,3 +145,120 @@ enlace**, abrir el enlace desde otro navegador/dispositivo y confirmar **Unirme*
 Repetir en parejas y elegir un lugar libre. Comprobar también el regreso desde
 Google si se usa ese acceso. El merge, la publicación, el SQL y las pruebas
 integradas ya están completados; no volver a indicarlos como pasos pendientes.
+
+
+<a id="vidas-de-historia"></a>
+
+## Vidas de Historia — 18/10/2026
+
+**Estado:** implementación preparada en la rama `codex/campaign-lives`. No integrada
+ni aplicada en producción. El trabajo parte de GitHub master `24f1da19`; la carpeta
+local del dueño no se usó ni modificó. Las pruebas se realizan en una copia temporal
+limpia y en los runners descartables de GitHub.
+
+### Reglas acordadas
+
+- Tres vidas como máximo. Perder o rendirse en Historia descuenta una sola vida.
+  Ganar y las partidas anuladas sin ganador no descuentan. Las mesas comunes y
+  parejas conservan su comportamiento.
+- Una vida cada treinta minutos mientras falten, también desconectado. El reloj
+  empieza al salir de tres; las siguientes derrotas, regalos y anuncios conservan
+  el tiempo restante. Al llegar a tres se detiene, sin acumular vidas ocultas.
+- Cero vidas impide iniciar otro duelo. Un duelo que ya estaba abierto se retoma
+  sin borrar cartas ni progreso; los inicios simultáneos devuelven la misma partida.
+- A cero puede pedirse ayuda a un amigo aceptado. El dueño confirmó que ayudar es
+  gratis: no consume vidas ni monedas del remitente. Un pedido por episodio sin
+  vidas evita duplicados; aparece en Amigos (Comunidad y panel rápido del lobby).
+  Vence con la próxima recarga. Una ayuda repetida o vencida no acredita de nuevo.
+- A cero, un anuncio voluntario puede recuperar una vida. Esperar y pedir ayuda
+  siguen disponibles. Ningún anuncio se solicita al abrir Historia o durante el
+  duelo. Cerrar, bloquear o no disponer de anuncios no otorga una vista inventada.
+
+### Implementación y límites
+
+`campaign_internal` guarda saldos, reloj, pedidos y tickets. Tiene RLS sin políticas
+para jugadores, sin acceso de esquema y fuera de Realtime. Las funciones públicas
+comprueban identidad; sus permisos excluyen PUBLIC/anon. El cliente sólo muestra
+el saldo y el contador. El servidor recalcula y bloquea la fila para serializar
+recargas, pérdidas, regalos, recompensas e inicios. El trigger de derrota actúa
+sólo al pasar de playing a finished con ganador; repetir el cierre no descuenta.
+No se requiere un cron para recargar vidas.
+
+El mapa y el resultado muestran corazones y próxima recarga. La pantalla a cero
+ofrece amigos y volver a las mesas mientras espera. Se relee al volver a la
+pestaña y cada quince segundos si está visible. Los fallos de red liberan los
+controles después de ocho segundos y muestran reintento.
+
+**Publicidad preparada para Google Ad Manager / Google Publisher Tag.** El dueño
+no tenía proveedor. La integración real usa REWARDED, rewardedSlotGranted y
+rewardedSlotClosed; el script sólo se carga al optar por el anuncio. Un ticket por
+cuenta/episodio vence a los quince minutos y se acredita una vez. Si el reloj o un
+amigo ya recuperaron una vida durante el video, no se duplica. Una recompensa
+confirmada con fallo de red queda pendiente en ese navegador y esa cuenta para
+reintentar sin otro anuncio; el ticket consumido no permite recuperar otra vida
+tras una derrota posterior.
+
+**Límite explícito del proveedor web:** Google no ofrece verificación independiente
+del servidor para rewarded web. Una persona que manipule su propio navegador
+podría falsificar la señal de recompensa después de solicitar un ticket. Los
+controles SQL evitan duplicados y regalos a otras cuentas; no prueban una vista
+publicitaria ni resuelven ese fraude. No describirlos como SSV. Para esa garantía
+habría que elegir un proveedor con comprobantes firmados o una integración nativa
+que los soporte. Referencias: [recompensas web](https://support.google.com/admanager/answer/9116812?hl=en),
+[ejemplo GPT](https://developers.google.com/publisher-tag/samples/display-rewarded-ad)
+y [reglas de recompensa](https://support.google.com/admanager/answer/7496282).
+
+### Activación, en orden
+
+1. Antes de publicar la interfaz, abrir en GitHub
+   `supabase/migrations/20261019002728_campaign_lives.sql` y copiarlo entero.
+   Supabase → proyecto Trucazo → SQL Editor → New query → pegar → Run.
+   La foto `supabase/schema/campaign_lives.sql` es referencia: no ejecutarla además.
+2. Integrar el PR cuando sus verificaciones estén aprobadas y comprobar el
+   despliegue. Con eso funcionan las vidas, la recarga y los amigos.
+3. Para monetizar, el dueño debe crear/habilitar Google Ad Manager, dar de alta
+   el sitio y configurar un bloque **Rewarded para web** con recompensa de una
+   vida. La aprobación y la disponibilidad de inventario dependen de Google;
+   este PR no crea una cuenta ni asegura ingresos. Revisar en la cuenta la
+   configuración de privacidad/consentimiento y, donde corresponda, la CMP
+   requerida por Google antes de servir anuncios.
+4. Copiar la ruta real del bloque (formato `/CODIGO_RED/BLOQUE`) en Vercel →
+   proyecto Trucazo → Settings → Environment Variables →
+   `NEXT_PUBLIC_CAMPAIGN_REWARDED_AD_UNIT`. Volver a desplegar para incorporarla.
+   El identificador no es una clave privada. No usar el bloque de demostración
+   de Google para monetizar.
+5. Recién con la cuenta y el bloque listos, en Supabase → SQL Editor → New query
+   copiar y ejecutar:
+
+   ```sql
+   update campaign_internal.ad_settings set enabled = true where singleton;
+   ```
+
+   Hasta entonces el anuncio queda oculto y ni siquiera se emiten tickets desde
+   una llamada directa. Para pausar anuncios usar la misma consulta con `false`;
+   esperar y ayudar continúan funcionando. Los tickets ya emitidos conservan su
+   plazo para no perder una recompensa legítima.
+6. Comprobar con dos cuentas: tres derrotas → cero; pedir/enviar ayuda; volver a
+   jugar; esperar una recarga. Con el proveedor aprobado, verificar inventario
+   real, cierre voluntario, recompensa y acreditación tras recuperar conexión.
+
+### Pruebas y continuidad
+
+Preparadas: `supabase/tests/campaign_lives.sql`, permisos globales y
+`scripts/check-campaign-rewarded-ad.mjs`. La suite SQL comprueba saldo inicial,
+triunfo, derrotas, rendición, cierre repetido, cero, reloj y sobrantes, máximo,
+pedidos y tickets ajenos, ayuda gratis, vencimientos, reintentos y carrera entre
+amigo/anuncio. El permiso publicitario empieza cerrado en cada reconstrucción.
+La prueba Noroeste cierra explícitamente su duelo de preparación porque ahora
+los duelos abiertos se retoman; mantiene sus comprobaciones de acceso y premios.
+
+`campaign-lives.yml` prepara Auth, Postgres, Realtime, Next y Chromium reales en
+CI. Prueba dos sesiones, derrotas por la RPC real, pedido/respuesta en Amigos,
+inicios y regalos simultáneos, recarga y capturas a 360×640. Sólo el SDK
+publicitario se simula: no genera impresiones pagas ni certifica una cuenta de
+Google. Los runners no tienen claves ni datos de producción.
+
+Tipos, ESLint (avisos previos), allowlist de RPC, prueba de callbacks publicitarios
+y compilación de Next aprobaron en la copia temporal. Pendiente registrar los
+resultados finales de GitHub y la revisión visual de las capturas. La activación
+en producción y la aprobación publicitaria siguen pendientes.

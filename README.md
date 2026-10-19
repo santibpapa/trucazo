@@ -7,6 +7,9 @@ Construido con Next.js (App Router), React, TypeScript y Supabase (Auth + Postgr
 **Invitaciones por enlace:** decisiones, implementación, pruebas y pasos de
 activación en [Juego](docs/juego.md#invitacion-por-enlace).
 
+**Vidas de Historia:** implementación, pruebas y activación en
+[Juego](docs/juego.md#vidas-de-historia).
+
 ## Stack
 
 - **Next.js 14** (App Router, Server Components + Client Components)
