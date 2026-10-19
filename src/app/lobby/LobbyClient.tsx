@@ -581,15 +581,17 @@ export default function LobbyClient({
       </div>
 
       {/* Panel social (solo compu ancha): amigos + chat global */}
-      {showSocial && <aside className="hidden xl:flex xl:flex-col w-80 shrink-0 border-l border-line sticky top-0 h-screen">
-        <div className="p-4 border-b border-line max-h-[44%] overflow-y-auto">
-          <h3 className="font-display font-bold text-cream mb-3">Amigos</h3>
-          <FriendsPanel c={community} compact />
-        </div>
-        <div className="flex-1 min-h-0 p-4">
-          <ChatGlobal myId={profile.id} isAdmin={!!profile.is_admin} className="h-full" />
-        </div>
-      </aside>}
+      <aside className="hidden xl:flex xl:flex-col w-80 shrink-0 border-l border-line sticky top-0 h-screen">
+        {showSocial && <>
+          <div className="p-4 border-b border-line max-h-[44%] overflow-y-auto">
+            <h3 className="font-display font-bold text-cream mb-3">Amigos</h3>
+            <FriendsPanel c={community} compact />
+          </div>
+          <div className="flex-1 min-h-0 p-4">
+            <ChatGlobal myId={profile.id} isAdmin={!!profile.is_admin} className="h-full" />
+          </div>
+        </>}
+      </aside>
 
       {/* Modal crear mesa */}
       <Modal

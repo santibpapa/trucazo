@@ -4,7 +4,8 @@
 
 ## Rendimiento del lobby y la mesa — 19/10/2026
 
-**Estado:** implementación y verificación preparadas sobre el `master` remoto
+**Estado:** implementación propuesta en el [PR #134](https://github.com/santibpapa/trucazo/pull/134),
+verificada sobre el `master` remoto
 `a6ddfc78870d51ae347888c40f37a732e0302fe0`, en una copia aislada. No usa cambios
 de la carpeta de trabajo del dueño. Esta sección no acredita integración ni
 publicación en producción; no requiere SQL ni ajustes de Supabase.
@@ -12,6 +13,8 @@ publicación en producción; no requiere SQL ni ajustes de Supabase.
 ### Cambios y comparación
 
 - El panel de amigos y chat de escritorio se importa y monta sólo desde 1280 px.
+  Su contenedor conserva el espacio desde el HTML inicial para que no desplace
+  el contenido al cargar.
   La insignia móvil de Comunidad mantiene sus datos. Cambiar el ancho monta o
   desmonta el panel, sin dejar su lectura de historial activa en celulares.
 - El seguimiento de mesas propias usa Realtime y una consulta de respaldo cada
@@ -69,7 +72,7 @@ de 60 a 6 consultas por minuto, más los avisos/reconexiones que realmente ocurr
 Se leyó `pg_stat_statements` de producción sin reiniciar estadísticas ni cambiar
 datos. Acumula desde el 19/06/2026: no es una ventana reciente ni una comparación
 antes/después del parche. Promedios agregados observados: `game_hands` 0,10 ms,
-lecturas relacionadas con `tables` 1,49 ms, `team_lobby` 3,01 ms, `get_community`
+operaciones relacionadas con `tables` 1,49 ms, `team_lobby` 3,01 ms, `get_community`
 16,66 ms, `bot_step` 22,91 ms y `get_my_objectives` 51,45 ms. Son tiempos de SQL,
 sin transporte ni render. Por volumen, se priorizó eliminar pedidos repetidos y
 la cadena mesa → partida; no se inventaron índices a partir de estos promedios.
