@@ -80,7 +80,7 @@ export default function CampaignLives({ initial = null }: { initial?: Lives | nu
   return (
     <>
       <button type="button" onClick={() => { setOpen(true); void refresh() }}
-        className="rounded-full border border-line bg-surface2/95 px-3 py-2 text-xs font-bold text-cream shadow-card"
+        className="shrink-0 rounded-full border border-line bg-surface2/95 px-3 py-2 text-xs font-bold text-cream shadow-card"
         aria-label={data ? `${data.lives} de 3 vidas de Historia. Ver opciones` : 'Ver vidas de Historia'}>
         <span aria-hidden="true" className="text-negative">♥</span> {data ? `${data.lives}/3` : '…'}
         {countdown && <span className="ml-1 text-muted tabular">{countdown}</span>}

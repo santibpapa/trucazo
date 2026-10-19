@@ -1024,10 +1024,12 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
         )}
         {actionError && <p className="text-sm text-negative text-center">{actionError}</p>}
 
-        <div className="flex justify-center"><CampaignLives /></div>
-        <Button variant="primary" size="md" fullWidth onClick={playAgainCampaign} disabled={loading}>
-          {won ? 'Jugar de nuevo' : 'Revancha'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <CampaignLives />
+          <Button variant="primary" size="md" fullWidth onClick={playAgainCampaign} disabled={loading}>
+            {won ? 'Jugar de nuevo' : 'Revancha'}
+          </Button>
+        </div>
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" fullWidth onClick={() => router.push('/historia')} disabled={loading}>
             Volver al modo historia

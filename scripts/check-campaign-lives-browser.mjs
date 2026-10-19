@@ -54,14 +54,22 @@ try {
   const rival = map.provinces.flatMap(p => p.rivals).find(r => r.unlocked)
   const starts = await Promise.all([rpc(a.c, 'start_campaign_duel', { p_rival_id: rival.id }), rpc(a.c, 'start_campaign_duel', { p_rival_id: rival.id })])
   assert.equal(starts[0].id, starts[1].id, 'inicios concurrentes retoman el mismo duelo')
+  let lastDuel
   for (let i = 0; i < 3; i++) {
     const duel = await rpc(a.c, 'start_campaign_duel', { p_rival_id: rival.id })
     await rpc(a.c, 'forfeit', { p_game_id: duel.id })
+    lastDuel = duel.id
     assert.equal((await rpc(a.c, 'get_campaign_lives')).lives, 2 - i)
   }
   assert.equal((await a.c.rpc('start_campaign_duel', { p_rival_id: rival.id })).error.message, 'CAMPAIGN_NO_LIVES')
   const aContext = await contextFor(browser, a), bContext = await contextFor(browser, b)
   const page = await aContext.newPage(), friendPage = await bContext.newPage()
+  await page.goto(`${origin}/game/${lastDuel}`)
+  await page.getByRole('button', { name: 'Revancha', exact: true }).click()
+  await page.getByRole('heading', { name: 'Vidas de Historia', exact: true }).waitFor()
+  await page.screenshot({ path: join(screenshots, 'resultado-sin-vidas-movil.png'), fullPage: true })
+  await page.getByRole('button', { name: 'Cerrar ventana', exact: true }).click()
+  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), true, 'resultado entra sin scroll')
   await page.goto(`${origin}/historia`)
   await page.getByRole('button', { name: '0 de 3 vidas de Historia. Ver opciones' }).click()
   await page.getByRole('heading', { name: 'Vidas de Historia', exact: true }).waitFor()

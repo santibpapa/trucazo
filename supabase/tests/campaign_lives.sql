@@ -3,6 +3,7 @@
 begin;
 create function pg_temp.check_lives(ok boolean, detail text) returns void language plpgsql as $$
 begin if ok is distinct from true then raise exception 'Vidas: %', detail; end if; end $$;
+grant execute on function pg_temp.check_lives(boolean, text) to authenticated;
 
 insert into auth.users(id,email,raw_user_meta_data) values
  ('ca110000-0000-4000-a000-000000000001','lives-a@test.invalid','{"username":"Lives A"}'),
