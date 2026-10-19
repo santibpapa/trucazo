@@ -6,6 +6,7 @@ import { getSalonTheme } from '@/lib/salones'
 import type { TeamSnapshot } from '@/lib/team-game'
 import styles from './waiting.module.css'
 import ShareTableInvite from '@/components/ShareTableInvite'
+import WaitingForPlayers from '@/components/WaitingForPlayers'
 
 // Asientos vistos desde arriba: 0 abajo, 1 derecha, 2 arriba, 3 izquierda.
 // Los enfrentados (0-2 y 1-3) juegan juntos, igual que en la mesa de juego.
@@ -70,6 +71,9 @@ export default function TeamWaitingRoom({ state, userId, salonSlug, busy, error,
         <p className="text-sm text-muted">Código para invitar</p>
         <p className="font-display text-xl font-extrabold tracking-[0.25em] text-gold">{table.private_code}</p>
       </div>}
+      {connected && members.length < 4 && <WaitingForPlayers>
+        {members.length === 3 ? 'Esperando que se una el último jugador' : 'Esperando que se sumen los jugadores'}
+      </WaitingForPlayers>}
       {!table.tournament_id && <ShareTableInvite tableId={table.id} mode="2v2" />}
 
       <section aria-label="Asientos de la mesa" className="flex flex-col gap-3">
