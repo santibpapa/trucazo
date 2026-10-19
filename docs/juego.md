@@ -385,8 +385,9 @@ y [estados de revisión](https://support.google.com/adsense/answer/12170222?hl=e
 
 ### Pausa de vidas y barra de Historia — 19/10/2026
 
-**Pedido vigente:** jugar campaña sin límite mientras se completa AdSense y mostrar
-vidas junto a Fama y Ranking. El sitio ya tiene la propiedad verificada y la
+**Pedido vigente (aclarado por el dueño):** retirar el sistema de vidas de la
+interfaz y desactivar el límite mientras se completa AdSense. El indicador de
+vidas infinitas se descartó antes de integrar el PR. El sitio ya tiene la propiedad verificada y la
 revisión solicitada, según las capturas del dueño. El PR #132 está integrado y
 `https://www.trucazo.com.ar/ads.txt` respondió 200 con el ID correcto. Eso no
 confirma aprobación de Google ni un bloque rewarded operativo.
@@ -399,12 +400,14 @@ monedas ni partidas. Los pedidos entre amigos y los anuncios nuevos quedan
 inactivos, incluso mediante llamadas directas. Las recompensas ya obtenidas
 pueden terminar de acreditarse con su ticket vigente.
 
-El indicador se mueve del extremo inferior del mapa a la barra superior, debajo
-de Ranking y al lado de Fama, con el mismo fondo, borde y forma. Muestra **Vidas ∞**
-y, al tocarlo, explica que se puede jugar sin límite. No muestra cuenta regresiva,
-pedidos ni ofertas de anuncios mientras la pausa está activa. El resultado del
-duelo también muestra vidas ilimitadas. Al reactivar, el mismo indicador vuelve
-al saldo real y a su próxima recarga.
+Durante la pausa no se monta ningún indicador ni ventana de vidas: ni en el
+mapa ni al terminar un duelo. Tampoco aparecen el símbolo de infinito, mensajes
+sobre vidas, cuenta regresiva, pedidos ni anuncios. Se evita mostrar un indicador
+provisorio mientras el resultado de la partida consulta el estado al servidor.
+La campaña continúa normalmente y permite Revancha incluso con un saldo previo
+de cero. Cuando se reactive el sistema, el indicador real aparecerá debajo de
+Ranking y al lado de Fama, con el mismo fondo, borde y forma; mostrará el saldo
+y la próxima recarga.
 
 **Aplicación:** la nueva migración es
 `supabase/migrations/20261019030305_pause_campaign_lives.sql`. Requiere que
@@ -440,27 +443,21 @@ set lives_enabled = false, enabled = false
 where singleton;
 ```
 
-**Verificación:** la suite SQL prueba pausa por defecto, cuatro
-derrotas sin descuento, inicio y recuperación con saldo cero, rechazo de pedidos
-y anuncios directos durante la pausa, permisos privados y reactivación del límite.
-Después conserva la suite completa de vidas activas. La prueba de navegador con
-Auth/Postgres/Next reales agrega pausa, Revancha desde cero y capturas del mapa a
-320, 360, 390 y 1280 px; comprueba ubicación junto a Fama/Ranking, ausencia de
-desborde y mensajes correctos.
+**Verificación:** la suite SQL prueba pausa por defecto, cuatro derrotas sin
+descuento, inicio y recuperación con saldo cero, rechazo de pedidos y anuncios
+directos durante la pausa, permisos privados y reactivación del límite. Se
+conserva íntegra la suite de vidas activas. La prueba de navegador con
+Auth/Postgres/Next reales comprueba que no haya indicador, ventana, infinito,
+pedidos ni anuncios a 320, 360, 390 y 1280 px; verifica la ausencia también en
+el resultado después de recibir el estado real del servidor. Prueba Revancha
+desde cero, resultado sin scroll y que al reactivar vuelva el indicador real
+junto a Fama/Ranking. Sólo el SDK publicitario se simula.
 
-La aplicación (tipos, ESLint con avisos anteriores, permisos y build), la suite
-SQL de vidas y la prueba integrada aprobaron para el código
-`dd7f8c1d95ce7e2b2bd013450a8b6b302e73bf1d`:
-[vidas con navegador real](https://github.com/santibpapa/trucazo/actions/runs/39193652993),
-[revisión general](https://github.com/santibpapa/trucazo/actions/runs/39193652947) e
-[invitaciones](https://github.com/santibpapa/trucazo/actions/runs/39193652977).
-Se descargaron y abrieron las capturas de 320, 360 y 1280 px y la explicación de
-la pausa. La primera revisión visual detectó el título/puntos comprimidos a 320 px;
-el encabezado ahora usa una disposición compacta en celular, sin truncarlos, y
-la prueba comprueba que título y volver no queden debajo de Ranking. También
-se verifican el resultado sin scroll y la ausencia de desborde horizontal.
-
-Entrega: [PR #133](https://github.com/santibpapa/trucazo/pull/133). Las pruebas usan
-cuentas y bases descartables; sólo el SDK de anuncios se simula. No acreditan
-aprobación publicitaria, una vista paga ni SQL aplicado en producción. La
-actualización posterior a ese código registra evidencia y no cambia la implementación.
+La base de partida `df5907f9` aprobó todos los controles antes de esta aclaración.
+La corrección sólo cambia la interfaz, sus comprobaciones de navegador y este
+registro; no modifica el SQL de pausa. Tipos y ESLint aprobaron en la copia
+temporal, con los avisos preexistentes. El resultado actualizado de compilación,
+SQL y navegador está en los
+[controles del PR #133](https://github.com/santibpapa/trucazo/pull/133/checks).
+Las pruebas usan cuentas y bases descartables y no acreditan aprobación
+publicitaria ni SQL aplicado en producción.

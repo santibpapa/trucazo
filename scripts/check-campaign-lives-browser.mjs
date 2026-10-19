@@ -37,6 +37,15 @@ async function checkHud(page, lifeLabel) {
   assert.ok(back.x + back.width <= ranking.x, 'volver no queda debajo de Ranking')
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'sin desborde horizontal')
 }
+async function checkNoLives(page) {
+  assert.equal(await page.getByRole('button', { name: /vidas de Historia|Vidas ilimitadas|Ver vidas/i }).count(), 0, 'sin indicador de vidas durante la pausa')
+  assert.equal(await page.getByRole('heading', { name: 'Vidas de Historia', exact: true }).count(), 0, 'sin ventana de vidas durante la pausa')
+  assert.equal(await page.getByText('∞', { exact: true }).count(), 0, 'sin símbolo de vidas infinitas')
+  assert.equal(await page.getByRole('button', { name: 'Pedir', exact: true }).count(), 0)
+  assert.equal(await page.getByRole('button', { name: 'Ver anuncio para recuperar 1 vida', exact: true }).count(), 0)
+  assert.equal(await page.getByText(/Próxima vida en/).count(), 0)
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'sin desborde horizontal')
+}
 const rpc = async (c, name, args) => {
   const result = await c.rpc(name, args)
   assert.equal(result.error, null, `${name}: ${result.error?.message}`)
@@ -81,21 +90,20 @@ try {
   const pausedContext = await contextFor(browser, a)
   const pausedPage = await pausedContext.newPage()
   await pausedPage.goto(`${origin}/historia`)
-  const unlimited = 'Vidas ilimitadas de Historia. Ver información'
   for (const width of [320, 360, 390, 1280]) {
     await pausedPage.setViewportSize({ width, height: width === 1280 ? 800 : 640 })
-    await checkHud(pausedPage, unlimited)
+    await pausedPage.getByRole('button', { name: 'Ranking', exact: true }).waitFor()
+    await pausedPage.getByRole('button', { name: /^Fama / }).waitFor()
+    await checkNoLives(pausedPage)
     await capture(pausedPage, `vidas-pausadas-mapa-${width}.png`)
   }
   await pausedPage.setViewportSize({ width: 360, height: 640 })
-  await pausedPage.getByRole('button', { name: unlimited, exact: true }).click()
-  await pausedPage.getByText('Por ahora podés jugar sin límite. Las derrotas no descuentan vidas.', { exact: true }).waitFor()
-  assert.equal(await pausedPage.getByRole('button', { name: 'Pedir', exact: true }).count(), 0)
-  assert.equal(await pausedPage.getByRole('button', { name: 'Ver anuncio para recuperar 1 vida', exact: true }).count(), 0)
-  assert.equal(await pausedPage.getByText(/Próxima vida en/).count(), 0)
-  await capture(pausedPage, 'vidas-pausadas-informacion.png')
+  const livesResponse = pausedPage.waitForResponse(response => response.url().endsWith('/rpc/get_campaign_lives'))
   await pausedPage.goto(`${origin}/game/${pausedDuel.id}`)
-  await pausedPage.getByRole('button', { name: unlimited, exact: true }).waitFor()
+  assert.equal((await (await livesResponse).json()).lives_enabled, false)
+  await pausedPage.getByRole('button', { name: 'Revancha', exact: true }).waitFor()
+  await checkNoLives(pausedPage)
+  await capture(pausedPage, 'resultado-sin-sistema-de-vidas.png')
   assert.equal(await pausedPage.evaluate(() => document.documentElement.scrollHeight <= innerHeight), true, 'resultado pausado sin scroll')
   await pausedPage.getByRole('button', { name: 'Revancha', exact: true }).click()
   await pausedPage.waitForURL(url => url.pathname.startsWith('/game/') && !url.pathname.endsWith(pausedDuel.id))
@@ -105,7 +113,7 @@ try {
   await pausedContext.close()
   sql(`update campaign_internal.lives set lives=3,next_life_at=null,depletion_id=null where user_id='${a.id}'`)
   sql('update campaign_internal.ad_settings set lives_enabled=true where singleton')
-  console.log('PASS: pausa real, cuatro derrotas, Revancha con saldo previo cero y HUD junto a fama/ranking')
+  console.log('PASS: pausa real, cuatro derrotas, Revancha desde cero y vidas completamente ocultas')
   const starts = await Promise.all([rpc(a.c, 'start_campaign_duel', { p_rival_id: rival.id }), rpc(a.c, 'start_campaign_duel', { p_rival_id: rival.id })])
   assert.equal(starts[0].id, starts[1].id, 'inicios concurrentes retoman el mismo duelo')
   let lastDuel
