@@ -146,6 +146,24 @@ Repetir en parejas y elegir un lugar libre. Comprobar también el regreso desde
 Google si se usa ese acceso. El merge, la publicación, el SQL y las pruebas
 integradas ya están completados; no volver a indicarlos como pasos pendientes.
 
+### Espera visible después del código — 16/10/2026
+
+Preparado para revisión: el estado de espera aparece justo debajo del código,
+en un recuadro dorado con el texto **Esperando que se una tu rival…** y tres
+puntos que se animan suavemente. Se muestra al crear la privada desde el lobby
+y en la sala de espera 1v1. En parejas indica que faltan jugadores, distingue
+al último que falta y desaparece cuando ya están los cuatro o se está reconectando.
+Se conservan los avisos de elegir lugar e iniciar la partida.
+
+La animación sólo modifica opacidad y posición, sin mover el resto de la pantalla.
+El texto queda visible desde el primer dibujo y los puntos se detienen con la
+preferencia de reducir movimiento. El lector de pantalla recibe un único estado;
+la animación no dispara anuncios repetidos.
+
+Verificado: tipos y ESLint (advertencias previas), inspección visual a 360 × 640
+en una vista temporal con los componentes reales, animación CSS activa y aviso
+ausente en la mesa 2v2 completa. La vista temporal no se publica. Sólo cambia la
+presentación: no requiere SQL ni altera el ingreso, los cobros o los asientos.
 
 <a id="vidas-de-historia"></a>
 
@@ -298,3 +316,13 @@ su aprobación, el consentimiento aplicable y una vista con inventario real tamp
 se hicieron durante esta entrega. No se generan ingresos por tener el PR ni por
 las pruebas simuladas. Próximo paso: ejecutar la migración del paso 1 en Supabase,
 integrar el PR y completar el alta publicitaria si se quiere habilitar anuncios.
+
+
+### Compatibilidad con el PR #129 — 18/10/2026
+
+El dueño integró #129 en master (`8380cc93e6b2434fed9a03576089248c301bff3c`).
+Se actualiza #130 con ese master y se conserva tanto la sección «Espera visible
+después del código» como la de vidas. El único conflicto era la incorporación
+de ambas secciones al final de este documento; los archivos de código no se pisan.
+No se cambia la migración de vidas ni se aplica SQL o se publica #130 durante
+esta actualización. Las verificaciones automáticas vuelven a evaluar la combinación.
