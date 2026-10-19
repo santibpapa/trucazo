@@ -440,11 +440,27 @@ set lives_enabled = false, enabled = false
 where singleton;
 ```
 
-**Verificación preparada:** la suite SQL prueba pausa por defecto, cuatro
+**Verificación:** la suite SQL prueba pausa por defecto, cuatro
 derrotas sin descuento, inicio y recuperación con saldo cero, rechazo de pedidos
 y anuncios directos durante la pausa, permisos privados y reactivación del límite.
 Después conserva la suite completa de vidas activas. La prueba de navegador con
 Auth/Postgres/Next reales agrega pausa, Revancha desde cero y capturas del mapa a
 320, 360, 390 y 1280 px; comprueba ubicación junto a Fama/Ranking, ausencia de
-desborde y mensajes correctos. Las verificaciones de esta entrega se registran
-al terminar; prepararlas no equivale a que hayan aprobado ni a una publicación.
+desborde y mensajes correctos.
+
+La aplicación (tipos, ESLint con avisos anteriores, permisos y build), la suite
+SQL de vidas y la prueba integrada aprobaron para el código
+`dd7f8c1d95ce7e2b2bd013450a8b6b302e73bf1d`:
+[vidas con navegador real](https://github.com/santibpapa/trucazo/actions/runs/39193652993),
+[revisión general](https://github.com/santibpapa/trucazo/actions/runs/39193652947) e
+[invitaciones](https://github.com/santibpapa/trucazo/actions/runs/39193652977).
+Se descargaron y abrieron las capturas de 320, 360 y 1280 px y la explicación de
+la pausa. La primera revisión visual detectó el título/puntos comprimidos a 320 px;
+el encabezado ahora usa una disposición compacta en celular, sin truncarlos, y
+la prueba comprueba que título y volver no queden debajo de Ranking. También
+se verifican el resultado sin scroll y la ausencia de desborde horizontal.
+
+Entrega: [PR #133](https://github.com/santibpapa/trucazo/pull/133). Las pruebas usan
+cuentas y bases descartables; sólo el SDK de anuncios se simula. No acreditan
+aprobación publicitaria, una vista paga ni SQL aplicado en producción. La
+actualización posterior a ese código registra evidencia y no cambia la implementación.
