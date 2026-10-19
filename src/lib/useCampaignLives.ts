@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export interface CampaignLives {
   user_id: string
+  lives_enabled: boolean
   ads_enabled: boolean
   lives: number
   next_life_at: string | null
@@ -53,7 +54,7 @@ export function useCampaignLives(initial: CampaignLives | null = null) {
 export function useLifeCountdown(data: CampaignLives | null) {
   const [seconds, setSeconds] = useState<number | null>(null)
   useEffect(() => {
-    if (!data?.next_life_at) { setSeconds(null); return }
+    if (!data?.next_life_at || data.lives_enabled === false) { setSeconds(null); return }
     const remaining = Date.parse(data.next_life_at) - Date.parse(data.server_now)
     const started = performance.now()
     const tick = () => setSeconds(Math.max(0, Math.ceil((remaining - (performance.now() - started)) / 1000)))

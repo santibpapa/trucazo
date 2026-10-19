@@ -993,7 +993,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
           : <><b className="font-semibold text-cream">{opponentUsername}</b> te ganó {opponentScore} a {myScore}</>}
         note={won
           ? 'Mirá el mapa: capaz se abrió algo nuevo.'
-          : game.winner_id ? 'Perdiste una vida. Se recupera una cada 30 minutos.' : 'Partida anulada. No perdiste vidas.'}
+          : game.winner_id ? undefined : 'Partida anulada.'}
         me={{ url: myAvatarUrl, name: myUsername, score: myScore, highlight: won }}
         opponent={{ url: campaignRivalSlug ? `/personajes/${campaignRivalSlug}.webp` : opponentAvatarUrl, name: opponentUsername, score: opponentScore, highlight: !won }}
         extra={won && (game.campaign_points_earned > 0 || game.campaign_reward > 0) && (

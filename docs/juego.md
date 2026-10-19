@@ -178,7 +178,12 @@ El trabajo partió de GitHub master `24f1da19`; la carpeta local del dueño no s
 usó ni modificó. Las pruebas se realizaron en una copia temporal limpia y en
 runners descartables de GitHub.
 
-### Reglas acordadas
+**Actualización vigente — 19/10/2026:** se prepara la pausa del límite de vidas
+hasta completar el alta publicitaria. Ver «Pausa de vidas y barra de Historia» al
+final: sus pasos reemplazan la activación original de abajo. Aún requiere integrar
+el cambio y aplicar su nueva migración; no se da por publicado.
+
+### Reglas acordadas (para cuando se reactive)
 
 - Tres vidas como máximo. Perder o rendirse en Historia descuenta una sola vida.
   Ganar y las partidas anuladas sin ganador no descuentan. Las mesas comunes y
@@ -231,7 +236,7 @@ que los soporte. Referencias: [recompensas web](https://support.google.com/adman
 [ejemplo GPT](https://developers.google.com/publisher-tag/samples/display-rewarded-ad)
 y [reglas de recompensa](https://support.google.com/admanager/answer/7496282).
 
-### Activación, en orden
+### Activación original (historial del PR #130)
 
 1. Antes de publicar la interfaz, abrir en GitHub
    `supabase/migrations/20261019002728_campaign_lives.sql` y copiarlo entero.
@@ -376,3 +381,85 @@ aprobación del sitio y la configuración del bloque rewarded.
 
 Referencias: [guía de ads.txt](https://support.google.com/adsense/answer/7532444?hl=es)
 y [estados de revisión](https://support.google.com/adsense/answer/12170222?hl=es).
+
+
+### Pausa de vidas y barra de Historia — 19/10/2026
+
+**Pedido vigente (aclarado por el dueño):** retirar el sistema de vidas de la
+interfaz y desactivar el límite mientras se completa AdSense. El indicador de
+vidas infinitas se descartó antes de integrar el PR. El sitio ya tiene la propiedad verificada y la
+revisión solicitada, según las capturas del dueño. El PR #132 está integrado y
+`https://www.trucazo.com.ar/ads.txt` respondió 200 con el ID correcto. Eso no
+confirma aprobación de Google ni un bloque rewarded operativo.
+
+**Preparado en este cambio:** `campaign_internal.ad_settings.lives_enabled`
+arranca en false. El servidor deja de descontar derrotas y permite iniciar
+y retomar duelos incluso con un saldo anterior de cero. Se conservan los
+saldos, la recarga natural y los tickets ya emitidos; no se borran progresos,
+monedas ni partidas. Los pedidos entre amigos y los anuncios nuevos quedan
+inactivos, incluso mediante llamadas directas. Las recompensas ya obtenidas
+pueden terminar de acreditarse con su ticket vigente.
+
+Durante la pausa no se monta ningún indicador ni ventana de vidas: ni en el
+mapa ni al terminar un duelo. Tampoco aparecen el símbolo de infinito, mensajes
+sobre vidas, cuenta regresiva, pedidos ni anuncios. Se evita mostrar un indicador
+provisorio mientras el resultado de la partida consulta el estado al servidor.
+La campaña continúa normalmente y permite Revancha incluso con un saldo previo
+de cero. Cuando se reactive el sistema, el indicador real aparecerá debajo de
+Ranking y al lado de Fama, con el mismo fondo, borde y forma; mostrará el saldo
+y la próxima recarga.
+
+**Aplicación:** la nueva migración es
+`supabase/migrations/20261019030305_pause_campaign_lives.sql`. Requiere que
+`20261019002728_campaign_lives.sql` ya esté aplicada; no volver a ejecutar la vieja
+si ya existe `campaign_internal.ad_settings`. En Supabase → SQL Editor → New query,
+pegar **sólo la nueva migración completa** y tocar Run. Después integrar el PR y
+comprobar la publicación. La pausa se aplica en el servidor desde el SQL; la
+interfaz anterior sigue permitiendo jugar pero puede mostrar el saldo guardado
+hasta que se publique la nueva. No se aplicó SQL a producción desde esta sesión.
+
+**Para retomar más adelante:** no se reactiva automáticamente al aprobar AdSense.
+Primero completar la cuenta de Ad Manager, el bloque rewarded real, la privacidad
+y el consentimiento aplicables, y la variable de Vercel ya documentada arriba.
+Cuando el dueño decida habilitar el sistema completo, dar tres vidas a todos al
+comenzar y luego activar ambos permisos en la misma transacción:
+
+```sql
+begin;
+update campaign_internal.lives
+set lives = 3, next_life_at = null, depletion_id = null
+where lives < 3;
+update campaign_internal.ad_settings
+set lives_enabled = true, enabled = true
+where singleton;
+commit;
+```
+
+Para volver a pausar después, sin borrar saldos ni progreso:
+
+```sql
+update campaign_internal.ad_settings
+set lives_enabled = false, enabled = false
+where singleton;
+```
+
+**Verificación:** la suite SQL prueba pausa por defecto, cuatro derrotas sin
+descuento, inicio y recuperación con saldo cero, rechazo de pedidos y anuncios
+directos durante la pausa, permisos privados y reactivación del límite. Se
+conserva íntegra la suite de vidas activas. La prueba de navegador con
+Auth/Postgres/Next reales comprueba que no haya indicador, ventana, infinito,
+pedidos ni anuncios a 320, 360, 390 y 1280 px; verifica la ausencia también en
+el resultado después de recibir el estado real del servidor. Se retira también
+el aviso fijo «Perdiste una vida» del resultado, que era incorrecto durante la
+pausa; la prueba rechaza cualquier texto de vidas mientras esté desactivado. Prueba Revancha
+desde cero, resultado sin scroll y que al reactivar vuelva el indicador real
+junto a Fama/Ranking. Sólo el SDK publicitario se simula.
+
+La base de partida `df5907f9` aprobó todos los controles antes de esta aclaración.
+La corrección sólo cambia la interfaz, sus comprobaciones de navegador y este
+registro; no modifica el SQL de pausa. Tipos y ESLint aprobaron en la copia
+temporal, con los avisos preexistentes. El resultado actualizado de compilación,
+SQL y navegador está en los
+[controles del PR #133](https://github.com/santibpapa/trucazo/pull/133/checks).
+Las pruebas usan cuentas y bases descartables y no acreditan aprobación
+publicitaria ni SQL aplicado en producción.

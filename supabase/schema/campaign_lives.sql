@@ -8,7 +8,8 @@ revoke all on schema campaign_internal from public, anon, authenticated;
 -- El alta de la cuenta publicitaria es manual. No emitir tickets antes de activarla.
 create table campaign_internal.ad_settings (
   singleton boolean primary key default true check (singleton),
-  enabled boolean not null default false
+  enabled boolean not null default false,
+  lives_enabled boolean not null default false
 );
 insert into campaign_internal.ad_settings default values;
 alter table campaign_internal.ad_settings enable row level security;
@@ -63,6 +64,7 @@ create function campaign_internal.record_loss()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare loser uuid; s campaign_internal.lives;
 begin
+  if not (select lives_enabled from campaign_internal.ad_settings where singleton) then return new; end if;
   if new.campaign_rival_id is null or new.winner_id is null then return new; end if;
   loser := case when new.winner_id = new.player1_id then new.player2_id else new.player1_id end;
   if not exists(select 1 from public.profiles where id = loser and not is_bot) then return new; end if;
@@ -83,24 +85,26 @@ execute function campaign_internal.record_loss();
 create function public.get_campaign_lives()
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare uid uuid := auth.uid(); s campaign_internal.lives;
+  v_lives_enabled boolean := (select lives_enabled from campaign_internal.ad_settings where singleton);
 begin
   if uid is null then raise exception 'no autenticado'; end if;
   s := campaign_internal.refresh_lives(uid);
   return jsonb_build_object(
+    'lives_enabled', v_lives_enabled,
     'user_id', uid, 'lives', s.lives, 'next_life_at', s.next_life_at, 'server_now', statement_timestamp(),
-    'ads_enabled', (select enabled from campaign_internal.ad_settings where singleton),
+    'ads_enabled', (select enabled and lives_enabled from campaign_internal.ad_settings where singleton),
     'active_game_id', (select id from public.games where campaign_rival_id is not null
       and status = 'playing' and uid in (player1_id, player2_id) order by created_at desc limit 1),
     'friends', coalesce((select jsonb_agg(jsonb_build_object('id', p.id, 'username', p.username) order by p.username)
       from public.friendships f join public.profiles p on p.id = case when f.requester_id = uid then f.addressee_id else f.requester_id end
       where f.status = 'accepted' and uid in (f.requester_id, f.addressee_id) and not p.is_bot), '[]'::jsonb),
-    'request_out', (select jsonb_build_object('username', p.username) from campaign_internal.life_requests r
+    'request_out', case when v_lives_enabled then (select jsonb_build_object('username', p.username) from campaign_internal.life_requests r
       join public.profiles p on p.id = r.friend_id where r.requester_id = uid
-      and r.depletion_id = s.depletion_id and r.granted_at is null and r.expires_at > statement_timestamp()),
+      and r.depletion_id = s.depletion_id and r.granted_at is null and r.expires_at > statement_timestamp()) end,
     'requests_in', coalesce((select jsonb_agg(jsonb_build_object('id', r.id, 'username', p.username))
       from campaign_internal.life_requests r join public.profiles p on p.id = r.requester_id
       join campaign_internal.lives l on l.user_id = r.requester_id and l.lives = 0 and l.depletion_id = r.depletion_id
-      where r.friend_id = uid and r.granted_at is null and r.expires_at > statement_timestamp()
+      where v_lives_enabled and r.friend_id = uid and r.granted_at is null and r.expires_at > statement_timestamp()
       and exists(select 1 from public.friendships f where f.status = 'accepted'
         and ((f.requester_id = uid and f.addressee_id = r.requester_id)
           or (f.addressee_id = uid and f.requester_id = r.requester_id)))), '[]'::jsonb)
@@ -114,6 +118,7 @@ declare uid uuid := auth.uid(); s campaign_internal.lives;
 begin
   if uid is null then raise exception 'no autenticado'; end if;
   s := campaign_internal.refresh_lives(uid);
+  if not (select lives_enabled from campaign_internal.ad_settings where singleton) then raise exception 'las vidas están pausadas'; end if;
   if s.lives <> 0 then raise exception 'podés pedir una vida cuando te quedás sin vidas'; end if;
   if not exists(select 1 from public.friendships f where f.status = 'accepted'
     and ((f.requester_id = uid and f.addressee_id = p_friend_id)
@@ -131,6 +136,7 @@ returns text language plpgsql security definer set search_path = '' as $$
 declare uid uuid := auth.uid(); r campaign_internal.life_requests; s campaign_internal.lives;
 begin
   if uid is null then raise exception 'no autenticado'; end if;
+  if not (select lives_enabled from campaign_internal.ad_settings where singleton) then return 'expired'; end if;
   select * into r from campaign_internal.life_requests where id = p_request_id and friend_id = uid;
   if not found then raise exception 'pedido no disponible'; end if;
   s := campaign_internal.refresh_lives(r.requester_id);
@@ -154,7 +160,7 @@ returns uuid language plpgsql security definer set search_path = '' as $$
 declare uid uuid := auth.uid(); s campaign_internal.lives;
 begin
   if uid is null then raise exception 'no autenticado'; end if;
-  if not (select enabled from campaign_internal.ad_settings where singleton) then raise exception 'anuncios no habilitados'; end if;
+  if not (select enabled and lives_enabled from campaign_internal.ad_settings where singleton) then raise exception 'anuncios no habilitados'; end if;
   s := campaign_internal.refresh_lives(uid);
   if s.lives <> 0 then raise exception 'el anuncio está disponible al quedarte sin vidas'; end if;
   if s.ad_episode = s.depletion_id and not s.ad_claimed and s.ad_expires_at > statement_timestamp() then return s.ad_ticket; end if;
@@ -236,7 +242,8 @@ begin
   select * into g from games where campaign_rival_id is not null and status = 'playing'
     and uid in (player1_id, player2_id) order by created_at desc limit 1;
   if found then return g; end if;
-  if (select lives from campaign_internal.lives where user_id = uid) = 0 then
+  if (select lives_enabled from campaign_internal.ad_settings where singleton)
+    and (select lives from campaign_internal.lives where user_id = uid) = 0 then
     raise exception 'CAMPAIGN_NO_LIVES' using errcode = 'P0001';
   end if;
 

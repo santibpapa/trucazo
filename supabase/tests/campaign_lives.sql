@@ -12,6 +12,65 @@ insert into auth.users(id,email,raw_user_meta_data) values
 insert into public.friendships(requester_id,addressee_id,status) values
  ('ca110000-0000-4000-a000-000000000001','ca110000-0000-4000-a000-000000000002','accepted');
 
+-- La reconstrucción arranca pausada. También permite seguir con saldos previos en cero.
+do $pause$
+declare
+ a uuid := 'ca110000-0000-4000-a000-000000000001';
+ b uuid := 'ca110000-0000-4000-a000-000000000002';
+ rival uuid; g public.games; g2 public.games; state jsonb; req uuid; rejected boolean; i integer;
+begin
+ perform pg_temp.check_lives((select not lives_enabled from campaign_internal.ad_settings where singleton),'vidas pausadas por defecto');
+ select id into rival from public.campaign_rivals order by order_index limit 1;
+ perform set_config('request.jwt.claim.sub',a::text,true);
+ set local role authenticated;
+ state := public.get_campaign_lives();
+ perform pg_temp.check_lives(state->>'lives_enabled'='false' and state->>'ads_enabled'='false','servidor informa pausa y anuncios apagados');
+ for i in 1..4 loop
+   g := public.start_campaign_duel(rival);
+   perform public.forfeit(g.id);
+   perform pg_temp.check_lives(public.get_campaign_lives()->>'lives'='3','derrotas consecutivas no descuentan durante la pausa');
+ end loop;
+ rejected := false;
+ begin execute 'update campaign_internal.ad_settings set lives_enabled=true where singleton'; exception when insufficient_privilege then rejected := true; end;
+ perform pg_temp.check_lives(rejected,'jugador no puede cambiar la pausa');
+ reset role;
+ update campaign_internal.lives set lives=0,next_life_at=statement_timestamp()+interval '20 minutes',depletion_id=gen_random_uuid() where user_id=a;
+ insert into campaign_internal.life_requests(requester_id,friend_id,depletion_id,expires_at)
+ select a,b,depletion_id,next_life_at from campaign_internal.lives where user_id=a returning id into req;
+ update campaign_internal.ad_settings set enabled=true where singleton;
+ set local role authenticated;
+ state := public.get_campaign_lives();
+ perform pg_temp.check_lives(state->>'ads_enabled'='false' and state->>'request_out' is null,'pausa oculta anuncios y pedidos previos');
+ g := public.start_campaign_duel(rival);
+ g2 := public.start_campaign_duel(rival);
+ perform pg_temp.check_lives(g.id=g2.id,'pausa conserva la recuperación de duelo abierto');
+ perform public.forfeit(g.id);
+ perform pg_temp.check_lives(public.get_campaign_lives()->>'lives'='0','cero no bloquea ni produce deudas');
+ rejected := false;
+ begin perform public.request_campaign_life(b); exception when others then rejected := sqlerrm='las vidas están pausadas'; end;
+ perform pg_temp.check_lives(rejected,'pausa rechaza pedidos directos');
+ rejected := false;
+ begin perform public.begin_campaign_life_ad(); exception when others then rejected := true; end;
+ perform pg_temp.check_lives(rejected,'pausa rechaza anuncios aunque el permiso publicitario esté activo');
+ reset role;
+ perform set_config('request.jwt.claim.sub',b::text,true);
+ set local role authenticated;
+ perform pg_temp.check_lives(jsonb_array_length(public.get_campaign_lives()->'requests_in')=0,'amigo no recibe pedidos durante la pausa');
+ perform pg_temp.check_lives(public.send_campaign_life(req)='expired','pedido previo no acredita durante la pausa');
+ reset role;
+ perform pg_temp.check_lives((select lives=0 from campaign_internal.lives where user_id=a),'pausa conserva saldo previo');
+ update campaign_internal.ad_settings set lives_enabled=true,enabled=false where singleton;
+ perform set_config('request.jwt.claim.sub',a::text,true);
+ set local role authenticated;
+ rejected := false;
+ begin perform public.start_campaign_duel(rival); exception when others then rejected := sqlerrm='CAMPAIGN_NO_LIVES'; end;
+ perform pg_temp.check_lives(rejected,'reactivar vuelve a controlar el saldo desde SQL');
+ reset role;
+ delete from campaign_internal.life_requests where requester_id=a;
+ update campaign_internal.lives set lives=3,next_life_at=null,depletion_id=null where user_id=a;
+end;
+$pause$;
+
 do $test$
 declare
  a uuid := 'ca110000-0000-4000-a000-000000000001';
