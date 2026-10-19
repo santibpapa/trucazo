@@ -151,7 +151,8 @@ integradas ya están completados; no volver a indicarlos como pasos pendientes.
 
 ## Vidas de Historia — 18/10/2026
 
-**Estado:** implementación preparada en la rama `codex/campaign-lives`. No integrada
+**Estado:** implementación preparada en el [PR #130](https://github.com/santibpapa/trucazo/pull/130),
+rama `codex/campaign-lives`. No integrada
 ni aplicada en producción. El trabajo parte de GitHub master `24f1da19`; la carpeta
 local del dueño no se usó ni modificó. Las pruebas se realizan en una copia temporal
 limpia y en los runners descartables de GitHub.
@@ -226,7 +227,10 @@ y [reglas de recompensa](https://support.google.com/admanager/answer/7496282).
    vida. La aprobación y la disponibilidad de inventario dependen de Google;
    este PR no crea una cuenta ni asegura ingresos. Revisar en la cuenta la
    configuración de privacidad/consentimiento y, donde corresponda, la CMP
-   requerida por Google antes de servir anuncios.
+   requerida por Google antes de servir anuncios. Si pide verificar el dominio
+   o publicar `ads.txt`, usar los datos reales de esa cuenta; todavía no existe
+   un identificador de editor para prepararlo. Mantener los anuncios automáticos
+   apagados: este flujo utiliza únicamente el bloque voluntario de recompensa.
 4. Copiar la ruta real del bloque (formato `/CODIGO_RED/BLOQUE`) en Vercel →
    proyecto Trucazo → Settings → Environment Variables →
    `NEXT_PUBLIC_CAMPAIGN_REWARDED_AD_UNIT`. Volver a desplegar para incorporarla.
@@ -264,6 +268,33 @@ publicitario se simula: no genera impresiones pagas ni certifica una cuenta de
 Google. Los runners no tienen claves ni datos de producción.
 
 Tipos, ESLint (avisos previos), allowlist de RPC, prueba de callbacks publicitarios
-y compilación de Next aprobaron en la copia temporal. Pendiente registrar los
-resultados finales de GitHub y la revisión visual de las capturas. La activación
-en producción y la aprobación publicitaria siguen pendientes.
+y compilación de Next aprobaron en la copia temporal.
+
+### Evidencia verificada — 18/10/2026
+
+Código: `dee936578a154df1fd1820fd19f0c6fe5607febb`. La
+[prueba integrada de vidas](https://github.com/santibpapa/trucazo/actions/runs/39182095968)
+aprobó: tres derrotas reales, bloqueo a cero, resultado/revancha, ayuda desde
+Amigos en otra sesión, conservación del saldo del remitente, inicio y regalo
+concurrentes, acreditación del anuncio con SDK simulado y recarga hasta tres.
+La ventana de vidas se monta fuera de los contenedores animados del resultado;
+la prueba comprueba que su fondo cubra exactamente el viewport de 360×640.
+
+Se abrieron y revisaron las tres capturas finales del artifact `vidas-historia-movil`
+(resultado sin vidas, pedido enviado y vidas completas). Se esperó el final de
+las nubes y las animaciones para no confundir un cuadro de transición con la
+interfaz final. Sin desborde horizontal ni controles cortados; el resultado sin
+la ventana también entra sin scroll. El artifact dura un día.
+
+La [prueba existente de invitaciones](https://github.com/santibpapa/trucazo/actions/runs/39182095988)
+aprobó sin cambios. La aplicación y la suite SQL de vidas/permisos aprobaron en
+la [revisión general](https://github.com/santibpapa/trucazo/actions/runs/39182095966);
+la revisión completa también terminó aprobada, incluidas reconstrucción, juego,
+seguridad, permisos, torneos, monedas y simulaciones Noroeste. El commit posterior
+a esta evidencia sólo actualiza documentación y conserva el mismo código probado.
+
+La integración y el SQL de producción siguen pendientes. La cuenta publicitaria,
+su aprobación, el consentimiento aplicable y una vista con inventario real tampoco
+se hicieron durante esta entrega. No se generan ingresos por tener el PR ni por
+las pruebas simuladas. Próximo paso: ejecutar la migración del paso 1 en Supabase,
+integrar el PR y completar el alta publicitaria si se quiere habilitar anuncios.
