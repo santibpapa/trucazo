@@ -169,19 +169,17 @@ presentación: no requiere SQL ni altera el ingreso, los cobros o los asientos.
 
 ## Vidas de Historia — 18/10/2026
 
-**Estado:** el [PR #130](https://github.com/santibpapa/trucazo/pull/130) está integrado
-en master, commit `e707efb16eb9a96c2afbc02b84d45f8696638816`. El SQL y el estado de
-producción no se verificaron en esta sesión; no asumir que falta aplicarlo ni
-volver a ejecutarlo sin comprobarlo. El alta publicitaria está iniciada y se
-prepara la verificación de propiedad detallada al final de este documento.
+**Estado vigente — 19/10/2026:** la implementación del
+[PR #130](https://github.com/santibpapa/trucazo/pull/130) y la pausa del
+[PR #133](https://github.com/santibpapa/trucazo/pull/133) están integradas en master.
+El sistema está desactivado en producción y la interfaz de vidas queda oculta
+mientras se completa el alta publicitaria. El SQL ya se aplicó y la publicación
+se verificó; no volver a ejecutar la migración de pausa. Ver el registro de
+«Pausa de vidas y barra de Historia» al final de este documento.
+
 El trabajo partió de GitHub master `24f1da19`; la carpeta local del dueño no se
 usó ni modificó. Las pruebas se realizaron en una copia temporal limpia y en
 runners descartables de GitHub.
-
-**Actualización vigente — 19/10/2026:** se prepara la pausa del límite de vidas
-hasta completar el alta publicitaria. Ver «Pausa de vidas y barra de Historia» al
-final: sus pasos reemplazan la activación original de abajo. Aún requiere integrar
-el cambio y aplicar su nueva migración; no se da por publicado.
 
 ### Reglas acordadas (para cuando se reactive)
 
@@ -392,8 +390,8 @@ revisión solicitada, según las capturas del dueño. El PR #132 está integrado
 `https://www.trucazo.com.ar/ads.txt` respondió 200 con el ID correcto. Eso no
 confirma aprobación de Google ni un bloque rewarded operativo.
 
-**Preparado en este cambio:** `campaign_internal.ad_settings.lives_enabled`
-arranca en false. El servidor deja de descontar derrotas y permite iniciar
+**Aplicado:** `campaign_internal.ad_settings.lives_enabled`
+permanece en false. El servidor deja de descontar derrotas y permite iniciar
 y retomar duelos incluso con un saldo anterior de cero. Se conservan los
 saldos, la recarga natural y los tickets ya emitidos; no se borran progresos,
 monedas ni partidas. Los pedidos entre amigos y los anuncios nuevos quedan
@@ -409,14 +407,29 @@ de cero. Cuando se reactive el sistema, el indicador real aparecerá debajo de
 Ranking y al lado de Fama, con el mismo fondo, borde y forma; mostrará el saldo
 y la próxima recarga.
 
-**Aplicación:** la nueva migración es
-`supabase/migrations/20261019030305_pause_campaign_lives.sql`. Requiere que
-`20261019002728_campaign_lives.sql` ya esté aplicada; no volver a ejecutar la vieja
-si ya existe `campaign_internal.ad_settings`. En Supabase → SQL Editor → New query,
-pegar **sólo la nueva migración completa** y tocar Run. Después integrar el PR y
-comprobar la publicación. La pausa se aplica en el servidor desde el SQL; la
-interfaz anterior sigue permitiendo jugar pero puede mostrar el saldo guardado
-hasta que se publique la nueva. No se aplicó SQL a producción desde esta sesión.
+**Aplicado en producción — 19/10/2026:** por autorización explícita del dueño,
+el agente ejecutó el SQL de
+`supabase/migrations/20261019030305_pause_campaign_lives.sql` y después mergeó
+el PR #133, commit `63d0616dbadc8520eaa8c599c532445b70804105`.
+Supabase lo registró como `20261019040725_pause_campaign_lives`: el horario del
+registro del conector difiere del nombre del archivo preparado, pero el SQL es
+idéntico. **No ejecutar ninguno de esos cambios otra vez.**
+
+Comprobación real posterior: `lives_enabled = false`, permiso publicitario
+`enabled = false`, esquema interno cerrado a jugadores, lectura de estado
+habilitada sólo para usuarios autenticados y seis cuerpos de funciones idénticos
+al SQL probado. El asesor de seguridad conserva los avisos esperados de
+[RLS sin políticas en tablas privadas](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)
+y [RPCs de servidor accesibles por usuarios autenticados](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable).
+Son intencionales en este diseño: las tablas no se exponen al jugador y cada RPC
+valida la identidad y sus permisos. No abrir las tablas ni cambiar las reglas del
+juego para silenciar esos avisos.
+
+Vercel confirmó **READY / production** para el commit de merge, deployment
+`dpl_AS5ExKP9RMGBnZvitsnBU2tZ3Lp2`, asignado a `www.trucazo.com.ar` y
+`trucazo.com.ar`. Esto acredita la publicación del código revisado, junto con la
+verificación de la configuración real; no se jugó una partida de prueba contra
+producción ni se modificaron saldos de jugadores para comprobarlo.
 
 **Para retomar más adelante:** no se reactiva automáticamente al aprobar AdSense.
 Primero completar la cuenta de Ad Manager, el bloque rewarded real, la privacidad
@@ -455,11 +468,10 @@ pausa; la prueba rechaza cualquier texto de vidas mientras esté desactivado. Pr
 desde cero, resultado sin scroll y que al reactivar vuelva el indicador real
 junto a Fama/Ranking. Sólo el SDK publicitario se simula.
 
-La base de partida `df5907f9` aprobó todos los controles antes de esta aclaración.
-La corrección sólo cambia la interfaz, sus comprobaciones de navegador y este
-registro; no modifica el SQL de pausa. Tipos y ESLint aprobaron en la copia
-temporal, con los avisos preexistentes. El resultado actualizado de compilación,
-SQL y navegador está en los
-[controles del PR #133](https://github.com/santibpapa/trucazo/pull/133/checks).
-Las pruebas usan cuentas y bases descartables y no acreditan aprobación
-publicitaria ni SQL aplicado en producción.
+El código final `6b8550a9` aprobó la
+[revisión general completa](https://github.com/santibpapa/trucazo/actions/runs/39195468800),
+[vidas con navegador real](https://github.com/santibpapa/trucazo/actions/runs/39195468797)
+e [invitaciones](https://github.com/santibpapa/trucazo/actions/runs/39195468836).
+Las capturas finales del mapa y del resultado se descargaron y revisaron: no
+aparecen elementos ni mensajes de vidas durante la pausa. Las pruebas usan
+cuentas y bases descartables; no certifican aprobación publicitaria.
