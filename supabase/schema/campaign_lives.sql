@@ -174,10 +174,12 @@ begin
   if p_ticket is null or s.ad_ticket is distinct from p_ticket then raise exception 'anuncio no disponible'; end if;
   if s.ad_claimed then return public.get_campaign_lives(); end if;
   if s.ad_expires_at <= statement_timestamp() then raise exception 'el anuncio venció; probá de nuevo'; end if;
-  -- Si el reloj o un amigo ya dieron una vida durante el video, no se duplica.
+  -- Una vista completa conserva su recompensa aunque llegue ayuda o recarga
+  -- durante el video. El ticket impide repetirla; el máximo sigue siendo tres.
   update campaign_internal.lives set
-    lives = case when lives = 0 and depletion_id = ad_episode then 1 else lives end,
-    depletion_id = case when lives = 0 and depletion_id = ad_episode then null else depletion_id end,
+    lives = least(3, lives + 1),
+    next_life_at = case when lives + 1 >= 3 then null else next_life_at end,
+    depletion_id = null,
     ad_claimed = true where user_id = uid;
   return public.get_campaign_lives();
 end;

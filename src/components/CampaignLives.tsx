@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Alert, Button, Modal } from '@/components/ui'
 import { createClient } from '@/lib/supabase/client'
@@ -85,7 +86,7 @@ export default function CampaignLives({ initial = null }: { initial?: Lives | nu
         <span aria-hidden="true" className="text-negative">♥</span> {data ? `${data.lives}/3` : '…'}
         {countdown && <span className="ml-1 text-muted tabular">{countdown}</span>}
       </button>
-      <Modal open={open} onClose={() => { if (!busy) setOpen(false) }} title="Vidas de Historia" showCloseButton panelClassName="max-h-[85dvh] overflow-y-auto">
+      {open && createPortal(<Modal open={open} onClose={() => { if (!busy) setOpen(false) }} title="Vidas de Historia" showCloseButton panelClassName="max-h-[85dvh] overflow-y-auto">
         <div className="text-center">
           <p className="text-3xl tracking-widest text-negative" aria-label={data ? `${data.lives} de 3 vidas` : 'Cargando vidas'}>
             {data ? '♥'.repeat(data.lives) + '♡'.repeat(3 - data.lives) : '…'}
@@ -114,7 +115,7 @@ export default function CampaignLives({ initial = null }: { initial?: Lives | nu
             <Link href="/lobby" className="text-sm text-muted text-center underline">Mientras esperás, jugá en las mesas</Link>
           </div>
         )}
-      </Modal>
+      </Modal>, document.body)}
     </>
   )
 }

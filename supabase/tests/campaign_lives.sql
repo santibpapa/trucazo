@@ -89,9 +89,11 @@ begin
  perform set_config('request.jwt.claim.sub',a::text,true);
  set local role authenticated;
  view_state := public.complete_campaign_life_ad(ticket);
- perform pg_temp.check_lives(view_state->>'lives'='1','amigo y anuncio simultáneos no duplican');
+ perform pg_temp.check_lives(view_state->>'lives'='2','ayuda durante el anuncio no quita la recompensa prometida');
  view_state := public.complete_campaign_life_ad(ticket);
- perform pg_temp.check_lives(view_state->>'lives'='1','callback duplicado no duplica');
+ perform pg_temp.check_lives(view_state->>'lives'='2','callback duplicado no duplica');
+ g := public.start_campaign_duel(rival);
+ perform public.forfeit(g.id);
  g := public.start_campaign_duel(rival);
  perform public.forfeit(g.id);
  ticket := public.begin_campaign_life_ad();

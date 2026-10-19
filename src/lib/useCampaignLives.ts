@@ -17,7 +17,10 @@ export interface CampaignLives {
 
 export function useCampaignLives(initial: CampaignLives | null = null) {
   const [supabase] = useState(createClient)
-  const [data, setData] = useState(initial)
+  const [data, updateData] = useState(initial)
+  const setData = useCallback((next: CampaignLives) => {
+    updateData(current => !current || current.user_id !== next.user_id || Date.parse(next.server_now) >= Date.parse(current.server_now) ? next : current)
+  }, [])
   const [error, setError] = useState('')
   const refresh = useCallback(async () => {
     try {
@@ -28,7 +31,7 @@ export function useCampaignLives(initial: CampaignLives | null = null) {
     } catch {
       setError('No pudimos actualizar las vidas. Probá de nuevo.')
     }
-  }, [supabase])
+  }, [supabase, setData])
 
   useEffect(() => {
     const visibleRefresh = () => { if (document.visibilityState === 'visible') void refresh() }

@@ -192,8 +192,9 @@ controles después de ocho segundos y muestran reintento.
 **Publicidad preparada para Google Ad Manager / Google Publisher Tag.** El dueño
 no tenía proveedor. La integración real usa REWARDED, rewardedSlotGranted y
 rewardedSlotClosed; el script sólo se carga al optar por el anuncio. Un ticket por
-cuenta/episodio vence a los quince minutos y se acredita una vez. Si el reloj o un
-amigo ya recuperaron una vida durante el video, no se duplica. Una recompensa
+cuenta/episodio vence a los quince minutos y se acredita una vez. Una vista completa
+suma una vida aunque haya llegado ayuda o una recarga durante el video, hasta
+el máximo de tres; el mismo ticket nunca suma dos veces. Una recompensa
 confirmada con fallo de red queda pendiente en ese navegador y esa cuenta para
 reintentar sin otro anuncio; el ticket consumido no permite recuperar otra vida
 tras una derrota posterior.
@@ -216,8 +217,12 @@ y [reglas de recompensa](https://support.google.com/admanager/answer/7496282).
    La foto `supabase/schema/campaign_lives.sql` es referencia: no ejecutarla además.
 2. Integrar el PR cuando sus verificaciones estén aprobadas y comprobar el
    despliegue. Con eso funcionan las vidas, la recarga y los amigos.
-3. Para monetizar, el dueño debe crear/habilitar Google Ad Manager, dar de alta
-   el sitio y configurar un bloque **Rewarded para web** con recompensa de una
+3. Para monetizar, primero crear una cuenta en
+   [Google AdSense](https://adsense.google.com/start/) con el dominio
+   `trucazo.com.ar` y completar su alta. Google exige una cuenta válida de AdSense
+   para [registrarse en Ad Manager](https://support.google.com/admanager/answer/7084151?hl=es).
+   Después entrar a [Google Ad Manager](https://admanager.google.com/), crear/habilitar
+   la cuenta y configurar un bloque **Rewarded para web** con recompensa de una
    vida. La aprobación y la disponibilidad de inventario dependen de Google;
    este PR no crea una cuenta ni asegura ingresos. Revisar en la cuenta la
    configuración de privacidad/consentimiento y, donde corresponda, la CMP
