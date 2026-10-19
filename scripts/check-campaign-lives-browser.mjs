@@ -27,10 +27,14 @@ async function checkHud(page, lifeLabel) {
   const ranking = await page.getByRole('button', { name: 'Ranking', exact: true }).boundingBox()
   const lives = await page.getByRole('button', { name: lifeLabel, exact: true }).boundingBox()
   const fame = await page.getByRole('button', { name: /^Fama / }).boundingBox()
+  const title = await page.getByRole('heading', { name: 'Modo Historia', exact: true }).boundingBox()
+  const back = await page.getByRole('link', { name: 'Volver al lobby', exact: true }).boundingBox()
   assert.ok(lives.y >= ranking.y + ranking.height, 'vidas debajo de Ranking')
   assert.ok(Math.abs(lives.x - ranking.x) < 1, 'vidas en la misma columna de Ranking')
   assert.ok(lives.x + lives.width <= fame.x, 'vidas no tapa fama')
   assert.ok(lives.y < 130, 'vidas queda en la barra superior')
+  assert.ok(title.x >= 0 && title.x + title.width <= ranking.x, 'título completo sin quedar debajo de los controles')
+  assert.ok(back.x + back.width <= ranking.x, 'volver no queda debajo de Ranking')
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'sin desborde horizontal')
 }
 const rpc = async (c, name, args) => {
