@@ -79,6 +79,19 @@ export default function PrivacidadPage() {
         </p>
       </Section>
 
+      <Section title="Anuncios opcionales y vidas de Historia">
+        <p>
+          Si los anuncios están habilitados, al quedarte sin vidas podés elegir ver uno
+          de Google Ad Manager para recuperar una vida. Google puede tratar datos técnicos
+          y usar almacenamiento del navegador según la configuración publicitaria y tus
+          opciones de consentimiento. Podés esperar la recarga gratuita o pedir ayuda a un amigo.
+        </p>
+        <p>Guardamos el estado de vidas, los pedidos de ayuda y la acreditación de recompensas
+          para evitar duplicados. El navegador puede conservar un comprobante pendiente para
+          reintentar una acreditación si se corta la conexión.</p>
+        <p>Más información en la <a className="underline" href="https://policies.google.com/technologies/ads" rel="noreferrer" target="_blank">política de publicidad de Google</a>.</p>
+      </Section>
+
       <Section title="Almacenamiento local y PWA">
         <p>
           El navegador puede guardar preferencias, datos de sesión y recursos necesarios

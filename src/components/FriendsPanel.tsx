@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { CampaignLifeRequests } from '@/components/CampaignLives'
 import { Button, Input, Alert, Avatar, cn } from '@/components/ui'
 import { createClient } from '@/lib/supabase/client'
 import type { useCommunity } from '@/lib/useCommunity'
@@ -54,6 +55,7 @@ export default function FriendsPanel({ c, compact = false }: { c: Community; com
 
   return (
     <div className="flex flex-col gap-4">
+      <CampaignLifeRequests />
       {c.error && <Alert>{c.error}</Alert>}
       {c.notice && (
         <p className="text-xs font-semibold text-gold text-center rounded-xl border border-gold/40 bg-gold/10 px-3 py-2 animate-fade-in">

@@ -1,5 +1,7 @@
 'use client'
 
+import CampaignLives from '@/components/CampaignLives'
+
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -952,14 +954,20 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   async function playAgainCampaign() {
     if (!game.campaign_rival_id) return
     setLoading(true)
-    const { data, error } = await supabase.rpc('start_campaign_duel', { p_rival_id: game.campaign_rival_id })
-    if (!rpcFailed('start_campaign_duel RPC:', error) && data) {
-      router.push(`/game/${(data as Game).id}`)
-      router.refresh()
-    } else {
-      setActionError('No se pudo empezar el duelo de nuevo.')
-      setLoading(false)
-    }
+    try {
+      const { data, error } = await supabase.rpc('start_campaign_duel', { p_rival_id: game.campaign_rival_id }).abortSignal(AbortSignal.timeout(8000))
+      if (error?.message.includes('CAMPAIGN_NO_LIVES')) {
+        window.dispatchEvent(new Event('campaign-no-lives'))
+        return
+      }
+      if (!rpcFailed('start_campaign_duel RPC:', error) && data) {
+        router.push(`/game/${(data as Game).id}`)
+        router.refresh()
+      } else {
+        setActionError('No se pudo empezar el duelo de nuevo.')
+      }
+    } catch { setActionError('No se pudo empezar el duelo de nuevo.') }
+    finally { setLoading(false) }
   }
 
   // Mis cartas de la última mano (las que me quedaron + las que jugué), para
@@ -985,7 +993,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
           : <><b className="font-semibold text-cream">{opponentUsername}</b> te ganó {opponentScore} a {myScore}</>}
         note={won
           ? 'Mirá el mapa: capaz se abrió algo nuevo.'
-          : 'Volvé a intentarlo, le vas a encontrar la vuelta.'}
+          : game.winner_id ? 'Perdiste una vida. Se recupera una cada 30 minutos.' : 'Partida anulada. No perdiste vidas.'}
         me={{ url: myAvatarUrl, name: myUsername, score: myScore, highlight: won }}
         opponent={{ url: campaignRivalSlug ? `/personajes/${campaignRivalSlug}.webp` : opponentAvatarUrl, name: opponentUsername, score: opponentScore, highlight: !won }}
         extra={won && (game.campaign_points_earned > 0 || game.campaign_reward > 0) && (
@@ -1016,9 +1024,12 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
         )}
         {actionError && <p className="text-sm text-negative text-center">{actionError}</p>}
 
-        <Button variant="primary" size="md" fullWidth onClick={playAgainCampaign} disabled={loading}>
-          {won ? 'Jugar de nuevo' : 'Revancha'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <CampaignLives />
+          <Button variant="primary" size="md" fullWidth onClick={playAgainCampaign} disabled={loading}>
+            {won ? 'Jugar de nuevo' : 'Revancha'}
+          </Button>
+        </div>
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" fullWidth onClick={() => router.push('/historia')} disabled={loading}>
             Volver al modo historia

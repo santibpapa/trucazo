@@ -65,6 +65,9 @@ jobs:
       - name: Declaración de envido y recuperación de controles
         run: node scripts/check-envido-recovery.mjs
 
+      - name: Anuncios opcionales de vidas, cierres y fallos de inventario
+        run: node scripts/check-campaign-rewarded-ad.mjs
+
       - name: Contenido y economía de la Ruta del Noroeste
         run: node scripts/check-noroeste-expansion.mjs
 
@@ -190,6 +193,9 @@ jobs:
 
       - name: Falta envido, 33 como mano y pie, cartas jugadas y empate
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/envido_33.sql
+
+      - name: Vidas de campaña, recarga, anuncios y ayuda entre amigos
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/campaign_lives.sql
 
       - name: Permisos de las funciones
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql

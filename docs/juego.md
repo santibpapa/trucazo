@@ -164,3 +164,165 @@ Verificado: tipos y ESLint (advertencias previas), inspección visual a 360 × 6
 en una vista temporal con los componentes reales, animación CSS activa y aviso
 ausente en la mesa 2v2 completa. La vista temporal no se publica. Sólo cambia la
 presentación: no requiere SQL ni altera el ingreso, los cobros o los asientos.
+
+<a id="vidas-de-historia"></a>
+
+## Vidas de Historia — 18/10/2026
+
+**Estado:** implementación preparada en el [PR #130](https://github.com/santibpapa/trucazo/pull/130),
+rama `codex/campaign-lives`. No integrada
+ni aplicada en producción. El trabajo parte de GitHub master `24f1da19`; la carpeta
+local del dueño no se usó ni modificó. Las pruebas se realizan en una copia temporal
+limpia y en los runners descartables de GitHub.
+
+### Reglas acordadas
+
+- Tres vidas como máximo. Perder o rendirse en Historia descuenta una sola vida.
+  Ganar y las partidas anuladas sin ganador no descuentan. Las mesas comunes y
+  parejas conservan su comportamiento.
+- Una vida cada treinta minutos mientras falten, también desconectado. El reloj
+  empieza al salir de tres; las siguientes derrotas, regalos y anuncios conservan
+  el tiempo restante. Al llegar a tres se detiene, sin acumular vidas ocultas.
+- Cero vidas impide iniciar otro duelo. Un duelo que ya estaba abierto se retoma
+  sin borrar cartas ni progreso; los inicios simultáneos devuelven la misma partida.
+- A cero puede pedirse ayuda a un amigo aceptado. El dueño confirmó que ayudar es
+  gratis: no consume vidas ni monedas del remitente. Un pedido por episodio sin
+  vidas evita duplicados; aparece en Amigos (Comunidad y panel rápido del lobby).
+  Vence con la próxima recarga. Una ayuda repetida o vencida no acredita de nuevo.
+- A cero, un anuncio voluntario puede recuperar una vida. Esperar y pedir ayuda
+  siguen disponibles. Ningún anuncio se solicita al abrir Historia o durante el
+  duelo. Cerrar, bloquear o no disponer de anuncios no otorga una vista inventada.
+
+### Implementación y límites
+
+`campaign_internal` guarda saldos, reloj, pedidos y tickets. Tiene RLS sin políticas
+para jugadores, sin acceso de esquema y fuera de Realtime. Las funciones públicas
+comprueban identidad; sus permisos excluyen PUBLIC/anon. El cliente sólo muestra
+el saldo y el contador. El servidor recalcula y bloquea la fila para serializar
+recargas, pérdidas, regalos, recompensas e inicios. El trigger de derrota actúa
+sólo al pasar de playing a finished con ganador; repetir el cierre no descuenta.
+No se requiere un cron para recargar vidas.
+
+El mapa y el resultado muestran corazones y próxima recarga. La pantalla a cero
+ofrece amigos y volver a las mesas mientras espera. Se relee al volver a la
+pestaña y cada quince segundos si está visible. Los fallos de red liberan los
+controles después de ocho segundos y muestran reintento.
+
+**Publicidad preparada para Google Ad Manager / Google Publisher Tag.** El dueño
+no tenía proveedor. La integración real usa REWARDED, rewardedSlotGranted y
+rewardedSlotClosed; el script sólo se carga al optar por el anuncio. Un ticket por
+cuenta/episodio vence a los quince minutos y se acredita una vez. Una vista completa
+suma una vida aunque haya llegado ayuda o una recarga durante el video, hasta
+el máximo de tres; el mismo ticket nunca suma dos veces. Una recompensa
+confirmada con fallo de red queda pendiente en ese navegador y esa cuenta para
+reintentar sin otro anuncio; el ticket consumido no permite recuperar otra vida
+tras una derrota posterior.
+
+**Límite explícito del proveedor web:** Google no ofrece verificación independiente
+del servidor para rewarded web. Una persona que manipule su propio navegador
+podría falsificar la señal de recompensa después de solicitar un ticket. Los
+controles SQL evitan duplicados y regalos a otras cuentas; no prueban una vista
+publicitaria ni resuelven ese fraude. No describirlos como SSV. Para esa garantía
+habría que elegir un proveedor con comprobantes firmados o una integración nativa
+que los soporte. Referencias: [recompensas web](https://support.google.com/admanager/answer/9116812?hl=en),
+[ejemplo GPT](https://developers.google.com/publisher-tag/samples/display-rewarded-ad)
+y [reglas de recompensa](https://support.google.com/admanager/answer/7496282).
+
+### Activación, en orden
+
+1. Antes de publicar la interfaz, abrir en GitHub
+   `supabase/migrations/20261019002728_campaign_lives.sql` y copiarlo entero.
+   Supabase → proyecto Trucazo → SQL Editor → New query → pegar → Run.
+   La foto `supabase/schema/campaign_lives.sql` es referencia: no ejecutarla además.
+2. Integrar el PR cuando sus verificaciones estén aprobadas y comprobar el
+   despliegue. Con eso funcionan las vidas, la recarga y los amigos.
+3. Para monetizar, primero crear una cuenta en
+   [Google AdSense](https://adsense.google.com/start/) con el dominio
+   `trucazo.com.ar` y completar su alta. Google exige una cuenta válida de AdSense
+   para [registrarse en Ad Manager](https://support.google.com/admanager/answer/7084151?hl=es).
+   Después entrar a [Google Ad Manager](https://admanager.google.com/), crear/habilitar
+   la cuenta y configurar un bloque **Rewarded para web** con recompensa de una
+   vida. La aprobación y la disponibilidad de inventario dependen de Google;
+   este PR no crea una cuenta ni asegura ingresos. Revisar en la cuenta la
+   configuración de privacidad/consentimiento y, donde corresponda, la CMP
+   requerida por Google antes de servir anuncios. Si pide verificar el dominio
+   o publicar `ads.txt`, usar los datos reales de esa cuenta; todavía no existe
+   un identificador de editor para prepararlo. Mantener los anuncios automáticos
+   apagados: este flujo utiliza únicamente el bloque voluntario de recompensa.
+4. Copiar la ruta real del bloque (formato `/CODIGO_RED/BLOQUE`) en Vercel →
+   proyecto Trucazo → Settings → Environment Variables →
+   `NEXT_PUBLIC_CAMPAIGN_REWARDED_AD_UNIT`. Volver a desplegar para incorporarla.
+   El identificador no es una clave privada. No usar el bloque de demostración
+   de Google para monetizar.
+5. Recién con la cuenta y el bloque listos, en Supabase → SQL Editor → New query
+   copiar y ejecutar:
+
+   ```sql
+   update campaign_internal.ad_settings set enabled = true where singleton;
+   ```
+
+   Hasta entonces el anuncio queda oculto y ni siquiera se emiten tickets desde
+   una llamada directa. Para pausar anuncios usar la misma consulta con `false`;
+   esperar y ayudar continúan funcionando. Los tickets ya emitidos conservan su
+   plazo para no perder una recompensa legítima.
+6. Comprobar con dos cuentas: tres derrotas → cero; pedir/enviar ayuda; volver a
+   jugar; esperar una recarga. Con el proveedor aprobado, verificar inventario
+   real, cierre voluntario, recompensa y acreditación tras recuperar conexión.
+
+### Pruebas y continuidad
+
+Preparadas: `supabase/tests/campaign_lives.sql`, permisos globales y
+`scripts/check-campaign-rewarded-ad.mjs`. La suite SQL comprueba saldo inicial,
+triunfo, derrotas, rendición, cierre repetido, cero, reloj y sobrantes, máximo,
+pedidos y tickets ajenos, ayuda gratis, vencimientos, reintentos y carrera entre
+amigo/anuncio. El permiso publicitario empieza cerrado en cada reconstrucción.
+La prueba Noroeste cierra explícitamente su duelo de preparación porque ahora
+los duelos abiertos se retoman; mantiene sus comprobaciones de acceso y premios.
+
+`campaign-lives.yml` prepara Auth, Postgres, Realtime, Next y Chromium reales en
+CI. Prueba dos sesiones, derrotas por la RPC real, pedido/respuesta en Amigos,
+inicios y regalos simultáneos, recarga y capturas a 360×640. Sólo el SDK
+publicitario se simula: no genera impresiones pagas ni certifica una cuenta de
+Google. Los runners no tienen claves ni datos de producción.
+
+Tipos, ESLint (avisos previos), allowlist de RPC, prueba de callbacks publicitarios
+y compilación de Next aprobaron en la copia temporal.
+
+### Evidencia verificada — 18/10/2026
+
+Código: `dee936578a154df1fd1820fd19f0c6fe5607febb`. La
+[prueba integrada de vidas](https://github.com/santibpapa/trucazo/actions/runs/39182095968)
+aprobó: tres derrotas reales, bloqueo a cero, resultado/revancha, ayuda desde
+Amigos en otra sesión, conservación del saldo del remitente, inicio y regalo
+concurrentes, acreditación del anuncio con SDK simulado y recarga hasta tres.
+La ventana de vidas se monta fuera de los contenedores animados del resultado;
+la prueba comprueba que su fondo cubra exactamente el viewport de 360×640.
+
+Se abrieron y revisaron las tres capturas finales del artifact `vidas-historia-movil`
+(resultado sin vidas, pedido enviado y vidas completas). Se esperó el final de
+las nubes y las animaciones para no confundir un cuadro de transición con la
+interfaz final. Sin desborde horizontal ni controles cortados; el resultado sin
+la ventana también entra sin scroll. El artifact dura un día.
+
+La [prueba existente de invitaciones](https://github.com/santibpapa/trucazo/actions/runs/39182095988)
+aprobó sin cambios. La aplicación y la suite SQL de vidas/permisos aprobaron en
+la [revisión general](https://github.com/santibpapa/trucazo/actions/runs/39182095966);
+la revisión completa también terminó aprobada, incluidas reconstrucción, juego,
+seguridad, permisos, torneos, monedas y simulaciones Noroeste. El commit posterior
+a esta evidencia sólo actualiza documentación y conserva el mismo código probado.
+
+La integración y el SQL de producción siguen pendientes. La cuenta publicitaria,
+su aprobación, el consentimiento aplicable y una vista con inventario real tampoco
+se hicieron durante esta entrega. No se generan ingresos por tener el PR ni por
+las pruebas simuladas. Próximo paso: ejecutar la migración del paso 1 en Supabase,
+integrar el PR y completar el alta publicitaria si se quiere habilitar anuncios.
+
+
+### Compatibilidad con el PR #129 — 18/10/2026
+
+El dueño integró #129 en master (`8380cc93e6b2434fed9a03576089248c301bff3c`).
+Se actualiza #130 con ese master y se conserva tanto la sección «Espera visible
+después del código» como la de vidas. El único conflicto era la incorporación
+de ambas secciones al final de este documento; los archivos de código no se pisan.
+No se cambia la migración de vidas ni se aplica SQL o se publica #130 durante
+esta actualización. Las verificaciones automáticas vuelven a evaluar la combinación.

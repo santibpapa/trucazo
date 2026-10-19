@@ -20,6 +20,8 @@ declare
     'clear_chat',
     'create_group', 'create_table', 'delete_chat_message', 'delete_group',
     'delete_news', 'ensure_lobby_tables', 'envido_say', 'forfeit',
+    'get_campaign_lives', 'request_campaign_life', 'send_campaign_life',
+    'begin_campaign_life_ad', 'complete_campaign_life_ad',
     'get_active_medals', 'get_campaign_map', 'get_campaign_ranking', 'get_my_objectives',
     'get_community', 'get_table_invite', 'preview_table_invite', 'join_table_invite',
     'invite_friend', 'invite_to_group', 'irse_al_mazo',
