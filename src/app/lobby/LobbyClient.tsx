@@ -65,10 +65,20 @@ export default function LobbyClient({
   const [createdTableId, setCreatedTableId] = useState('')
   const [coins, setCoins] = useState(profile.coins)
   // Amigos: presencia, solicitudes e invitaciones para el panel social de escritorio
-  // y la insignia de Comunidad en la navegación móvil.
+  // y la insignia de Amigos en la navegación móvil.
   const community = useCommunity(profile.id)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showChat, setShowChat] = useState(false)
+  const chatDialog = useRef<HTMLDialogElement>(null)
   const [showSocial, setShowSocial] = useState(false)
+  useEffect(() => {
+    const dialog = chatDialog.current
+    if (!showChat || !dialog) return
+    if (!dialog.open) dialog.showModal()
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = overflow }
+  }, [showChat])
   useEffect(() => {
     const screen = window.matchMedia('(min-width: 1280px)')
     const update = () => setShowSocial(screen.matches)
@@ -366,10 +376,19 @@ export default function LobbyClient({
           <Logo size="md" />
         </div>
         <nav className="flex flex-col gap-1 mt-2">
-          <NavItem href="/lobby" icon={<HomeIcon />} label="Home" active />
+          <NavItem href="/lobby" icon={<HomeIcon />} label="Inicio" active />
           <NavItem href="/historia" icon={<SwordsIcon />} label="Modo Historia" />
           <NavItem href="/ranking" icon={<RankIcon />} label="Ranking" />
-          <NavItem href="/comunidad" icon={<UsersIcon />} label="Comunidad" badge={friendsBadge} />
+          <NavItem href="/comunidad" icon={<UsersIcon />} label="Amigos" badge={friendsBadge} />
+          <button
+            type="button"
+            onClick={() => setShowChat(true)}
+            aria-haspopup="dialog"
+            aria-controls="lobby-chat"
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted hover:text-cream hover:bg-surface2 xl:hidden"
+          >
+            <ChatIcon /> Chat
+          </button>
           <NavItem href="/tienda" icon={<StoreIcon />} label="Tienda" />
         </nav>
 
@@ -403,8 +422,18 @@ export default function LobbyClient({
       {/* Columna central */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Barra superior (solo celular/tablet: en compu todo esto vive en el menú lateral) */}
-        <header className="flex lg:hidden items-center justify-between gap-3 px-4 pt-4 sm:px-6 sm:pt-5">
+        <header className="flex lg:hidden items-center justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-5">
           <Logo size="md" />
+
+          <button
+            type="button"
+            onClick={() => setShowChat(true)}
+            aria-haspopup="dialog"
+            aria-controls="lobby-chat"
+            className="ml-auto inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-gold/50 px-3 py-2 text-sm font-semibold text-cream hover:border-gold hover:text-gold"
+          >
+            <ChatIcon /> Chat
+          </button>
 
           {/* Ícono de perfil con menucito (perfil / cerrar sesión) */}
           <div className="relative">
@@ -593,6 +622,36 @@ export default function LobbyClient({
         </>}
       </aside>
 
+      {/* El diálogo nativo mantiene el foco dentro del chat y vuelve al acceso al cerrar. */}
+      <dialog
+        id="lobby-chat"
+        ref={chatDialog}
+        aria-label="Chat global"
+        onClose={() => setShowChat(false)}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) event.currentTarget.close()
+        }}
+        className="fixed inset-x-0 bottom-0 top-auto m-0 w-full max-w-none max-h-[calc(100dvh-1rem)] rounded-t-2xl border border-line bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-cream shadow-lift backdrop:bg-black/60 backdrop:backdrop-blur-sm sm:inset-0 sm:m-auto sm:max-w-lg sm:rounded-2xl"
+      >
+        {showChat && (
+          <div className="relative">
+            <button
+              type="button"
+              aria-label="Cerrar chat"
+              onClick={() => chatDialog.current?.close()}
+              className="absolute -right-1 -top-1 flex h-11 w-11 items-center justify-center rounded-xl text-muted hover:bg-surface2 hover:text-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+            >
+              <span aria-hidden="true" className="text-2xl">×</span>
+            </button>
+            <ChatGlobal
+              myId={profile.id}
+              isAdmin={!!profile.is_admin}
+              className="h-[min(65dvh,32rem)] min-h-0 [&>div:first-child]:min-h-11 [&>div:first-child]:pr-11"
+            />
+          </div>
+        )}
+      </dialog>
+
       {/* Modal crear mesa */}
       <Modal
         open={showCreateModal}
@@ -731,19 +790,19 @@ export default function LobbyClient({
       </Modal>
 
       {/* Barra móvil: cinco destinos. Campaña ocupa el centro y se eleva como
-          acceso principal; chat y amigos viven juntos dentro de Comunidad. */}
+          acceso principal; Amigos abre la sección de Comunidad con sus pendientes. */}
       <nav
         aria-label="Navegación principal"
         className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 flex min-h-[calc(4.25rem+env(safe-area-inset-bottom))] items-stretch border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
-        <BottomTab href="/lobby" icon={<HomeIcon size={22} />} label="Home" active />
+        <BottomTab href="/lobby" icon={<HomeIcon size={22} />} label="Inicio" active />
         <BottomTab href="/ranking" icon={<RankIcon size={22} />} label="Ranking" />
         <CampaignBottomTab />
         <BottomTab href="/tienda" icon={<StoreIcon size={22} />} label="Tienda" />
         <BottomTab
           href="/comunidad"
           icon={<UsersIcon size={22} />}
-          label="Comunidad"
+          label="Amigos"
           badge={friendsBadge}
         />
       </nav>
@@ -755,6 +814,14 @@ function PlusIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function ChatIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2v-10a9.5 9.5 0 0 1 19-.5Z" />
     </svg>
   )
 }
@@ -877,7 +944,7 @@ function BottomTab({
     </span>
   )
   return href ? (
-    <Link href={href} className="flex-1">{inner}</Link>
+    <Link href={href} className="flex-1" aria-label={badge > 0 ? `${label}, ${badge} ${badge === 1 ? 'pendiente' : 'pendientes'}` : undefined}>{inner}</Link>
   ) : (
     <button onClick={onClick} className="flex-1" aria-label={label}>{inner}</button>
   )
@@ -891,6 +958,7 @@ function NavItem({
   return (
     <Link
       href={href}
+      aria-label={badge > 0 ? `${label}, ${badge} ${badge === 1 ? 'pendiente' : 'pendientes'}` : undefined}
       className={cn(
         'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors',
         active ? 'bg-gold/15 text-gold' : 'text-muted hover:text-cream hover:bg-surface2',
