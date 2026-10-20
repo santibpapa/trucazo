@@ -10,6 +10,9 @@ activación en [Juego](docs/juego.md#invitacion-por-enlace).
 **Vidas de Historia:** implementación, pruebas y activación en
 [Juego](docs/juego.md#vidas-de-historia).
 
+**Rendimiento del lobby y la mesa:** cambios y mediciones comparables en
+[Juego](docs/juego.md#rendimiento-del-lobby-y-la-mesa).
+
 ## Stack
 
 - **Next.js 14** (App Router, Server Components + Client Components)

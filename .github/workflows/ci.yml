@@ -56,6 +56,15 @@ jobs:
       - name: Verificar actualización de mesas al volver al lobby
         run: node --import tsx scripts/check-lobby-tables.ts
 
+      - name: Inicio de mesas sin consultas duplicadas ni navegación tardía
+        run: node --import tsx scripts/check-started-table.ts
+
+      - name: Instalar navegador para la comparación de rendimiento
+        run: npx playwright install --with-deps chromium
+
+      - name: Renders, carga diferida y pedidos del lobby y la mesa
+        run: npm run check:performance:browser
+
       - name: Presencia real al entrar, intervalos y salida
         run: node --import tsx scripts/check-presence.ts
 

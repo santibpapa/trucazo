@@ -1,15 +1,13 @@
 'use client'
 
-import CampaignLives from '@/components/CampaignLives'
-
 import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Game } from '@/lib/types'
 import { createDeck, getCardImage, getEnvidoPoints, type Card } from '@/lib/truco'
 import { Button, CoinIcon } from '@/components/ui'
 import PlayingCard from '@/components/game/PlayingCard'
-import FinishScreen from '@/components/game/FinishScreen'
 import { SeatAvatar, TableAccessory, MesaButton, MesaAnnouncement, MesaHeader, MesaTurn, MesaToolbar, EmoteTray, MesaDeck, DEAL_ORIGINS, type Announce } from '@/components/game/MesaUI'
 import MatchChat from '@/components/game/MatchChat'
 import { EMOTES } from '@/lib/emotes'
@@ -22,7 +20,10 @@ import { getSalonTheme } from '@/lib/salones'
 import { fraseDelBot, type MomentoFrase } from '@/lib/botFrases'
 import { track } from '@vercel/analytics'
 import { trackFirstParty } from '@/lib/analytics/client'
-import ObjectiveProgressDelta from '@/components/objectives/ObjectiveProgressDelta'
+
+const FinishScreen = dynamic(() => import('@/components/game/FinishScreen'))
+const CampaignLives = dynamic(() => import('@/components/CampaignLives'))
+const ObjectiveProgressDelta = dynamic(() => import('@/components/objectives/ObjectiveProgressDelta'))
 
 interface Props {
   game: Game
@@ -221,14 +222,25 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   // turno y el destello dorado del borde de la pantalla.
   const meActive = !game.awaiting_deal && game.status === 'playing' && humanCanAct
 
-  // Precarga las 40 cartas una sola vez: cuando se reparte una mano nueva las
-  // imágenes ya están en caché del navegador y aparecen al instante, sin
-  // "pintarse a medias" mientras el PNG termina de bajar.
+  // Las tres cartas visibles conservan prioridad. El resto del mazo se prepara
+  // después de cargar la pantalla, de a dos y con prioridad baja.
   useEffect(() => {
-    for (const card of createDeck()) {
+    const deck = createDeck()
+    let stopped = false
+    let index = 0
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const next = () => {
+      if (stopped || index >= deck.length) return
       const img = new Image()
-      img.src = getCardImage(card)
+      img.decoding = 'async'
+      img.fetchPriority = 'low'
+      img.onload = img.onerror = next
+      img.src = getCardImage(deck[index++])
     }
+    const start = () => { timer = setTimeout(() => { next(); next() }, 1500) }
+    if (document.readyState === 'complete') start()
+    else window.addEventListener('load', start, { once: true })
+    return () => { stopped = true; clearTimeout(timer); window.removeEventListener('load', start) }
   }, [])
 
   // Al volver de dejar una reseña (?gracias=1), mostramos un saludo y limpiamos la URL.
