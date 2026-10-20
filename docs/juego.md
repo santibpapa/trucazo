@@ -53,10 +53,12 @@ no requiere SQL, cambios de permisos ni configuración de Supabase.
 
 ## Globos del chat escrito — 20/10/2026
 
-**Preparado para revisión**, desde GitHub `master` `57f5290c`, en una copia
-aislada y sin incorporar cambios de la carpeta local del dueño. No acredita
-integración ni publicación en producción. No requiere SQL, variables nuevas
-ni cambios de permisos.
+**Aplicado y cerrado por el dueño:** el
+[PR #138](https://github.com/santibpapa/trucazo/pull/138) se integró en `master`
+el 20/10/2026 a las 19:14 de Argentina, commit `de991d41`. El dueño confirmó
+que quedó aplicado y dio el tema por cerrado. Se preparó desde GitHub `master`
+`57f5290c`, en una copia aislada y sin incorporar cambios de su carpeta local.
+No requiere SQL, variables nuevas ni cambios de permisos.
 
 Los mensajes nuevos del chat escrito aparecen también en globos del lado de
 su autor, en 1v1 y en los cuatro lugares de parejas. Conservan el estilo de las
@@ -87,8 +89,15 @@ dos dispositivos ni una partida manual en producción.
 Tipos, ESLint (seis advertencias previas del 1v1), prueba existente de reconexión,
 compilación de Next y generación de markdown aprobados. En la copia anidada,
 ESLint se ejecutó explícitamente con `--no-eslintrc --config .eslintrc.json` para
-evitar heredar la configuración de la carpeta local del dueño. La revisión
-integrada de GitHub y la publicación se comprueban por separado.
+evitar heredar la configuración de la carpeta local del dueño.
+
+**Cierre verificado:** para `91afbb8c` aprobaron la
+[revisión general](https://github.com/santibpapa/trucazo/actions/runs/39505915500),
+[invitaciones](https://github.com/santibpapa/trucazo/actions/runs/39505915395),
+[vidas](https://github.com/santibpapa/trucazo/actions/runs/39505915588) y el control
+de Vercel. La aplicación efectiva fue confirmada por el dueño; no se registra
+una comprobación independiente posterior del despliegue ni una partida manual
+entre dos dispositivos. No queda implementación ni activación pendiente.
 
 <a id="nombres-bots-lobby"></a>
 
