@@ -8,8 +8,10 @@ import { Panel, Logo, Input, Button, Alert, CoinIcon } from '@/components/ui'
 import { track } from '@vercel/analytics'
 import { trackFirstParty } from '@/lib/analytics/client'
 import { loginDestination } from '@/lib/android-entry'
+import { invitationAuthLink, invitationPath } from '@/lib/table-invites'
 
-export default function RegisterPage() {
+export default function RegisterPage({ searchParams }: { searchParams: { next?: string } }) {
+  const next = invitationPath(searchParams.next)
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -53,11 +55,13 @@ export default function RegisterPage() {
       return
     }
 
+    if (next) document.cookie = `trucazo_auth_next=${next}; Path=/; Max-Age=600; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { username },
+        ...(next ? { emailRedirectTo: `${window.location.origin}/auth/callback` } : {}),
       },
     })
 
@@ -118,7 +122,7 @@ export default function RegisterPage() {
           <p className="text-xs text-subtle">
             Si no lo ves, mirá en el correo no deseado.
           </p>
-          <Link href="/login" className="text-sm font-semibold text-gold hover:text-gold-600 transition-colors">
+          <Link href={invitationAuthLink('/login', next)} className="text-sm font-semibold text-gold hover:text-gold-600 transition-colors">
             Ir a iniciar sesión
           </Link>
         </Panel>
@@ -181,7 +185,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-muted">
           ¿Ya tenés cuenta?{' '}
-          <Link href="/login" className="text-gold font-semibold hover:underline">
+          <Link href={invitationAuthLink('/login', next)} className="text-gold font-semibold hover:underline">
             Iniciá sesión
           </Link>
         </p>

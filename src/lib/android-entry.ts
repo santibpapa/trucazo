@@ -1,3 +1,5 @@
+import { invitationPath } from './table-invites'
+
 // Marcador por pestaña: una visita a la app no cambia la política de invitados
 // en las otras pestañas del navegador. No es una credencial ni autorización.
 const KEY = 'trucazo:android-entry:v1'
@@ -14,7 +16,8 @@ export function isAndroidEntry(): boolean {
 }
 
 export function loginDestination(): string {
-  return isAndroidEntry() ? '/android' : '/lobby'
+  const next = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('next')
+  return invitationPath(next) ?? (isAndroidEntry() ? '/android' : '/lobby')
 }
 
 export async function clearAndroidProbe() {

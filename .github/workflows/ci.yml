@@ -56,11 +56,35 @@ jobs:
       - name: Verificar actualización de mesas al volver al lobby
         run: node --import tsx scripts/check-lobby-tables.ts
 
+      - name: Inicio de mesas sin consultas duplicadas ni navegación tardía
+        run: node --import tsx scripts/check-started-table.ts
+
+      - name: Instalar navegador para la comparación de rendimiento
+        run: npx playwright install --with-deps chromium
+
+      - name: Renders, carga diferida y pedidos del lobby y la mesa
+        run: npm run check:performance:browser
+
+      - name: Presencia real al entrar, intervalos y salida
+        run: node --import tsx scripts/check-presence.ts
+
+      - name: Recuperación de reparto y temporizador tras reconexión
+        run: node --import tsx scripts/check-game-recovery.ts
+
+      - name: Declaración de envido y recuperación de controles
+        run: node scripts/check-envido-recovery.mjs
+
+      - name: Anuncios opcionales de vidas, cierres y fallos de inventario
+        run: node scripts/check-campaign-rewarded-ad.mjs
+
       - name: Contenido y economía de la Ruta del Noroeste
         run: node scripts/check-noroeste-expansion.mjs
 
       - name: Verificar presentación de cantos por equipos
         run: node --import tsx scripts/check-team-presentation.ts
+
+      - name: Enlaces de invitación y regreso después de entrar
+        run: node --import tsx scripts/check-table-invites.ts
 
       - name: Que la lógica de truco del cliente y la del servidor coincidan
         run: npx tsx scripts/sim.ts
@@ -73,6 +97,9 @@ jobs:
 
       - name: Validar formularios y horarios de torneos
         run: npm run check:tournaments
+
+      - name: Capturas privadas y enlaces de reseñas
+        run: node scripts/check-feedback-images.mjs
 
       - name: Build de producción
         # Claves de mentira a propósito: el build no se conecta a ningún lado,
@@ -127,6 +154,31 @@ jobs:
       - name: Reconstruir la base entera desde cero
         run: scripts/rebuild-db.sh
 
+      - name: Instalar la protección safeupdate en la base descartable
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          docker exec --user root "$POSTGRES_CONTAINER" sh -ec '
+            apt-get update
+            apt-get install -y --no-install-recommends build-essential postgresql-server-dev-16 curl ca-certificates
+            mkdir /tmp/pg-safeupdate
+            curl -fsSL https://github.com/eradman/pg-safeupdate/archive/37dbc9c4acf5e2504adf2b218e9c6b41751022f3.tar.gz | tar -xz --strip-components=1 -C /tmp/pg-safeupdate
+            make -C /tmp/pg-safeupdate
+            make -C /tmp/pg-safeupdate install
+          '
+
+      - name: Victoria con cambio de podio y barrido con presencia reciente
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/game_completion_presence.sql
+
+      - name: Rival inactivo, tres vencimientos y recuperación de reparto
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/game_inactivity.sql
+
+      - name: Reseñas, recuperación, deduplicación y permisos del agente
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/feedback_review.sql
+
+      - name: Capturas privadas, aislamiento y caducidad de tickets
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/feedback_images.sql
+
       - name: Eliminación de cuentas, privacidad y continuidad de torneos
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/account_deletion.sql
 
@@ -147,6 +199,12 @@ jobs:
 
       - name: Pardas, ganador de la primera y cierre de campaña
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tercera_parda.sql
+
+      - name: Falta envido, 33 como mano y pie, cartas jugadas y empate
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/envido_33.sql
+
+      - name: Vidas de campaña, recarga, anuncios y ayuda entre amigos
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/campaign_lives.sql
 
       - name: Permisos de las funciones
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql
@@ -190,6 +248,9 @@ jobs:
 
       - name: Motor, bots y privacidad de partidas 2vs2
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/team_games.sql
+
+      - name: Invitaciones públicas y privadas, permisos y cobro único
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/table_invites.sql
 
       - name: Concurrencia real entre participantes 2vs2
         run: supabase/tests/team_concurrency.sh

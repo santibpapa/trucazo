@@ -49,7 +49,11 @@ export const metadata: Metadata = {
   verification: { google: GOOGLE_SITE_VERIFICATION },
   // La app ya es oscura de fábrica: este "candado" hace que la extensión
   // Dark Reader se desactive sola acá (si no, re-pinta y rompe los colores).
-  other: { 'darkreader-lock': '' },
+  other: {
+    'darkreader-lock': '',
+    // Verifica la propiedad en AdSense; no carga publicidad.
+    'google-adsense-account': 'ca-pub-3485016002829591',
+  },
 }
 
 // Declara la app como oscura (emite <meta name="color-scheme" content="dark">).

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui'
 import { track } from '@vercel/analytics'
 import { trackFirstParty } from '@/lib/analytics/client'
+import { invitationPath } from '@/lib/table-invites'
 
 interface Props {
   variant?: 'primary' | 'ghost' | 'secondary'
@@ -13,6 +14,8 @@ interface Props {
   label?: string
   source?: string
   fullWidth?: boolean
+  returnTo?: string
+  username?: string
 }
 
 /** Entrar sin registrarse: sesión anónima de Supabase + perfil "Invitado####". */
@@ -22,6 +25,8 @@ export default function GuestButton({
   label = 'Entrar como invitado',
   source = 'unknown',
   fullWidth = true,
+  returnTo,
+  username,
 }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -35,13 +40,20 @@ export default function GuestButton({
       router.push('/login?android=1')
       return
     }
+    if (loading) return
+    if (username !== undefined && (username.trim().length < 3 || username.trim().length > 16)) {
+      setError('Elegí un nombre de entre 3 y 16 caracteres.')
+      return
+    }
     track('guest_cta_click', { source })
     setLoading(true)
     setError('')
     const { createClient } = await import('@/lib/supabase/client')
     const supabase = createClient()
 
-    const { data, error: authErr } = await supabase.auth.signInAnonymously()
+    const { data, error: authErr } = await supabase.auth.signInAnonymously(
+      username === undefined ? undefined : { options: { data: { username: username.trim() } } },
+    )
     if (authErr || !data.user) {
       track('guest_session_failed', { source, stage: 'auth' })
       setError('El modo invitado no está disponible por ahora.')
@@ -60,7 +72,7 @@ export default function GuestButton({
     track('guest_session_started', { source })
     trackFirstParty('guest_session_started', { source })
 
-    router.push('/lobby')
+    router.push(invitationPath(returnTo) ?? '/lobby')
     router.refresh()
   }
 

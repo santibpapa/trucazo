@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import CampaignLives from '@/components/CampaignLives'
+import type { CampaignLives as Lives } from '@/lib/useCampaignLives'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Panel, Coins, Alert, Modal, CoinIcon, cn } from '@/components/ui'
 
@@ -58,6 +60,7 @@ interface Props {
   style: Style | null
   provinces: Province[]
   coins: number
+  lives: Lives | null
 }
 
 type Pos = { x: number; y: number }
@@ -122,7 +125,7 @@ const LUGARES: Record<string, Pos[]> = {
   'jujuy':               [{ x: 33, y: 26 }, { x: 54.7, y: 48.4 }, { x: 22.6, y: 66.7 }, { x: 80.9, y: 82 }],
 }
 
-export default function HistoriaClient({ points, fama, style, provinces: initialProvinces, coins }: Props) {
+export default function HistoriaClient({ points, fama, style, provinces: initialProvinces, coins, lives }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -232,14 +235,21 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
   async function play(rivalId: string) {
     setLoadingId(rivalId)
     setError('')
-    const { data, error } = await supabase.rpc('start_campaign_duel', { p_rival_id: rivalId })
-    if (error || !data) {
-      setError('No se pudo empezar el duelo. Probá de nuevo.')
-      setLoadingId(null)
-      return
-    }
-    router.push(`/game/${(data as { id: string }).id}`)
-    router.refresh()
+    try {
+      const { data, error } = await supabase.rpc('start_campaign_duel', { p_rival_id: rivalId }).abortSignal(AbortSignal.timeout(8000))
+      if (error?.message.includes('CAMPAIGN_NO_LIVES')) {
+        setSelected(null)
+        window.dispatchEvent(new Event('campaign-no-lives'))
+        return
+      }
+      if (error || !data) {
+        setError('No se pudo empezar el duelo. Probá de nuevo.')
+        return
+      }
+      router.push(`/game/${(data as { id: string }).id}`)
+      router.refresh()
+    } catch { setError('No se pudo empezar el duelo. Probá de nuevo.') }
+    finally { setLoadingId(null) }
   }
 
   // Modo ajuste: arrastrar actualiza la posición en % (marcador del mapa o
@@ -316,10 +326,10 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
 
       {/* HUD: barra superior fija, con chips sólidos como los del lobby. Alineado
           arriba (items-start) para que Ranking y monedas queden en la línea del
-          botón de volver; la barra de fama cuelga debajo de las monedas. */}
-      <div className="fixed top-0 inset-x-0 z-20 flex items-start justify-between gap-3 p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+          botón de volver; vidas y fama quedan debajo, dentro del mismo HUD. */}
+      <div className="fixed top-0 inset-x-0 z-20 flex flex-wrap sm:flex-nowrap items-start justify-between gap-3 p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
         {/* Chip principal: volver + título + puntos, todo junto. */}
-        <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface2/95 pl-1.5 pr-4 py-1.5 shadow-card pointer-events-auto min-w-0">
+        <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2.5 rounded-full border border-line bg-surface2/95 px-1.5 sm:pr-4 py-1.5 shadow-card pointer-events-auto shrink-0">
           <Link
             href="/lobby"
             aria-label="Volver al lobby"
@@ -327,21 +337,24 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
           >
             <BackIcon />
           </Link>
-          <div className="flex flex-col leading-tight min-w-0">
-            <h1 className="font-display text-sm sm:text-base font-extrabold text-cream truncate">Modo Historia</h1>
-            <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-gold tabular">
+          <div className="flex flex-col items-center sm:items-start leading-tight">
+            <h1 aria-label="Modo Historia" className="font-display text-xs sm:text-base font-extrabold text-cream"><span className="hidden sm:inline">Modo </span>Historia</h1>
+            <span className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] sm:text-xs font-bold text-gold tabular">
               <StarIcon />{points.toLocaleString('es-AR')} pts
             </span>
           </div>
         </div>
-        <div className="flex items-start gap-2 pointer-events-auto shrink-0">
-          <button
-            onClick={() => setShowRanking(true)}
-            className="flex items-center gap-1.5 rounded-full border border-gold/50 bg-surface2/95 px-3 py-2.5 text-xs font-bold text-gold hover:bg-gold/10 transition-colors shadow-card"
-          >
-            <PodiumIcon />
-            Ranking
-          </button>
+        <div className="ml-auto flex items-start gap-2 pointer-events-auto shrink-0">
+          <div className="flex flex-col items-stretch gap-1.5">
+            <button
+              onClick={() => setShowRanking(true)}
+              className="flex items-center gap-1.5 rounded-full border border-gold/50 bg-surface2/95 px-3 py-2.5 text-xs font-bold text-gold hover:bg-gold/10 transition-colors shadow-card"
+            >
+              <PodiumIcon />
+              Ranking
+            </button>
+            <CampaignLives initial={lives} />
+          </div>
           {/* Monedas arriba; abajo, la barra de fama (discreta, se toca para ver
               tu estilo). */}
           <div className="flex flex-col items-stretch gap-1.5">

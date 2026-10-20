@@ -1,6 +1,6 @@
 # Trucazo en Google Play — revisión y plan propuesto
 
-Revisión original: 28 de septiembre de 2026. Última actualización del plan: 9 de octubre de 2026.
+Revisión original: 28 de septiembre de 2026. Última actualización del plan: 10 de octubre de 2026.
 
 Repositorio de referencia: `santibpapa/trucazo`, rama `master`. La revisión original corresponde al commit `1138de8f29248960a80d5796d01122467866257d`, con el PR #96 integrado; no representa necesariamente el estado actual.
 
@@ -31,7 +31,7 @@ Estado: **implementación iniciada el 09/10/2026 por pedido del dueño**. La bas
 
 ### Segunda entrega: PR 1B — Prototipo Android y prueba local
 
-**PR de GitHub:** [#108 — Play Store 1B: prototipo Android con cuenta, guardado local y prueba push](https://github.com/santibpapa/trucazo/pull/108). Implementación `074ada7`, rama `codex/android-twa-prototype`, a partir de `250acfa`. Abierto para revisión; no integrado ni desplegado por esta sesión. **No dar por cerrada la viabilidad TWA hasta completar las pruebas en Android físico.** Instrucciones completas, configuración y matriz de aceptación: [`android/README.md`](../android/README.md).
+**PR de GitHub:** [#108 — Play Store 1B: prototipo Android con cuenta, guardado local y prueba push](https://github.com/santibpapa/trucazo/pull/108). Implementación `074ada7`, rama `codex/android-twa-prototype`, a partir de `250acfa`. Integrado en `master` como merge `978b166`, confirmado al actualizar la copia local el 09/10/2026. Despliegue completo y matriz de funcionamiento en Android todavía pendientes. **No dar por cerrada la viabilidad TWA hasta completar las pruebas en Android físico.** Instrucciones completas, configuración y matriz de aceptación: [`android/README.md`](../android/README.md).
 
 **Alcance implementado:** generación reproducible con Bubblewrap Core 1.27.0 y lockfile separado; APK debug y AAB sin firma de publicación; entrada `/android` validada en servidor con cuenta registrada; destino de contraseña/Google y contexto Android por pestaña, conservando invitados web; ruta de asociación `/.well-known/assetlinks.json`; prueba local optativa de administración con IndexedDB, preparación completa y reapertura offline; permiso/suscripción/baja y envío de una notificación real de prueba desde servidor a FCM. Suscripciones no guardadas en el backend y sin eventos de torneos ni campañas promocionales.
 
@@ -51,6 +51,38 @@ Estado: **implementación iniciada el 09/10/2026 por pedido del dueño**. La bas
 
 **Retoma inmediata:** revisar el PR 1B/merge actual, completar la matriz física de `android/README.md` y registrar resultados. Si TWA satisface las pruebas, continuar con el motor local y bots sobre las reglas actuales, diseñando a la vez el contrato de sincronización. Si falla la prueba de arquitectura, reevaluar Capacitor con el caso observado antes de fijar el paquete definitivo.
 
+### Prueba en Windows local — 09/10/2026
+
+Por pedido del dueño, se inició la prueba desde la carpeta local actualizada a `978b166`. Se instalaron las dependencias Android fijadas, Java 17 portable, SDK Platform 36 y Build Tools 35.0.0; se generó el proyecto con la configuración existente, sin editar fuentes generadas ni cambiar el identificador provisional.
+
+- `assembleDebug --no-daemon`: **BUILD SUCCESSFUL**, 31 tareas, 7 min 42 s. APK en `android/generated/app/build/outputs/apk/debug/app-debug.apk`, 6.034.334 bytes; SHA-256 `19F55B18ACF22D96E1336DD0D1FB69611D1593B196F1CE1F527910E1B0891EFF`.
+- `certificate.mjs`: firma del APK verificada, asociación guardada en `android/artifacts/assetlinks-debug.json`. Huella debug local: `D4:56:DC:6E:B3:5B:F9:10:9A:14:69:36:94:C5:6B:55:3B:B8:C2:DD:1D:6D:5B:35:1F:26:A5:DB:BB:E9:6A:E4`. Es pública; el keystore privado queda fuera de Git.
+- `aapt dump badging`: paquete `ar.com.trucazo.prototype`, versión `0.1.0`/código 1, mínimo API 24, objetivo/compilación API 36 y permiso `POST_NOTIFICATIONS`.
+- El emulador existente `Medium_Phone_API_37.0` no arrancó: virtualización del firmware desactivada y aceleración no disponible. El dueño eligió habilitar el emulador. Windows Hypervisor Platform se habilitó con permiso de administrador y sin reinicio automático. Falta activar Virtualization Technology en el BIOS de la HP y reiniciar; luego repetir `emulator -accel-check`, arrancar, instalar y probar. No se modificaron opciones de firmware.
+- Comprobación pública puntual del sitio: `/android` responde HTTP 200; `/.well-known/assetlinks.json` responde HTTP 200 con `[]`. Falta configurar la asociación real del APK. No se modificó Vercel, no se desplegó, no se aplicó SQL y no se subió a Play.
+
+**Resultado:** APK construido y firma/metadatos comprobados. **Instalación, acceso real, guardado offline, reinicio, recepción push y viabilidad TWA siguen sin verificar.** El build de esta prueba solo generó el APK debug; el AAB de publicación no se construyó.
+
+### Continuación de la prueba local — 10/10/2026
+
+- El dueño activó Virtualization Technology. WHPX 10.0.19045 está instalado y utilizable; el bloqueo de virtualización está resuelto.
+- El mismo APK debug local se instaló con resultado Success en Android 17/API 37 (Chrome 145.0.7632.218), Android 15/API 35 (Chrome 124.0.6367.219) y Android 11/API 30.
+- Android 17 mostró ANR de Google Play Services, System UI, Chrome y Process system. Su navegador llegó al acceso Android, pero la pantalla no quedó operativa. Android 15 con gráficos host también mostró ANR del lanzador y del sistema; Windows alcanzó 100 % de CPU.
+- Android Emulator 37.2.12 con ventana informó fallo al cargar opengl32sw. Android 15 sin ventana, con SwiftShader y Vulkan desactivado, arrancó en 89,7 s; persistieron ANR de System UI y problemas de dibujo/captura. No registrar ese intento como estable.
+- Se preparó scrcpy 5.0.1 desde su repositorio oficial, con SHA-256 verificado. Su visor Direct3D inició, pero informó un error de captura/codificación. No se usó para introducir credenciales. [Documentación del visor](https://github.com/Genymobile/scrcpy).
+- Se instaló la imagen oficial Android 11/API 30, Google Play x86_64, revisión 10. AVD Trucazo_Android_11: pantalla 720×1280, densidad 320, dos núcleos y 2048 MB, gráficos host y Vulkan desactivado. Un aviso de crash pendiente de Android 15 demoró el primer arranque; el siguiente arranque completo tardó 65,6 s.
+- Android 11 permitió abrir y enfocar el formulario en https://www.trucazo.com.ar/login?android=1. El dueño inició sesión y confirmó acceso; se observó el lobby y la campaña. CPU en reposo medida en 25–31 %, con un pico de 100 % al abrir el teclado. Esto no demuestra estabilidad prolongada.
+- La imagen Android 11 trae Chrome 83.0.4103.106: el mapa quedó recortado con ese navegador. El código usa dvh, disponible desde Chrome 108; este caso exige actualizar el navegador antes de evaluar el diseño actual. [Unidades de pantalla en Chrome](https://developer.chrome.com/blog/new-in-chrome-108).
+- Se recuperaron Chrome 124.0.6367.219 y su TrichromeLibrary de la imagen oficial Android 15 ya instalada. Se verificaron sus firmas y mínimo API 29, compatible con Android 11. Ambas instalaciones finalizaron con Success, manteniendo el paquete y sin borrar datos. Tras actualizar, Chrome volvió a solicitar acceso; no registrar la sesión anterior como conservada.
+- Se volvió a verificar https://www.trucazo.com.ar/.well-known/assetlinks.json: HTTP 200 con []. La asociación de la huella real sigue pendiente y se observa la barra de Chrome. El APK abre la web publicada aunque el código y la construcción se trabajen localmente.
+
+- Durante la prueba de cierre/reapertura con gráficos host, Windows registró APPCRASH de qemu-system-x86_64.exe en atio6axx.dll (controlador AMD), código c0000005, el 10/10 a las 12:50:56. La partida de prueba quedó interrumpida por ese fallo del entorno.
+- Android 11 se reinició con SwiftShader, sin ventana del emulador y a 30 Hz; arrancó en 48,1 s. Se abrió scrcpy con Direct3D, H264/OMX.google.h264.encoder, 720×1280, 15 fps, sin audio ni sincronización automática del portapapeles. El visor inició sin el error de codificación de Android 15 y su ventana se llama Trucazo.
+- Tras ese reinicio, la entrada Android reconoció la cuenta sin pedir otro acceso. Al entrar se recuperó la pantalla de la partida: terminó por inactividad durante la desconexión, 1–2. Se volvió al modo Historia. Esto comprueba conservación de cuenta y recuperación online de la pantalla tras el reinicio; no guardado local ni una partida completa a 15 puntos.
+- Se observó CPU alta durante el arranque/carga por software. La prueba funcional básica no certifica estabilidad prolongada ni rendimiento final.
+
+**Estado:** instalación, acceso, navegación de campaña, reparto, jugada de carta, respuesta del bot, canto de Truco y conservación de cuenta tras reinicio comprobados en Android 11/Chrome 124. El prototipo queda abierto en la ventana Trucazo. El dueño confirmó que ve el mapa y que tocar Buenos Aires abre sus rivales; visor e interacción comprobados por el dueño. Faltan Google OAuth, partida completa, asociación del certificado, guardado/reapertura offline, recepción push y matriz completa de viabilidad TWA. No se modificó Vercel, no se desplegó, no se aplicó SQL ni se publicó en Play. El dueño confirmó que no dispone de Android físico/USB; continuar las pruebas en esta PC.
+
 ### Evidencia del código actual y orden actualizado
 
 | Área | Evidencia al 09/10 | Consecuencia |
@@ -69,7 +101,7 @@ La persistencia de IndexedDB/Cache Storage debe comprobarse y solicitarse al des
 Orden de ejecución desde esta entrega (las etiquetas históricas se conservan):
 
 1. **PR 1A, integrado como #106:** base de arranque web y pruebas de caché/persistencia.
-2. **PR 1B, abierto como #108:** prototipo TWA reproducible, firma de prueba, asociación del dominio, cuenta y flujo local mínimo; notificación de prueba preparada. **Siguiente acción: revisión/merge, configuración y pruebas instaladas de `android/README.md`.** Definir el identificador con el dueño antes de fijarlo. Si no satisface reapertura/persistencia/push, revisar Capacitor.
+2. **PR 1B, integrado como #108 (merge `978b166`):** prototipo TWA reproducible, firma de prueba, asociación del dominio, cuenta y flujo local mínimo; notificación de prueba preparada. **Siguiente acción: completar partida/reapertura en Android 11, asociar el certificado real y completar las pruebas instaladas de `android/README.md`.** Definir el identificador con el dueño antes de fijarlo. Si no satisface reapertura/persistencia/push, revisar Capacitor.
 3. **Motor local y bots:** portar el motor de campaña y decisiones de rivales con pruebas contra el SQL actual, incluidos los desempates corregidos. No modificar motor/UI online para simular offline.
 4. **Descarga, identidad y guardado:** recursos versionados, instalación completa/incompleta, partida recuperable y datos separados por cuenta; integrar entrada local sin sesión renovada por red. Campaña sin chat escrito.
 5. **Sincronización:** validar en el servidor el historial de acciones/repartos autorizados y acreditar una sola vez; nunca confiar en saldos o victorias enviados por el cliente. Concretar el contrato y conflictos junto con el motor, antes de publicar el formato de guardado. Requiere SQL nuevo y pruebas de reintentos y dos dispositivos.

@@ -28,6 +28,11 @@ const nextConfig = {
       { source: '/:path*', headers: securityHeaders },
       { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache' }] },
       { source: '/offline.html', headers: [{ key: 'Cache-Control', value: 'no-cache' }] },
+      // Arte público con nombres estables: reutilizarlo sin guardar datos del juego.
+      ...['/cartas/:path*', '/mesa/:path*', '/personajes/:path*'].map(source => ({
+        source,
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }],
+      })),
     ]
   },
   // La página de Objetivos se dio de baja: todo vive en la ventana del cofre
