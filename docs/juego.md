@@ -1,5 +1,25 @@
 # Juego
 
+<a id="nombres-bots-lobby"></a>
+
+## Nombres de bots del lobby — 20/10/2026
+
+**Preparado:** reemplazo completo de los 48 nombres rotativos por la lista
+aprobada por el dueño. Fuente: GitHub `master` `83aed0e4`, sin usar cambios
+del proyecto local. Migración nueva:
+`supabase/migrations/20261020210435_refresh_lobby_bot_names.sql`.
+
+La lista compartida se usa al crear/ocupar mesas 1v1 y al agregar bots de parejas.
+La aplicación renueva también el perfil y el nombre visible de los creadores bot
+en mesas 1v1 que siguen esperando, siempre que no tengan una partida iniciada.
+Elige nombres libres sin distinguir mayúsculas; conserva dificultad, rasgos,
+monedas, perfiles humanos y los nombres guardados en partidas/historial.
+Al repetir el SQL, las mesas que ya usan un nombre nuevo no se renombran.
+
+**Aplicación y pruebas:** pendientes de comprobación. No se requiere publicar
+código web ni cambiar variables, cron o permisos. Las migraciones históricas
+permanecen intactas; la reconstrucción ya incluye todas en orden.
+
 <a id="rendimiento-del-lobby-y-la-mesa"></a>
 
 ## Rendimiento del lobby y la mesa — 19/10/2026
