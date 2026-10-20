@@ -9,7 +9,8 @@ import { createDeck, getCardImage, getEnvidoPoints, type Card } from '@/lib/truc
 import { Button, CoinIcon } from '@/components/ui'
 import PlayingCard from '@/components/game/PlayingCard'
 import { SeatAvatar, TableAccessory, MesaButton, MesaAnnouncement, MesaHeader, MesaTurn, MesaToolbar, EmoteTray, MesaDeck, DEAL_ORIGINS, type Announce } from '@/components/game/MesaUI'
-import MatchChat from '@/components/game/MatchChat'
+import MatchChat, { MatchChatBubble } from '@/components/game/MatchChat'
+import type { MatchChatMessage } from '@/components/game/useMatchChat'
 import { EMOTES } from '@/lib/emotes'
 import CardBack from '@/components/game/CardBack'
 import { TableCard, useCardFlight } from '@/components/game/CardMotion'
@@ -96,6 +97,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   const [emoteCooldown, setEmoteCooldown] = useState(false)
   const [myEmote, setMyEmote] = useState<string | null>(null)
   const [oppEmote, setOppEmote] = useState<string | null>(null)
+  const [chatBubbles, setChatBubbles] = useState<MatchChatMessage[]>([])
   const chatChannelRef = useRef<ReturnType<ReturnType<typeof createClient>['channel']> | null>(null)
   // Sonido
   const [muted, setMutedState] = useState(false)
@@ -1188,12 +1190,17 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
         <TableAccessory slug={myAccessory} who="me" />
 
         <MesaToolbar muted={muted} onToggleMute={toggleMute} emoteTray={emoteTray} onToggleEmotes={() => setEmoteTray(v => !v)} chatControl={process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isCampaign
-          ? <MatchChat key={game.id} mode="game" matchId={game.id} userId={currentUserId} isGuest={isGuest} quick={EMOTES} onQuickSend={sendEmote} quickCooldown={emoteCooldown} /> : undefined} />
+          ? <MatchChat key={game.id} mode="game" matchId={game.id} userId={currentUserId} isGuest={isGuest} quick={EMOTES} onQuickSend={sendEmote} quickCooldown={emoteCooldown} onBubblesChange={setChatBubbles} /> : undefined} />
         {emoteTray && !(process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isCampaign) && (
           <EmoteTray onSend={sendEmote} cooldown={emoteCooldown} />
         )}
 
         {/* Burbujas de emote (efímeras) */}
+        {game.status === 'playing' && chatBubbles.map(message => {
+          const mine = message.sender_id === currentUserId
+          if (mine ? myEmote : oppEmote) return null
+          return <MatchChatBubble key={message.id} message={message} className={`absolute left-2 z-20 ${mine ? 'bottom-2 rounded-bl-sm border-gold/40 bg-gold/15' : 'top-2 rounded-tl-sm'}`} />
+        })}
         {oppEmote && (
           <div className="absolute top-2 left-2 z-20 rounded-2xl rounded-tl-sm border border-line bg-base/90 backdrop-blur px-3 py-1.5 text-lg shadow-card animate-scale-in">
             {oppEmote}

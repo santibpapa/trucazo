@@ -9,6 +9,7 @@
     "lint": "next lint",
     "check:rpc-allowlist": "node scripts/check-rpc-allowlist.mjs",
     "check:match-chat": "node --import tsx scripts/check-match-chat.ts",
+    "check:match-chat:browser": "node scripts/check-match-chat-browser.mjs",
     "check:performance:browser": "node scripts/check-performance-browser.mjs",
     "check:performance:bundle": "node scripts/measure-route-bundles.mjs",
     "check:campaign": "node scripts/check-patagonia-expansion.mjs",

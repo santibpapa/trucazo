@@ -42,6 +42,47 @@ medición de rendimiento contra producción.
 después de publicar, verificar solicitudes e invitaciones reales entre dos
 cuentas. No requiere SQL, cambios de permisos ni configuración de Supabase.
 
+<a id="globos-chat-escrito"></a>
+
+## Globos del chat escrito — 20/10/2026
+
+**Preparado para revisión**, desde GitHub `master` `57f5290c`, en una copia
+aislada y sin incorporar cambios de la carpeta local del dueño. No acredita
+integración ni publicación en producción. No requiere SQL, variables nuevas
+ni cambios de permisos.
+
+Los mensajes nuevos del chat escrito aparecen también en globos del lado de
+su autor, en 1v1 y en los cuatro lugares de parejas. Conservan el estilo de las
+frases rápidas, duran seis segundos desde su recepción y muestran el último
+mensaje de cada persona. Los textos largos se ajustan hasta cuatro líneas;
+el mensaje completo permanece en el panel. Los globos no reciben clics ni
+modifican el espacio de cartas y controles. En parejas se limita su ancho para
+que los dos costados no se superpongan.
+
+Las frases rápidas/cantos que usan el mismo lugar tienen prioridad mientras
+están visibles. Silenciar chat retira los globos escritos y oculta los nuevos;
+el historial sigue disponible. No silencia cantos ni frases rápidas. Las lecturas
+de historial al entrar, reconectar o recuperar foco no repiten mensajes como
+globos. La confirmación de envío y Realtime se deduplican por ID; un envío
+rechazado no aparece. Historia conserva únicamente sus frases rápidas y los
+bots no empiezan a escribir ni responder.
+
+**Verificación:** `check:match-chat:browser` usa los componentes reales de ambas
+mesas con transporte y reloj controlados. Comprueba recepción, envío confirmado,
+ambos órdenes de confirmación/Realtime, vencimiento sin repetición por duplicados,
+último texto por autor, silencio con conservación del historial, rechazos,
+prioridad de frases y mensajes de 200 caracteres. Revisa los cuatro lugares con
+asiento propio distinto de cero, límites y ausencia de scroll a 320×640, 360×640,
+390×844 y 1440×900; Historia no ofrece chat escrito. Se incorpora al CI después
+de instalar Chromium. Este ensayo no certifica entrega por WebSocket real entre
+dos dispositivos ni una partida manual en producción.
+
+Tipos, ESLint (seis advertencias previas del 1v1), prueba existente de reconexión,
+compilación de Next y generación de markdown aprobados. En la copia anidada,
+ESLint se ejecutó explícitamente con `--no-eslintrc --config .eslintrc.json` para
+evitar heredar la configuración de la carpeta local del dueño. La revisión
+integrada de GitHub y la publicación se comprueban por separado.
+
 <a id="nombres-bots-lobby"></a>
 
 ## Nombres de bots del lobby — 20/10/2026
