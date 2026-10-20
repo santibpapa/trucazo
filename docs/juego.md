@@ -4,9 +4,11 @@
 
 ## Accesos a Chat y Amigos — 20/10/2026
 
-**Estado:** cambio preparado para revisión, desde GitHub `master` `57f5290c`,
-en una copia aislada. No usa ni modifica la carpeta de trabajo del dueño;
-este registro no acredita integración ni publicación en producción.
+**Cerrado por el dueño e integrado:** el
+[PR #139](https://github.com/santibpapa/trucazo/pull/139) se incorporó a `master`
+el 20/10/2026 a las 19:38 de Argentina, commit `55b9db56`. Se preparó desde
+GitHub `master` `57f5290c` en una copia aislada, sin usar ni modificar la
+carpeta de trabajo del dueño.
 
 **Decisiones aprobadas:** acceso directo a Chat junto al perfil del lobby;
 Amigos reemplaza el nombre Comunidad en la navegación, con el contador de
@@ -38,9 +40,14 @@ el panel de escritorio y dos lecturas de mesas en el ensayo de cada tamaño.
 Esta prueba no equivale a una sesión manual con cuentas reales ni a una
 medición de rendimiento contra producción.
 
-**Continuidad:** comprobar los controles automáticos del PR antes de integrar;
-después de publicar, verificar solicitudes e invitaciones reales entre dos
-cuentas. No requiere SQL, cambios de permisos ni configuración de Supabase.
+**Cierre verificado:** para la última versión del PR, `3bdf5f98`, aprobaron
+la [revisión general](https://github.com/santibpapa/trucazo/actions/runs/39508385512),
+[invitaciones](https://github.com/santibpapa/trucazo/actions/runs/39508385894),
+[vidas](https://github.com/santibpapa/trucazo/actions/runs/39508385667) y el
+control de Vercel. El dueño dio este trabajo por cerrado después de integrar.
+No se acredita una prueba manual entre cuentas reales ni una comprobación
+posterior del despliegue de producción. No queda implementación pendiente;
+no requiere SQL, cambios de permisos ni configuración de Supabase.
 
 <a id="globos-chat-escrito"></a>
 
