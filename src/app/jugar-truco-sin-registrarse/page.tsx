@@ -39,7 +39,7 @@ export default function SinRegistroPage() {
 
       <Section title="Qué podés hacer como invitado">
         <ul className="flex flex-col gap-2 list-disc pl-5">
-          <li>Entrar al lobby y jugar partidas 1 contra 1.</li>
+          <li>Entrar al lobby y jugar partidas 1 contra 1 o en parejas 2 vs 2.</li>
           <li>Elegir mesas a 15 o 30 puntos.</li>
           <li>Usar envido, real envido, falta envido y toda la cadena del truco.</li>
           <li>Conocer la experiencia antes de entregar datos de registro.</li>

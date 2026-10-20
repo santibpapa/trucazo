@@ -34,8 +34,8 @@ for (const slug of rivals) {
   assert.match(migration, new RegExp(`'${slug}'`), `falta rival ${slug} en la migración`)
   assert.match(phrases, new RegExp(`\\b${slug}\\s*:`), `faltan frases para ${slug}`)
   const metadata = await sharp(path.join(repo, 'public/personajes', `${slug}.webp`)).metadata()
-  assert.equal(metadata.width, 512, `ancho incorrecto en ${slug}`)
-  assert.equal(metadata.height, 512, `alto incorrecto en ${slug}`)
+  assert.equal(metadata.width, 288, `ancho incorrecto en ${slug}`)
+  assert.equal(metadata.height, 288, `alto incorrecto en ${slug}`)
 }
 
 const rivalRows = migration.match(/'c1a70000-0000-4000-b000-0000000000(?:2[7-9]|3[0-9]|4[0-6])'/g) ?? []

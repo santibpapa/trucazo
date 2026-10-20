@@ -18,7 +18,7 @@ import {
 // ============================================================
 
 type Filtro = 'todos' | 'jugaron' | 'no_jugaron' | 'con_cuenta' | 'invitados'
-type Orden = 'creado_at' | 'partidas' | 'ganadas' | 'ultima_partida'
+type Orden = 'creado_at' | 'partidas' | 'ganadas' | 'dias_jugados' | 'ultima_partida'
 
 const FILTROS: { clave: Filtro; nombre: string }[] = [
   { clave: 'todos', nombre: 'Todas' },
@@ -61,6 +61,7 @@ export default function Personas({
       orden === 'creado_at' ? new Date(p.creado_at).getTime()
       : orden === 'partidas' ? p.partidas
       : orden === 'ganadas' ? p.ganadas
+      : orden === 'dias_jugados' ? p.dias_jugados
       : p.ultima_partida ? new Date(p.ultima_partida).getTime() : 0
     return [...filtradas].sort((a, b) => valor(b) - valor(a))
   }, [personas, busqueda, filtro, orden])
@@ -125,7 +126,7 @@ export default function Personas({
                 <th scope="col" className="px-3 py-2.5 text-center font-semibold">¿Jugó?</th>
                 <Ordenable actual={orden} clave="partidas" set={setOrden} centro>Partidas</Ordenable>
                 <Ordenable actual={orden} clave="ganadas" set={setOrden} centro>Ganó / Perdió</Ordenable>
-                <th scope="col" className="px-3 py-2.5 text-center font-semibold">Días que jugó</th>
+                <Ordenable actual={orden} clave="dias_jugados" set={setOrden} centro>Días que jugó</Ordenable>
                 <Ordenable actual={orden} clave="ultima_partida" set={setOrden}>Última partida</Ordenable>
                 <th scope="col" className="px-3 py-2.5">
                   <span className="sr-only">Ver la ficha</span>

@@ -25,7 +25,7 @@ export default function EnvidoPage() {
       path={path}
       title="Envido, real envido y falta envido"
       breadcrumb="Envido, real envido y falta envido"
-      intro="El envido compara los tantos de cada mano. Los cantos pueden aceptarse, rechazarse o subirse, y su valor cambia según la cadena. Acá usamos la modalidad 1 contra 1 implementada por Trucazo."
+      intro="El envido compara los tantos de cada mano. Los cantos pueden aceptarse, rechazarse o subirse, y su valor cambia según la cadena. Los puntajes son los que usa Trucazo y valen igual mano a mano que en parejas."
     >
       <JsonLd data={createArticleJsonLd({ headline: title, description, path })} />
       <JsonLd data={createBreadcrumbJsonLd('Envido, real envido y falta envido', path)} />
@@ -98,6 +98,11 @@ export default function EnvidoPage() {
           La mano declara primero. El pie puede superar ese número o decir “son buenas”.
           Si ambos tienen el mismo tanto, gana la mano. Quien gana debe poder mostrar las
           cartas que forman el puntaje.
+        </p>
+        <p>
+          En una mesa en parejas los cuatro declaran por turno desde la mano, y cada uno
+          canta su número sólo si supera al mejor declarado hasta ahí. El detalle está en{' '}
+          <Link href="/truco-en-parejas" className="text-gold underline underline-offset-2">el envido de a cuatro</Link>.
         </p>
         <p>
           Usá la{' '}

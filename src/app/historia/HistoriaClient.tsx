@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import CampaignLives from '@/components/CampaignLives'
+import type { CampaignLives as Lives } from '@/lib/useCampaignLives'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Panel, Coins, Alert, Modal, CoinIcon, cn } from '@/components/ui'
 
@@ -58,6 +60,7 @@ interface Props {
   style: Style | null
   provinces: Province[]
   coins: number
+  lives: Lives | null
 }
 
 type Pos = { x: number; y: number }
@@ -83,16 +86,21 @@ const MAP_H = 1611
 // Posición de cada provincia sobre el mapa (en % del escenario). Estimadas a
 // ojo; se afinan arrastrando con el "modo ajuste" (?ajustar=1).
 const MARCADORES: Record<string, Pos> = {
-  'santiago-del-estero': { x: 44.3, y: 20.1 },
-  'santa-fe':            { x: 52.3, y: 29.6 },
+  'santiago-del-estero': { x: 45.8, y: 21.7 },
+  'santa-fe':            { x: 54.6, y: 28.3 },
   'cordoba':             { x: 41.6, y: 31.5 },
   'mendoza':             { x: 23.3, y: 38.9 },
   'buenos-aires':        { x: 55, y: 43.4 },
   'la-pampa':            { x: 38.2, y: 44.3 },
-  'neuquen':             { x: 22.2, y: 49.5 },
-  'rio-negro':           { x: 32.1, y: 54.6 },
-  'chubut':              { x: 29.2, y: 65 },
+  'neuquen':             { x: 21.1, y: 50.1 },
+  'rio-negro':           { x: 32.2, y: 54.2 },
+  'chubut':              { x: 26, y: 63.9 },
   'tierra-del-fuego':    { x: 39, y: 91.9 },
+  'la-rioja':            { x: 23.8, y: 28.7 },
+  'catamarca':           { x: 24.6, y: 17.8 },
+  'tucuman':             { x: 36.7, y: 18.3 },
+  'salta':               { x: 43.8, y: 8.1 },
+  'jujuy':               { x: 32.8, y: 5.9 },
 }
 
 // Lugares de los rivales DENTRO de cada provincia (en % del cuadro flotante).
@@ -110,9 +118,14 @@ const LUGARES: Record<string, Pos[]> = {
   'rio-negro':           [{ x: 43, y: 49.9 }, { x: 68.2, y: 43.7 }, { x: 39, y: 68 }, { x: 67.8, y: 70.5 }],
   'chubut':              [{ x: 28, y: 29 }, { x: 68, y: 27 }, { x: 33, y: 69 }, { x: 68.9, y: 54.9 }],
   'tierra-del-fuego':    [{ x: 12, y: 35 }, { x: 25, y: 55 }, { x: 47, y: 70 }, { x: 68, y: 84 }],
+  'la-rioja':            [{ x: 34, y: 28 }, { x: 67, y: 39 }, { x: 35, y: 64 }, { x: 66, y: 76 }],
+  'catamarca':           [{ x: 37, y: 25 }, { x: 66, y: 34 }, { x: 42.2, y: 49.9 }, { x: 74.5, y: 66.7 }],
+  'tucuman':             [{ x: 32, y: 28 }, { x: 69, y: 32 }, { x: 34, y: 70 }, { x: 59.2, y: 68 }],
+  'salta':               [{ x: 72.9, y: 51.2 }, { x: 88.8, y: 29.4 }, { x: 35, y: 68 }, { x: 65, y: 76 }],
+  'jujuy':               [{ x: 33, y: 26 }, { x: 54.7, y: 48.4 }, { x: 22.6, y: 66.7 }, { x: 80.9, y: 82 }],
 }
 
-export default function HistoriaClient({ points, fama, style, provinces: initialProvinces, coins }: Props) {
+export default function HistoriaClient({ points, fama, style, provinces: initialProvinces, coins, lives }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -222,14 +235,21 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
   async function play(rivalId: string) {
     setLoadingId(rivalId)
     setError('')
-    const { data, error } = await supabase.rpc('start_campaign_duel', { p_rival_id: rivalId })
-    if (error || !data) {
-      setError('No se pudo empezar el duelo. Probá de nuevo.')
-      setLoadingId(null)
-      return
-    }
-    router.push(`/game/${(data as { id: string }).id}`)
-    router.refresh()
+    try {
+      const { data, error } = await supabase.rpc('start_campaign_duel', { p_rival_id: rivalId }).abortSignal(AbortSignal.timeout(8000))
+      if (error?.message.includes('CAMPAIGN_NO_LIVES')) {
+        setSelected(null)
+        window.dispatchEvent(new Event('campaign-no-lives'))
+        return
+      }
+      if (error || !data) {
+        setError('No se pudo empezar el duelo. Probá de nuevo.')
+        return
+      }
+      router.push(`/game/${(data as { id: string }).id}`)
+      router.refresh()
+    } catch { setError('No se pudo empezar el duelo. Probá de nuevo.') }
+    finally { setLoadingId(null) }
   }
 
   // Modo ajuste: arrastrar actualiza la posición en % (marcador del mapa o
@@ -294,6 +314,7 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
           <ProvinceMarker
             key={p.slug}
             p={p}
+            playerPoints={points}
             pos={marcadores[p.slug] ?? { x: 50, y: 50 }}
             newlyUnlocked={reveal.pu.has(p.slug)}
             editing={editing}
@@ -305,10 +326,10 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
 
       {/* HUD: barra superior fija, con chips sólidos como los del lobby. Alineado
           arriba (items-start) para que Ranking y monedas queden en la línea del
-          botón de volver; la barra de fama cuelga debajo de las monedas. */}
-      <div className="fixed top-0 inset-x-0 z-20 flex items-start justify-between gap-3 p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+          botón de volver; vidas y fama quedan debajo, dentro del mismo HUD. */}
+      <div className="fixed top-0 inset-x-0 z-20 flex flex-wrap sm:flex-nowrap items-start justify-between gap-3 p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
         {/* Chip principal: volver + título + puntos, todo junto. */}
-        <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface2/95 pl-1.5 pr-4 py-1.5 shadow-card pointer-events-auto min-w-0">
+        <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2.5 rounded-full border border-line bg-surface2/95 px-1.5 sm:pr-4 py-1.5 shadow-card pointer-events-auto shrink-0">
           <Link
             href="/lobby"
             aria-label="Volver al lobby"
@@ -316,21 +337,24 @@ export default function HistoriaClient({ points, fama, style, provinces: initial
           >
             <BackIcon />
           </Link>
-          <div className="flex flex-col leading-tight min-w-0">
-            <h1 className="font-display text-sm sm:text-base font-extrabold text-cream truncate">Modo Historia</h1>
-            <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-gold tabular">
+          <div className="flex flex-col items-center sm:items-start leading-tight">
+            <h1 aria-label="Modo Historia" className="font-display text-xs sm:text-base font-extrabold text-cream"><span className="hidden sm:inline">Modo </span>Historia</h1>
+            <span className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] sm:text-xs font-bold text-gold tabular">
               <StarIcon />{points.toLocaleString('es-AR')} pts
             </span>
           </div>
         </div>
-        <div className="flex items-start gap-2 pointer-events-auto shrink-0">
-          <button
-            onClick={() => setShowRanking(true)}
-            className="flex items-center gap-1.5 rounded-full border border-gold/50 bg-surface2/95 px-3 py-2.5 text-xs font-bold text-gold hover:bg-gold/10 transition-colors shadow-card"
-          >
-            <PodiumIcon />
-            Ranking
-          </button>
+        <div className="ml-auto flex items-start gap-2 pointer-events-auto shrink-0">
+          <div className="flex flex-col items-stretch gap-1.5">
+            <button
+              onClick={() => setShowRanking(true)}
+              className="flex items-center gap-1.5 rounded-full border border-gold/50 bg-surface2/95 px-3 py-2.5 text-xs font-bold text-gold hover:bg-gold/10 transition-colors shadow-card"
+            >
+              <PodiumIcon />
+              Ranking
+            </button>
+            <CampaignLives initial={lives} />
+          </div>
           {/* Monedas arriba; abajo, la barra de fama (discreta, se toca para ver
               tu estilo). */}
           <div className="flex flex-col items-stretch gap-1.5">
@@ -630,9 +654,9 @@ function toPct(rect: DOMRect, clientX: number, clientY: number): Pos {
 // Marcador de una provincia sobre el mapa. Desbloqueada = medallón dorado con
 // el avance; bloqueada = candado con los puntos que pide.
 function ProvinceMarker({
-  p, pos, newlyUnlocked, editing, onOpen, onDragTo,
+  p, pos, playerPoints, newlyUnlocked, editing, onOpen, onDragTo,
 }: {
-  p: Province; pos: Pos; newlyUnlocked: boolean; editing: boolean
+  p: Province; pos: Pos; playerPoints: number; newlyUnlocked: boolean; editing: boolean
   onOpen: () => void; onDragTo: (clientX: number, clientY: number) => void
 }) {
   const dragging = useRef(false)
@@ -710,7 +734,9 @@ function ProvinceMarker({
           )}
           {!p.unlocked && !editing && (
             <span className="rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-gold whitespace-nowrap inline-flex items-center gap-0.5">
-              <StarIcon size={8} />{p.points_required.toLocaleString('es-AR')} pts
+              {p.order_index >= 11 && playerPoints >= p.points_required
+                ? 'Vencé a Irene'
+                : <><StarIcon size={8} />{p.points_required.toLocaleString('es-AR')} pts</>}
             </span>
           )}
           {editing && (

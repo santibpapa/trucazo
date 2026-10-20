@@ -46,6 +46,12 @@ drop schema if exists storage cascade;
 drop schema if exists cron    cascade;
 drop schema if exists email_internal cascade;
 drop schema if exists team_internal cascade;
+drop schema if exists invite_internal cascade;
+drop schema if exists campaign_internal cascade;
+drop schema if exists match_chat_internal cascade;
+drop schema if exists account_internal cascade;
+drop schema if exists feedback_internal cascade;
+drop schema if exists tournament_internal cascade;
 drop schema if exists net cascade;
 create schema public;
 
@@ -108,6 +114,8 @@ echo "==> 3/5  Funciones"
 
 echo "==> 4/5  Llaves, restricciones y reglas de seguridad"
 "${PSQL[@]}" -f supabase/schema/policies.sql
+"${PSQL[@]}" -f supabase/schema/feedback_review.sql
+"${PSQL[@]}" -f supabase/schema/feedback_images.sql
 
 echo "==> 5/5  Migraciones (en orden alfabético)"
 
@@ -207,7 +215,23 @@ grant all on all sequences in schema public to anon, authenticated, service_role
 revoke all on public.bot_decisions from anon, authenticated;
 revoke all on public.team_tables, public.team_seats, public.team_games, public.team_hands from anon, authenticated;
 grant select on public.team_tables, public.team_seats, public.team_games, public.team_hands to authenticated;
+revoke all on public.match_chat_messages from public, anon, authenticated;
+grant select on public.match_chat_messages to authenticated;
 revoke all on public.news_email_campaign, public.news_email_jobs from anon, authenticated;
+revoke all on public.tournaments,
+  public.tournament_entries,
+  public.tournament_entry_members,
+  public.tournament_checkins,
+  public.tournament_groups,
+  public.tournament_group_members,
+  public.tournament_matches,
+  public.tournament_match_presence,
+  public.tournament_awards,
+  public.tournament_notifications,
+  public.tournament_email_jobs
+from anon, authenticated;
+revoke all on sequence public.tournament_entries_sequence_no_seq from anon, authenticated;
+revoke all on public.ranking_email_campaign, public.ranking_top3_state, public.ranking_email_jobs from anon, authenticated;
 SQL
 
 if [ "${TRUCAZO_PREVIEW_STACK:-0}" = 1 ]; then

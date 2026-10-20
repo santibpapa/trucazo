@@ -12,7 +12,9 @@
 -- Es lo primero que corre scripts/rebuild-db.sh.
 -- ============================================================
 
-create extension if not exists pgcrypto;
+-- Igual que Supabase alojado: criptografía dentro de extensions.
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
 
 -- ------------------------------------------------------------
 -- 1. Los roles
@@ -36,6 +38,8 @@ end $$;
 -- ------------------------------------------------------------
 -- 2. El schema auth (los usuarios)
 -- ------------------------------------------------------------
+grant usage on schema extensions to anon, authenticated, service_role;
+
 create schema if not exists auth;
 
 create table if not exists auth.users (

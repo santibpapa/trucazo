@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#1A0F10">
+  <title>Prueba Android · Trucazo</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#1a0f10;color:#f4eadc;font:17px/1.5 system-ui,sans-serif;min-height:100dvh;padding:24px;display:grid;place-items:center}main{width:min(100%,420px)}h1{font-size:26px;margin-bottom:8px}p{color:#b9a89b}section{border:1px solid #50372c;border-radius:16px;padding:20px;margin:18px 0;background:#241719}button,a{font:inherit}button{display:block;width:100%;padding:13px;margin:10px 0;border-radius:10px;border:1px solid #715239;background:#d7a953;color:#1a0f10;font-weight:650;cursor:pointer}button:disabled{opacity:.5;cursor:default}a{color:#e4ba6d}output{font-size:30px;font-weight:700}#status{min-height:48px}small{display:block;color:#b9a89b}input{width:100%;margin:12px 0}
+  </style>
+  <script defer src="/android/probe.js"></script>
+</head>
+<body><main>
+  <h1>Prueba del prototipo</h1>
+  <p>Guardado local y notificaciones. Este contador es de prueba; no da puntos ni modifica tu campaña.</p>
+  <section>
+    <button id="prepare">Preparar con conexión</button>
+    <small id="storage">Todavía no se preparó.</small>
+    <p>Contador guardado: <output id="count">0</output></p>
+    <button id="increment" disabled>Sumar y guardar</button>
+    <small>Cerrá la app y abrila sin conexión para comprobar que se conserva.</small>
+  </section>
+  <section>
+    <button id="subscribe" disabled>Permitir notificaciones de prueba</button>
+    <button id="send" disabled>Enviar notificación</button>
+    <button id="export" disabled>Guardar suscripción para prueba con app cerrada</button>
+    <label for="subscription-file">Enviar desde otro equipo a tu Android cerrado:</label>
+    <input type="file" id="subscription-file" accept="application/json,.json">
+    <button id="send-file" disabled>Enviar al dispositivo del archivo</button>
+    <button id="unsubscribe" disabled>Dar de baja esta prueba</button>
+    <small>Podés denegar el permiso y seguir jugando. No se activan avisos de torneos ni publicidad.</small>
+  </section>
+  <p id="status" role="status" aria-live="polite"></p>
+  <a href="/android">Volver a Trucazo</a>
+</main></body>
+</html>

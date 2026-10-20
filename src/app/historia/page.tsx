@@ -2,6 +2,7 @@ import type { Viewport } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import HistoriaClient from './HistoriaClient'
+import type { CampaignLives } from '@/lib/useCampaignLives'
 
 // El mapa maneja su propio alto (fixed inset-0), así que NO usa viewport-fit:cover
 // (se queda dentro de la zona segura, como antes). Evita tocar su HUD flotante.
@@ -13,15 +14,14 @@ export default async function HistoriaPage() {
 
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('coins')
-    .eq('id', user.id)
-    .single()
+  const [{ data: profile }, { data: map }, { data: lives }] = await Promise.all([
+    supabase.from('profiles').select('coins').eq('id', user.id).single(),
+    supabase.rpc('get_campaign_map'),
+    supabase.rpc('get_campaign_lives'),
+  ])
 
   // El mapa de la campaña: puntos y fama del jugador, resumen de su estilo, y
   // las provincias con sus rivales (todo calculado en el servidor).
-  const { data: map } = await supabase.rpc('get_campaign_map')
   const campaign = (map ?? { points: 0, fama: 0, style: null, provinces: [] }) as {
     points: number
     fama: number
@@ -36,6 +36,7 @@ export default async function HistoriaPage() {
       style={campaign.style}
       provinces={campaign.provinces}
       coins={profile?.coins ?? 0}
+      lives={lives as CampaignLives | null}
     />
   )
 }

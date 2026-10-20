@@ -20,18 +20,34 @@ declare
     'clear_chat',
     'create_group', 'create_table', 'delete_chat_message', 'delete_group',
     'delete_news', 'ensure_lobby_tables', 'envido_say', 'forfeit',
+    'get_campaign_lives', 'request_campaign_life', 'send_campaign_life',
+    'begin_campaign_life_ad', 'complete_campaign_life_ad',
     'get_active_medals', 'get_campaign_map', 'get_campaign_ranking', 'get_my_objectives',
-    'get_community', 'invite_friend', 'invite_to_group', 'irse_al_mazo',
+    'get_community', 'get_table_invite', 'preview_table_invite', 'join_table_invite',
+    'invite_friend', 'invite_to_group', 'irse_al_mazo',
     'join_table', 'join_table_by_code', 'kick_group_member', 'leave_group',
     'play_card', 'player_medals', 'publish_news', 'remove_friend',
     'request_rematch', 'respond_envido', 'respond_friend_request',
     'respond_game_invite', 'respond_group_invite', 'respond_truco',
-    'send_chat_message', 'send_friend_request', 'set_active_accessory',
+    'send_chat_message', 'send_match_chat_message', 'send_friend_request', 'set_active_accessory',
     'set_active_frame', 'set_active_medal', 'set_active_salon',
     'set_avatar_url', 'sing_envido', 'sing_truco', 'start_campaign_duel',
     'start_game', 'submit_feedback', 'timeout_mazo', 'touch_online',
     'touch_presence', 'team_create', 'team_join', 'team_action',
-    'team_snapshot', 'team_lobby', 'team_presence'
+    'team_snapshot', 'team_lobby', 'team_presence', 'team_say',
+    'tournament_list', 'tournament_detail', 'tournament_my_entry',
+    'tournament_admin_create', 'tournament_admin_update',
+    'tournament_admin_publish', 'tournament_admin_reschedule',
+    'tournament_admin_cancel', 'tournament_admin_delete', 'tournament_register_solo',
+    'tournament_invite_partner', 'tournament_respond_invitation',
+    'tournament_withdraw', 'tournament_check_in',
+    'tournament_admin_start', 'tournament_admin_pause',
+    'tournament_admin_retry_match', 'tournament_admin_replace',
+    'tournament_admin_replace_team_member',
+    'tournament_admin_disqualify', 'tournament_enter_match',
+    'tournament_ready_match', 'tournament_notifications_list',
+    'tournament_notification_read', 'tournament_spectator_snapshot',
+    'tournament_admin_monitor', 'tournament_admin_retry_email'
   ];
   v_bad text[];
   v_owner record;
@@ -39,7 +55,7 @@ declare
   v_rejected boolean;
 begin
   -- Toda función usada por el cliente debe existir, estar abierta para
-  -- authenticated y cerrada para anon.
+  -- authenticated y cerrada para anon, salvo la vista previa con clave opaca.
   select array_agg(p.oid::regprocedure::text order by p.oid::regprocedure::text)
     into v_bad
     from pg_proc p
@@ -47,7 +63,7 @@ begin
      and p.proname = any(v_client_functions)
      and (
        not has_function_privilege('authenticated', p.oid, 'execute')
-       or has_function_privilege('anon', p.oid, 'execute')
+       or (p.proname <> 'preview_table_invite' and has_function_privilege('anon', p.oid, 'execute'))
      );
 
   if v_bad is not null then

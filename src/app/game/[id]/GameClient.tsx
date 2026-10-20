@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Game } from '@/lib/types'
 import { createDeck, getCardImage, getEnvidoPoints, type Card } from '@/lib/truco'
 import { Button, CoinIcon } from '@/components/ui'
 import PlayingCard from '@/components/game/PlayingCard'
-import FinishScreen from '@/components/game/FinishScreen'
 import { SeatAvatar, TableAccessory, MesaButton, MesaAnnouncement, MesaHeader, MesaTurn, MesaToolbar, EmoteTray, MesaDeck, DEAL_ORIGINS, type Announce } from '@/components/game/MesaUI'
+import MatchChat from '@/components/game/MatchChat'
+import { EMOTES } from '@/lib/emotes'
 import CardBack from '@/components/game/CardBack'
 import { TableCard, useCardFlight } from '@/components/game/CardMotion'
 import { playSound, isMuted, setMuted } from '@/lib/sounds'
@@ -18,10 +20,14 @@ import { getSalonTheme } from '@/lib/salones'
 import { fraseDelBot, type MomentoFrase } from '@/lib/botFrases'
 import { track } from '@vercel/analytics'
 import { trackFirstParty } from '@/lib/analytics/client'
-import ObjectiveProgressDelta from '@/components/objectives/ObjectiveProgressDelta'
+
+const FinishScreen = dynamic(() => import('@/components/game/FinishScreen'))
+const CampaignLives = dynamic(() => import('@/components/CampaignLives'))
+const ObjectiveProgressDelta = dynamic(() => import('@/components/objectives/ObjectiveProgressDelta'))
 
 interface Props {
   game: Game
+  serverNow: number
   currentUserId: string
   isGuest?: boolean
   myHand: Card[]
@@ -43,6 +49,7 @@ interface Props {
   salonSlug?: string
   // El rival es uno de los bots del lobby (partida normal, con monedas).
   opponentIsBot?: boolean
+  tournamentId?: string | null
 }
 
 type EnvidoType = 'envido' | 'real_envido' | 'falta_envido'
@@ -59,7 +66,7 @@ const TRUCO_LABEL: Record<string, string> = {
 
 const EMOTE_COOLDOWN_MS = 3000
 
-export default function GameClient({ game: initialGame, currentUserId, isGuest = false, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory, opponentIsBot = false }: Props) {
+export default function GameClient({ game: initialGame, serverNow, currentUserId, isGuest = false, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory, opponentIsBot = false, tournamentId = null }: Props) {
   const router = useRouter()
   const [game, setGame] = useState<Game>(initialGame)
   const cardFlight = useCardFlight(game.hand_number)
@@ -78,6 +85,7 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
   const prevTrucoRef = useRef<{ status: string; singer: string | null; value: number; hand: number } | null>(null)
   // El timeout por jugada se dispara una sola vez por turno (clave = turn_started_at)
   const timeoutFiredRef = useRef<string | null>(null)
+  const serverClockRef = useRef({ serverNow, startedAt: performance.now() })
   // Para detectar cuándo sube el contador de mazos por tiempo y mostrar el cartel
   const prevMazoRef = useRef<{ p1: number; p2: number } | null>(null)
   // Momento de la última acción local; el polling de respaldo se pausa un toque
@@ -214,14 +222,25 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
   // turno y el destello dorado del borde de la pantalla.
   const meActive = !game.awaiting_deal && game.status === 'playing' && humanCanAct
 
-  // Precarga las 40 cartas una sola vez: cuando se reparte una mano nueva las
-  // imágenes ya están en caché del navegador y aparecen al instante, sin
-  // "pintarse a medias" mientras el PNG termina de bajar.
+  // Las tres cartas visibles conservan prioridad. El resto del mazo se prepara
+  // después de cargar la pantalla, de a dos y con prioridad baja.
   useEffect(() => {
-    for (const card of createDeck()) {
+    const deck = createDeck()
+    let stopped = false
+    let index = 0
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const next = () => {
+      if (stopped || index >= deck.length) return
       const img = new Image()
-      img.src = getCardImage(card)
+      img.decoding = 'async'
+      img.fetchPriority = 'low'
+      img.onload = img.onerror = next
+      img.src = getCardImage(deck[index++])
     }
+    const start = () => { timer = setTimeout(() => { next(); next() }, 1500) }
+    if (document.readyState === 'complete') start()
+    else window.addEventListener('load', start, { once: true })
+    return () => { stopped = true; clearTimeout(timer); window.removeEventListener('load', start) }
   }, [])
 
   // Al volver de dejar una reseña (?gracias=1), mostramos un saludo y limpiamos la URL.
@@ -244,9 +263,20 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
         { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${game.id}` },
         (payload) => { applyServerGame(payload.new as Game); refetchMyHand() }
       )
-      .subscribe()
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') void refreshGame()
+      })
 
-    return () => { supabase.removeChannel(channel) }
+    const recover = () => {
+      if (document.visibilityState === 'visible') void refreshGame()
+    }
+    window.addEventListener('online', recover)
+    document.addEventListener('visibilitychange', recover)
+    return () => {
+      supabase.removeChannel(channel)
+      window.removeEventListener('online', recover)
+      document.removeEventListener('visibilitychange', recover)
+    }
   }, [game.id, game.status])
 
   // Respaldo por polling, por si el realtime no entrega los cambios.
@@ -256,47 +286,56 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
 
     const interval = setInterval(async () => {
       if (Date.now() - lastActionRef.current < 2000) return
-      const { data } = await supabase
-        .from('games')
-        .select('*')
-        .eq('id', game.id)
-        .single()
-      if (data) applyServerGame(data as Game)
-      await refetchMyHand()
+      await refreshGame()
     }, 2500)
 
     return () => clearInterval(interval)
   }, [game.id, game.status])
 
-  // Reloj por jugada. Lo medimos con el PROPIO reloj de este equipo: anclamos al
-  // momento en que ve el turno nuevo y contamos los segundos transcurridos. Así no
-  // importa si el reloj del equipo está desfasado respecto al servidor (antes
-  // mezclábamos la hora del server con la del cliente y un reloj atrasado mostraba
-  // de más). Al agotarse, cualquiera de los dos dispara timeout_mazo y el server
-  // valida el plazo real (turn_started_at + time_limit), así no se hace trampa.
+  // Estimamos la hora del servidor desde el render y un reloj monotónico local.
+  // Recargar o recibir tarde un turno no vuelve a regalar el límite completo.
+  // Postgres sigue validando el plazo real: este reloj sólo decide cuándo pedirlo.
   useEffect(() => {
     if (game.status !== 'playing' || game.awaiting_deal || !game.turn_started_at) {
       setSecondsLeft(null)
       return
     }
-    const anchor = Date.now()       // momento en que este cliente ve el turno
     const limit = game.time_limit
+    let disposed = false
     const tick = () => {
-      const elapsed = (Date.now() - anchor) / 1000
-      const left = Math.max(0, Math.ceil(limit - elapsed))
+      const clock = serverClockRef.current
+      const now = clock.serverNow + performance.now() - clock.startedAt
+      const elapsed = (now - Date.parse(game.turn_started_at)) / 1000
+      const left = Math.max(0, Math.min(limit, Math.ceil(limit - elapsed)))
       setSecondsLeft(left)
       if (left <= 0 && timeoutFiredRef.current !== game.turn_started_at) {
         timeoutFiredRef.current = game.turn_started_at
-        supabase.rpc('timeout_mazo', { p_game_id: game.id }).then(({ data, error }) => {
-          if (data) setGame(data as Game)
-          // El server rechaza si todavía no venció: liberamos el guard para reintentar.
-          else if (error) timeoutFiredRef.current = null
-        })
+        void (async () => {
+          let resolved = false
+          try {
+            const { data, error } = await supabase.rpc('timeout_mazo', { p_game_id: game.id })
+              .abortSignal(AbortSignal.timeout(8000))
+            if (disposed) return
+            if (!error && data) {
+              applyServerGame(data as Game)
+              resolved = true
+            }
+          } catch {
+            // También reintentamos si el transporte lanza una excepción.
+          } finally {
+            // Rechazo temprano, error o falta de respuesta: liberar el próximo intento.
+            if (!disposed && !resolved) timeoutFiredRef.current = null
+          }
+        })()
       }
     }
     tick()
     const iv = setInterval(tick, 500)
-    return () => clearInterval(iv)
+    return () => {
+      disposed = true
+      clearInterval(iv)
+      if (timeoutFiredRef.current === game.turn_started_at) timeoutFiredRef.current = null
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.status, game.awaiting_deal, game.turn_started_at, game.time_limit, game.id])
 
@@ -333,7 +372,7 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
   // para reembolsar partidas donde ambos jugadores desaparecieron hace rato.
   useEffect(() => {
     if (game.status === 'finished') return
-    const touch = () => { supabase.rpc('touch_presence', { p_game_id: game.id }) }
+    const touch = async () => { await supabase.rpc('touch_presence', { p_game_id: game.id }) }
     touch()
     const iv = setInterval(touch, 8000)
     return () => clearInterval(iv)
@@ -391,9 +430,17 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
 
   // Reparte la próxima mano (server-side, idempotente). Lo dispara el delay.
   async function advanceHand() {
-    const { data, error } = await supabase.rpc('advance_hand', { p_game_id: game.id })
-    if (!rpcFailed('advance_hand RPC:', error) && data) setGame(data as Game)
-    await refetchMyHand()
+    try {
+      const { data, error } = await supabase.rpc('advance_hand', { p_game_id: game.id })
+        .abortSignal(AbortSignal.timeout(8000))
+      if (rpcFailed('advance_hand RPC:', error) || !data) return false
+      applyServerGame(data as Game)
+      await refetchMyHand()
+      return true
+    } catch (error) {
+      rpcFailed('advance_hand RPC:', error instanceof Error ? error : { message: 'No se pudo repartir. Reintentando…' })
+      return false
+    }
   }
 
   // Delay para apreciar el cierre de la mano: cuando queda awaiting_deal, se
@@ -402,10 +449,17 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
   useEffect(() => {
     if (game.status !== 'playing' || !game.awaiting_deal) return
     // Si hay cartas de envido para mostrar, damos un poco más de tiempo para verlas.
-    const t = setTimeout(() => { advanceHand() }, game.envido_reveal ? 2600 : 1800)
-    return () => clearTimeout(t)
+    let disposed = false
+    const advance = async () => {
+      const done = await advanceHand()
+      // El polling puede seguir recibiendo awaiting_deal=true tras un fallo.
+      // Ese estado no cambia las dependencias del efecto: hay que reintentarlo.
+      if (!done && !disposed) timer = setTimeout(advance, 3000)
+    }
+    let timer = setTimeout(advance, game.envido_reveal ? 2600 : 1800)
+    return () => { disposed = true; clearTimeout(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.awaiting_deal, game.status, game.id])
+  }, [game.awaiting_deal, game.status, game.id, game.hand_number])
 
   // La pantalla de fin ("Ganaste/Perdiste") se muestra con un pequeño delay tras
   // terminar la partida, para alcanzar a ver la última jugada resuelta en la mesa
@@ -734,15 +788,34 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
       .select('cards')
       .eq('game_id', game.id)
       .eq('player_id', currentUserId)
+      .abortSignal(AbortSignal.timeout(8000))
       .single()
     if (data) setMyHand((data.cards as Card[]) ?? [])
   }
 
-  // Aplica un estado que llega del server por realtime/polling. Si la partida ya
-  // terminó, ignora cualquier aviso atrasado que la quiera volver a "en juego"
-  // (evita que el tablero reaparezca un instante después del cartel de fin).
+  // Releer al conectar/volver: los cambios ocurridos durante el corte no se reproducen.
+  async function refreshGame() {
+    try {
+      const { data } = await supabase
+        .from('games')
+        .select('*')
+        .eq('id', game.id)
+        .abortSignal(AbortSignal.timeout(8000))
+        .single()
+      if (data) applyServerGame(data as Game)
+      await refetchMyHand()
+    } catch (error) {
+      console.error('refresh game:', error)
+    }
+  }
+
+  // Realtime, polling y reintentos pueden llegar fuera de orden. Un snapshot
+  // anterior no debe revivir una espera de reparto ni una partida terminada.
   function applyServerGame(next: Game) {
-    setGame(prev => (prev.status === 'finished' && next.status !== 'finished' ? prev : next))
+    setGame(prev => (
+      (prev.status === 'finished' && next.status !== 'finished') ||
+      Date.parse(next.updated_at) < Date.parse(prev.updated_at) ? prev : next
+    ))
   }
 
   // Jugar una carta: el servidor valida turno/carta, resuelve la ronda y la mano,
@@ -776,25 +849,37 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
     if (loading) return
     if (!isMyTurn && !hasPendingEnvido) return
     setLoading(true)
-    lastActionRef.current = Date.now()
-    const { data, error } = await supabase.rpc('sing_envido', { p_game_id: game.id, p_type: type })
-    if (!rpcFailed('sing_envido RPC:', error) && data) setGame(data as Game)
-    setLoading(false)
+    setActionError('')
+    try {
+      lastActionRef.current = Date.now()
+      const { data, error } = await supabase.rpc('sing_envido', { p_game_id: game.id, p_type: type }).abortSignal(AbortSignal.timeout(8000))
+      if (!rpcFailed('sing_envido RPC:', error) && data) setGame(data as Game)
+    } catch (error) {
+      rpcFailed('singEnvido RPC:', error instanceof Error ? error : { message: 'No se pudo completar la acción. Volvé a intentar.' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function respondEnvido(accept: boolean) {
     if (loading) return
     setLoading(true)
-    lastActionRef.current = Date.now()
-    // Burbuja del que responde (como en el chat rápido)
-    const bubble = accept ? '¡Quiero!' : '¡No quiero!'
-    chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text: bubble } })
-    setMyEmote(bubble)
-    // Si acepta, el servidor abre el diálogo de tantos (la mano declara primero).
-    // Si no, resuelve el "no quiero" como antes.
-    const { data, error } = await supabase.rpc('respond_envido', { p_game_id: game.id, p_accept: accept })
-    if (!rpcFailed('respond_envido RPC:', error) && data) setGame(data as Game)
-    setLoading(false)
+    setActionError('')
+    try {
+      lastActionRef.current = Date.now()
+      // Burbuja del que responde (como en el chat rápido)
+      const bubble = accept ? '¡Quiero!' : '¡No quiero!'
+      chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text: bubble } })
+      setMyEmote(bubble)
+      // Si acepta, el servidor abre el diálogo de tantos (la mano declara primero).
+      // Si no, resuelve el "no quiero" como antes.
+      const { data, error } = await supabase.rpc('respond_envido', { p_game_id: game.id, p_accept: accept }).abortSignal(AbortSignal.timeout(8000))
+      if (!rpcFailed('respond_envido RPC:', error) && data) setGame(data as Game)
+    } catch (error) {
+      rpcFailed('respondEnvido RPC:', error instanceof Error ? error : { message: 'No se pudo completar la acción. Volvé a intentar.' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Diálogo de tantos (después del "quiero"): 'tengo' revela tu tanto (lo calcula
@@ -802,15 +887,23 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
   async function envidoSay(action: 'tengo' | 'son_buenas' | 'mazo') {
     if (loading) return
     setLoading(true)
-    lastActionRef.current = Date.now()
-    const bubble = action === 'tengo' ? `Tengo ${myEnvido}`
-      : action === 'son_buenas' ? 'Son buenas' : 'Me voy al mazo'
-    chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text: bubble } })
-    setMyEmote(bubble)
-    const { data, error } = await supabase.rpc('envido_say', { p_game_id: game.id, p_action: action })
-    if (!rpcFailed('envido_say RPC:', error) && data) setGame(data as Game)
-    await refetchMyHand()
-    setLoading(false)
+    setActionError('')
+    try {
+      lastActionRef.current = Date.now()
+      const bubble = action === 'tengo' ? `Tengo ${myEnvido}`
+        : action === 'son_buenas' ? 'Son buenas' : 'Me voy al mazo'
+      chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text: bubble } })
+      setMyEmote(bubble)
+      const { data, error } = await supabase.rpc('envido_say', { p_game_id: game.id, p_action: action }).abortSignal(AbortSignal.timeout(8000))
+      if (rpcFailed('envido_say RPC:', error) || !data) return
+      setGame(data as Game)
+      // La relectura de cartas no debe mantener bloqueados los controles.
+      void refetchMyHand().catch(error => { console.error('refetch envido hand:', error) })
+    } catch (error) {
+      rpcFailed('envidoSay RPC:', error instanceof Error ? error : { message: 'No se pudo completar la acción. Volvé a intentar.' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   // ---- TRUCO (resuelto en el servidor) ----
@@ -873,14 +966,20 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
   async function playAgainCampaign() {
     if (!game.campaign_rival_id) return
     setLoading(true)
-    const { data, error } = await supabase.rpc('start_campaign_duel', { p_rival_id: game.campaign_rival_id })
-    if (!rpcFailed('start_campaign_duel RPC:', error) && data) {
-      router.push(`/game/${(data as Game).id}`)
-      router.refresh()
-    } else {
-      setActionError('No se pudo empezar el duelo de nuevo.')
-      setLoading(false)
-    }
+    try {
+      const { data, error } = await supabase.rpc('start_campaign_duel', { p_rival_id: game.campaign_rival_id }).abortSignal(AbortSignal.timeout(8000))
+      if (error?.message.includes('CAMPAIGN_NO_LIVES')) {
+        window.dispatchEvent(new Event('campaign-no-lives'))
+        return
+      }
+      if (!rpcFailed('start_campaign_duel RPC:', error) && data) {
+        router.push(`/game/${(data as Game).id}`)
+        router.refresh()
+      } else {
+        setActionError('No se pudo empezar el duelo de nuevo.')
+      }
+    } catch { setActionError('No se pudo empezar el duelo de nuevo.') }
+    finally { setLoading(false) }
   }
 
   // Mis cartas de la última mano (las que me quedaron + las que jugué), para
@@ -906,7 +1005,7 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
           : <><b className="font-semibold text-cream">{opponentUsername}</b> te ganó {opponentScore} a {myScore}</>}
         note={won
           ? 'Mirá el mapa: capaz se abrió algo nuevo.'
-          : 'Volvé a intentarlo, le vas a encontrar la vuelta.'}
+          : game.winner_id ? undefined : 'Partida anulada.'}
         me={{ url: myAvatarUrl, name: myUsername, score: myScore, highlight: won }}
         opponent={{ url: campaignRivalSlug ? `/personajes/${campaignRivalSlug}.webp` : opponentAvatarUrl, name: opponentUsername, score: opponentScore, highlight: !won }}
         extra={won && (game.campaign_points_earned > 0 || game.campaign_reward > 0) && (
@@ -937,9 +1036,12 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
         )}
         {actionError && <p className="text-sm text-negative text-center">{actionError}</p>}
 
-        <Button variant="primary" size="md" fullWidth onClick={playAgainCampaign} disabled={loading}>
-          {won ? 'Jugar de nuevo' : 'Revancha'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <CampaignLives />
+          <Button variant="primary" size="md" fullWidth onClick={playAgainCampaign} disabled={loading}>
+            {won ? 'Jugar de nuevo' : 'Revancha'}
+          </Button>
+        </div>
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" fullWidth onClick={() => router.push('/historia')} disabled={loading}>
             Volver al modo historia
@@ -948,6 +1050,31 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
             Dejar reseña
           </Button>
         </div>
+      </FinishScreen>
+    )
+  }
+
+  if (game.status === 'finished' && showFinish && tournamentId) {
+    const voided = game.winner_id == null
+    const won = game.winner_id === currentUserId
+    return (
+      <FinishScreen
+        won={won}
+        salonSlug={salonSlug}
+        hand={lastHandCards}
+        title={voided ? 'Partida detenida' : won ? '¡Ganaste el cruce!' : 'Terminó el cruce'}
+        subtitle={voided ? 'Un administrador revisará esta partida.' : won
+          ? <>Le ganaste a <b className="font-semibold text-cream">{opponentUsername}</b> {myScore} a {opponentScore}</>
+          : <><b className="font-semibold text-cream">{opponentUsername}</b> te ganó {opponentScore} a {myScore}</>}
+        note={voided ? 'Volvé al torneo para seguir las novedades.' : 'Consultá el cuadro para ver la próxima ronda.'}
+        me={{ url: myAvatarUrl, name: myUsername, score: myScore, highlight: !voided && won }}
+        opponent={{ url: opponentAvatarUrl, name: opponentUsername, score: opponentScore, highlight: !voided && !won }}
+      >
+        {!voided && <ObjectiveProgressDelta gameId={game.id} isGuest={isGuest} />}
+        <Button variant="primary" size="md" fullWidth
+          onClick={() => router.push(`/torneos/${tournamentId}`)}>
+          Volver al torneo
+        </Button>
       </FinishScreen>
     )
   }
@@ -1060,8 +1187,9 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
         <TableAccessory slug={opponentAccessory} who="opponent" />
         <TableAccessory slug={myAccessory} who="me" />
 
-        <MesaToolbar muted={muted} onToggleMute={toggleMute} emoteTray={emoteTray} onToggleEmotes={() => setEmoteTray(v => !v)} />
-        {emoteTray && (
+        <MesaToolbar muted={muted} onToggleMute={toggleMute} emoteTray={emoteTray} onToggleEmotes={() => setEmoteTray(v => !v)} chatControl={process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isCampaign
+          ? <MatchChat key={game.id} mode="game" matchId={game.id} userId={currentUserId} isGuest={isGuest} quick={EMOTES} onQuickSend={sendEmote} quickCooldown={emoteCooldown} /> : undefined} />
+        {emoteTray && !(process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isCampaign) && (
           <EmoteTray onSend={sendEmote} cooldown={emoteCooldown} />
         )}
 
@@ -1328,4 +1456,3 @@ export default function GameClient({ game: initialGame, currentUserId, isGuest =
     </main>
   )
 }
-

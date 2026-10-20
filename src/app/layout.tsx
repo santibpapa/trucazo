@@ -7,7 +7,7 @@ import { SITE_URL, GOOGLE_SITE_VERIFICATION } from '@/lib/site'
 import './globals.css'
 
 const geist = localFont({
-  src: './fonts/GeistVF.woff',
+  src: './fonts/GeistVF.woff2',
   variable: '--font-inter',
   display: 'swap',
 })
@@ -16,12 +16,12 @@ export const metadata: Metadata = {
   // Base para armar URLs absolutas (canónicas, imágenes, etc.).
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Trucazo — Truco argentino online, gratis y 1 contra 1',
+    default: 'Trucazo — Truco argentino online gratis, 1 vs 1 y 2 vs 2',
     // Las demás páginas se ven como "Lobby · Trucazo", "Tienda · Trucazo", etc.
     template: '%s · Trucazo',
   },
   description:
-    'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 a 15 o 30 puntos, con envido y truco, contra personas o la computadora.',
+    'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 o en parejas 2 vs 2, a 15 o 30 puntos, con envido y truco, contra personas o la computadora.',
   applicationName: 'Trucazo',
   authors: [{ name: 'Trucazo' }],
   creator: 'Trucazo',
@@ -30,15 +30,15 @@ export const metadata: Metadata = {
     locale: 'es_AR',
     url: SITE_URL,
     siteName: 'Trucazo',
-    title: 'Trucazo — Truco argentino online, gratis y 1 contra 1',
+    title: 'Trucazo — Truco argentino online gratis, 1 vs 1 y 2 vs 2',
     description:
-      'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 contra personas o la computadora.',
+      'Jugá al truco argentino online, gratis y sin descargar nada. Partidas 1 contra 1 o en parejas 2 vs 2, contra personas o la computadora.',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Trucazo — Truco argentino online',
     description:
-      'Jugá al truco argentino online, gratis y 1 contra 1. El de siempre, como siempre.',
+      'Jugá al truco argentino online, gratis, 1 contra 1 o en parejas. El de siempre, como siempre.',
   },
   robots: {
     index: true,
@@ -49,7 +49,11 @@ export const metadata: Metadata = {
   verification: { google: GOOGLE_SITE_VERIFICATION },
   // La app ya es oscura de fábrica: este "candado" hace que la extensión
   // Dark Reader se desactive sola acá (si no, re-pinta y rompe los colores).
-  other: { 'darkreader-lock': '' },
+  other: {
+    'darkreader-lock': '',
+    // Verifica la propiedad en AdSense; no carga publicidad.
+    'google-adsense-account': 'ca-pub-3485016002829591',
+  },
 }
 
 // Declara la app como oscura (emite <meta name="color-scheme" content="dark">).
@@ -89,7 +93,9 @@ const organizationJsonLd = {
     contactType: 'Soporte',
     availableLanguage: 'es',
   },
-  sameAs: ['https://github.com/santibpapa'],
+  // "sameAs" son los perfiles oficiales de la marca. Le sirven a Google para
+  // atar el Instagram a este sitio y entender que son el mismo Trucazo.
+  sameAs: ['https://github.com/santibpapa', 'https://www.instagram.com/trucazo_arg/'],
 }
 
 export default function RootLayout({

@@ -28,6 +28,7 @@ export default async function RankingPage() {
     .gt('games_won', 0)
     .order('games_won', { ascending: false })
     .order('games_played', { ascending: true })
+    .order('id', { ascending: true })
     .limit(50)
 
   const players = (rows ?? []) as PlayerRow[]

@@ -8,7 +8,7 @@ import { createBreadcrumbJsonLd, createPublicMetadata } from '@/lib/seo'
 const path = '/truco-contra-computadora'
 const title = 'Jugar al truco contra la computadora online'
 const description =
-  'Practicá truco argentino 1 contra 1 frente a bots: partidas rápidas en el lobby o rivales progresivos en el Modo Historia.'
+  'Practicá truco argentino frente a bots: partidas rápidas 1 contra 1, mesas en parejas 2 vs 2 con los lugares completados por la máquina o rivales progresivos en el Modo Historia.'
 
 export const metadata = createPublicMetadata({ title, description, path, type: 'website' })
 
@@ -24,11 +24,15 @@ export default function ContraComputadoraPage() {
       <JsonLd data={createBreadcrumbJsonLd('Truco contra la computadora', path)} />
       <PlayNowBlock text="Entrá al lobby y usá “Jugar ya” para encontrar una partida disponible." source="contra_cpu_hero" />
 
-      <Section title="Dos formas de enfrentar bots">
+      <Section title="Tres formas de enfrentar bots">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl border border-line bg-surface p-5">
             <h3 className="font-semibold text-gold">Partida rápida</h3>
             <p className="mt-2 text-sm leading-relaxed text-muted">El lobby puede completar una mesa con un bot para que el juego empiece sin una espera larga.</p>
+          </div>
+          <div className="rounded-2xl border border-line bg-surface p-5">
+            <h3 className="font-semibold text-gold">Mesa en parejas</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">En una mesa 2 vs 2 podés completar con bots los lugares que falten, sea uno solo o los tres, y empezar sin esperar a nadie.</p>
           </div>
           <div className="rounded-2xl border border-line bg-surface p-5">
             <h3 className="font-semibold text-gold">Modo Historia</h3>
@@ -60,9 +64,11 @@ export default function ContraComputadoraPage() {
           Antes o durante tus primeras partidas, consultá el{' '}
           <Link href="/orden-cartas-truco" className="text-gold underline underline-offset-2">orden de las cartas</Link>,
           calculá una mano en la{' '}
-          <Link href="/calculadora-envido" className="text-gold underline underline-offset-2">calculadora de envido</Link>{' '}
-          y revisá el{' '}
-          <Link href="/modo-historia-truco" className="text-gold underline underline-offset-2">recorrido del Modo Historia</Link>.
+          <Link href="/calculadora-envido" className="text-gold underline underline-offset-2">calculadora de envido</Link>,
+          revisá el{' '}
+          <Link href="/modo-historia-truco" className="text-gold underline underline-offset-2">recorrido del Modo Historia</Link>{' '}
+          o mirá cómo funciona el{' '}
+          <Link href="/truco-en-parejas" className="text-gold underline underline-offset-2">truco en parejas</Link>.
         </p>
       </Section>
     </SeoPageLayout>

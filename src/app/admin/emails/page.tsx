@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { createEmailAdminClient } from '@/lib/email/admin'
 import NewsCampaign, { type NewsCampaignState } from './NewsCampaign'
+import RankingCampaign, { type RankingCampaignState } from './RankingCampaign'
 import EmailCampaigns, { type AdminCampaign } from './EmailCampaigns'
 
 export const dynamic = 'force-dynamic'
@@ -60,9 +61,12 @@ export default async function AdminEmailsPage() {
     }
   })) as AdminCampaign[]
 
-  const [newsConfig, latestNews] = await Promise.all([
+  const [newsConfig, latestNews, rankingConfig, rankingCounts] = await Promise.all([
     admin.from('news_email_campaign').select('is_active').eq('id', true).maybeSingle(),
     admin.from('news').select('id, title, body, email_completed_at').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    admin.from('ranking_email_campaign').select('is_active').eq('id', true).maybeSingle(),
+    Promise.all(['pending', 'sending', 'sent', 'failed', 'skipped'].map(status => admin
+      .from('ranking_email_jobs').select('id', { count: 'exact', head: true }).eq('status', status))),
   ])
   let newsState: NewsCampaignState | null = null
   if (newsConfig.data && !newsConfig.error) {
@@ -80,6 +84,16 @@ export default async function AdminEmailsPage() {
     }
   }
 
+  const rankingState: RankingCampaignState | null = rankingConfig.data && !rankingConfig.error
+    ? {
+        active: rankingConfig.data.is_active,
+        pending: (rankingCounts[0].count ?? 0) + (rankingCounts[1].count ?? 0),
+        sent: (rankingCounts[2].count ?? 0),
+        failed: (rankingCounts[3].count ?? 0),
+        skipped: (rankingCounts[4].count ?? 0),
+      }
+    : null
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-20 sm:px-6">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -91,13 +105,14 @@ export default async function AdminEmailsPage() {
             Campañas de email
           </h1>
           <p className="max-w-2xl text-sm text-muted">
-            Novedades al publicar y recordatorios para volver a jugar.
+            Novedades, movimientos del ranking y recordatorios para volver a jugar.
             Todas salen desde {sender}.
           </p>
         </div>
       </header>
 
       <NewsCampaign state={newsState} />
+      <RankingCampaign state={rankingState} />
       <EmailCampaigns initialCampaigns={campaigns} />
     </main>
   )

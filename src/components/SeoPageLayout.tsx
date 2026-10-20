@@ -72,8 +72,8 @@ export default function SeoPageLayout({
             ¿Listo para la mesa?
           </h2>
           <p className="mt-2 text-muted">
-            Jugá al truco 1 contra 1, gratis y sin descargar nada. Cada jugador
-            nuevo arranca con 1.000 monedas.
+            Jugá al truco 1 contra 1 o en parejas 2 vs 2, gratis y sin descargar
+            nada. Cada jugador nuevo arranca con 1.000 monedas.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <div className="w-full sm:w-auto sm:min-w-56">
@@ -107,11 +107,8 @@ export default function SeoPageLayout({
           >
             Cómo se juega al truco
           </Link>
-          <Link
-            href="/jugar-al-truco-online-gratis"
-            className="hover:text-gold transition-colors"
-          >
-            Jugar al truco online gratis
+          <Link href="/truco-en-parejas" className="hover:text-gold transition-colors">
+            Truco en parejas
           </Link>
           <Link href="/orden-cartas-truco" className="hover:text-gold transition-colors">
             Orden de cartas
@@ -127,6 +124,9 @@ export default function SeoPageLayout({
           </Link>
           <Link href="/privacidad" className="hover:text-gold transition-colors">
             Privacidad
+          </Link>
+          <Link href="/eliminar-cuenta" className="hover:text-gold transition-colors">
+            Eliminar cuenta
           </Link>
           <Link href="/terminos" className="hover:text-gold transition-colors">
             Términos

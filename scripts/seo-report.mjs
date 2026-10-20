@@ -1,7 +1,7 @@
 /**
- * Informe de SEO cada dos semanas.
+ * Informe de SEO una vez por mes.
  *
- * Baja los datos de Google Search Console, los compara contra las dos semanas
+ * Baja los datos de Google Search Console, los compara contra las cuatro semanas
  * anteriores y escribe un informe en castellano. Lo corre solo GitHub Actions
  * (.github/workflows/seo.yml), que después lo publica como "issue" del repo.
  *
@@ -186,6 +186,24 @@ function tabla(encabezados, filas) {
   ].join('\n') + '\n'
 }
 
+// Search Console y el sitemap no siempre escriben la misma dirección igual: la
+// portada aparece con barra final en uno y sin ella en el otro. Las dos listas
+// de páginas del informe se cruzan entre sí, así que tienen que normalizarse
+// igual o la portada se contaría como una página sin datos.
+function comoRuta(url) {
+  return url.replace(SITIO, '').replace(/\/$/, '') || '/'
+}
+
+// La primera frase del informe. Tiene que hablar de la gente que NO te conocía:
+// el total de clics lo infla la gente que ya te busca por nombre, y un titular
+// en verde puede estar tapando que no llegó nadie nuevo.
+function veredicto(ahora, antes) {
+  const clics = `${ahora} ${ahora === 1 ? 'clic' : 'clics'}`
+  const dif = ahora - antes
+  if (dif === 0) return `**${clics} de gente que no te conocía**, los mismos que el período anterior.`
+  return `**${clics} de gente que no te conocía**, ${Math.abs(dif)} ${dif > 0 ? 'más' : 'menos'} que el período anterior.`
+}
+
 // ---------------------------------------------------------------
 // Salud del sitio en vivo
 // ---------------------------------------------------------------
@@ -195,7 +213,7 @@ async function revisarSitio() {
   const respSitemap = await fetch(`${SITIO}/sitemap.xml`)
   if (!respSitemap.ok) {
     problemas.push(`El sitemap no responde (HTTP ${respSitemap.status}).`)
-    return { problemas, revisadas: 0 }
+    return { problemas, revisadas: 0, urls: [] }
   }
 
   const urls = [...(await respSitemap.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1])
@@ -221,7 +239,7 @@ async function revisarSitio() {
     problemas.push('Las páginas dejaron de servirse en markdown para los agentes de IA.')
   }
 
-  return { problemas, revisadas: urls.length }
+  return { problemas, revisadas: urls.length, urls }
 }
 
 // ---------------------------------------------------------------
@@ -290,6 +308,16 @@ async function main() {
   const otroAntes = resumen(consultasAntes.filter(f => !MARCA.test(f.keys[0])))
 
   const posicionAntes = new Map(consultasAntes.map(f => [f.keys[0], f.position]))
+  const impresionesHoy = new Map(consultasHoy.map(f => [f.keys[0], f.impressions]))
+
+  // Búsquedas que se apagaron. Las "caídas" de acá abajo sólo ven las que siguen
+  // apareciendo pero peor: si una desaparece del todo, sale de la lista actual y
+  // nadie se entera. Ésta mira al revés, desde el período anterior hacia acá.
+  const desaparecidas = consultasAntes
+    .filter(f => f.impressions >= 15 && (impresionesHoy.get(f.keys[0]) ?? 0) < f.impressions / 4)
+    .map(f => ({ q: f.keys[0], antes: f.impressions, hoy: impresionesHoy.get(f.keys[0]) ?? 0 }))
+    .sort((a, b) => b.antes - a.antes)
+    .slice(0, 10)
 
   // Caídas fuertes de posición en búsquedas que ya tenían volumen.
   const caidas = consultasHoy
@@ -306,6 +334,12 @@ async function main() {
     .slice(0, 10)
 
   const salud = await revisarSitio()
+
+  // Páginas publicadas que Google no mostró ni una vez. No salen en la tabla de
+  // páginas justamente porque no tienen datos, así que hay que buscarlas en el
+  // sitemap: son las que más laburo desperdiciado representan.
+  const conDatos = new Set(paginasHoy.map(f => comoRuta(f.keys[0])))
+  const enCero = salud.urls.map(comoRuta).filter(r => !conDatos.has(r))
 
   // ---------------------------------------------------------------
   const l = []
@@ -327,6 +361,27 @@ async function main() {
     l.push('')
   }
 
+  l.push('## Lo que importa: gente nueva')
+  l.push('')
+  l.push(veredicto(otroHoy.clics, otroAntes.clics))
+  l.push('')
+  l.push(tabla(
+    ['', 'Clics ahora', 'Clics antes', 'Cambio'],
+    [
+      ['Gente nueva', otroHoy.clics, otroAntes.clics, flecha(otroHoy.clics, otroAntes.clics)],
+      ['Te buscaban por nombre', marcaHoy.clics, marcaAntes.clics, flecha(marcaHoy.clics, marcaAntes.clics)],
+    ],
+  ))
+  l.push('_"Gente nueva" son los que no te conocían: buscaron "truco online" o algo parecido y te encontraron._')
+  const sinDetalle = hoy.clics - marcaHoy.clics - otroHoy.clics
+  if (sinDetalle > 0) {
+    l.push(
+      `_Esos dos números suman ${marcaHoy.clics + otroHoy.clics} y no ${hoy.clics}: los ${sinDetalle} que faltan ` +
+      'son búsquedas tan poco frecuentes que Google no dice cuáles fueron._',
+    )
+  }
+  l.push('')
+
   l.push('## Los números')
   l.push('')
   l.push(tabla(
@@ -340,18 +395,7 @@ async function main() {
   ))
   l.push('_Impresiones = cuántas veces apareciste en Google. Clics = cuántas veces te tocaron._')
   l.push('_En "posición media" un número más bajo es mejor: 1 es el primer resultado._')
-  l.push('')
-
-  l.push('## Marca vs. gente nueva')
-  l.push('')
-  l.push(tabla(
-    ['', 'Clics ahora', 'Clics antes', 'Cambio'],
-    [
-      ['Te buscaban por nombre', marcaHoy.clics, marcaAntes.clics, flecha(marcaHoy.clics, marcaAntes.clics)],
-      ['Gente nueva', otroHoy.clics, otroAntes.clics, flecha(otroHoy.clics, otroAntes.clics)],
-    ],
-  ))
-  l.push('_"Gente nueva" es la métrica que importa: son los que no te conocían._')
+  l.push('_Ojo con el total de clics: incluye a la gente que te busca por nombre, así que puede subir sin que haya llegado nadie nuevo._')
   l.push('')
 
   l.push('## Las 10 búsquedas que más clics traen')
@@ -383,6 +427,17 @@ async function main() {
     ))
   }
 
+  if (desaparecidas.length > 0) {
+    l.push('## ⚠️ Búsquedas que dejaron de aparecer')
+    l.push('')
+    l.push('Antes te mostraban en estas búsquedas y ahora casi no, o directamente no.')
+    l.push('')
+    l.push(tabla(
+      ['Búsqueda', 'Impresiones antes', 'Impresiones ahora'],
+      desaparecidas.map(f => [f.q, f.antes, f.hoy]),
+    ))
+  }
+
   l.push('## Páginas que traen gente')
   l.push('')
   l.push(tabla(
@@ -391,8 +446,22 @@ async function main() {
       .slice()
       .sort((a, b) => b.clicks - a.clicks || b.impressions - a.impressions)
       .slice(0, 10)
-      .map(f => [f.keys[0].replace(SITIO, '') || '/', f.clicks, f.impressions, f.position.toFixed(1)]),
+      .map(f => [comoRuta(f.keys[0]), f.clicks, f.impressions, f.position.toFixed(1)]),
   ))
+
+  if (enCero.length > 0) {
+    l.push('## Páginas que Google todavía no muestra')
+    l.push('')
+    l.push(`De las ${salud.urls.length} páginas del sitio, éstas no aparecieron ni una sola vez en el buscador:`)
+    l.push('')
+    enCero.forEach(r => l.push(`- ${r}`))
+    l.push('')
+    l.push(
+      'Están publicadas y listadas en el sitemap. Si una lleva más de un mes acá, pedile a Google que la mire: ' +
+      'entrá a Search Console, pegá la dirección en la barra de arriba y apretá "Solicitar indexación".',
+    )
+    l.push('')
+  }
 
   l.push('---')
   l.push('')

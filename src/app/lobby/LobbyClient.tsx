@@ -1,21 +1,27 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { subscribeLobbyTables } from '@/lib/lobby-tables'
+import { subscribeLobbyTables, watchStartedTable } from '@/lib/lobby-tables'
 import { Profile, Table } from '@/lib/types'
 import { generatePrivateCode } from '@/lib/tables'
 import { Button, Panel, Input, Modal, Coins, Logo, Alert, Toggle, Avatar, cn } from '@/components/ui'
 import { useCommunity } from '@/lib/useCommunity'
-import FriendsPanel from '@/components/FriendsPanel'
-import ChatGlobal from '@/components/ChatGlobal'
 import ObjectivesFloatingButton from '@/components/objectives/ObjectivesFloatingButton'
+import TournamentLobbyAccess from '@/components/tournaments/TournamentLobbyAccess'
 import type { ObjectivesData } from '@/lib/objectives'
 import { teamModeEnabled, type TeamSnapshot } from '@/lib/team-game'
+import { tournamentModeEnabled } from '@/lib/tournaments'
 import TeamTables from '@/components/game/TeamTables'
+import ShareTableInvite from '@/components/ShareTableInvite'
+import WaitingForPlayers from '@/components/WaitingForPlayers'
+
+const FriendsPanel = dynamic(() => import('@/components/FriendsPanel'))
+const ChatGlobal = dynamic(() => import('@/components/ChatGlobal'))
 
 interface Props {
   profile: Profile
@@ -24,6 +30,7 @@ interface Props {
   myMedal: string
   isGuest: boolean
   initialObjectives: ObjectivesData | null
+  initialReadyMatch: boolean
 }
 
 // "Jugar ya": mesa pública, apuesta fija y partida a 30. Un solo toque y a jugar.
@@ -37,6 +44,7 @@ export default function LobbyClient({
   myMedal,
   isGuest,
   initialObjectives,
+  initialReadyMatch,
 }: Props) {
   const router = useRouter()
   const [tables, setTables] = useState<Table[]>(initialTables)
@@ -52,6 +60,7 @@ export default function LobbyClient({
   const [joinCode, setJoinCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [readyMatch, setReadyMatch] = useState(initialReadyMatch)
   const [createdCode, setCreatedCode] = useState('')
   const [createdTableId, setCreatedTableId] = useState('')
   const [coins, setCoins] = useState(profile.coins)
@@ -59,10 +68,37 @@ export default function LobbyClient({
   // y la insignia de Comunidad en la navegación móvil.
   const community = useCommunity(profile.id)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showSocial, setShowSocial] = useState(false)
+  useEffect(() => {
+    const screen = window.matchMedia('(min-width: 1280px)')
+    const update = () => setShowSocial(screen.matches)
+    update()
+    screen.addEventListener('change', update)
+    return () => screen.removeEventListener('change', update)
+  }, [])
   const friendsBadge =
     (community.data?.incoming.length ?? 0) + (community.data?.invites_in.length ?? 0)
 
   const supabase = createClient()
+
+  useEffect(() => {
+    if (!tournamentModeEnabled || isGuest) return
+    const refresh = () => {
+      if (document.visibilityState !== 'hidden') {
+        void supabase.rpc('tournament_ready_match').then(({ data }) => {
+          if (typeof data === 'boolean') setReadyMatch(data)
+        })
+      }
+    }
+    const interval = window.setInterval(refresh, 8_000)
+    window.addEventListener('focus', refresh)
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener('focus', refresh)
+    }
+    // El cliente de Supabase del navegador comparte la misma instancia.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGuest])
 
   // Fotos y marcos de los creadores de las mesas visibles (profiles es de lectura pública).
   const [creatorAvatars, setCreatorAvatars] = useState<Record<string, string | null>>({})
@@ -90,31 +126,10 @@ export default function LobbyClient({
   // de navegación ni de que justo se cree una mesa nueva en tiempo real.
   useEffect(() => subscribeLobbyTables(supabase, setTables), [supabase])
 
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      const { data: myTables } = await supabase
-        .from('tables')
-        .select('*')
-        .eq('creator_id', profile.id)
-        .eq('status', 'playing')
-        .limit(1)
-
-      if (myTables && myTables.length > 0) {
-        const { data: gameData } = await supabase
-          .from('games')
-          .select('status')
-          .eq('id', myTables[0].id)
-          .single()
-
-        if (!gameData || gameData.status !== 'finished') {
-          clearInterval(interval)
-          router.push(`/game/${myTables[0].id}`)
-        }
-      }
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [profile.id])
+  // El aviso en vivo abre la mesa; una consulta espaciada cubre cortes de red.
+  useEffect(() => watchStartedTable(supabase, profile.id, id => {
+    router.push(`/game/${id}`)
+  }), [supabase, profile.id, router])
 
   async function handleCreateTable() {
     if (!tableName.trim()) {
@@ -320,12 +335,12 @@ export default function LobbyClient({
   if (createdCode) {
     return (
       <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-6 p-6">
-        <Panel className="w-full max-w-sm p-8 text-center flex flex-col gap-5 animate-fade-up">
+        <Panel className="w-full max-w-sm p-8 text-center flex flex-col gap-5">
           <div className="flex flex-col gap-1">
             <span className="text-xs font-semibold uppercase tracking-widest text-gold">
               Mesa creada
             </span>
-            <h2 className="font-display text-2xl font-bold text-cream">Compartí el código</h2>
+            <h2 className="font-display text-2xl font-bold text-cream">Invitá a tu rival</h2>
           </div>
           <p className="text-sm text-muted">Pasale este código a tu rival para que se una.</p>
           <div className="rounded-2xl border border-gold/30 bg-base py-5 shadow-gold-ring">
@@ -333,7 +348,8 @@ export default function LobbyClient({
               {createdCode}
             </p>
           </div>
-          <p className="text-sm text-subtle">Esperando que alguien se una…</p>
+          <WaitingForPlayers>Esperando que se una tu rival</WaitingForPlayers>
+          <ShareTableInvite tableId={createdTableId} mode="1v1" />
           <Button fullWidth onClick={() => router.push(`/game/${createdTableId}`)}>
             Ir a la sala de espera
           </Button>
@@ -451,6 +467,7 @@ export default function LobbyClient({
             isGuest={isGuest}
             onCoinsChange={setCoins}
           />
+          {tournamentModeEnabled && <TournamentLobbyAccess isGuest={isGuest} />}
 
           {/* Anti-quiebra: si te quedaste sin monedas para jugar, reclamá el bonus */}
           {coins < 10 && (
@@ -466,11 +483,17 @@ export default function LobbyClient({
           )}
 
           {/* Acciones principales */}
+          {readyMatch && (
+            <Alert tone="info">
+              Tenés un cruce de torneo listo. <Link href="/torneos" className="font-bold underline">Entrá desde Torneos</Link> antes de jugar otra mesa.
+            </Alert>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <Button
               size="md"
               fullWidth
               onClick={() => { setShowCreateModal(true); setError('') }}
+              disabled={readyMatch}
               className="!shadow-[0_6px_18px_-7px_rgba(201,162,75,0.4)]"
             >
               <PlusIcon /> Crear mesa
@@ -480,6 +503,7 @@ export default function LobbyClient({
               size="md"
               fullWidth
               onClick={() => { setShowJoinPrivate(true); setError('') }}
+              disabled={readyMatch}
             >
               <LockIcon /> Unirse
             </Button>
@@ -490,7 +514,7 @@ export default function LobbyClient({
             size="lg"
             fullWidth
             onClick={handleJugarYa}
-            disabled={loading || coins < JUGAR_YA_APUESTA}
+            disabled={readyMatch || loading || coins < JUGAR_YA_APUESTA}
             className="-mt-2 !shadow-[0_8px_22px_-8px_rgba(201,162,75,0.55)]"
           >
             <BoltIcon /> Jugar ya
@@ -514,11 +538,10 @@ export default function LobbyClient({
             )}
 
             <div className="grid gap-3 sm:grid-cols-2">
-              {tables.map((table, i) => (
+              {tables.map(table => (
                 <Panel
                   key={table.id}
-                  className="p-4 flex flex-col gap-3 transition-shadow duration-200 hover:shadow-lift animate-fade-up"
-                  style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+                  className="p-4 flex flex-col gap-3 transition-shadow duration-200 hover:shadow-lift"
                 >
                   <div className="flex items-center justify-between gap-2 min-w-0">
                     <p className="font-semibold text-cream truncate">{table.name}</p>
@@ -541,7 +564,7 @@ export default function LobbyClient({
                       <Button
                         size="sm"
                         onClick={() => handleJoinTable(table)}
-                        disabled={loading || coins < table.bet}
+                        disabled={readyMatch || loading || coins < table.bet}
                       >
                         Unirse
                       </Button>
@@ -553,19 +576,21 @@ export default function LobbyClient({
               ))}
             </div>
           </section>
-          {teamModeEnabled && <TeamTables />}
+          {teamModeEnabled && !readyMatch && <TeamTables />}
         </main>
       </div>
 
       {/* Panel social (solo compu ancha): amigos + chat global */}
       <aside className="hidden xl:flex xl:flex-col w-80 shrink-0 border-l border-line sticky top-0 h-screen">
-        <div className="p-4 border-b border-line max-h-[44%] overflow-y-auto">
-          <h3 className="font-display font-bold text-cream mb-3">Amigos</h3>
-          <FriendsPanel c={community} compact />
-        </div>
-        <div className="flex-1 min-h-0 p-4">
-          <ChatGlobal myId={profile.id} isAdmin={!!profile.is_admin} className="h-full" />
-        </div>
+        {showSocial && <>
+          <div className="p-4 border-b border-line max-h-[44%] overflow-y-auto">
+            <h3 className="font-display font-bold text-cream mb-3">Amigos</h3>
+            <FriendsPanel c={community} compact />
+          </div>
+          <div className="flex-1 min-h-0 p-4">
+            <ChatGlobal myId={profile.id} isAdmin={!!profile.is_admin} className="h-full" />
+          </div>
+        </>}
       </aside>
 
       {/* Modal crear mesa */}
@@ -666,7 +691,7 @@ export default function LobbyClient({
           >
             Cancelar
           </Button>
-          <Button fullWidth onClick={handleCreateTable} disabled={loading}>
+          <Button fullWidth onClick={handleCreateTable} disabled={readyMatch || loading}>
             {loading ? 'Creando…' : 'Crear'}
           </Button>
         </div>
@@ -699,7 +724,7 @@ export default function LobbyClient({
           >
             Cancelar
           </Button>
-          <Button fullWidth onClick={handleJoinPrivate} disabled={loading}>
+          <Button fullWidth onClick={handleJoinPrivate} disabled={readyMatch || loading}>
             {loading ? 'Buscando…' : 'Unirse'}
           </Button>
         </div>

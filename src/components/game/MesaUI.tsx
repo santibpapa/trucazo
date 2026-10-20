@@ -56,12 +56,12 @@ export function MesaTurn({ active, seconds, children, className = '' }: { active
   </div>
 }
 
-export function MesaToolbar({ muted, onToggleMute, emoteTray, onToggleEmotes }: {
-  muted: boolean; onToggleMute: () => void; emoteTray: boolean; onToggleEmotes: () => void
+export function MesaToolbar({ muted, onToggleMute, emoteTray, onToggleEmotes, chatControl }: {
+  muted: boolean; onToggleMute: () => void; emoteTray: boolean; onToggleEmotes: () => void; chatControl?: React.ReactNode
 }) {
   return <div className={styles.toolbar}>
     <button onClick={onToggleMute} aria-label={muted ? 'Activar sonido' : 'Silenciar'} className={styles.toolButton}>{muted ? <SoundOffIcon /> : <SoundOnIcon />}</button>
-    <button onClick={onToggleEmotes} aria-label="Chat rápido" aria-expanded={emoteTray} className={styles.toolButton}><ChatIcon /></button>
+    {chatControl ?? <button onClick={onToggleEmotes} aria-label="Chat rápido" aria-expanded={emoteTray} className={styles.toolButton}><ChatIcon /></button>}
   </div>
 }
 
@@ -264,7 +264,7 @@ export function MesaAnnouncement({ announce }: { announce: Announce }) {
   )
 }
 
-function ChatIcon() {
+export function ChatIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M4 12a7 7 0 0 1 7-7h2a7 7 0 0 1 0 14H8l-3.5 2.5.5-3.7A7 7 0 0 1 4 12Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
@@ -295,10 +295,10 @@ export { EMOTES }
 
 /** `emotes` permite otra lista (el 2vs2 suma frases de pareja); por defecto la del 1vs1.
  *  Con más de diez frases la bandeja se ensancha y, si no entra, se desplaza. */
-export function EmoteTray({ onSend, cooldown, emotes = EMOTES }: { onSend: (text: string) => void; cooldown: boolean; emotes?: readonly string[] }) {
+export function EmoteTray({ onSend, cooldown, emotes = EMOTES, inline = false }: { onSend: (text: string) => void; cooldown: boolean; emotes?: readonly string[]; inline?: boolean }) {
   const wide = emotes.length > EMOTES.length
   return (
-          <div className={`absolute top-12 right-2 z-30 flex flex-wrap justify-end gap-1.5 rounded-2xl border border-line bg-base/95 backdrop-blur p-2 shadow-lift animate-scale-in ${wide ? 'left-2 max-w-[22rem] ml-auto max-h-[55dvh] overflow-y-auto' : 'max-w-[15rem]'}`}>
+          <div className={inline ? 'flex flex-wrap justify-center content-start gap-2 overflow-y-auto p-3' : `absolute top-12 right-2 z-30 flex flex-wrap justify-end gap-1.5 rounded-2xl border border-line bg-base/95 backdrop-blur p-2 shadow-lift animate-scale-in ${wide ? 'left-2 max-w-[22rem] ml-auto max-h-[55dvh] overflow-y-auto' : 'max-w-[15rem]'}`}>
             {emotes.map(e => {
               const isText = /[a-zA-ZÁÉÍÓÚáéíóú]/.test(e)
               return (

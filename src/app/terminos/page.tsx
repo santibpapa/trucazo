@@ -17,11 +17,11 @@ export default function TerminosPage() {
       path={path}
       title="Términos de uso"
       breadcrumb="Términos"
-      intro="Al utilizar Trucazo aceptás estas condiciones básicas de convivencia y funcionamiento. Última actualización: 15 de agosto de 2026."
+      intro="Al utilizar Trucazo aceptás estas condiciones básicas de convivencia y funcionamiento. Última actualización: 26 de septiembre de 2026."
       showPlayCta={false}
       showByline={false}
     >
-      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebPage', name: title, description, url: SITE_URL + path, inLanguage: 'es-AR', dateModified: '2026-08-15' }} />
+      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebPage', name: title, description, url: SITE_URL + path, inLanguage: 'es-AR', dateModified: '2026-09-26' }} />
       <JsonLd data={createBreadcrumbJsonLd('Términos de uso', path)} />
 
       <Section title="Uso permitido">
@@ -47,6 +47,16 @@ export default function TerminosPage() {
           Las monedas y recompensas son elementos ficticios del juego. No tienen valor
           monetario, no representan depósitos, no se convierten en dinero y no pueden
           retirarse. Trucazo no ofrece apuestas con dinero real.
+        </p>
+      </Section>
+
+      <Section title="Torneos">
+        <p>
+          La inscripción y el check-in siguen los plazos publicados en cada torneo.
+          El administrador puede reprogramar, cancelar, pausar, descalificar o reemplazar
+          participantes según las reglas del torneo. Las partidas en curso pueden ser
+          observadas por usuarios registrados, que solo ven las cartas ya jugadas.
+          Los premios son monedas ficticias e insignias del perfil.
         </p>
       </Section>
 

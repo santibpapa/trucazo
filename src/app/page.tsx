@@ -9,10 +9,14 @@ import { SITE_URL } from '@/lib/site'
 import { createPublicMetadata } from '@/lib/seo'
 
 const description =
-  'Jugá al truco argentino online desde el navegador. Partidas 1 contra 1, modo invitado, mesas con amigos y desafíos contra la computadora.'
+  'Jugá al truco argentino online, gratis y sin descargar nada. Entrá sin registrarte y jugá 1 contra 1 o en parejas 2 vs 2, contra personas o la computadora.'
 
+// El título arranca con la marca porque la mayoría de las visitas llegan
+// buscando "trucazo", pero sigue con "Jugar al truco...": de las diez búsquedas
+// que más nos muestran, cinco empiezan con "jugar". La portada es la única
+// página que compite por esas, así que el verbo tiene que estar acá.
 export const metadata = createPublicMetadata({
-  title: 'Trucazo — Truco argentino online, gratis y 1 contra 1',
+  title: 'Trucazo — Jugar al truco argentino online gratis, 1 vs 1 y 2 vs 2',
   description,
   path: '/',
   type: 'website',
@@ -61,22 +65,23 @@ export default function Home() {
       <JsonLd data={productJsonLd} />
 
       <section className="min-h-[92vh] flex flex-col items-center justify-center gap-8 px-6 py-12 text-center">
-        <div className="flex flex-col items-center gap-5 animate-fade-up">
+        <div className="flex flex-col items-center gap-5">
           <Logo size="lg" />
           <div className="max-w-xl">
             <h1 className="font-display text-3xl font-extrabold tracking-tight text-cream sm:text-5xl text-balance">
-              Truco argentino online, mano a mano y sin vueltas
+              Jugá al truco argentino online, mano a mano o en parejas
             </h1>
             <p className="mx-auto mt-4 max-w-lg text-balance text-muted">
-              Jugá desde el navegador contra otras personas o la computadora. Entrá como
-              invitado, creá una mesa con amigos o avanzá por el Modo Historia.
+              Jugá 1 contra 1 o 2 vs 2 desde el navegador, sin descargar nada, contra otras
+              personas o la computadora. Entrá como invitado, creá una mesa con amigos o
+              avanzá por el Modo Historia.
             </p>
           </div>
         </div>
 
         {/* data-md="skip": botones de acceso. No son contenido legible, así que
             la versión markdown para agentes los descarta. */}
-        <div data-md="skip" className="flex w-full max-w-xs flex-col gap-3 animate-fade-up">
+        <div data-md="skip" className="flex w-full max-w-xs flex-col gap-3">
           <GuestButton
             variant="primary"
             size="lg"
@@ -103,7 +108,7 @@ export default function Home() {
           <InstallButton />
         </div>
 
-        <p className="inline-flex items-center gap-2 text-sm text-subtle animate-fade-up">
+        <p className="inline-flex items-center gap-2 text-sm text-subtle">
           Cada jugador nuevo arranca con
           <span className="inline-flex items-center gap-1.5 font-semibold text-gold">
             <CoinIcon size={14} /> 1.000 monedas ficticias
@@ -119,10 +124,11 @@ export default function Home() {
           </h2>
           <div className="mt-6 grid gap-5 text-cream/90 md:grid-cols-3">
             <div className="rounded-2xl border border-line bg-surface p-5">
-              <h3 className="font-display text-lg font-bold text-gold">Partidas 1 contra 1</h3>
+              <h3 className="font-display text-lg font-bold text-gold">1 contra 1 o en parejas</h3>
               <p className="mt-2 leading-relaxed">
-                Elegí partidas a 15 o 30 puntos, con envido, real envido, falta envido,
-                truco, retruco y vale cuatro. La variante de Trucazo se juega sin flor.
+                Jugá mano a mano o armá una mesa 2 vs 2 de a cuatro, a 15 o 30 puntos, con
+                envido, real envido, falta envido, truco, retruco y vale cuatro. La
+                variante de Trucazo se juega sin flor.
               </p>
             </div>
             <div className="rounded-2xl border border-line bg-surface p-5">

@@ -8,8 +8,11 @@ import { Panel, Logo, Input, Button, Alert } from '@/components/ui'
 import GuestButton from '@/components/GuestButton'
 import GoogleButton from '@/components/GoogleButton'
 import InstallButton from '@/components/InstallButton'
+import { loginDestination } from '@/lib/android-entry'
+import { invitationAuthLink, invitationPath } from '@/lib/table-invites'
 
-export default function LoginPage() {
+export default function LoginPage({ searchParams }: { searchParams: { next?: string } }) {
+  const next = invitationPath(searchParams.next)
   const router = useRouter()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -51,7 +54,7 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/lobby')
+      router.push(loginDestination())
       router.refresh()
       return
     }
@@ -68,13 +71,13 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/lobby')
+    router.push(loginDestination())
     router.refresh()
   }
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen p-6">
-      <Panel className="w-full max-w-sm p-8 flex flex-col gap-6 animate-fade-up">
+      <Panel className="w-full max-w-sm p-8 flex flex-col gap-6">
         <div className="flex flex-col items-center gap-2 text-center">
           <Logo size="md" />
           <p className="text-sm text-muted">Entrá a jugar</p>
@@ -113,13 +116,13 @@ export default function LoginPage() {
 
         <div className="flex flex-col gap-3">
           <GoogleButton variant="secondary" size="lg" />
-          <GuestButton variant="ghost" size="lg" />
+          <GuestButton variant="ghost" size="lg" returnTo={next ?? undefined} />
           <InstallButton />
         </div>
 
         <p className="text-center text-sm text-muted">
           ¿No tenés cuenta?{' '}
-          <Link href="/register" className="text-gold font-semibold hover:underline">
+          <Link href={invitationAuthLink('/register', next)} className="text-gold font-semibold hover:underline">
             Registrate gratis
           </Link>
         </p>

@@ -17,11 +17,11 @@ export default function PrivacidadPage() {
       path={path}
       title="Política de privacidad"
       breadcrumb="Privacidad"
-      intro="Esta página explica en lenguaje claro qué información necesita Trucazo para funcionar. Última actualización: 29 de agosto de 2026."
+      intro="Esta página explica en lenguaje claro qué información necesita Trucazo para funcionar. Última actualización: 1 de octubre de 2026."
       showPlayCta={false}
       showByline={false}
     >
-      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebPage', name: title, description, url: SITE_URL + path, inLanguage: 'es-AR', dateModified: '2026-08-29' }} />
+      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebPage', name: title, description, url: SITE_URL + path, inLanguage: 'es-AR', dateModified: '2026-10-01' }} />
       <JsonLd data={createBreadcrumbJsonLd('Política de privacidad', path)} />
 
       <Section title="Datos que puede tratar el servicio">
@@ -47,6 +47,13 @@ export default function PrivacidadPage() {
           período de inactividad. Cada mensaje permite desactivar uno o ambos tipos de
           correo de forma inmediata.
         </p>
+        <p>
+          Los torneos pueden generar anuncios, confirmaciones, recordatorios de check-in,
+          avisos de partidas y cambios de fecha. Podés desactivar esos emails desde el enlace
+          de preferencias de cada mensaje. Los avisos dentro del juego se guardan con su estado
+          de lectura. En partidas de torneo, otros usuarios registrados pueden ver puntajes,
+          participantes y cartas ya jugadas; las cartas de la mano permanecen ocultas.
+        </p>
       </Section>
 
       <Section title="Modo invitado">
@@ -64,12 +71,25 @@ export default function PrivacidadPage() {
           <li><strong>Vercel:</strong> alojamiento, entrega del sitio, analítica y métricas de rendimiento.</li>
           <li><strong>Google:</strong> autenticación opcional cuando se elige “Continuar con Google”.</li>
           <li><strong>Web3Forms:</strong> aviso opcional de nuevas reseñas cuando esa integración está configurada.</li>
-          <li><strong>Resend:</strong> entrega de novedades e invitaciones para volver a jugar cuando esa integración está configurada.</li>
+          <li><strong>Resend:</strong> entrega de novedades, invitaciones para volver, avisos del ranking y correos de torneos cuando esa integración está configurada.</li>
         </ul>
         <p>
           Cada proveedor puede procesar datos técnicos según sus propias políticas y la
           configuración utilizada por Trucazo.
         </p>
+      </Section>
+
+      <Section title="Anuncios opcionales y vidas de Historia">
+        <p>
+          Si los anuncios están habilitados, al quedarte sin vidas podés elegir ver uno
+          de Google Ad Manager para recuperar una vida. Google puede tratar datos técnicos
+          y usar almacenamiento del navegador según la configuración publicitaria y tus
+          opciones de consentimiento. Podés esperar la recarga gratuita o pedir ayuda a un amigo.
+        </p>
+        <p>Guardamos el estado de vidas, los pedidos de ayuda y la acreditación de recompensas
+          para evitar duplicados. El navegador puede conservar un comprobante pendiente para
+          reintentar una acreditación si se corta la conexión.</p>
+        <p>Más información en la <a className="underline" href="https://policies.google.com/technologies/ads" rel="noreferrer" target="_blank">política de publicidad de Google</a>.</p>
       </Section>
 
       <Section title="Almacenamiento local y PWA">
@@ -95,10 +115,22 @@ export default function PrivacidadPage() {
           controles técnicos y limita el acceso según el tipo de dato.
         </p>
         <p>
-          Podés evitar crear una cuenta usando el modo invitado, no utilizar funciones
-          sociales, no adjuntar imágenes y borrar el almacenamiento local. Para consultar,
-          corregir o solicitar la eliminación de datos asociados a una cuenta, seguí el
-          canal indicado en{' '}
+          Podés eliminar tu cuenta desde el perfil o desde{' '}
+          <Link href="/eliminar-cuenta" className="text-gold underline underline-offset-2">Eliminar mi cuenta</Link>,
+          sin tener la aplicación instalada. Se borran el acceso, email, perfil,
+          archivos propios, progreso, monedas, mensajes, reseñas, relaciones,
+          preferencias y registros de navegación vinculados. Los resultados
+          compartidos se conservan sin tu identidad como “Cuenta eliminada”.
+        </p>
+        <p>
+          Normalmente el borrado termina al confirmar. Si un proveedor falla, se
+          conserva temporalmente el identificador y la lista de archivos pendientes
+          para reintentar; ambos se eliminan al completar el proceso. Si no termina
+          dentro de 48 horas o no podés entrar, escribí a{' '}
+          <a href="mailto:hola@trucazo.com.ar" className="text-gold underline underline-offset-2">hola@trucazo.com.ar</a>
+          {' '}desde el email de tu cuenta. Los proveedores pueden conservar copias
+          de seguridad o registros durante sus propios plazos de conservación.
+          Para consultar o corregir datos, visitá{' '}
           <Link href="/contacto" className="text-gold underline underline-offset-2">Contacto</Link>.
         </p>
       </Section>

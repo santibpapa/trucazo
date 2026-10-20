@@ -29,9 +29,10 @@ export function useCommunity(myId: string, initial: CommunityData | null = null)
 
   // Latido de presencia + refresco periódico.
   useEffect(() => {
-    supabase.rpc('touch_online')
+    const touch = async () => { await supabase.rpc('touch_online') }
+    touch()
     if (!initial) refresh()
-    const hb = setInterval(() => { supabase.rpc('touch_online') }, 30000)
+    const hb = setInterval(touch, 30000)
     const poll = setInterval(refresh, 15000)
     return () => { clearInterval(hb); clearInterval(poll) }
     // eslint-disable-next-line react-hooks/exhaustive-deps

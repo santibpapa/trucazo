@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { invitationPath } from '@/lib/table-invites'
 
 export async function updateSession(request: NextRequest) {
   // Red de seguridad para el login con Google (OAuth): a veces Supabase nos
@@ -24,7 +25,10 @@ export async function updateSession(request: NextRequest) {
     '/comunidad',
     '/historia',
   ]
-  const isPrivate = privatePaths.some(path =>
+  // Solo la entrada dinámica. Los archivos públicos de la prueba local deben
+  // poder descargarse sin cookies y abrirse sin renovar sesión por red.
+  const isAndroidEntry = pathname === '/android'
+  const isPrivate = isAndroidEntry || privatePaths.some(path =>
     pathname === path || pathname.startsWith(`${path}/`),
   )
   const isApi = pathname.startsWith('/api/') || pathname === '/auth/callback'
@@ -32,11 +36,12 @@ export async function updateSession(request: NextRequest) {
     .getAll()
     .some(({ name }) => name.startsWith('sb-') && name.includes('auth-token'))
   const mayRedirectAuthenticatedUser = ['/', '/login', '/register'].includes(pathname)
+  const isInvitation = pathname.startsWith('/invitar/')
 
   // Una visita nueva a contenido público no necesita tocar Supabase. Esto mantiene
   // rápidas e independientes las landings, guías, imágenes OG, sitemap y robots.
   // Si existe una cookie o la ruta es privada/API, sí refrescamos y validamos sesión.
-  if (!isPrivate && !isApi && !(mayRedirectAuthenticatedUser && hasSupabaseSessionCookie)) {
+  if (!isPrivate && !isApi && !((mayRedirectAuthenticatedUser || isInvitation) && hasSupabaseSessionCookie)) {
     return NextResponse.next({ request })
   }
 
@@ -65,6 +70,13 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
+  if (isAndroidEntry && (!user || user.is_anonymous)) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('android', '1')
+    return NextResponse.redirect(url)
+  }
+
   if (!user && isPrivate) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
@@ -78,7 +90,9 @@ export async function updateSession(request: NextRequest) {
   // al hacerlo la sesión de invitado se reemplaza.
   if (user && !user.is_anonymous && mayRedirectAuthenticatedUser) {
     const url = request.nextUrl.clone()
-    url.pathname = '/lobby'
+    const invitation = invitationPath(url.searchParams.get('next'))
+    url.pathname = invitation ?? '/lobby'
+    if (invitation) url.search = ''
     return NextResponse.redirect(url)
   }
 

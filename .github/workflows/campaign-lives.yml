@@ -1,0 +1,85 @@
+name: Vidas de Historia de punta a punta
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/campaign-lives.yml'
+      - 'src/**'
+      - 'supabase/**'
+      - 'scripts/check-campaign-lives*'
+      - 'scripts/check-campaign-rewarded-ad.mjs'
+      - 'scripts/preview-stack-config.py'
+      - 'scripts/rebuild-db.sh'
+      - 'package*.json'
+permissions:
+  contents: read
+concurrency:
+  group: campaign-lives-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  vidas:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_CAMPAIGN_REWARDED_AD_UNIT: /123456/campaign_life
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      PGHOST: 127.0.0.1
+      PGPORT: '54322'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      TRUCAZO_PREVIEW_STACK: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.117.0
+      - name: Preparar copia vacía con Auth y Realtime
+        run: |
+          npm ci
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client ripgrep
+          npx playwright install --with-deps chromium
+          mkdir -p "$RUNNER_TEMP/trucazo-preview"
+          supabase init --workdir "$RUNNER_TEMP/trucazo-preview"
+          python3 scripts/preview-stack-config.py
+          python3 - <<'PY'
+          import os, pathlib
+          p = pathlib.Path(os.environ['RUNNER_TEMP']) / 'trucazo-preview/supabase/config.toml'
+          p.write_text(p.read_text().replace('[auth.email]\nenable_signup = false', '[auth.email]\nenable_signup = true\nenable_confirmations = false'))
+          PY
+          supabase start --workdir "$RUNNER_TEMP/trucazo-preview" > "$RUNNER_TEMP/campaign-lives-stack.log" 2>&1
+          supabase status --workdir "$RUNNER_TEMP/trucazo-preview" -o env > "$RUNNER_TEMP/campaign-lives-stack.env"
+          source "$RUNNER_TEMP/campaign-lives-stack.env"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          scripts/rebuild-db.sh
+          psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/campaign_lives.sql
+      - name: Compilar y abrir la copia
+        run: |
+          npm run build
+          npm run start -- --hostname 127.0.0.1 > "$RUNNER_TEMP/campaign-lives-next.log" 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/login > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:3000/login > /dev/null
+      - name: Derrotas, recarga, pedidos entre dos sesiones, anuncios simulados y concurrencia
+        run: node scripts/check-campaign-lives-browser.mjs
+      - name: Capturas de la copia móvil para revisión visual
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: vidas-historia-movil
+          path: ${{ runner.temp }}/campaign-lives-screenshots/*.png
+          retention-days: 1
+          if-no-files-found: ignore
+      - name: Apagar la copia
+        if: always()
+        run: supabase stop --workdir "$RUNNER_TEMP/trucazo-preview" --no-backup

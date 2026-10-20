@@ -11,7 +11,7 @@ export interface TeamMember {
 }
 export interface TeamTable {
   id: string
-  creator_id: string
+  creator_id: string | null
   name: string
   bet: number
   target_score: number
@@ -20,6 +20,7 @@ export interface TeamTable {
   private_code: string | null
   status: 'waiting' | 'playing' | 'finished' | 'cancelled'
   version: number
+  tournament_id?: string | null
 }
 export interface TeamGame {
   id: string
@@ -39,6 +40,14 @@ export interface TeamGame {
   action_started_at: string
   announcement: { seat: number; text: string; action: string; at: string } | null
   reveal: { seat: number; points: number; cards: Card[] } | null
+  chat: TeamChatLine[]
+}
+/** Una frase del chat rápido, dicha por una persona o por un bot. */
+export interface TeamChatLine {
+  seat: number
+  text: string
+  hand: number
+  at: string
 }
 export interface TeamSnapshot {
   table: TeamTable

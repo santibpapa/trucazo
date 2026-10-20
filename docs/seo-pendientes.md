@@ -77,6 +77,6 @@ Estas tareas requieren acceso a producción o datos que no están en el reposito
 - Probabilidades con metodología publicada.
 - Glosario del truco argentino.
 - Historia cultural del juego con fuentes.
-- Señas y modalidades por equipos, dejando claro que Trucazo es 1 contra 1.
+- Señas y campeonatos por equipos (el 2 vs 2 ya tiene su propia página pública).
 - IndexNow sólo si Bing pasa a ser una fuente de tráfico relevante.
 - CSP en una sesión dedicada con pruebas completas de Supabase, Google y Vercel.

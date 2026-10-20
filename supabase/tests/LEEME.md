@@ -16,8 +16,31 @@ variantes, rotación sin repetición consecutiva, progreso único por partida,
 reclamo idempotente, privacidad, clasificación de modos, fecha argentina y una
 sola protección de racha por semana.
 
+`tournaments.sql` intenta saltarse permisos de administrador, inscribir una
+cuenta invitada, bot o de prueba, crear combinaciones inválidas y duplicar una
+aceptación/check-in. `tournaments_concurrency.sh` hace competir dos conexiones
+reales por el último lugar y comprueba que una pase a lista de espera.
+`tournament_announcement_delivery.sql` comprueba anuncios pendientes tras
+reprogramaciones repetidas, recuperación sin duplicar, intentos anteriores,
+bajas, tandas de cinco con prioridad de partidas y espera por límites diarios
+y por segundo sin agotar los reintentos.
+`tournaments_competition.sql` recorre torneos 1v1 de cuatro, ocho y doce jugadores,
+grupos, pases directos, ausencias, pausa y reanudación, resultado repetido,
+apuesta cero, revancha prohibida y bloqueo de mesas normales incluso al comenzar
+una 2v2 ya armada. También cubre reemplazos tardíos con check-in, descalificación
+después de grupos, dos descalificados en semifinales e historial de nombres.
+
+La prueba ranking_emails.sql comprueba que un cambio de podio avise a todos los
+puestos afectados, que cada jugador tenga un máximo de un correo cada 24 horas
+y que la cola y sus credenciales no sean visibles desde el navegador.
+
 Sirve para que los agujeros que se cerraron no vuelvan a abrirse sin que nadie se
 dé cuenta.
+
+`tercera_parda.sql` juega los 15 caminos de resolución de una mano contra
+`play_card`, con ambos jugadores como mano, campaña y 1vs1, valores 1/2/4
+y cierre de partida. Verifica que la tercera parda favorezca al ganador de la
+primera y que tres pardas favorezcan a quien es mano.
 
 ## Cómo se corre
 
@@ -25,10 +48,18 @@ Contra una base **local de prueba**, nunca contra la de producción (crea usuari
 y partidas de mentira; al final deshace todo, pero igual):
 
 ```
+psql -f supabase/tests/tercera_parda.sql
 psql -f supabase/tests/seguridad_pr1.sql
 psql -f supabase/tests/seguridad_privilegios_funciones.sql
 psql -f supabase/tests/seguridad_pr2.sql
 psql -f supabase/tests/ciclo_retorno.sql
+psql -f supabase/tests/tournaments.sql
+psql -f supabase/tests/tournaments_competition.sql
+psql -f supabase/tests/tournaments_delete.sql
+psql -f supabase/tests/match_chat.sql
+supabase/tests/match_chat_concurrency.sh
+supabase/tests/tournaments_concurrency.sh
+psql -f supabase/tests/ranking_emails.sql
 ```
 
 Termina en 0 si está todo bien y en distinto de 0 si encontró algo, así que sirve

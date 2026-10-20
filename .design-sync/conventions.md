@@ -1,6 +1,6 @@
 # Trucazo — cómo diseñar con este sistema
 
-Trucazo es un juego de truco argentino 1v1. Tema oscuro **"vino & oro"**: terciopelo
+Trucazo es un juego de truco argentino, 1v1 y 2vs2. Tema oscuro **"vino & oro"**: terciopelo
 de casino, acento dorado usado con criterio. Todo se diseña sobre fondo oscuro.
 
 ## Setup

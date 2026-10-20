@@ -24,12 +24,29 @@ const securityHeaders = [
 
 const nextConfig = {
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }]
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache' }] },
+      { source: '/offline.html', headers: [{ key: 'Cache-Control', value: 'no-cache' }] },
+      // Arte público con nombres estables: reutilizarlo sin guardar datos del juego.
+      ...['/cartas/:path*', '/mesa/:path*', '/personajes/:path*'].map(source => ({
+        source,
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }],
+      })),
+    ]
   },
   // La página de Objetivos se dio de baja: todo vive en la ventana del cofre
   // del lobby. Quien tenga el link guardado cae en el lobby.
+  //
+  // /jugar-al-truco-online-gratis se dio de baja porque le competía a la portada:
+  // decían lo mismo con distinto nombre y Google nunca llegó a indexarla (dos
+  // meses online, cero impresiones). Redirigirla le pasa a la portada lo que
+  // haya juntado en vez de dividir la señal entre las dos.
   async redirects() {
-    return [{ source: '/objetivos', destination: '/lobby', permanent: true }]
+    return [
+      { source: '/objetivos', destination: '/lobby', permanent: true },
+      { source: '/jugar-al-truco-online-gratis', destination: '/', permanent: true },
+    ]
   },
 }
 

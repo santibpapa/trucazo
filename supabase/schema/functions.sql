@@ -2041,7 +2041,9 @@ begin
   elsif num_results = 3 then
     if    w1 > w2 then hand_winner := g.player1_id;
     elsif w2 > w1 then hand_winner := g.player2_id;
-    else  hand_winner := g.mano_player; end if;
+    -- Una baza para cada jugador y tercera parda: gana la primera.
+    -- Sólo las tres pardas se resuelven a favor de quien es mano.
+    else  hand_winner := coalesce((results->0->>'winner_id')::uuid, g.mano_player); end if;
     hand_done := true;
   elsif ties = 1 and num_results = 2 then
     select (e.value->>'winner_id')::uuid into hand_winner
@@ -3312,7 +3314,7 @@ begin
                'ultima_sesion',     p.last_sign_in_at,
                'visto_at',          up.last_seen_at
              ) order by p.created_at desc), '[]'::jsonb)
-      from (select * from personas order by created_at desc limit 500) p
+      from personas p
       left join por_persona   j  on j.player_id = p.id
       left join user_presence up on up.user_id  = p.id
     ),

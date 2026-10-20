@@ -134,7 +134,7 @@ export interface CommunityData {
 export interface GameHistory {
   id: string
   player_id: string
-  opponent_id: string
+  opponent_id: string | null
   opponent_username: string
   result: 'win' | 'loss'
   coins_change: number

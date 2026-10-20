@@ -1,5 +1,5 @@
 import type { Announce } from '@/components/game/MesaUI'
-import type { TeamSnapshot } from './team-game'
+import type { TeamChatLine, TeamSnapshot } from './team-game'
 import type { SoundName } from './sounds'
 
 export const TEAM_LABELS: Record<string, string> = {
@@ -47,4 +47,21 @@ export function teamAnnouncement(snapshot: TeamSnapshot): Announce | null {
 /** El mismo snapshot puede llegar por RPC, Realtime y polling: no reinicia el cartel. */
 export function announcementRemaining(at: string, serverNow: string): number {
   return Math.max(0, Math.min(3600, 3600 - (Date.parse(serverNow) - Date.parse(at)))) || 0
+}
+
+/** Cuánto dura un globito en pantalla. Con margen sobre la consulta de respaldo
+ *  (2,5 s) para que una frase no se apague antes de que la pantalla la reciba. */
+export const CHAT_BUBBLE_MS = 4000
+
+/** Globitos a mostrar ahora: el último de cada jugador, mientras esté vigente.
+ *  Las frases de los bots llegan con hora futura —hablan con un respiro— así
+ *  que una frase que todavía no toca no se muestra. */
+export function teamChatBubbles(chat: TeamChatLine[], mySeat: number, now: number) {
+  const vigentes = chat.filter(line => {
+    const at = Date.parse(line.at)
+    return at <= now && now < at + CHAT_BUBBLE_MS
+  })
+  return vigentes
+    .filter((line, i) => !vigentes.some((otra, j) => j > i && otra.seat === line.seat))
+    .map(line => ({ seat: line.seat, text: line.text, relative: (line.seat - mySeat + 4) % 4 }))
 }

@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { authDestination, invitationAuthLink } from '@/lib/table-invites'
 
 /**
  * Página de vuelta del login con Google (y cualquier OAuth).
@@ -14,13 +15,18 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const requestedDestination = request.cookies.get('trucazo_auth_next')?.value
+    ?? searchParams.get('next')
+  const loginPath = requestedDestination === '/android' ? '/login?android=1' : invitationAuthLink('/login', requestedDestination)
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login`)
+    return NextResponse.redirect(`${origin}${loginPath}`)
   }
 
   // Respuesta que devolvemos; el cliente de Supabase escribe las cookies acá.
-  const response = NextResponse.redirect(`${origin}/lobby`)
+  const destination = authDestination(requestedDestination)
+  const response = NextResponse.redirect(`${origin}${destination}`)
+  response.cookies.set('trucazo_auth_next', '', { path: '/', maxAge: 0 })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,7 +52,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
   if (error || !data.user) {
-    return NextResponse.redirect(`${origin}/login`)
+    return NextResponse.redirect(`${origin}${loginPath}`)
   }
   const user = data.user
 
