@@ -35,20 +35,44 @@ migraciones históricas permanecen intactas; la reconstrucción ya incluye todas
 
 ### Títulos de mesas automáticas — 20/10/2026
 
-**Preparado:** las nuevas mesas automáticas eligen al azar, con igual
-probabilidad, entre `Mesa de <creador>` y 24 frases cortas como `sale una`,
-`sin llorar` o `una y me voy`. Las frases no anuncian puntos: desaparece el
-título `Vamos a 30`, que antes también podía tocarle a una mesa a 15.
-El título personal usa el nombre del bot después de renovarlo.
+**Aplicado en producción e integrado:** el
+[PR #137](https://github.com/santibpapa/trucazo/pull/137) quedó en `master`
+(`b89a9cb2`). Las nuevas mesas automáticas eligen al azar, con igual probabilidad,
+entre `Mesa de <creador>` y 24 frases cortas como `sale una`, `sin llorar` o
+`una y me voy`. El título personal usa el apodo del bot después de renovarlo.
+Las frases no anuncian puntos: desaparece `Vamos a 30`, que antes también podía
+tocarle a una mesa a 15.
 
-La migración nueva `supabase/migrations/20261020213645_randomize_lobby_table_names.sql`
-conserva el resto de `ensure_lobby_tables`: identidad, bloqueo, cantidad de
-mesas, apuestas y puntajes. Renueva los siete títulos anteriores sólo en mesas
-públicas de bots que todavía esperan; conserva mesas humanas, privadas,
-partidas empezadas y títulos ya renovados.
+La migración nueva
+`supabase/migrations/20261020213645_randomize_lobby_table_names.sql`
+conserva el resto de `ensure_lobby_tables`: identidad, bloqueo, cantidad de mesas,
+apuestas y puntajes. Renueva los siete títulos anteriores sólo en mesas públicas
+de bots que todavía esperan; conserva mesas humanas, privadas, partidas
+empezadas y títulos ya renovados. Repetirla no vuelve a cambiar esos títulos.
 
-**Verificación y aplicación:** pendientes de comprobación. Fuente: GitHub
-`master` `43c90b91`, sin usar ni modificar el proyecto local.
+**Comprobación real:** Supabase registró
+`20261020214936_randomize_lobby_table_names`, con el mismo SQL del archivo.
+La función publicada coincide con la probada; anon sigue sin EXECUTE,
+authenticated lo conserva y las tablas mantienen RLS. El asesor conserva los
+46 avisos previos, sin avisos nuevos. Las dos mesas en espera mostraban
+`Mesa de pablod` y `hoy gano yo`, sin títulos anteriores de bots en espera.
+**Ya está activa: no volver a ejecutar el SQL como paso pendiente.**
+No requiere publicar código web ni cambiar variables, cron o permisos.
+
+**Pruebas:** PostgreSQL descartable (PGlite), función de creación real y helpers
+de identidad/disponibilidad simulados: 320 mesas, 155 títulos personales y 165
+casuales; aparecieron las 24 frases. Se comprobaron autenticación, tope de mesas,
+apodo renovado antes del título, cobros, apuestas/puntos/tiempo y rasgos; también
+el aislamiento de mesas humanas, privadas, jugando, terminadas y ya renovadas,
+y la repetición segura. Este ensayo no certifica concurrencia ni Realtime reales.
+
+Para `3c2a4763` aprobaron el
+[CI general completo](https://github.com/santibpapa/trucazo/actions/runs/39502415597),
+[invitaciones](https://github.com/santibpapa/trucazo/actions/runs/39502415540),
+[vidas](https://github.com/santibpapa/trucazo/actions/runs/39502415679) y Vercel.
+La reconstrucción incluye la nueva migración; el cierre documental no cambia
+el SQL probado. Fuente: GitHub `master` `43c90b91`, sin usar ni modificar el
+proyecto local del dueño.
 
 <a id="rendimiento-del-lobby-y-la-mesa"></a>
 
