@@ -4,21 +4,34 @@
 
 ## Nombres de bots del lobby — 20/10/2026
 
-**Preparado:** reemplazo completo de los 48 nombres rotativos por la lista
-aprobada por el dueño. Fuente: GitHub `master` `83aed0e4`, sin usar cambios
-del proyecto local. Migración nueva:
-`supabase/migrations/20261020210435_refresh_lobby_bot_names.sql`.
+**Aplicado en producción:** los 48 nombres rotativos fueron reemplazados por la
+lista aprobada por el dueño. El
+[PR #136](https://github.com/santibpapa/trucazo/pull/136) quedó integrado en
+`master` (`84945989`), preparado desde GitHub
+`master` `83aed0e4`, sin usar cambios del proyecto local.
 
 La lista compartida se usa al crear/ocupar mesas 1v1 y al agregar bots de parejas.
-La aplicación renueva también el perfil y el nombre visible de los creadores bot
+La migración renueva también el perfil y el nombre visible de los creadores bot
 en mesas 1v1 que siguen esperando, siempre que no tengan una partida iniciada.
 Elige nombres libres sin distinguir mayúsculas; conserva dificultad, rasgos,
 monedas, perfiles humanos y los nombres guardados en partidas/historial.
 Al repetir el SQL, las mesas que ya usan un nombre nuevo no se renombran.
 
-**Aplicación y pruebas:** pendientes de comprobación. No se requiere publicar
-código web ni cambiar variables, cron o permisos. Las migraciones históricas
-permanecen intactas; la reconstrucción ya incluye todas en orden.
+Migración: `supabase/migrations/20261020210435_refresh_lobby_bot_names.sql`.
+El agente la aplicó con autorización explícita del dueño; Supabase la registró
+como `20261020211318_refresh_lobby_bot_names`, con el mismo SQL.
+**Ya está activa; no volver a ejecutarla como paso pendiente.** La comprobación
+posterior encontró exactamente 48 nombres, cero faltantes y cero nombres extra.
+Las dos mesas en espera mostraban `vale` y `agustinlp`, coincidentes con sus perfiles.
+
+**Verificación:** consultas SQL dentro de transacciones con ROLLBACK comprobaron
+la lista exacta, conservación de saldos/rasgos y nombres de partidas, e idempotencia.
+El [CI general](https://github.com/santibpapa/trucazo/actions/runs/39498064478),
+[invitaciones](https://github.com/santibpapa/trucazo/actions/runs/39498064580) y
+[vidas](https://github.com/santibpapa/trucazo/actions/runs/39498064663) aprobaron
+para `1dce6d8f`. El cierre documental no modifica el SQL probado.
+No requiere publicar código web ni cambiar variables, cron o permisos. Las
+migraciones históricas permanecen intactas; la reconstrucción ya incluye todas en orden.
 
 <a id="rendimiento-del-lobby-y-la-mesa"></a>
 
