@@ -33,6 +33,23 @@ para `1dce6d8f`. El cierre documental no modifica el SQL probado.
 No requiere publicar código web ni cambiar variables, cron o permisos. Las
 migraciones históricas permanecen intactas; la reconstrucción ya incluye todas en orden.
 
+### Títulos de mesas automáticas — 20/10/2026
+
+**Preparado:** las nuevas mesas automáticas eligen al azar, con igual
+probabilidad, entre `Mesa de <creador>` y 24 frases cortas como `sale una`,
+`sin llorar` o `una y me voy`. Las frases no anuncian puntos: desaparece el
+título `Vamos a 30`, que antes también podía tocarle a una mesa a 15.
+El título personal usa el nombre del bot después de renovarlo.
+
+La migración nueva `supabase/migrations/20261020213645_randomize_lobby_table_names.sql`
+conserva el resto de `ensure_lobby_tables`: identidad, bloqueo, cantidad de
+mesas, apuestas y puntajes. Renueva los siete títulos anteriores sólo en mesas
+públicas de bots que todavía esperan; conserva mesas humanas, privadas,
+partidas empezadas y títulos ya renovados.
+
+**Verificación y aplicación:** pendientes de comprobación. Fuente: GitHub
+`master` `43c90b91`, sin usar ni modificar el proyecto local.
+
 <a id="rendimiento-del-lobby-y-la-mesa"></a>
 
 ## Rendimiento del lobby y la mesa — 19/10/2026
