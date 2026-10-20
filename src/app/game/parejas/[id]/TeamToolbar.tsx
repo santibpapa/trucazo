@@ -6,7 +6,8 @@ import type { TeamChatLine, TeamMember } from '@/lib/team-game'
 import { EmoteTray, MesaToolbar } from '@/components/game/MesaUI'
 import { teamChatBubbles } from '@/lib/team-presentation'
 import { TEAM_EMOTES } from '@/lib/emotes'
-import MatchChat from '@/components/game/MatchChat'
+import MatchChat, { MatchChatBubble } from '@/components/game/MatchChat'
+import type { MatchChatMessage } from '@/components/game/useMatchChat'
 import styles from './team.module.css'
 
 /** El chat rápido es público para toda la mesa, como en 1vs1. Pasa por el
@@ -20,9 +21,11 @@ export default function TeamToolbar({ chat, members, mySeat, userId, isGuest, ta
   const [muted, updateMuted] = useState(false)
   const [tray, setTray] = useState(false)
   const [cooldown, setCooldown] = useState(false)
+  const [chatBubbles, setChatBubbles] = useState<MatchChatMessage[]>([])
   const [, redraw] = useState(0)
   const lastSent = useRef(0)
   const liveChat = process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && playing
+  const quickBubbles = teamChatBubbles(chat, mySeat, Date.now() + offset)
   useEffect(() => { updateMuted(isMuted()) }, [])
   // Las frases traen su hora del servidor: hay que repasar sola cuál toca
   // mostrar, porque las de los bots llegan agendadas un momento después.
@@ -38,7 +41,7 @@ export default function TeamToolbar({ chat, members, mySeat, userId, isGuest, ta
     return () => clearTimeout(timer)
   }, [cooldown])
   return <>
-    <MesaToolbar muted={muted} onToggleMute={() => { setMuted(!muted); updateMuted(!muted) }} emoteTray={tray} onToggleEmotes={() => setTray(v => !v)} chatControl={liveChat ? <MatchChat key={tableId} mode="team" matchId={tableId} userId={userId} isGuest={isGuest} quick={TEAM_EMOTES} quickCooldown={cooldown || !playing} onQuickSend={text => {
+    <MesaToolbar muted={muted} onToggleMute={() => { setMuted(!muted); updateMuted(!muted) }} emoteTray={tray} onToggleEmotes={() => setTray(v => !v)} chatControl={liveChat ? <MatchChat key={tableId} mode="team" matchId={tableId} userId={userId} isGuest={isGuest} quick={TEAM_EMOTES} quickCooldown={cooldown || !playing} onBubblesChange={setChatBubbles} onQuickSend={text => {
       if (!playing || Date.now() - lastSent.current < 3000) return
       lastSent.current = Date.now()
       onSay(text); setCooldown(true)
@@ -48,7 +51,12 @@ export default function TeamToolbar({ chat, members, mySeat, userId, isGuest, ta
       lastSent.current = Date.now()
       onSay(text); setTray(false); setCooldown(true)
     }} />}
-    {teamChatBubbles(chat, mySeat, Date.now() + offset).map(bubble => <div key={bubble.seat}
+    {liveChat && chatBubbles.map(message => {
+      const seat = members.find(member => member.user_id === message.sender_id)?.seat
+      if (seat == null || quickBubbles.some(bubble => bubble.seat === seat)) return null
+      return <MatchChatBubble key={message.id} message={message} className={`${styles.emote} ${styles.writtenEmote} ${styles[`emote${(seat - mySeat + 4) % 4}`]}`} />
+    })}
+    {quickBubbles.map(bubble => <div key={bubble.seat}
       className={`${styles.emote} ${styles[`emote${bubble.relative}`]} rounded-2xl border border-line bg-base/90 backdrop-blur px-3 py-1.5 text-lg shadow-card animate-scale-in`}>
       <span className="sr-only">{members.find(m => m.seat === bubble.seat)?.username}: </span>{bubble.text}
     </div>)}

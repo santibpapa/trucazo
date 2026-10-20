@@ -25,10 +25,27 @@ export function useMatchChat(mode: 'game' | 'team', matchId: string, open: boole
   const [unread, setUnread] = useState(0)
   const [connection, setConnection] = useState<'connecting' | 'connected' | 'offline'>('connecting')
   const [retry, setRetry] = useState(0)
+  const [bubbles, setBubbles] = useState<(MatchChatMessage & { expiresAt: number })[]>([])
   const quiet = useRef(open || muted)
+  const silent = useRef(muted)
   const known = useRef(new Set<string>())
   const initialized = useRef(false)
   quiet.current = open || muted
+  silent.current = muted
+
+  const showBubble = useCallback((message: MatchChatMessage) => {
+    if (silent.current) return
+    setBubbles(previous => [...previous.filter(bubble => bubble.sender_id !== message.sender_id),
+      { ...message, expiresAt: performance.now() + 6000 }])
+  }, [])
+
+  useEffect(() => { if (muted) setBubbles([]) }, [muted])
+  useEffect(() => {
+    if (!bubbles.length) return
+    const timer = setTimeout(() => setBubbles(previous => previous.filter(bubble => bubble.expiresAt > performance.now())),
+      Math.max(0, Math.min(...bubbles.map(bubble => bubble.expiresAt)) - performance.now()))
+    return () => clearTimeout(timer)
+  }, [bubbles])
 
   useEffect(() => { if (open || muted) setUnread(0) }, [open, muted])
   const refresh = useCallback(async () => {
@@ -68,6 +85,7 @@ export function useMatchChat(mode: 'game' | 'team', matchId: string, open: boole
         const message = row as MatchChatMessage
         if (known.current.has(message.id)) return
         known.current.add(message.id)
+        showBubble(message)
         setMessages(previous => merge(previous, [message]))
         // El indicador se controla con el estado actual, sin afectar el motor.
         if (message.sender_id !== userId && !quiet.current) setUnread(count => count + 1)
@@ -103,18 +121,23 @@ export function useMatchChat(mode: 'game' | 'team', matchId: string, open: boole
       window.removeEventListener('focus', recover)
       void supabase.removeChannel(channel)
     }
-  }, [supabase, mode, matchId, userId, refresh, retry])
+  }, [supabase, mode, matchId, userId, refresh, retry, showBubble])
 
   const send = useCallback(async (body: string, requestId: string) => {
     const { data, error } = await supabase.rpc('send_match_chat_message', {
       p_mode: mode, p_match_id: matchId, p_body: body, p_request_id: requestId,
     })
     if (error) throw error
-    setMessages(previous => merge(previous, [data as MatchChatMessage]))
-  }, [supabase, mode, matchId])
+    const message = data as MatchChatMessage
+    if (!known.current.has(message.id)) {
+      known.current.add(message.id)
+      showBubble(message)
+    }
+    setMessages(previous => merge(previous, [message]))
+  }, [supabase, mode, matchId, showBubble])
 
   return {
-    messages, connection, send, unread: open || muted ? 0 : unread,
+    messages, bubbles, connection, send, unread: open || muted ? 0 : unread,
     reconnect: () => { setConnection('connecting'); setRetry(n => n + 1) },
   }
 }

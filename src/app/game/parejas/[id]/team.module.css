@@ -54,6 +54,7 @@
 .game .actionRows > div:has(> button:nth-child(3)) button[data-tone="gold"] { font-size: 14px; }
 .reveal { position: absolute; z-index: 9; top: 43%; left: 50%; transform: translate(-50%,-50%); display: flex; gap: 4px; pointer-events: none; }
 .emote { position: absolute; z-index: 30; max-width: 70%; pointer-events: none; }
+.emote.writtenEmote { max-width: min(44%, 16rem); }
 .emote0 { bottom: 0; left: 0; }
 .emote1 { top: 35%; right: 0; }
 .emote2 { top: 0; left: 0; }

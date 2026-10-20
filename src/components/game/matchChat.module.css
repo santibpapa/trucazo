@@ -1,4 +1,6 @@
 .trigger { position: relative; }
+.bubble { max-width: min(70%, 20rem); pointer-events: none; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.bubbleText { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; white-space: pre-wrap; }
 .badge { position: absolute; top: -6px; right: -7px; min-width: 18px; height: 18px; padding: 0 3px; border-radius: 10px; background: #e8cf84; color: #17130d; font: bold 11px/18px sans-serif; }
 .overlay { position: fixed; left: 0; right: 0; z-index: 1000; display: flex; align-items: flex-end; justify-content: center; padding: 8px; background: #080705ae; }
 .panel { width: min(100%, 410px); max-height: 100%; height: min(480px, 100%); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #a27e48; border-radius: 16px; background: #17130d; color: #f5e9cf; box-shadow: 0 16px 50px #000b; }
