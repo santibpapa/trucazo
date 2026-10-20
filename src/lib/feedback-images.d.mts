@@ -1,0 +1,1 @@
+export function feedbackImageLinks(storage: { createSignedUrl(path: string, expiresIn: number): PromiseLike<{ data: { signedUrl: string } | null; error: unknown }> }, paths: string[]): Promise<string>;

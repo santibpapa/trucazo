@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { invitationPath } from '@/lib/table-invites'
 
 // "Latido" de la visita del invitado. Mientras usa la app se renueva cada 30s;
 // si al abrir la app hay una sesión de invitado con el latido vencido, es que
@@ -26,7 +27,7 @@ export default function GuestSessionGuard() {
         // Invitado de una visita anterior: acá se despide.
         try { localStorage.removeItem(KEY) } catch {}
         await supabase.auth.signOut()
-        window.location.href = '/'
+        window.location.href = invitationPath(window.location.pathname) ?? '/'
         return
       }
 

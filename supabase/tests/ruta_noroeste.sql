@@ -54,6 +54,8 @@ begin
     'Doña Aurelia es la rival número uno');
   perform pg_temp.check((public.start_campaign_duel(last_rival)).id is not null,
     'duelo directo de Jujuy disponible tras Irene y puntaje');
+  -- El nuevo sistema retoma duelos pendientes; este escenario ya terminó.
+  update games set status='finished',winner_id=null where campaign_rival_id=last_rival and player1_id=u and status='playing';
   update profiles set campaign_points=17500 where id=u;
   view_map := public.get_campaign_map();
   select value into province from jsonb_array_elements(view_map->'provinces')
