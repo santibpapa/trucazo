@@ -62,6 +62,9 @@ jobs:
       - name: Instalar navegador para la comparación de rendimiento
         run: npx playwright install --with-deps chromium
 
+      - name: Globos del chat escrito en ambas mesas
+        run: npm run check:match-chat:browser
+
       - name: Renders, carga diferida y pedidos del lobby y la mesa
         run: npm run check:performance:browser
 

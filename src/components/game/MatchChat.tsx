@@ -3,14 +3,21 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChatIcon, EmoteTray } from './MesaUI'
-import { useMatchChat } from './useMatchChat'
+import { useMatchChat, type MatchChatMessage } from './useMatchChat'
 import { matchChatSendError } from '@/lib/match-chat'
 import salon from './salon.module.css'
 import styles from './matchChat.module.css'
 
-export default function MatchChat({ mode, matchId, userId, isGuest, quick, onQuickSend, quickCooldown }: {
+export function MatchChatBubble({ message, className }: { message: MatchChatMessage; className: string }) {
+  return <div role="status" className={`${styles.bubble} ${className} rounded-2xl border border-line bg-base/90 backdrop-blur px-3 py-1.5 shadow-card animate-scale-in`}>
+    <span className="sr-only">{message.sender_name}: </span><span className={styles.bubbleText}>{message.body}</span>
+  </div>
+}
+
+export default function MatchChat({ mode, matchId, userId, isGuest, quick, onQuickSend, quickCooldown, onBubblesChange }: {
   mode: 'game' | 'team'; matchId: string; userId: string; isGuest: boolean
   quick: readonly string[]; onQuickSend: (text: string) => void; quickCooldown: boolean
+  onBubblesChange: (messages: MatchChatMessage[]) => void
 }) {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<'messages' | 'quick'>('messages')
@@ -26,7 +33,9 @@ export default function MatchChat({ mode, matchId, userId, isGuest, quick, onQui
   const panel = useRef<HTMLElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const follow = useRef(true)
-  const { messages, unread, connection, reconnect, send } = useMatchChat(mode, matchId, open, muted, userId)
+  const { messages, bubbles, unread, connection, reconnect, send } = useMatchChat(mode, matchId, open, muted, userId)
+
+  useEffect(() => { onBubblesChange(muted ? [] : bubbles) }, [bubbles, muted, onBubblesChange])
 
   useEffect(() => {
     if (!open) return
