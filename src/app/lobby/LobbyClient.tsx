@@ -1,17 +1,16 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { subscribeLobbyTables } from '@/lib/lobby-tables'
+import { subscribeLobbyTables, watchStartedTable } from '@/lib/lobby-tables'
 import { Profile, Table } from '@/lib/types'
 import { generatePrivateCode } from '@/lib/tables'
 import { Button, Panel, Input, Modal, Coins, Logo, Alert, Toggle, Avatar, cn } from '@/components/ui'
 import { useCommunity } from '@/lib/useCommunity'
-import FriendsPanel from '@/components/FriendsPanel'
-import ChatGlobal from '@/components/ChatGlobal'
 import ObjectivesFloatingButton from '@/components/objectives/ObjectivesFloatingButton'
 import TournamentLobbyAccess from '@/components/tournaments/TournamentLobbyAccess'
 import type { ObjectivesData } from '@/lib/objectives'
@@ -20,6 +19,9 @@ import { tournamentModeEnabled } from '@/lib/tournaments'
 import TeamTables from '@/components/game/TeamTables'
 import ShareTableInvite from '@/components/ShareTableInvite'
 import WaitingForPlayers from '@/components/WaitingForPlayers'
+
+const FriendsPanel = dynamic(() => import('@/components/FriendsPanel'))
+const ChatGlobal = dynamic(() => import('@/components/ChatGlobal'))
 
 interface Props {
   profile: Profile
@@ -66,6 +68,14 @@ export default function LobbyClient({
   // y la insignia de Comunidad en la navegación móvil.
   const community = useCommunity(profile.id)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showSocial, setShowSocial] = useState(false)
+  useEffect(() => {
+    const screen = window.matchMedia('(min-width: 1280px)')
+    const update = () => setShowSocial(screen.matches)
+    update()
+    screen.addEventListener('change', update)
+    return () => screen.removeEventListener('change', update)
+  }, [])
   const friendsBadge =
     (community.data?.incoming.length ?? 0) + (community.data?.invites_in.length ?? 0)
 
@@ -116,49 +126,10 @@ export default function LobbyClient({
   // de navegación ni de que justo se cree una mesa nueva en tiempo real.
   useEffect(() => subscribeLobbyTables(supabase, setTables), [supabase])
 
-  // Vigila si la mesa que creaste arrancó, para meterte en la partida. Sigue
-  // mirando cada segundo, que es lo que hace que entres al toque.
-  //
-  // Una mesa "jugando" cuya partida YA terminó no lleva a ningún lado: es
-  // basura que quedó dando vueltas. Antes no se anotaba en ningún lado, así que
-  // cada segundo se volvía a preguntar por ella —dos consultas por segundo, para
-  // siempre, sin que sirvieran de nada—. Ahora se anota y no se pregunta de
-  // nuevo; el vigilante sigue vivo para la próxima mesa que crees.
-  const mesasTerminadas = useRef<Set<string>>(new Set())
-
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      const { data: myTables } = await supabase
-        .from('tables')
-        .select('*')
-        .eq('creator_id', profile.id)
-        .eq('status', 'playing')
-        // La más nueva primero: con una mesa vieja dando vueltas, sin este orden
-        // podía volver siempre esa y no enterarse de la que acabás de crear.
-        .order('created_at', { ascending: false })
-        .limit(1)
-
-      if (myTables && myTables.length > 0) {
-        const tableId = myTables[0].id
-        if (mesasTerminadas.current.has(tableId)) return
-
-        const { data: gameData } = await supabase
-          .from('games')
-          .select('status')
-          .eq('id', tableId)
-          .single()
-
-        if (!gameData || gameData.status !== 'finished') {
-          clearInterval(interval)
-          router.push(`/game/${tableId}`)
-        } else {
-          mesasTerminadas.current.add(tableId)
-        }
-      }
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [profile.id])
+  // El aviso en vivo abre la mesa; una consulta espaciada cubre cortes de red.
+  useEffect(() => watchStartedTable(supabase, profile.id, id => {
+    router.push(`/game/${id}`)
+  }), [supabase, profile.id, router])
 
   async function handleCreateTable() {
     if (!tableName.trim()) {
@@ -611,13 +582,15 @@ export default function LobbyClient({
 
       {/* Panel social (solo compu ancha): amigos + chat global */}
       <aside className="hidden xl:flex xl:flex-col w-80 shrink-0 border-l border-line sticky top-0 h-screen">
-        <div className="p-4 border-b border-line max-h-[44%] overflow-y-auto">
-          <h3 className="font-display font-bold text-cream mb-3">Amigos</h3>
-          <FriendsPanel c={community} compact />
-        </div>
-        <div className="flex-1 min-h-0 p-4">
-          <ChatGlobal myId={profile.id} isAdmin={!!profile.is_admin} className="h-full" />
-        </div>
+        {showSocial && <>
+          <div className="p-4 border-b border-line max-h-[44%] overflow-y-auto">
+            <h3 className="font-display font-bold text-cream mb-3">Amigos</h3>
+            <FriendsPanel c={community} compact />
+          </div>
+          <div className="flex-1 min-h-0 p-4">
+            <ChatGlobal myId={profile.id} isAdmin={!!profile.is_admin} className="h-full" />
+          </div>
+        </>}
       </aside>
 
       {/* Modal crear mesa */}
