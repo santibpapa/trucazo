@@ -1,5 +1,47 @@
 # Juego
 
+<a id="accesos-chat-amigos"></a>
+
+## Accesos a Chat y Amigos — 20/10/2026
+
+**Estado:** cambio preparado para revisión, desde GitHub `master` `57f5290c`,
+en una copia aislada. No usa ni modifica la carpeta de trabajo del dueño;
+este registro no acredita integración ni publicación en producción.
+
+**Decisiones aprobadas:** acceso directo a Chat junto al perfil del lobby;
+Amigos reemplaza el nombre Comunidad en la navegación, con el contador de
+pendientes real. Se descartó la franja de amigos conectados del mockup.
+La pantalla `/comunidad` conserva su título y sus pestañas Chat, Amigos,
+Grupo y Novedades; Amigos sigue siendo su vista inicial.
+
+El chat se abre sobre el lobby: abajo en celular y centrado en pantallas
+mayores. Cierra con la cruz, Escape o al tocar afuera. El diálogo nativo
+mantiene el foco dentro, lo devuelve al acceso al cerrar y bloquea el
+desplazamiento del fondo. El historial se carga sólo al abrirlo. En compu
+ancha se conserva el panel social existente; entre 1024 y 1279 px se ofrece
+el botón Chat en el menú lateral, donde ese panel todavía no aparece.
+
+El número en Amigos suma solicitudes de amistad recibidas e invitaciones
+entrantes para jugar; desaparece cuando ambas listas están vacías. Reutiliza
+`useCommunity`, su refresco cada 15 segundos y el aviso inmediato existente
+de invitaciones. No representa amigos conectados ni mensajes sin leer;
+no se agrega un contador fijo ni se cambia el contrato con la base.
+El nombre accesible del enlace incluye la cantidad de pendientes.
+
+**Verificación:** tipos y ESLint del archivo modificado aprobados. Prueba
+de navegador con componentes reales, estilos del repositorio y HTTP simulado:
+contador 1 → 2 → 0, envío, foco dentro del diálogo y regreso al botón,
+los tres modos de cierre, controles de administrador sin superposición y
+pantallas 320×568, 390×420, 1024×768 y 1440×900. Se conservó la comprobación
+de carga: cero lecturas de chat al abrir el lobby móvil, una al mostrar
+el panel de escritorio y dos lecturas de mesas en el ensayo de cada tamaño.
+Esta prueba no equivale a una sesión manual con cuentas reales ni a una
+medición de rendimiento contra producción.
+
+**Continuidad:** comprobar los controles automáticos del PR antes de integrar;
+después de publicar, verificar solicitudes e invitaciones reales entre dos
+cuentas. No requiere SQL, cambios de permisos ni configuración de Supabase.
+
 <a id="nombres-bots-lobby"></a>
 
 ## Nombres de bots del lobby — 20/10/2026
