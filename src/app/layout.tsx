@@ -6,6 +6,9 @@ import AppRuntime from '@/components/AppRuntime'
 import { SITE_URL, GOOGLE_SITE_VERIFICATION } from '@/lib/site'
 import './globals.css'
 
+// Versión real del servidor para comprobar los parches de seguridad.
+console.info(`[runtime] Node.js ${process.version}`)
+
 const geist = localFont({
   src: './fonts/GeistVF.woff2',
   variable: '--font-inter',
