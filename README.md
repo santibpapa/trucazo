@@ -22,7 +22,7 @@ activación en [Juego](docs/juego.md#invitacion-por-enlace).
 
 ## Requisitos previos
 
-- Node.js 18.18+ (recomendado 20+)
+- Node.js 24.22.1 o posterior de la rama 24 (incluye los parches de seguridad del 21/10/2026)
 - Un proyecto de Supabase
 
 ## Configuración

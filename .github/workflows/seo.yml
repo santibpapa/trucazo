@@ -41,7 +41,8 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: '>=24.22.1 <25'
+          check-latest: true
 
       # El script usa solo lo que Node ya trae, así que no hay nada que instalar.
       - name: Armar el informe
