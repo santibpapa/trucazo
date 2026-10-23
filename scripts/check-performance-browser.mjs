@@ -54,12 +54,28 @@ try {
     const context=await browser.newContext({viewport:{width,height:844},serviceWorkers:'block'})
     const page=await context.newPage()
     const errors=[];const requests=[]
+    let openTables=[];let generation=0;let replenish=false;let ensureCalls=0
+    await page.addInitScript(()=>{
+      window.__lobbyPollers=[]
+      const original=window.setInterval
+      window.setInterval=(callback,ms,...args)=>{
+        if(ms===30000) window.__lobbyPollers.push(()=>callback(...args))
+        return original(callback,ms,...args)
+      }
+    })
     page.on('pageerror',e=>errors.push(e.message))
     page.on('request',r=>requests.push(r.url()))
     await context.route('https://ejemplo.supabase.co/**',async route=>{
       const url=new URL(route.request().url());const operation=url.pathname.split('/').at(-1)
       let body=url.pathname.includes('/rpc/')?null:[]
-      if(operation==='ensure_lobby_tables') body=0
+      if(operation==='ensure_lobby_tables') {
+        ensureCalls++;body=0
+        if(replenish && openTables.length===0) {
+          generation++;body=2
+          openTables=['a','b'].map(suffix=>({id:`mesa-${generation}-${suffix}`,name:`Mesa recuperada ${generation}-${suffix}`,creator_id:'00000000-0000-4000-8000-000000000002',creator_username:'Rival',bet:20,target_score:30,time_limit:30,status:'waiting',is_private:false,created_at:new Date().toISOString()}))
+        }
+      }
+      if(operation==='tables' && url.searchParams.get('status')==='eq.waiting') body=openTables
       if(operation==='get_community') body={friends:[],incoming:[],outgoing:[],invites_in:[],invite_out:null,group:null,group_invites_in:[]}
       if(operation==='games') body=await page.evaluate(()=>window.__fixtureGame)
       if(operation==='game_hands') body={cards:await page.evaluate(()=>window.__fixtureHand)}
@@ -77,6 +93,32 @@ try {
       await page.waitForTimeout(6200)
       results[name]={tableReads:requests.filter(u=>u.includes('/rest/v1/tables?')).length,chatReads:requests.filter(u=>u.includes('/rest/v1/chat_messages?')).length}
       if(name==='mobile') {await page.setViewportSize({width:1440,height:900});await page.waitForTimeout(500);results.afterResizeChatReads=requests.filter(u=>u.includes('/rest/v1/chat_messages?')).length}
+      if(!baseline) {
+        const assert=require('node:assert/strict')
+        replenish=true
+        for(let cycle=1;cycle<=2;cycle++) {
+          await page.evaluate(()=>{
+            Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'})
+            document.dispatchEvent(new Event('visibilitychange'))
+          })
+          openTables=[]
+          const before=ensureCalls
+          await page.evaluate(()=>window.__lobbyPollers.forEach(poll=>poll()))
+          await page.waitForTimeout(100)
+          assert.equal(ensureCalls,before,'no repone mesas mientras la pestaña está oculta')
+          await page.evaluate(()=>{
+            Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'})
+            document.dispatchEvent(new Event('visibilitychange'))
+          })
+          await page.getByText(`Mesa recuperada ${cycle}-a`,{exact:true}).waitFor()
+          await page.getByText(`Mesa recuperada ${cycle}-b`,{exact:true}).waitFor()
+          assert.equal(await page.getByText('No hay mesas disponibles',{exact:true}).count(),0)
+        }
+        openTables=[]
+        await page.evaluate(()=>window.__lobbyPollers.forEach(poll=>poll()))
+        await page.getByText('Mesa recuperada 3-a',{exact:true}).waitFor()
+        results[name].recoveredCycles=generation
+      }
     } else if(view==='game') {
       await page.waitForTimeout(200)
       results.gameEarlyCardRequests=requests.filter(u=>u.includes('/cartas/')).length

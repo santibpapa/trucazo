@@ -57,39 +57,75 @@ export function watchStartedTable(
   }
 }
 
-/** Revalida la lista al entrar y al reconectar, aunque la navegación use caché. */
+/** Repone y revalida al volver; Realtime puede perder avisos en segundo plano. */
 export function subscribeLobbyTables(
   supabase: ReturnType<typeof createClient>,
   onTables: (tables: Table[]) => void,
 ) {
   let disposed = false
-  let latestRequest = 0
+  let inFlight = false
+  let pending = false
+  let replenishPending = false
 
-  async function refresh() {
-    if (disposed) return
-    const request = ++latestRequest
-    const { data, error } = await supabase.from('tables').select('*')
-      .eq('status', 'waiting').eq('is_private', false)
-      .order('created_at', { ascending: false })
-    if (!disposed && request === latestRequest && !error && data) {
+  async function refresh(replenish = false) {
+    if (disposed || document.visibilityState === 'hidden') return
+    replenishPending ||= replenish
+    if (inFlight) { pending = true; return }
+    inFlight = true
+    const replenishing = replenishPending
+    replenishPending = false
+    try {
+      if (replenishing) {
+        try {
+          // Devuelve una CANTIDAD creada: cero no significa lobby vacío.
+          await supabase.rpc('ensure_lobby_tables').abortSignal(AbortSignal.timeout(8000))
+        } catch {
+          // Aunque falle la reposición, puede haber mesas existentes.
+        }
+      }
+      if (disposed || document.visibilityState !== 'visible') return
+      const { data, error } = await supabase.from('tables').select('*')
+        .eq('status', 'waiting').eq('is_private', false)
+        .order('created_at', { ascending: false })
+        .abortSignal(AbortSignal.timeout(8000))
+      if (disposed || pending || error || !data) return
+      // El barrido también borra mesas automáticas. Pedir reemplazos una vez;
+      // si no hay bots libres, el resultado vacío posterior sigue siendo válido.
+      if (!replenishing && data.length === 0) {
+        replenishPending = true
+        pending = true
+        return
+      }
       onTables(data as Table[])
+    } catch {
+      // Conservar la lista ante fallos; el siguiente control vuelve a intentar.
+    } finally {
+      inFlight = false
+      if (pending) { pending = false; void refresh() }
     }
   }
+  const recover = () => { void refresh(true) }
 
   // Una vuelta rápida no reutiliza el canal anterior mientras se está cerrando.
   const channel = supabase.channel(`tables-changes-${++subscriptionId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, () => { void refresh() })
     .subscribe(status => {
       // Incluye los cambios ocurridos antes de establecer la suscripción.
-      if (status === 'SUBSCRIBED') void refresh()
+      if (status === 'SUBSCRIBED') recover()
     })
 
-  // El resultado es una CANTIDAD creada: cero no significa lobby vacío.
-  // También consultamos si falla la reposición; puede haber mesas existentes.
-  void supabase.rpc('ensure_lobby_tables').then(() => refresh(), () => refresh())
+  recover()
+  const interval = setInterval(recover, 30000)
+  window.addEventListener('focus', recover)
+  window.addEventListener('online', recover)
+  document.addEventListener('visibilitychange', recover)
 
   return () => {
     disposed = true
+    clearInterval(interval)
+    window.removeEventListener('focus', recover)
+    window.removeEventListener('online', recover)
+    document.removeEventListener('visibilitychange', recover)
     void supabase.removeChannel(channel)
   }
 }
