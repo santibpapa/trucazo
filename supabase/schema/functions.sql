@@ -1260,9 +1260,15 @@ begin
     raise exception 'winner is not a player of this game';
   end if;
 
+  -- Al terminar también se prueba el tanto declarado, aunque no haya otra mano.
+  if coalesce(g.envido_state->>'player1_points', g.envido_state->>'player2_points') is not null then
+    g.envido_reveal := public._envido_reveal_for(g, (g.envido_state->>'winner_id')::uuid);
+  end if;
+
   if g.campaign_rival_id is not null then
     update games
        set status = 'finished', winner_id = p_winner_id,
+           envido_reveal = g.envido_reveal,
            player1_score = p_p1_score, player2_score = p_p2_score, updated_at = now()
      where id = p_game_id;
 
@@ -1318,6 +1324,7 @@ begin
 
   update games
      set status = 'finished', winner_id = p_winner_id,
+         envido_reveal = g.envido_reveal,
          player1_score = p_p1_score, player2_score = p_p2_score, updated_at = now()
    where id = p_game_id;
 
@@ -2064,9 +2071,9 @@ begin
   elsif hand_winner = g.player2_id then s2 := s2 + truco_val; end if;
 
   -- Fin de partida: si con estos puntos alguien llegó al objetivo, la partida
-  -- TERMINA acá (no se reparte otra mano ni se muestra revelado). Este chequeo
-  -- faltaba en la rama "ganar la mano por cartas".
+  -- termina acá. Guardamos la última jugada antes de probar el tanto del envido.
   if s1 >= g.target_score or s2 >= g.target_score then
+    update games set played_cards = played, round_results = results where id = p_game_id;
     perform public.finish_game(p_game_id, case when s1 >= g.target_score then g.player1_id else g.player2_id end, s1, s2);
     select * into g from games where id = p_game_id;
     return g;
@@ -2395,6 +2402,7 @@ begin
     update games set
       player1_score = s1, player2_score = s2,
       truco_state = g.truco_state || jsonb_build_object('status','rejected'),
+      envido_reveal = public._envido_reveal_for(g, (g.envido_state->>'winner_id')::uuid),
       awaiting_deal = true, updated_at = now()
     where id = p_game_id;
   end if;
