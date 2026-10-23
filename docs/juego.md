@@ -1,5 +1,49 @@
 # Juego
 
+<a id="recuperacion-lobby-pestana"></a>
+
+## Mesas al volver a la pestaña — 23/10/2026
+
+**Estado:** propuesta en el [PR #142](https://github.com/santibpapa/trucazo/pull/142),
+preparada desde GitHub `master` `38002ae4`, en una copia
+aislada. No incorpora ni modifica el proyecto local del dueño. Pendiente de
+integración y publicación; no requiere SQL ni configuración de Supabase.
+
+**Causa comprobada en el repositorio:** `sweep_stale_tables(15)`, programado cada
+cinco minutos, elimina mesas que llevan más de quince minutos esperando,
+incluidas las automáticas. `subscribeLobbyTables` pedía reponerlas únicamente
+al montar el lobby: los avisos posteriores sólo releían la lista. Por eso podía
+quedar vacía hasta una nueva entrada. Tampoco tenía recuperación por visibilidad,
+foco o red, respaldo periódico ni límite de espera de consultas. Esto reproduce
+el mecanismo del reporte; no se atribuye cada episodio histórico a un log real.
+
+**Corrección:** volver a pedir reposición y releer al entrar, suscribirse,
+recuperar visibilidad/foco/red y cada treinta segundos con la pestaña visible.
+Si un aviso devuelve una lista vacía, intentar reposición una vez y releer;
+si no hay bots libres, aceptar el vacío real sin un bucle. El servidor sigue
+decidiendo cuántas mesas crear y controla identidades, apuestas y monedas.
+Los avisos simultáneos se agrupan, se descartan lecturas previas a un aviso más
+nuevo y ambos pedidos vencen a los ocho segundos. Un fallo de reposición permite
+leer mesas existentes; un fallo de lectura conserva la lista. Salir limpia
+eventos, intervalo y canal, e ignora respuestas tardías.
+
+**Pruebas:** `scripts/check-lobby-tables.ts` usa el SDK real con HTTP, reloj y
+avisos controlados. Ocho de los diez casos fallan antes del arreglo y los diez
+aprueban después: regreso sin reconexión, borrado por antigüedad, dos ciclos de
+respaldo, foco/red/reconexión, agrupación, rechazos, pedidos sin respuesta,
+ausencia de bots y salida/regreso. Las nueve pruebas de inicio de mesa y las
+cuatro de presencia también aprueban; tipos, ESLint de los archivos cambiados,
+allowlist de RPCs y compilación de Next, aprobados. La compilación conserva
+las seis advertencias previas de hooks en la mesa 1v1.
+
+`check:performance:browser` verifica el componente real del lobby en Chrome:
+dos regresos con visibilidad simulada y una reposición por respaldo en móvil
+y escritorio; las mesas nuevas aparecen y desaparece el mensaje de lobby vacío.
+Conserva dos lecturas de mesas durante los primeros 6,2 segundos y cero lecturas
+de chat oculto en móvil. La red y los avisos se simulan: no acredita un ensayo
+con cuentas de producción, WebSocket real ni una espera real de quince minutos.
+Entorno local: Node 24.19.0; el CI exige la versión parcheada 24.22.1 o posterior.
+
 <a id="accesos-chat-amigos"></a>
 
 ## Accesos a Chat y Amigos — 20/10/2026

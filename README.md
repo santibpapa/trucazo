@@ -13,6 +13,9 @@ activación en [Juego](docs/juego.md#invitacion-por-enlace).
 **Rendimiento del lobby y la mesa:** cambios y mediciones comparables en
 [Juego](docs/juego.md#rendimiento-del-lobby-y-la-mesa).
 
+**Mesas al volver a la pestaña:** causa, corrección y pruebas en
+[Juego](docs/juego.md#recuperacion-lobby-pestana).
+
 ## Stack
 
 - **Next.js 14** (App Router, Server Components + Client Components)
