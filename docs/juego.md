@@ -4,7 +4,8 @@
 
 ## Mesas al volver a la pestaña — 23/10/2026
 
-**Estado:** corrección preparada desde GitHub `master` `38002ae4`, en una copia
+**Estado:** propuesta en el [PR #142](https://github.com/santibpapa/trucazo/pull/142),
+preparada desde GitHub `master` `38002ae4`, en una copia
 aislada. No incorpora ni modifica el proyecto local del dueño. Pendiente de
 integración y publicación; no requiere SQL ni configuración de Supabase.
 
