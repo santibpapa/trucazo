@@ -1,5 +1,58 @@
 # Juego
 
+<a id="envido-reveal-cierres-2026-10-23"></a>
+
+## Mostrar el tanto al cerrar — 23/10/2026
+
+**Estado:** corrección preparada desde GitHub `master` `0ed1b69`, en una copia
+aislada. Pendientes la integración del PR y la aplicación manual del SQL por
+el dueño. Sólo se trasladó el arreglo del envido; no se incorporan archivos,
+dependencias ni cambios locales de Android.
+
+**Causas comprobadas:** al responder «no quiero» al truco, `respond_truco`
+cerraba la mano sin guardar las cartas que prueban un envido aceptado. Cuando
+el envido alcanzaba los puntos finales, `finish_game` tampoco guardaba esa
+prueba. Además, la pantalla sólo la mostraba mientras esperaba otro reparto,
+por lo que no podía verse al terminar la partida. La secuencia de envido de
+25 seguido de truco no querido se reprodujo en la base aislada sin el parche.
+
+**Corrección:** el servidor prepara únicamente las cartas necesarias del
+ganador del envido al cerrar la mano o partida. El cierre por cartas guarda
+la última jugada antes de calcular la prueba, para no perderla ni duplicarla.
+La web muestra esas cartas y el anuncio breve «32 en mesa» durante 2,6 segundos
+antes del resultado. Esa pausa retira las jugadas, indica el cierre y no se
+reinicia por respuestas repetidas del servidor. No se exponen manos completas
+ni tantos de un envido rechazado o sin declarar; se conservan puntos y premios.
+
+**SQL:** `supabase/migrations/20261023191310_envido_reveal_cierres.sql`.
+Actualiza `respond_truco` y `play_card`; en `finish_game` cambia sólo las
+instrucciones del revelado para conservar otras variantes ya aplicadas.
+Si su estructura difiere de la esperada, se detiene toda la transacción.
+Conserva los permisos y admite repetir la aplicación. La foto SQL del
+repositorio se actualiza con el mismo comportamiento.
+
+**Pruebas:** `supabase/tests/envido_reveal.sql` cubre 24 cierres con las
+funciones reales: objetivos 15/30, ambos jugadores como mano/pie y ganador,
+truco no querido, real/falta final, mazo, mazo declarando, cierre por cartas e
+Historia. Termina en `ROLLBACK` y sólo se ejecuta en una base descartable.
+Se verifican además permisos, conservación de variantes y aplicación repetida.
+
+`scripts/check-envido-reveal-browser.mjs` prueba el componente real con
+respuestas controladas: 25 tras «No quiero», falta de 32 al finalizar,
+privacidad durante el juego, cartas cargadas y descubiertas, controles
+cerrados, ausencia de scroll y transición al resultado aunque Realtime repita
+el estado. Tamaños 360×640 y 1440×900; Edge local y Chromium en CI. La red está
+simulada: no acredita una partida posterior en producción. El CI incorpora
+ambas regresiones.
+
+**Para aplicar:** abrir la migración del PR, copiar todo y pegarlo en
+Supabase → SQL Editor → New query → Run. No ejecutar la prueba SQL en producción.
+Integrar y publicar la web; luego comprobar ambos cierres con dos sesiones.
+Verificación local aprobada: 24 cierres SQL, cuatro escenarios de navegador,
+13 pruebas de recuperación, allowlist de RPCs, tipos, ESLint y build completo
+de Next.js 14.2.35. Se conservan las seis advertencias anteriores de hooks.
+Esta entrega no aplica SQL ni modifica partidas históricas, monedas o estadísticas.
+
 <a id="recuperacion-lobby-pestana"></a>
 
 ## Mesas al volver a la pestaña — 23/10/2026

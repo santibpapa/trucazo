@@ -130,8 +130,9 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
 
   // Cartas del envido a revelar (el ganador cerró la mano sin mostrarlas): se
   // bajan a la mesa como una jugada normal, ocupando las rondas que ese jugador
-  // no llegó a usar, mientras se espera la próxima mano.
-  const envidoReveal = game.awaiting_deal ? game.envido_reveal : null
+  // no llegó a usar, al cerrar la mano o la partida.
+  const handClosed = game.awaiting_deal || game.status === 'finished'
+  const envidoReveal = handClosed ? game.envido_reveal : null
   const revealIsMine = envidoReveal?.player_id === currentUserId
   const revealByRound = new Map<number, Card>()
   if (envidoReveal) {
@@ -160,7 +161,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   const opponentUsername = isPlayer1 ? game.player2_username : game.player1_username
   // awaiting_deal = la mano terminó y se está mostrando antes de repartir la próxima:
   // congelamos las acciones para que se vea la última carta.
-  const isMyTurn = !game.awaiting_deal && game.current_turn === currentUserId
+  const isMyTurn = !handClosed && game.current_turn === currentUserId
   const isMano = game.mano_player === currentUserId
 
   const currentRoundCards = game.played_cards.filter(pc => pc.round === game.round_number)
@@ -468,12 +469,13 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   // (p. ej. el tanto que cantó el bot en el envido) y no saltar de golpe. Si la
   // partida ya venía terminada al abrir, se muestra al instante.
   const [showFinish, setShowFinish] = useState(game.status === 'finished')
+  const finishDelay = game.envido_reveal ? 2600 : 2000
   useEffect(() => {
     if (game.status !== 'finished') { setShowFinish(false); return }
     if (showFinish) return
-    const t = setTimeout(() => setShowFinish(true), 2000)
+    const t = setTimeout(() => setShowFinish(true), finishDelay)
     return () => clearTimeout(t)
-  }, [game.status, showFinish])
+  }, [game.status, finishDelay, showFinish])
 
   // Pantalla del juego fija: bloquea el scroll/rebote del body mientras estás
   // en la partida (sobre todo en iOS). Se restaura al salir al lobby. La
@@ -675,7 +677,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   // "33 en mesa": el ganador del envido cerró la mano sin mostrar las cartas de
   // su tanto, así que se bajan a la mesa y se anuncia como un canto.
   useEffect(() => {
-    if (!game.awaiting_deal || !game.envido_reveal) return
+    if (!handClosed || !game.envido_reveal) return
     const mine = game.envido_reveal.player_id === currentUserId
     const pts = game.envido_reveal.player_id === game.player1_id
       ? game.envido_state.player1_points
@@ -685,12 +687,11 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       side: mine ? 'bottom' : 'top',
       title: pts != null ? `${pts} en mesa` : 'en mesa',
       titleClass: 'text-gold uppercase tracking-wide',
-      subtitle: `el envido de ${mine ? myUsername : opponentUsername}`,
     })
     // Deps booleanas: cada update del server trae un objeto envido_reveal nuevo
     // con el mismo contenido, y no queremos re-disparar el sonido/cartel.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.awaiting_deal, !!game.envido_reveal])
+  }, [handClosed, !!game.envido_reveal])
 
   // Anuncio central del truco: canto, "quiero" y "no quiero".
   // El "no quiero" se infiere: un canto pendiente solo puede terminar en mano
@@ -700,6 +701,8 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     const ts = game.truco_state
     const st = ts.status
     const prev = prevTrucoRef.current
+
+    if (handClosed && game.envido_reveal) return
 
     if (st === 'truco' || st === 'retruco' || st === 'vale_cuatro') {
       // Canto: lado del que canta
@@ -1353,8 +1356,9 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       </div>
 
       {/* Estado y reloj debajo de la mano, con espacio reservado para los cantos. */}
-      <MesaTurn active={meActive} seconds={game.awaiting_deal ? null : secondsLeft}>
-        {game.awaiting_deal ? 'Fin de la mano…' :
+      <MesaTurn active={meActive} seconds={handClosed ? null : secondsLeft}>
+        {game.status === 'finished' ? 'Fin de la partida…' :
+         game.awaiting_deal ? 'Fin de la mano…' :
          hasPendingEnvido ? `Te cantaron ${ENVIDO_LABEL[game.envido_state.status] ?? 'envido'} — respondé` :
          hasPendingTruco ? `Te cantaron ${TRUCO_LABEL[game.truco_state.status] ?? 'truco'} — respondé` :
          isDeclaring ? (myDeclareTurn ? 'Tu turno — decí tu tanto' : `Turno de ${opponentUsername}`) :
@@ -1366,6 +1370,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
           con el contenido anclado abajo: aparezcan los botones que aparezcan, la
           mesa no cambia de tamaño ni se mueve nada. */}
       <div className={styles.actions}>
+        {!handClosed && <>
         {/* Responder envido */}
         {hasPendingEnvido && (
           <div className="flex flex-col gap-2">
@@ -1453,8 +1458,9 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
           </div>
         )}
 
+        </>}
         {/* Abandonar la partida (derrota) */}
-        <button onClick={forfeit} disabled={loading}
+        <button onClick={forfeit} disabled={loading || handClosed}
           className="self-center -my-1 py-1.5 px-3 inline-flex items-center text-xs text-subtle hover:text-negative transition-colors disabled:opacity-50">
           Abandonar partida
         </button>
