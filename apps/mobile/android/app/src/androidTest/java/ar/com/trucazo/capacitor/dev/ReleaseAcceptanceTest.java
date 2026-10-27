@@ -2,7 +2,11 @@ package ar.com.trucazo.capacitor.dev;
 
 import static org.junit.Assert.*;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
+import android.os.BatteryManager;
+import android.os.SystemClock;
+import android.view.WindowManager;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import java.io.BufferedInputStream;
@@ -14,6 +18,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import org.json.JSONTokener;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,6 +28,24 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4.class)
 public class ReleaseAcceptanceTest {
     private MainActivity activity;
+    private final JSONArray batterySamples = new JSONArray();
+    private java.util.Timer batteryTimer;
+    private synchronized String battery() { return batterySamples.toString(); }
+    private synchronized void sampleBattery() {
+        try {
+            var state = activity.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+            var manager = activity.getSystemService(BatteryManager.class);
+            batterySamples.put(new JSONObject().put("elapsedMs", SystemClock.elapsedRealtime())
+                .put("utcMs", System.currentTimeMillis()).put("plugged", state.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1))
+                .put("level", state.getIntExtra(BatteryManager.EXTRA_LEVEL, -1))
+                .put("temperatureTenthsC", state.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1))
+                .put("chargeMicroAh", manager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER))
+                .put("currentMicroA", manager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)));
+            try (var file = new java.io.FileOutputStream(new java.io.File(activity.getCacheDir(), "android17-battery.json"))) {
+                file.write(battery().getBytes(StandardCharsets.UTF_8));
+            }
+        } catch (Exception error) { throw new RuntimeException(error); }
+    }
     private String evaluate(String script) throws Exception {
         var instrumentation = InstrumentationRegistry.getInstrumentation();
         var value = new AtomicReference<String>();
@@ -50,7 +73,7 @@ public class ReleaseAcceptanceTest {
             if (c != '\r') bytes.write(c);
             if (bytes.size() > 8192) throw new IllegalArgumentException("Cabecera demasiado larga");
         }
-        return bytes.toString(StandardCharsets.UTF_8);
+        return new String(bytes.toByteArray(), StandardCharsets.UTF_8);
     }
     @Test public void acceptsSignedCandidate() throws Exception {
         var instrumentation = InstrumentationRegistry.getInstrumentation();
@@ -77,9 +100,23 @@ public class ReleaseAcceptanceTest {
                 }
                 assertTrue("Comprobador local sin autorización", authorized);
                 assertTrue(length >= 0 && length <= 65536);
-                byte[] body = input.readNBytes(length);
+                byte[] body = new byte[length];
+                int received = 0;
+                while (received < length) {
+                    int count = input.read(body, received, length - received);
+                    if (count < 0) throw new java.io.EOFException("Solicitud incompleta");
+                    received += count;
+                }
                 String result;
                 if (first.startsWith("POST /stop ")) { running = false; result = "{\"stopped\":true}"; }
+                else if (first.startsWith("POST /battery/start ")) {
+                    assertNull("La medición ya empezó", batteryTimer);
+                    instrumentation.runOnMainSync(() -> activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON));
+                    batteryTimer = new java.util.Timer("android17-battery", true);
+                    batteryTimer.scheduleAtFixedRate(new java.util.TimerTask() { public void run() { sampleBattery(); } }, 0, 30000);
+                    result = "{\"started\":true}";
+                }
+                else if (first.startsWith("POST /battery ")) { result = "{\"samples\":" + battery() + "}"; }
                 else {
                     assertTrue(first.startsWith("POST /evaluate "));
                     result = execute(new JSONObject(new String(body, StandardCharsets.UTF_8)).getString("script"));
@@ -88,6 +125,9 @@ public class ReleaseAcceptanceTest {
                 socket.getOutputStream().write(("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + response.length + "\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.UTF_8));
                 socket.getOutputStream().write(response); socket.getOutputStream().flush();
             }
+        } finally {
+            if (batteryTimer != null) batteryTimer.cancel();
+            instrumentation.runOnMainSync(() -> activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON));
         }
     }
 }

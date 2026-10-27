@@ -39,6 +39,7 @@ async function web(id) {
     }
     try {
       if (url.pathname.includes('/rpc/')) {
+        if (name === 'app_compatibility') return reply({ compatible: true, versionCode: 19, minimumCode: 17, updateUrl: null, contract: 'trucazo-online-v1', serverNow: Date.now(), activeGameId: null, activeTeamId: null })
         if (['touch_last_seen','ensure_lobby_tables','get_my_objectives','tournament_ready_match','active_medal_for'].includes(name)) return reply(null)
         if (['get_active_medals','tournament_notifications_list'].includes(name)) return reply([])
         if (name === 'team_lobby') return reply({ tables: [], mine: [] })

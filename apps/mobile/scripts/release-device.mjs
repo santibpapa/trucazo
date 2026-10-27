@@ -15,7 +15,7 @@ async function connection({ port, token }) {
     if (data.error) throw new Error(data.error)
     return data
   }
-  return { evaluate: async script => (await request('/evaluate', { script })).value, stop: () => request('/stop') }
+  return { evaluate: async script => (await request('/evaluate', { script })).value, stop: () => request('/stop'), startBattery: () => request('/battery/start'), battery: () => request('/battery') }
 }
 export async function connectReleaseDevice() { return connection(JSON.parse(await readFile(controlFile, 'utf8'))) }
 
@@ -52,9 +52,9 @@ export async function releaseDevice({ serial, port = 9237, adbPath = process.env
       return { data: execFileSync(adbPath, [...args, 'exec-out', 'screencap', '-p']).toString('base64') }
     },
     async close() {
-      await request('/stop').catch(() => {})
+      if (processTest.exitCode === null) await request('/stop').catch(() => {})
       await new Promise(resolve => { if (processTest.exitCode !== null) resolve(); else processTest.once('exit', resolve) })
-      execFileSync(adbPath, [...args, 'forward', '--remove', 'tcp:' + port])
+      try { execFileSync(adbPath, [...args, 'forward', '--remove', 'tcp:' + port], { stdio: 'pipe' }) } catch { /* El USB puede haberse desconectado. */ }
       await writeFile(new URL('../../../android/generated/android-17-release-device-' + serial + '.log', import.meta.url), output)
     },
   }
@@ -66,5 +66,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     await writeFile(controlFile, JSON.stringify(device.connection), { mode: 0o600 })
     console.log('Comprobador firmado disponible por conexión local privada.')
     await device.finished
-  } finally { await device.close(); await unlink(controlFile).catch(() => {}) }
+  } finally { try { await device.close() } finally { await unlink(controlFile).catch(() => {}) } }
 }

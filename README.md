@@ -8,7 +8,7 @@ Truco argentino online a **15 o 30 puntos, sin flor y con monedas ficticias**. I
 
 ## En qué estamos
 
-**Android: ANDROID-01 a 16 cerradas; próxima etapa ANDROID-17.** [Cierre y traspaso de 16 del 16/10](docs/android.md#android-16-traspaso-2026-10-16): identidad final confirmada y candidato APK/AAB0.16.1 firmado, con HTTPS y actualización conservando partida/cola comprobados. Tres QA y cinco guardados intactos; email y despacho público conservados apagados. Antes de aceptar el candidato en17, coordinar los servicios HTTPS pendientes; incluir teléfono físico, batería y lobby≤3s. Cambios locales, sin publicación ni comienzo de17.
+**Android: ANDROID-01 a16 cerradas; ANDROID-17 en curso.** [Avances y pendientes de17](docs/android.md#android-etapa-17). Candidato firmado0.17.1/código19 instalado en Redmi14C/Android16 y emulador Android11; arranque físico utilizable en2,33/2,32/2,10s. Cinco guardados intactos y tres QA reutilizadas. Compatibilidad de versiones aplicada, web/API preparada en preview; el dueño indicó no desplegar todavía en producción. Siguen pendientes la aceptación HTTPS pública, Firebase remoto, batería sin carga y recorridos físicos restantes. Email y push público apagados; sin publicación Play. Continuar17 en esta misma sesión hasta verificar su cierre.
 
 **Sincronización local del 21/10:** GitHub incorporado hasta `38002ae` (PR #141), conservando las etapas Android y Next.js 15. Invitaciones, mejoras de chat/lobby, recuperación de partidas y dependencias integradas. Respaldo y verificaciones en [Android](docs/android.md#android-sync-github-2026-10-21). Los APK/AAB firmados de16 son anteriores a esta integración; preparar un candidato actualizado para la aceptación de17.
 

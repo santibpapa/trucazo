@@ -35,6 +35,7 @@ async function client(id) {
     try {
       if(url.pathname.includes('/rpc/')) {
         const name=url.pathname.split('/').at(-1),body=request.postDataJSON();calls.push({id,name,body})
+        if(name==='app_compatibility')return reply({compatible:true,versionCode:19,minimumCode:17,updateUrl:null,contract:'trucazo-online-v1',serverNow:Date.now(),activeGameId:null,activeTeamId:null})
         if(name==='active_medal_for')return reply('ninguno')
         if(name==='community_safety_state')return reply({accepted:true,restricted_until:null})
         if(name==='get_community')return reply({friends:[],incoming:[],outgoing:[],invites_in:[],invite_out:null,group:null,group_invites_in:[]})

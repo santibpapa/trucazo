@@ -7,6 +7,7 @@ import { chromium } from 'playwright'
 import { onlineFixture, ids } from './online-fixture.ts'
 process.chdir(fileURLToPath(new URL('../../..', import.meta.url)))
 const evidence = path.resolve('android/generated', process.env.ANDROID_QA_EVIDENCE_DIR || ''), root = path.resolve(process.env.ANDROID_QA_DIST || 'apps/mobile/dist')
+const legacy = JSON.parse(await readFile(path.join(root, 'build-info.json'), 'utf8')).version === '0.16.1'
 await mkdir(evidence,{recursive:true})
 const fixture = await onlineFixture(), calls = [], sockets = new Set(), errors = []
 const user = owner => ({id:ids[owner],email:owner+'@fixture.invalid',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},is_anonymous:false,created_at:new Date().toISOString()})
@@ -109,7 +110,7 @@ try {
   await A.page.getByRole('button',{name:'A 15',exact:true}).click()
   await A.page.getByText('Mesa privada',{exact:true}).click()
   await A.page.getByRole('button',{name:'Crear',exact:true}).click()
-  await A.page.getByRole('heading',{name:'Invitá a tu rival'}).waitFor()
+  await A.page.getByRole('heading',{name:/^(Invitá a tu rival|Compartí el código)$/}).waitFor()
   const table=(await tables())[0]
   assert.equal(table.is_private,true)
   await A.page.getByRole('button',{name:'Ir a la sala de espera'}).click()
@@ -175,6 +176,7 @@ try {
   await wait(async()=>(await game(rematch)).status==='finished')
   await A.page.getByRole('button',{name:'Volver al lobby',exact:true}).click()
   await A.page.getByRole('heading',{name:'Mesas disponibles'}).waitFor()
+  if (!legacy) {
   await fixture.db.query("insert into friendships(requester_id,addressee_id,status) values($1,$2,'accepted')",[ids.A,ids.B])
   const invitation=await fixture.rpc('invite_friend',{p_friend_id:ids.B,p_target_score:30},ids.A)
   await B.page.evaluate(()=>location.hash='#/lobby')
@@ -225,8 +227,9 @@ try {
     await B.page.screenshot({path:path.join(evidence,`android-05-fixture-cantos-${viewport.width}x${viewport.height}.png`)})
   }
   await fixture.rpc('forfeit',{p_game_id:layoutTable.id},ids.B)
+  }
   assert.ok(calls.filter(c=>c.path.endsWith('/game_hands')).every(c=>new URLSearchParams(c.query).get('player_id')==='eq.'+ids[c.owner]))
-  await writeFile(path.join(evidence,'android-05-controller-fixture.json'),JSON.stringify({scope:'UI/SDK reales; Auth/Community/WebSocket simulados; funciones 1v1, invitaciones y RLS reales en PGlite aislado, sin triggers de ranking/objetivos ni Supabase remoto',privateCreate:true,privateAccessDenied:true,codeJoin:true,invitationEntry:true,ownHandOnly:true,noHandsRealtime:true,envidoAndDeclaration:true,trucoEscalation:true,card:true,reconnectWithoutReplay:true,clockReconnect:{before:secondsBefore,after:secondsAfter},botRecovery:true,dealRecovery:true,finishedScore:[finished.player1_score,finished.player2_score],target:initial.target_score,rematch:true,forfeit:true,realCoinsFromSQL:true,errors},null,2))
+  await writeFile(path.join(evidence,'android-05-controller-fixture.json'),JSON.stringify({scope:'UI/SDK reales; Auth/Community/WebSocket simulados; funciones 1v1, invitaciones y RLS reales en PGlite aislado, sin triggers de ranking/objetivos ni Supabase remoto',legacy,privateCreate:true,privateAccessDenied:true,codeJoin:true,invitationEntry:!legacy,ownHandOnly:true,noHandsRealtime:true,envidoAndDeclaration:true,trucoEscalation:true,card:true,reconnectWithoutReplay:true,clockReconnect:{before:secondsBefore,after:secondsAfter},botRecovery:!legacy,dealRecovery:!legacy,finishedScore:[finished.player1_score,finished.player2_score],target:initial.target_score,rematch:true,forfeit:true,realCoinsFromSQL:true,errors},null,2))
   assert.deepEqual(errors,[])
   console.log('OK 1v1 empaquetado: mesa privada, código, RLS, envido/tantos, truco/retruco/vale cuatro, carta, red, resultado, revancha, abandono y saldo SQL.')
 } catch(failure) {

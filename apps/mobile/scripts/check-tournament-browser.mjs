@@ -27,6 +27,7 @@ async function rest(url, body, owner, headers = {}) {
   const name = url.pathname.split('/').at(-1)
   if (url.pathname.includes('/rpc/')) {
     calls.push({ owner, name })
+    if (name === 'app_compatibility') return { compatible: true, versionCode: 19, minimumCode: 17, updateUrl: null, contract: 'trucazo-online-v1', serverNow: Date.now(), activeGameId: null, activeTeamId: null }
     if (name === 'active_medal_for') return 'ninguno'
     if (name === 'get_community') return { friends: [], incoming: [], outgoing: [], invites_in: [], invite_out: null, group: null, group_invites_in: [] }
     if (['touch_online', 'touch_last_seen', 'get_my_objectives', 'ensure_lobby_tables', 'touch_presence'].includes(name)) return null
