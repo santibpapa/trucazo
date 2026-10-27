@@ -121,7 +121,11 @@ try {
     await page.getByRole('link', { name: method === 'email' ? 'Ya tengo cuenta · Iniciar sesión' : 'Crear una cuenta', exact: true }).click()
     await page.getByLabel(method === 'email' ? 'Email o usuario' : 'Email', { exact: true }).fill(email)
     await page.getByLabel('Contraseña', { exact: true }).fill(password)
-    if (method === 'registro') await page.getByLabel('Nombre de usuario', { exact: true }).fill(randomUUID().slice(0, 12))
+    if (method === 'registro') {
+      await page.getByLabel('Nombre de usuario', { exact: true }).fill(randomUUID().slice(0, 12))
+      assert.equal(await page.getByRole('button', { name: /Registrarse y ganar/ }).isDisabled(), true)
+      await page.getByRole('checkbox', { name: /Acepto las/ }).check()
+    }
     await page.getByRole('button', { name: method === 'email' ? 'Iniciar sesión' : /Registrarse y ganar/ }).click()
     await page.waitForURL(`${origin}${t.path}`)
     await page.getByRole('button', { name: 'Unirme', exact: true }).waitFor()
