@@ -51,6 +51,7 @@ drop schema if exists campaign_internal cascade;
 drop schema if exists match_chat_internal cascade;
 drop schema if exists account_internal cascade;
 drop schema if exists feedback_internal cascade;
+drop schema if exists app_compatibility cascade;
 drop schema if exists tournament_internal cascade;
 drop schema if exists net cascade;
 create schema public;

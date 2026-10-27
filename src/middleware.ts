@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { preferredRepresentation } from '@/lib/accept'
 import { PUBLIC_PATHS, markdownSlug } from '@/lib/routes'
+import { checkApiCompatibility } from '@/lib/supabase/app-compatibility'
 
 // Además de refrescar la sesión de Supabase, el middleware decide en qué formato
 // servir las páginas públicas.
@@ -18,6 +19,14 @@ function normalizarCamino(pathname: string): string {
 }
 
 export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    const incompatible = await checkApiCompatibility(request)
+    if (incompatible) {
+      if (request.headers.get('origin') === 'https://localhost') incompatible.headers.set('Access-Control-Allow-Origin', 'https://localhost')
+      incompatible.headers.set('Cache-Control', 'no-store')
+      return incompatible
+    }
+  }
   const camino = normalizarCamino(request.nextUrl.pathname)
   const esContenidoPublico = PUBLIC_PATHS.includes(camino)
 

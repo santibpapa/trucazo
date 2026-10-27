@@ -12,9 +12,12 @@ const migrationsRoot = join(root, 'supabase/migrations')
 // mano (y que se desactualice sin que nadie se entere).
 const baseAllowlistFile = '20260815_seguridad_6_privilegios_por_defecto.sql'
 const serverOnlyPaths = new Map([
+  ['src/app/api/android/push/send/route.ts', new Set(['native_push_claim', 'native_push_complete'])],
+  ['src/lib/report-images.ts', new Set(['community_report_media'])],
+  ['src/app/api/community/report-images/route.ts', new Set(['community_report_media'])],
   ['src/app/api/account/delete/route.ts', new Set(['prepare_account_deletion'])],
   ['src/lib/account-deletion/process.ts', new Set(['account_deletion_objects', 'claim_account_deletions'])],
-  ['src/app/api/login-usuario/route.ts', new Set(['get_login_email'])],
+  ['src/lib/login-username.ts', new Set(['get_login_email'])],
   ['src/lib/email/process.ts', new Set([
     'email_recipient_activity',
     'claim_email_deliveries',

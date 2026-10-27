@@ -27,11 +27,11 @@ const variants: Record<Variant, string> = {
   ghost:
     'bg-transparent text-cream border border-line hover:border-gold hover:text-gold',
   danger:
-    'bg-negative text-white shadow-card hover:brightness-110 hover:-translate-y-0.5 disabled:hover:translate-y-0',
+    'bg-negative-600 text-white shadow-card hover:brightness-110 hover:-translate-y-0.5 disabled:hover:translate-y-0',
   positive:
-    'bg-positive text-white shadow-card hover:brightness-110 hover:-translate-y-0.5 disabled:hover:translate-y-0',
+    'bg-positive text-ink shadow-card hover:brightness-110 hover:-translate-y-0.5 disabled:hover:translate-y-0',
   info:
-    'bg-info text-white shadow-card hover:brightness-110 hover:-translate-y-0.5 disabled:hover:translate-y-0',
+    'bg-info text-ink shadow-card hover:brightness-110 hover:-translate-y-0.5 disabled:hover:translate-y-0',
 }
 
 const sizes: Record<Size, string> = {

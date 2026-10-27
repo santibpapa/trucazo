@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createApiClient } from '@/lib/supabase/api'
+import { androidOptions, withAndroidCors } from '@/lib/android-api'
 import { createEmailAdminClient } from '@/lib/email/admin'
 
-export async function PATCH(request: Request) {
-  const session = await createClient()
+async function handlePATCH(request: Request) {
+  const session = await createApiClient(request)
   const { data: { user } } = await session.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado.' }, { status: 401 })
   const admin = createEmailAdminClient()
@@ -20,3 +21,6 @@ export async function PATCH(request: Request) {
   if (error) return NextResponse.json({ error: 'No se pudo guardar.' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
+
+export const OPTIONS = androidOptions
+export function PATCH(request: Request) { return withAndroidCors(request, () => handlePATCH(request)) }

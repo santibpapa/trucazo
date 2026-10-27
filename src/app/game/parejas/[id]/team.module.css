@@ -43,14 +43,12 @@
 .game .turn > [role="status"] > span { white-space: nowrap; }
 .turnText { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .game .turn > [role="status"] > span + span { flex-shrink: 0; }
-/* Tres filas de 34px + dos separaciones de 4px = 110px; otros 16px
-   para separación y Abandonar. Los 20px ahorrados pasan al asiento propio,
-   manteniendo exactamente el mismo espacio disponible para mesa y cartas. */
-.game .actions { flex: 0 0 126px; min-height: 126px; gap: 4px; }
-.actionRows { flex: 0 0 110px; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
-.game .actionRows button { height: 34px; min-height: 34px; padding: 0 6px; font-size: 14px; line-height: 1.05; }
+/* Tres filas táctiles de 44px, incluidas salida y mazo cuando comparten fila. */
+.game .actions { flex: 0 0 140px; min-height: 140px; gap: 4px; }
+.actionRows { flex: 0 0 140px; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
+.game .actionRows button { height: 44px; min-height: 44px; padding: 0 6px; font-size: 14px; line-height: 1.05; }
 .game .actionRows button[data-tone="gold"] { font-size: 18px; }
-.game .actions > button:last-child { padding-block: 2px; }
+.game .actionRows .leave { font-size: 12px; }
 .game .actionRows > div:has(> button:nth-child(3)) button[data-tone="gold"] { font-size: 14px; }
 .reveal { position: absolute; z-index: 9; top: 43%; left: 50%; transform: translate(-50%,-50%); display: flex; gap: 4px; pointer-events: none; }
 .emote { position: absolute; z-index: 30; max-width: 70%; pointer-events: none; }

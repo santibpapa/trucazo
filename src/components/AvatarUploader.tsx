@@ -4,6 +4,8 @@ import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Avatar } from '@/components/ui'
+import { appRequest } from '@/lib/app-request'
+import { ensureCommunityRules } from '@/lib/community-safety'
 
 interface Props {
   userId: string
@@ -52,7 +54,9 @@ export default function AvatarUploader({ userId, username, initialUrl, frame }: 
 
     setLoading(true)
     setError('')
+    let uploadedPath: string | null = null
     try {
+      await ensureCommunityRules()
       const blob = await toSquareBlob(file)
       const supabase = createClient()
       const path = `${userId}/${Date.now()}.jpg`
@@ -61,6 +65,7 @@ export default function AvatarUploader({ userId, username, initialUrl, frame }: 
         .from('avatars')
         .upload(path, blob, { contentType: 'image/jpeg', upsert: true })
       if (upErr) throw upErr
+      uploadedPath = path
 
       const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
       const publicUrl = pub.publicUrl
@@ -68,10 +73,15 @@ export default function AvatarUploader({ userId, username, initialUrl, frame }: 
       // profiles no permite UPDATE directo (RLS); se guarda por función de servidor.
       const { error: updErr } = await supabase.rpc('set_avatar_url', { p_url: publicUrl })
       if (updErr) throw updErr
+      uploadedPath = null
 
       setUrl(publicUrl)
       router.refresh() // que el resto de la app tome la foto nueva
     } catch {
+      if (uploadedPath) await appRequest('/api/uploads/cleanup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bucket: 'avatars', paths: [uploadedPath] }),
+      }).catch(() => null)
       setError('No se pudo subir la foto, probá de nuevo.')
     } finally {
       setLoading(false)
@@ -85,6 +95,7 @@ export default function AvatarUploader({ userId, username, initialUrl, frame }: 
         onClick={() => inputRef.current?.click()}
         disabled={loading}
         title={url ? 'Cambiar foto' : 'Subir foto'}
+        aria-label={loading ? 'Subiendo foto' : url ? 'Cambiar foto' : 'Subir foto'}
         className="relative rounded-full transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"
       >
         <Avatar url={url} name={username} size={64} frame={frame} />

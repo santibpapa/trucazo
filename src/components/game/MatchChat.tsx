@@ -7,6 +7,9 @@ import { useMatchChat, type MatchChatMessage } from './useMatchChat'
 import { matchChatSendError } from '@/lib/match-chat'
 import salon from './salon.module.css'
 import styles from './matchChat.module.css'
+import SafetyActions from '@/components/SafetyActions'
+import { ensureCommunityRules } from '@/lib/community-safety'
+import { useDialog } from '@/lib/useDialog'
 
 export function MatchChatBubble({ message, className }: { message: MatchChatMessage; className: string }) {
   return <div role="status" className={`${styles.bubble} ${className} rounded-2xl border border-line bg-base/90 backdrop-blur px-3 py-1.5 shadow-card animate-scale-in`}>
@@ -36,6 +39,7 @@ export default function MatchChat({ mode, matchId, userId, isGuest, quick, onQui
   const { messages, bubbles, unread, connection, reconnect, send } = useMatchChat(mode, matchId, open, muted, userId)
 
   useEffect(() => { onBubblesChange(muted ? [] : bubbles) }, [bubbles, muted, onBubblesChange])
+  useDialog(panel, open, () => setOpen(false))
 
   useEffect(() => {
     if (!open) return
@@ -49,15 +53,10 @@ export default function MatchChat({ mode, matchId, userId, isGuest, quick, onQui
     window.visualViewport?.addEventListener('resize', update)
     window.visualViewport?.addEventListener('scroll', update)
     window.addEventListener('resize', update)
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { event.preventDefault(); setOpen(false) }
-    }
-    window.addEventListener('keydown', escape)
     return () => {
       window.visualViewport?.removeEventListener('resize', update)
       window.visualViewport?.removeEventListener('scroll', update)
       window.removeEventListener('resize', update)
-      window.removeEventListener('keydown', escape)
       triggerButton?.focus()
     }
   }, [open])
@@ -88,6 +87,7 @@ export default function MatchChat({ mode, matchId, userId, isGuest, quick, onQui
     setSending(true)
     setError('')
     try {
+      await ensureCommunityRules()
       await send(body, requestId)
       if (attempt.current?.id === requestId) {
         setDraft(previous => previous.trim() === body ? '' : previous)
@@ -108,14 +108,7 @@ export default function MatchChat({ mode, matchId, userId, isGuest, quick, onQui
       <ChatIcon />{unread > 0 && <span className={styles.badge} aria-hidden="true">{unread > 9 ? '9+' : unread}</span>}
     </button>
     {open && createPortal(<div className={styles.overlay} style={{ top: viewport.top, height: viewport.height || '100dvh' }} onClick={() => setOpen(false)}>
-      <section ref={panel} className={styles.panel} role="dialog" aria-modal="true" aria-label="Chat de la mesa" onClick={event => event.stopPropagation()} onKeyDown={event => {
-        if (event.key !== 'Tab') return
-        const focusable = panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled), textarea, input:not(:disabled)')
-        if (!focusable?.length) return
-        const first = focusable[0], last = focusable[focusable.length - 1]
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
-      }}>
+      <section ref={panel} className={styles.panel} role="dialog" aria-modal="true" aria-label="Chat de la mesa" onClick={event => event.stopPropagation()}>
         <header className={styles.header}>
           <strong>Chat de la mesa</strong>
           <button ref={closeButton} type="button" className={styles.close} onClick={() => setOpen(false)} aria-label="Cerrar chat">✕</button>
@@ -132,6 +125,7 @@ export default function MatchChat({ mode, matchId, userId, isGuest, quick, onQui
             {messages.length === 0 && <p className={styles.empty}>Todavía no hay mensajes.</p>}
             {messages.map(message => <p key={message.id} className={styles.message}>
               <span className={styles.author}>{message.sender_name}</span>
+              {message.sender_id !== userId && !isGuest && <SafetyActions kind="match_chat" target={message.id} userId={message.sender_id} label={'Opciones de ' + message.sender_name} />}
               <time dateTime={message.created_at} className={styles.time}>{new Date(message.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</time>
               <span className={styles.body}>{message.body}</span>
             </p>)}

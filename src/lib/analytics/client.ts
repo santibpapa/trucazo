@@ -1,5 +1,7 @@
 'use client'
 
+import { analyticsPath, sendAnalytics } from '@/lib/analytics/transport'
+
 export type AnalyticsEvent =
   | 'page_view'
   | 'guest_session_started'
@@ -23,7 +25,7 @@ export function trackFirstParty(
   eventName: AnalyticsEvent,
   properties: Record<string, string | number | boolean | null> = {},
 ) {
-  if (typeof window === 'undefined' || window.location.pathname.startsWith('/admin')) return
+  if (typeof window === 'undefined' || analyticsPath().startsWith('/admin')) return
 
   const visitorId = storedUuid(VISITOR_KEY)
   const sessionId = activeSessionId()
@@ -36,7 +38,7 @@ export function trackFirstParty(
     visitorId,
     sessionId,
     eventName,
-    path: window.location.pathname.slice(0, 300),
+    path: analyticsPath().slice(0, 300),
     siteHost: window.location.hostname,
     referrerHost,
     utmSource: params.get('utm_source'),
@@ -46,12 +48,7 @@ export function trackFirstParty(
     properties,
   }
 
-  void fetch('/api/analytics', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    keepalive: true,
-  }).catch(() => undefined)
+  void sendAnalytics(payload).catch(() => undefined)
 }
 
 function activeSessionId() {

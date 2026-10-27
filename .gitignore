@@ -76,3 +76,23 @@ fallo.md
 *.apk
 *.aab
 /android/artifacts/
+
+# Ensayo offline: paquete generado por build:offline-trial.
+/public/android/tobias.html
+/public/android/tobias.js
+/public/android/tobias-manifest.json
+/public/android/historia/
+
+# Capacitor: se versionan fuentes nativas y lockfile, no recursos sincronizados ni cachés.
+/apps/mobile/node_modules/
+/apps/mobile/dist/
+/apps/mobile/android/.gradle/
+/apps/mobile/android/.idea/
+/apps/mobile/android/build/
+/apps/mobile/android/app/build/
+/apps/mobile/android/generated/
+/apps/mobile/android/local.properties
+/apps/mobile/android/app/google-services.json
+/apps/mobile/android/app/src/main/assets/
+/apps/mobile/android/app/src/androidTest/assets/
+/apps/mobile/android/capacitor-cordova-android-plugins/

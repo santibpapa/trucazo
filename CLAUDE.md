@@ -70,8 +70,20 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 Truco argentino online, a 15 o 30 puntos, sin flor, con monedas ficticias.
 Dos modalidades: 1v1 (mano a mano) y 2vs2 (en parejas, cuatro jugadores).
-Stack: Next.js 14 (App Router) + React + TypeScript + Tailwind + Supabase
+Stack: Next.js 15 (App Router) + React + TypeScript + Tailwind + Supabase
 (Auth + Postgres + Realtime + RPC `security definer`).
+
+## Documentación y continuidad
+
+- Leer primero `README.md`: presenta Trucazo y orienta qué documento consultar según la tarea. Después leer el estado actual, próximo paso y último traspaso del tema correspondiente; no cargar todos los manuales por rutina.
+- Documentos principales: `docs/android.md` (app, etapas y Play), `docs/juego.md` (Historia, 1v1, parejas, bots, torneos y chat de mesa), `docs/backend.md` (base, seguridad, configuración y pruebas), `docs/diseno.md` (sistema visual y recursos), `docs/producto.md` (misiones y propuestas), `docs/operacion.md` (soporte, cuentas, correos, SEO e incidentes).
+- Actualizar decisiones, planes, pruebas, avances, pendientes y traspasos en el documento principal del tema. En README mantener sólo orientación y próxima tarea general. Cada dato tiene un lugar: enlazar entre temas, sin duplicar capítulos.
+- No crear un `.md` nuevo por sesión, propuesta o entrega ni volver a escribir contenido en los accesos antiguos. `RETOMAR_TRUCAZO.md`, los documentos anteriores y los README técnicos conservan enlaces al tema correspondiente; no son fuentes paralelas de estado.
+- Durante ANDROID-01 a ANDROID-20, cada sesión se dedica exclusivamente a una etapa y el agente continúa en esa misma sesión hasta completarla y verificar su cierre. No terminar por iniciativa propia con pendientes de esa etapa ni delegarlos a otra sesión. Los pasos personales, preguntas y aprobaciones se coordinan dentro de la sesión, y después se sigue trabajando. Sólo el dueño puede pedir interrumpir o cambiar este alcance. No comenzar la etapa siguiente en esa misma sesión.
+- Sólo al completar la etapa Android asignada, incluir en la respuesta final un texto breve listo para copiar y pegar en la sesión de la etapa siguiente: estado alcanzado, próxima etapa, referencia al último traspaso de `docs/android.md` y primer paso concreto. Si el dueño pide interrumpir antes del cierre, registrar lo que falta y el mismo número a continuar. Fuera de ANDROID-01 a ANDROID-20, cerrar con el resumen normal, sin texto para otra sesión salvo pedido explícito del dueño.
+- Para Android, leer `docs/android.md`: ANDROID-01 a 20 es el plan vigente y su registro de traspasos define la continuidad. Los PR antiguos de TWA y las etapas de torneos no son esos números.
+- Conservar las instrucciones automáticas y las herramientas en sus ubicaciones. La fuente del sistema de diseño es `docs/diseno.md`; si cambia, actualizar su copia técnica `.design-sync/conventions.md`, que lee el generador.
+- Distinguir estado actual, propuestas e historial fechado. No tratar un pendiente antiguo como vigente si una entrega posterior lo resuelve; registrar qué se preparó, qué se probó y qué se aplicó realmente.
 
 ## El dueño no programa
 El dueño del proyecto **no escribe código**: define el qué y el por qué, no el cómo.

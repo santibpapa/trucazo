@@ -5,8 +5,25 @@ import { CampaignLifeRequests } from '@/components/CampaignLives'
 import { Button, Input, Alert, Avatar, cn } from '@/components/ui'
 import { createClient } from '@/lib/supabase/client'
 import type { useCommunity } from '@/lib/useCommunity'
+import SafetyActions from '@/components/SafetyActions'
 
 type Community = ReturnType<typeof useCommunity>
+
+export function GameInvites({ c }: { c: Community }) {
+  return <>{c.data?.invites_in.map(inv => (
+    <div key={inv.invite_id} className="rounded-2xl border border-gold bg-gold/10 shadow-gold-ring p-3 flex items-center justify-between gap-2">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-cream truncate">{inv.from_username} te invita a jugar</p>
+        <SafetyActions target={inv.from_id} userId={inv.from_id} label={'Opciones de ' + inv.from_username} />
+        <p className="text-xs text-subtle">apuesta {inv.bet} · a {inv.target_score}</p>
+      </div>
+      <div className="flex gap-1.5 shrink-0">
+        <Button size="sm" onClick={() => c.respondInvite(inv.invite_id, true)} disabled={c.busy}>Jugar</Button>
+        <Button size="sm" variant="ghost" onClick={() => c.respondInvite(inv.invite_id, false)} disabled={c.busy}>No</Button>
+      </div>
+    </div>
+  ))}</>
+}
 
 // Panel de amigos: invitaciones a jugar, agregar por nombre, solicitudes y la
 // lista con estado (conectado / jugando). Lo usan la pestaña Amigos de
@@ -64,27 +81,7 @@ export default function FriendsPanel({ c, compact = false }: { c: Community; com
       )}
 
       {/* Invitaciones a jugar que me llegaron */}
-      {d?.invites_in.map(inv => (
-        <div
-          key={inv.invite_id}
-          className="rounded-2xl border border-gold bg-gold/10 shadow-gold-ring p-3 flex items-center justify-between gap-2 animate-fade-up"
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-cream truncate">
-              {inv.from_username} te invita a jugar
-            </p>
-            <p className="text-xs text-subtle">apuesta {inv.bet} · a {inv.target_score}</p>
-          </div>
-          <div className="flex gap-1.5 shrink-0">
-            <Button size="sm" onClick={() => c.respondInvite(inv.invite_id, true)} disabled={c.busy}>
-              Jugar
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => c.respondInvite(inv.invite_id, false)} disabled={c.busy}>
-              No
-            </Button>
-          </div>
-        </div>
-      ))}
+      <GameInvites c={c} />
 
       {/* Mi invitación en curso */}
       {d?.invite_out && (
@@ -131,7 +128,7 @@ export default function FriendsPanel({ c, compact = false }: { c: Community; com
               key={r.friendship_id}
               className="flex items-center justify-between gap-2 rounded-xl border border-gold/40 bg-gold/5 px-3 py-2 animate-fade-up"
             >
-              <p className="text-sm font-semibold text-cream truncate">{r.username}</p>
+              <div className="min-w-0"><p className="text-sm font-semibold text-cream truncate">{r.username}</p><SafetyActions target={r.user_id} userId={r.user_id} label={'Opciones de ' + r.username} /></div>
               <div className="flex gap-1.5 shrink-0">
                 <Button size="sm" onClick={() => c.respondRequest(r.friendship_id, true)} disabled={c.busy}>
                   Aceptar
@@ -174,6 +171,7 @@ export default function FriendsPanel({ c, compact = false }: { c: Community; com
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-cream truncate">{f.username}</p>
+                <SafetyActions target={f.user_id} userId={f.user_id} label={'Opciones de ' + f.username} />
                 <p className="text-[11px] text-subtle">
                   {f.playing ? 'Jugando una partida' : f.online ? 'Conectado' : 'Desconectado'}
                 </p>

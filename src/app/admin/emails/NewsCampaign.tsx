@@ -10,7 +10,7 @@ export type NewsCampaignState = {
   latest: { title: string; body: string; completed: boolean; sent: number; failed: number; skipped: number; queued: boolean; error: string | null } | null
 }
 
-export default function NewsCampaign({ state }: { state: NewsCampaignState | null }) {
+export default function NewsCampaign({ state, request = fetch }: { state: NewsCampaignState | null; request?: typeof fetch }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -19,7 +19,7 @@ export default function NewsCampaign({ state }: { state: NewsCampaignState | nul
     setBusy(true)
     setError('')
     try {
-      const response = await fetch('/api/admin/news-campaign', {
+      const response = await request('/api/admin/news-campaign', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !state.active }),
       })

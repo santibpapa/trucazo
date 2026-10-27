@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
-import { SpeedInsights } from '@vercel/speed-insights/next'
-import { Analytics } from '@vercel/analytics/next'
+import AccessMetrics from '@/components/AccessMetrics'
 import AppRuntime from '@/components/AppRuntime'
 import { SITE_URL, GOOGLE_SITE_VERIFICATION } from '@/lib/site'
 import './globals.css'
@@ -108,7 +107,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es-AR" className={geist.variable}>
-      <body className="min-h-screen bg-base font-sans text-cream antialiased">
+      <body className="min-h-dvh bg-base font-sans text-cream antialiased">
         {/* Datos estructurados de marca para Google (no se ven en pantalla) */}
         <script
           type="application/ld+json"
@@ -122,9 +121,7 @@ export default function RootLayout({
         <AppRuntime />
         {children}
         {/* Métricas de velocidad reales (se ven en el panel de Vercel) */}
-        <SpeedInsights />
-        {/* Analítica de visitas y páginas (panel de Vercel) */}
-        <Analytics />
+        <AccessMetrics />
       </body>
     </html>
   )

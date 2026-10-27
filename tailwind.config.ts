@@ -5,6 +5,7 @@ const config: Config = {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/offline-campaign/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
@@ -26,13 +27,14 @@ const config: Config = {
         ink: "#1F1011",
         // Apoyo (tonos cálidos derivados del vino)
         muted: "#A78A86", // texto secundario
-        subtle: "#7C6460", // texto terciario / placeholders
+        subtle: "#A08A86", // texto terciario / placeholders legibles sobre superficies oscuras
         line: "#3C2226", // bordes finos
         // Estados (legibles sobre oscuro)
         positive: "#46A574",
-        negative: "#D2553B",
+        negative: { DEFAULT: "#D2553B", 600: "#B3432E" },
         info: "#5E93B4",
       },
+      textColor: { negative: "#E27960" },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
         display: ["var(--font-inter)", "system-ui", "sans-serif"],

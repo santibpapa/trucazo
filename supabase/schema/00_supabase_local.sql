@@ -33,6 +33,9 @@ begin
   if not exists (select 1 from pg_roles where rolname = 'service_role') then
     create role service_role nologin noinherit bypassrls;
   end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticator') then
+    create role authenticator nologin noinherit;
+  end if;
 end $$;
 
 -- ------------------------------------------------------------
@@ -62,6 +65,11 @@ create table if not exists auth.users (
 );
 
 -- Bases locales viejas (armadas antes de que existieran estas dos columnas).
+create table if not exists auth.sessions (
+  id uuid primary key,
+  user_id uuid references auth.users(id) on delete cascade
+);
+
 alter table auth.users add column if not exists last_sign_in_at timestamptz;
 alter table auth.users add column if not exists is_anonymous boolean default false;
 
@@ -82,6 +90,14 @@ grant select on auth.users to service_role;
 -- viene abierta. Si quedara cerrada, TODA la app rebota con "permission denied
 -- for function uid" y parece un problema de otra cosa.
 grant execute on function auth.uid() to anon, authenticated, service_role;
+
+-- Claims de la sesión para probar la descarga con una cuenta registrada.
+-- Fijar request.jwt.claims con {"is_anonymous":false}; vacío no autoriza.
+create or replace function auth.jwt()
+returns jsonb language sql stable as $$
+  select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb;
+$$;
+grant execute on function auth.jwt() to anon, authenticated, service_role;
 
 -- ------------------------------------------------------------
 -- 3. El depósito de archivos (avatares y fotos de las reseñas)

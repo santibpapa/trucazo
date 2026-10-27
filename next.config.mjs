@@ -23,6 +23,8 @@ const securityHeaders = [
 ]
 
 const nextConfig = {
+  // Permite verificar Android sin reemplazar el build que ya usa el servidor QA.
+  distDir: process.env.TRUCAZO_NEXT_DIST_DIR || '.next',
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
@@ -33,6 +35,8 @@ const nextConfig = {
         source,
         headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }],
       })),
+      { source: '/auth/mobile', headers: [{ key: 'Cache-Control', value: 'private, no-store' }, { key: 'Referrer-Policy', value: 'no-referrer' }, { key: 'X-Robots-Tag', value: 'noindex' }] },
+      { source: '/recuperar-cuenta', headers: [{ key: 'Cache-Control', value: 'private, no-store' }, { key: 'Referrer-Policy', value: 'no-referrer' }, { key: 'X-Robots-Tag', value: 'noindex' }] },
     ]
   },
   // La página de Objetivos se dio de baja: todo vive en la ventana del cofre

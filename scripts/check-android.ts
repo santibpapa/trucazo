@@ -33,7 +33,8 @@ test('la entrada Android queda por pestaña; la web conserva destino y modo invi
     setItem: (key: string, value: string) => state.set(key, value),
     getItem: (key: string) => state.get(key),
   } }
-  Object.assign(globalThis, { window: tab, document: { referrer: '' }, sessionStorage: tab.sessionStorage })
+  const doc = { referrer: '', cookie: '' }
+  Object.assign(globalThis, { window: tab, document: doc, sessionStorage: tab.sessionStorage })
   try {
     assert.equal(isAndroidEntry(), false)
     assert.equal(loginDestination(), '/lobby')
@@ -42,6 +43,10 @@ test('la entrada Android queda por pestaña; la web conserva destino y modo invi
     tab.location.pathname = '/register'; tab.location.search = ''
     assert.equal(loginDestination(), '/android')
     state.clear()
+    assert.equal(loginDestination(), '/lobby')
+    doc.cookie = 'trucazo_auth_next=%2Fgame%2F11111111-1111-4111-8111-111111111111'
+    assert.equal(loginDestination(), '/game/11111111-1111-4111-8111-111111111111')
+    doc.cookie = 'trucazo_auth_next=https%3A%2F%2Fevil.invalid'
     assert.equal(loginDestination(), '/lobby')
   } finally {
     Reflect.deleteProperty(globalThis, 'window'); Reflect.deleteProperty(globalThis, 'document')

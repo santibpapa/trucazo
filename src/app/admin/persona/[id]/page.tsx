@@ -14,7 +14,8 @@ export const metadata: Metadata = {
  *  hace fallar la consulta con un error feo en vez de mostrar "no existe". */
 const ES_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export default async function PersonaPage({ params }: { params: { id: string } }) {
+export default async function PersonaPage({ params: routeParams }: { params: Promise<{ id: string }> }) {
+  const params = await routeParams
   if (!ES_ID.test(params.id)) notFound()
 
   const supabase = await createClient()

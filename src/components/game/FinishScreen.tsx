@@ -52,12 +52,12 @@ export default function FinishScreen({ won, salonSlug, hand, title, subtitle, no
 
       <div className="relative mx-auto flex min-h-dvh w-full max-w-[540px] flex-col">
         {/* Escena: cartas, resultado, marcador y premios */}
-        <section className="flex flex-1 flex-col items-center justify-center gap-3 px-5 pb-2 pt-12 text-center animate-fade-up">
-          <div className="relative h-24 w-36" aria-hidden="true">
+        <section className="flex flex-1 flex-col items-center justify-center gap-2 px-5 pb-2 pt-4 text-center">
+          <div className="relative h-[clamp(3rem,14dvh,6rem)] w-[clamp(5rem,21dvh,9rem)]" aria-hidden="true">
             {hand.map((c, i) => (
               <div
                 key={i}
-                className={`absolute bottom-0 left-1/2 w-[62px] origin-bottom ${i === 1 ? 'z-10' : ''} ${won ? '' : 'brightness-[.55] saturate-50'}`}
+                className={`absolute bottom-0 left-1/2 w-[clamp(42px,9dvh,62px)] origin-bottom ${i === 1 ? 'z-10' : ''} ${won ? '' : 'brightness-[.55] saturate-50'}`}
                 style={{ transform: fan[i] }}
               >
                 {c ? <PlayingCard card={c} /> : <CardBack className="w-full aspect-[600/925]" />}
@@ -68,7 +68,7 @@ export default function FinishScreen({ won, salonSlug, hand, title, subtitle, no
           <div>
             {won ? (
               <h2
-                className="text-5xl font-bold leading-none bg-clip-text text-transparent"
+                className="text-[clamp(2rem,6dvh,3.4rem)] font-bold leading-none bg-clip-text text-transparent"
                 style={{
                   ...serif,
                   backgroundImage: 'linear-gradient(180deg, #F3DB89 0%, #C9A24B 55%, #A98532 100%)',
@@ -78,7 +78,7 @@ export default function FinishScreen({ won, salonSlug, hand, title, subtitle, no
                 {title}
               </h2>
             ) : (
-              <h2 className="text-5xl font-bold leading-none text-cream" style={serif}>{title}</h2>
+              <h2 className="text-[clamp(2rem,6dvh,3.4rem)] font-bold leading-none text-cream" style={serif}>{title}</h2>
             )}
             <p className="mt-2 text-sm font-medium text-muted">{subtitle}</p>
             {note && <p className="mt-1 text-xs text-subtle">{note}</p>}
@@ -95,7 +95,7 @@ export default function FinishScreen({ won, salonSlug, hand, title, subtitle, no
         {/* La mesa: el paño del salón entra desde abajo. Encima, las misiones
             como naipes; los botones, apoyados en el borde. */}
         <section
-          className="relative -mx-[10%] flex flex-col gap-2.5 px-[calc(10%+1rem)] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 shadow-[inset_0_14px_30px_rgba(0,0,0,0.55),0_-10px_30px_rgba(0,0,0,0.6)] animate-fade-up"
+          className="relative -mx-[10%] flex flex-col gap-2.5 px-[calc(10%+1rem)] pb-[max(1rem,env(safe-area-inset-bottom))] pt-6 shadow-[inset_0_14px_30px_rgba(0,0,0,0.55),0_-10px_30px_rgba(0,0,0,0.6)]"
           style={{
             background: theme.felt,
             borderTop: `7px solid ${theme.edge}`,

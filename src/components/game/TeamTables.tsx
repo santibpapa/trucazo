@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Alert, Button, Coins, Panel } from '@/components/ui'
 import type { TeamLobbyData, TeamSnapshot } from '@/lib/team-game'
+import SafetyActions from '@/components/SafetyActions'
 
-export default function TeamTables() {
+export default function TeamTables({ onPlayUnavailable }: { onPlayUnavailable?: () => void } = {}) {
   const [data, setData] = useState<TeamLobbyData>({ tables: [], mine: [] })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -17,6 +18,7 @@ export default function TeamTables() {
     let disposed = false
     let revision = 0
     async function refresh() {
+      if (document.hidden || !navigator.onLine) return
       const current = ++revision
       const result = await supabase.rpc('team_lobby')
       if (disposed || current !== revision) return
@@ -27,10 +29,13 @@ export default function TeamTables() {
     const channel = supabase.channel('team-lobby').on('postgres_changes', { event: '*', schema: 'public', table: 'team_tables' }, () => { void refresh() })
       .subscribe(status => { if (status === 'SUBSCRIBED') void refresh() })
     const interval = setInterval(() => { void refresh() }, 5000)
-    return () => { disposed = true; clearInterval(interval); void supabase.removeChannel(channel) }
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('online', refresh)
+    return () => { disposed = true; clearInterval(interval); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('online', refresh); void supabase.removeChannel(channel) }
   }, [supabase])
 
   async function join(id: string) {
+    if (onPlayUnavailable) { onPlayUnavailable(); return }
     if (busy) return
     setBusy(true)
     if (request.current?.table !== id) request.current = { id: crypto.randomUUID(), table: id }
@@ -49,6 +54,7 @@ export default function TeamTables() {
     <div className="grid gap-3 sm:grid-cols-2">
       {data.tables.filter(t => !data.mine.some(m => m.id === t.id)).map(t => <Panel key={t.id} className="p-4 flex flex-col gap-3">
         <div className="flex justify-between gap-2"><p className="font-semibold text-cream truncate">{t.name}</p><span className="text-sm text-muted shrink-0">{t.occupied}/4</span></div>
+        <SafetyActions kind="team_table" target={t.id} label="Denunciar mesa" />
         <p className="text-sm text-subtle">A {t.target_score} · {t.time_limit} segundos por turno</p>
         <div className="flex justify-between items-center"><Coins amount={t.bet} size="sm" /><Button size="sm" disabled={busy || t.occupied >= 4} onClick={() => { void join(t.id) }}>Elegir asiento</Button></div>
       </Panel>)}

@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ChatMessage } from '@/lib/types'
 import { Button, Input, cn } from '@/components/ui'
+import SafetyActions from '@/components/SafetyActions'
+import { ensureCommunityRules } from '@/lib/community-safety'
 
 const MAX_LEN = 300
 
@@ -37,7 +39,8 @@ export default function ChatGlobal({
   // Historial inicial + realtime.
   useEffect(() => {
     let alive = true
-    ;(async () => {
+    const refresh = async () => {
+      if (document.hidden || !navigator.onLine) return
       const { data } = await supabase
         .from('chat_messages')
         .select('*')
@@ -46,7 +49,12 @@ export default function ChatGlobal({
       if (!alive) return
       setMessages(((data as ChatMessage[]) ?? []).reverse())
       scrollToBottom(true)
-    })()
+    }
+    void refresh()
+    const poll = setInterval(refresh, 15000)
+    window.addEventListener('community:safety-changed', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('online', refresh)
 
     const channel = supabase
       .channel(channelName.current)
@@ -69,7 +77,7 @@ export default function ChatGlobal({
       )
       .subscribe()
 
-    return () => { alive = false; supabase.removeChannel(channel) }
+    return () => { alive = false; clearInterval(poll); window.removeEventListener('community:safety-changed', refresh); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('online', refresh); supabase.removeChannel(channel) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -89,6 +97,7 @@ export default function ChatGlobal({
     const body = text.trim()
     if (!body || sending) return
     setSending(true); setError('')
+    try { await ensureCommunityRules() } catch (cause) { setSending(false); setError((cause as Error).message); return }
     const { error: e } = await supabase.rpc('send_chat_message', { p_body: body })
     setSending(false)
     if (e) { setError(e.message); return }
@@ -137,6 +146,7 @@ export default function ChatGlobal({
                     {mine ? 'Vos' : m.username}
                   </span>
                   <span className="text-[10px] text-subtle">{fmtTime(m.created_at)}</span>
+                  {!mine && <SafetyActions kind="chat" target={m.id} userId={m.user_id} label={'Opciones de ' + m.username} />}
                   {(isAdmin || mine) && (
                     <button
                       onClick={() => remove(m.id)}

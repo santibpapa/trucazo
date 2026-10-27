@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { tournamentApi, type Tournament, type TournamentListData } from '@/lib/tournaments'
 import DeleteTournamentButton from './DeleteTournamentButton'
 
-export default function AdminTournamentsList({ initialData }: { initialData: TournamentListData }) {
+export default function AdminTournamentsList({ initialData, panelHref = '/admin' }: { initialData: TournamentListData; panelHref?: string }) {
   const supabase = useMemo(() => createClient(), [])
   const api = useMemo(() => tournamentApi(supabase), [supabase])
   const [data, setData] = useState(initialData)
@@ -41,7 +41,7 @@ export default function AdminTournamentsList({ initialData }: { initialData: Tou
     <main className="mx-auto min-h-[100dvh] w-full max-w-6xl px-4 py-6 pb-20 sm:px-6">
       <header className="mb-7 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Link href="/admin" className="text-sm font-semibold text-muted hover:text-gold">← Volver al panel</Link>
+          <Link href={panelHref} className="text-sm font-semibold text-muted hover:text-gold">← Volver al panel</Link>
           <h1 className="mt-2 font-display text-3xl font-extrabold text-cream">Administrar torneos</h1>
           <p className="text-sm text-muted">Creá, publicá y seguí inscripciones y check-ins.</p>
         </div>

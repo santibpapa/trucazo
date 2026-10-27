@@ -26,7 +26,7 @@ const EMPTY: EditableCampaign = {
   is_active: false,
 }
 
-export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns: AdminCampaign[] }) {
+export default function EmailCampaigns({ initialCampaigns, request = fetch }: { initialCampaigns: AdminCampaign[]; request?: typeof fetch }) {
   const [campaigns, setCampaigns] = useState(initialCampaigns)
   const [selectedId, setSelectedId] = useState<string | null>(initialCampaigns[0]?.id ?? null)
   const selected = campaigns.find(campaign => campaign.id === selectedId) ?? null
@@ -69,7 +69,7 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
     setError('')
     setSaved(false)
     try {
-      const response = await fetch('/api/admin/email-campaigns', {
+      const response = await request('/api/admin/email-campaigns', {
         method: creating ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(creating ? draft : { id: selectedId, ...draft }),
@@ -103,7 +103,7 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
     setBusy(true)
     setError('')
     try {
-      const response = await fetch('/api/admin/email-campaigns', {
+      const response = await request('/api/admin/email-campaigns', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...editable(campaign), id: campaign.id, is_active: !campaign.is_active }),
@@ -131,7 +131,7 @@ export default function EmailCampaigns({ initialCampaigns }: { initialCampaigns:
     setError('')
     setTestSentTo('')
     try {
-      const response = await fetch('/api/admin/email-campaigns', {
+      const response = await request('/api/admin/email-campaigns', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(draft),

@@ -71,6 +71,15 @@
       0 0 14px rgba(201, 162, 75, 0.75),
       0 0 30px rgba(157, 71, 36, 0.45),
       0 8px 18px rgba(0, 0, 0, 0.55);
+  }
+
+  .campaign-nav-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: 0 0 24px rgba(224, 181, 80, 0.8), 0 0 38px rgba(157, 71, 36, 0.56);
     animation: campaign-nav-breathe 2.8s ease-in-out infinite;
   }
 
@@ -85,18 +94,12 @@
 
 @keyframes campaign-nav-breathe {
   0%, 100% {
-    box-shadow:
-      0 0 0 1px rgba(239, 215, 137, 0.4),
-      0 0 12px rgba(201, 162, 75, 0.62),
-      0 0 24px rgba(157, 71, 36, 0.34),
-      0 8px 18px rgba(0, 0, 0, 0.55);
+    opacity: 0.4;
+    transform: scale(0.98);
   }
   50% {
-    box-shadow:
-      0 0 0 2px rgba(255, 232, 153, 0.62),
-      0 0 20px rgba(224, 181, 80, 0.9),
-      0 0 38px rgba(157, 71, 36, 0.56),
-      0 8px 18px rgba(0, 0, 0, 0.55);
+    opacity: 0.9;
+    transform: scale(1.05);
   }
 }
 

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><meta name="theme-color" content="#0c1712"><title>Trucazo · ensayo con Tobías</title>
+<style>
+*{box-sizing:border-box} [hidden]{display:none!important} body{margin:0;background:#0c1712;color:#f3ecd7;font-family:system-ui,sans-serif}
+main{height:100vh;height:100dvh;max-width:740px;margin:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
+h1{font-size:20px;margin:0;color:#e9c57a} h2{font-size:22px} p{line-height:1.45} button,a{touch-action:manipulation}
+button{font:inherit;font-weight:600;color:#f3ecd7;background:#22392c;border:1px solid #71805b;border-radius:9px;padding:10px 8px;cursor:pointer}
+button:disabled{opacity:.45;cursor:default} button:focus-visible,a:focus-visible{outline:3px solid #e9c57a;outline-offset:2px}
+a{color:#e9c57a} #welcome{margin:auto;width:min(100%,420px);padding:20px;border:1px solid #64734f;border-radius:16px;background:#13251b}
+#resume,#prepare{width:100%;margin-bottom:12px} .choices{display:flex;gap:12px}.choices button{flex:1}
+#table{flex:1;min-height:0;display:grid;grid-template-rows:auto auto minmax(50px,1fr) auto auto auto auto;gap:6px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}.top button{padding:6px 12px}
+#score{font-weight:700;color:#e9c57a} #hand-info,#status{font-size:11px;color:#aeb5a7} #status{min-height:26px;margin:0;text-align:center}
+.rival{display:flex;justify-content:center;gap:10px;align-items:center;font-size:13px} #portrait{width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid #e9c57a}
+#played{display:flex;align-items:center;justify-content:center;gap:12px;min-height:0;background:radial-gradient(ellipse,#305136,#183322);border:2px solid #80623d;border-radius:40%}
+.pair{display:flex;flex-direction:column;gap:3px}.slot{height:clamp(28px,8vh,66px);width:clamp(24px,6vh,44px)}.slot img{height:100%;width:100%;object-fit:contain}
+#call{text-align:center;font-size:13px;font-weight:600;min-height:18px;color:#e9c57a}
+#reveal{display:flex;gap:5px;align-items:center;justify-content:center;font-size:11px;min-height:0} #reveal img{height:32px}
+#actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px} #actions button{font-size:12px;min-height:38px;padding:6px}
+#cards{display:flex;justify-content:center;gap:10px;min-height:0}.card{padding:0;border:0;background:none;border-radius:5px}.card img{display:block;height:clamp(52px,15vh,116px);width:auto}
+#new-game{padding:6px} #saved{font-size:13px} @media(max-height:500px){main{padding:5px;gap:2px}#table{gap:3px}#portrait{height:30px;width:30px}.slot{height:6vh}#actions button{min-height:30px}.card img{height:13vh}#status{min-height:16px}}
+</style></head><body><main>
+<h1>TRUCAZO <small>· ensayo local</small></h1>
+<section id="welcome"><h2>Tobías, el Novato</h2><p>Una partida sin internet. Podés cerrar y continuar con las mismas cartas.</p>
+<p id="saved"></p><button id="prepare">Descargar ensayo con mi cuenta</button><button id="resume" hidden>Continuar partida</button>
+<div class="choices"><button id="start15" disabled>Jugar a 15</button><button id="start30" disabled>Jugar a 30</button></div>
+<p><small>Prueba de desarrollo. Todavía no acredita premios ni avance de Historia.</small></p><a href="/android">Volver a Trucazo</a></section>
+<section id="table" hidden><div class="top"><div><div id="score"></div><div id="hand-info"></div></div><button id="pause">Pausar</button></div>
+<div class="rival"><img id="portrait" alt="Tobías, el Novato"><span>Tobías, el Novato</span></div>
+<div id="played" aria-label="Cartas en la mesa"></div><div id="call" role="status"></div><div id="reveal"></div>
+<div id="actions"></div><div id="cards" aria-label="Tu mano"></div><button id="new-game" hidden>Otra partida</button></section>
+<p id="status" role="status">Ensayo local · las partidas online siguen en el servidor</p>
+</main><script src="/android/tobias.js" defer></script></body></html>

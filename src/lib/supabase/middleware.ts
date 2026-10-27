@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { invitationPath } from '@/lib/table-invites'
+import { authDestination } from '@/lib/auth-links'
 
 export async function updateSession(request: NextRequest) {
   // Red de seguridad para el login con Google (OAuth): a veces Supabase nos
@@ -8,7 +9,7 @@ export async function updateSession(request: NextRequest) {
   // vuelta. Si vemos un código en cualquier página que no sea /auth/callback,
   // lo reenviamos ahí para completar el login del lado del servidor.
   const oauthCode = request.nextUrl.searchParams.get('code')
-  if (oauthCode && request.nextUrl.pathname !== '/auth/callback') {
+  if (oauthCode && !['/auth/callback', '/auth/mobile', '/recuperar-cuenta'].includes(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/callback'
     return NextResponse.redirect(url)
@@ -24,6 +25,7 @@ export async function updateSession(request: NextRequest) {
     '/tienda',
     '/comunidad',
     '/historia',
+    '/torneos',
   ]
   // Solo la entrada dinámica. Los archivos públicos de la prueba local deben
   // poder descargarse sin cookies y abrirse sin renovar sesión por red.
@@ -80,7 +82,10 @@ export async function updateSession(request: NextRequest) {
   if (!user && isPrivate) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+    const next = authDestination(pathname)
+    if (next) response.cookies.set('trucazo_auth_next', next, { path: '/', maxAge: 600, sameSite: 'lax', secure: request.nextUrl.protocol === 'https:' })
+    return response
   }
 
   // Con sesión de cuenta real, la home, /login y /register redirigen al lobby

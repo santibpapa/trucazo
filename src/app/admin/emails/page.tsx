@@ -1,11 +1,9 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { createEmailAdminClient } from '@/lib/email/admin'
-import NewsCampaign, { type NewsCampaignState } from './NewsCampaign'
-import RankingCampaign, { type RankingCampaignState } from './RankingCampaign'
-import EmailCampaigns, { type AdminCampaign } from './EmailCampaigns'
+import EmailAdminScreen from './EmailAdminScreen'
+import { loadEmailAdmin } from '@/lib/email/admin-data'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
@@ -29,91 +27,8 @@ export default async function AdminEmailsPage() {
     .maybeSingle()
   if (!profile?.is_admin) redirect('/lobby')
 
-  const { data, error } = await admin
-    .from('reengagement_campaigns')
-    .select('id, name, audience, delay_days, subject, preview, heading, body, cta_label, cta_path, is_active, created_at, updated_at')
-    .order('delay_days', { ascending: true })
-  if (error) redirect('/admin')
-
-  const campaigns = await Promise.all((data ?? []).map(async campaign => {
-    const [sentResult, failedResult, skippedResult] = await Promise.all([
-      admin
-        .from('email_deliveries')
-        .select('id', { count: 'exact', head: true })
-        .eq('campaign_id', campaign.id)
-        .eq('status', 'sent'),
-      admin
-        .from('email_deliveries')
-        .select('id', { count: 'exact', head: true })
-        .eq('campaign_id', campaign.id)
-        .eq('status', 'failed'),
-      admin
-        .from('email_deliveries')
-        .select('id', { count: 'exact', head: true })
-        .eq('campaign_id', campaign.id)
-        .eq('status', 'skipped'),
-    ])
-    return {
-      ...campaign,
-      sent: sentResult.count ?? 0,
-      failed: failedResult.count ?? 0,
-      skipped: skippedResult.count ?? 0,
-    }
-  })) as AdminCampaign[]
-
-  const [newsConfig, latestNews, rankingConfig, rankingCounts] = await Promise.all([
-    admin.from('news_email_campaign').select('is_active').eq('id', true).maybeSingle(),
-    admin.from('news').select('id, title, body, email_completed_at').order('created_at', { ascending: false }).limit(1).maybeSingle(),
-    admin.from('ranking_email_campaign').select('is_active').eq('id', true).maybeSingle(),
-    Promise.all(['pending', 'sending', 'sent', 'failed', 'skipped'].map(status => admin
-      .from('ranking_email_jobs').select('id', { count: 'exact', head: true }).eq('status', status))),
-  ])
-  let newsState: NewsCampaignState | null = null
-  if (newsConfig.data && !newsConfig.error) {
-    newsState = { active: newsConfig.data.is_active, latest: null }
-    if (latestNews.data) {
-      const item = latestNews.data
-      const [counts, job] = await Promise.all([
-        Promise.all(['sent', 'failed', 'skipped'].map(status => admin.from('email_deliveries')
-          .select('id', { count: 'exact', head: true }).eq('news_id', item.id).eq('status', status))),
-        admin.from('news_email_jobs').select('news_id, last_error').eq('news_id', item.id).maybeSingle(),
-      ])
-      newsState.latest = { title: item.title, body: item.body, completed: Boolean(item.email_completed_at),
-        sent: counts[0].count ?? 0, failed: counts[1].count ?? 0, skipped: counts[2].count ?? 0,
-        queued: Boolean(job.data), error: job.data?.last_error ?? null }
-    }
-  }
-
-  const rankingState: RankingCampaignState | null = rankingConfig.data && !rankingConfig.error
-    ? {
-        active: rankingConfig.data.is_active,
-        pending: (rankingCounts[0].count ?? 0) + (rankingCounts[1].count ?? 0),
-        sent: (rankingCounts[2].count ?? 0),
-        failed: (rankingCounts[3].count ?? 0),
-        skipped: (rankingCounts[4].count ?? 0),
-      }
-    : null
-
-  return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-20 sm:px-6">
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <Link href="/admin" className="mb-1 inline-block text-sm font-medium text-muted transition-colors hover:text-gold">
-            ← Volver a estadísticas
-          </Link>
-          <h1 className="font-display text-2xl font-extrabold text-cream sm:text-3xl">
-            Campañas de email
-          </h1>
-          <p className="max-w-2xl text-sm text-muted">
-            Novedades, movimientos del ranking y recordatorios para volver a jugar.
-            Todas salen desde {sender}.
-          </p>
-        </div>
-      </header>
-
-      <NewsCampaign state={newsState} />
-      <RankingCampaign state={rankingState} />
-      <EmailCampaigns initialCampaigns={campaigns} />
-    </main>
-  )
+  let data
+  try { data = await loadEmailAdmin(admin) }
+  catch { redirect('/admin') }
+  return <EmailAdminScreen sender={sender} {...data} />
 }

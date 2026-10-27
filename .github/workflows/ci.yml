@@ -37,7 +37,7 @@ jobs:
           cache: npm
 
       - name: Instalar (limpio, desde el lockfile)
-        run: npm ci
+        run: npm ci && npm ci --prefix apps/mobile
 
       - name: Tipos, que nada quede mal escrito
         run: npx tsc --noEmit
@@ -47,6 +47,9 @@ jobs:
 
       - name: Que ninguna función del servidor quede abierta al cliente
         run: node scripts/check-rpc-allowlist.mjs
+
+      - name: Versiones Android admitidas, retiro y recuperación
+        run: node --import tsx apps/mobile/scripts/check-version-compatibility.ts
 
       - name: Eliminación de cuentas y reintentos de proveedores
         run: node --import tsx scripts/check-account-deletion.ts

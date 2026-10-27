@@ -36,7 +36,8 @@ create table if not exists public.campaign_provinces (
   order_index integer not null,
   slug text not null,
   name text not null,
-  points_required integer not null default 0
+  points_required integer not null default 0,
+  required_rival_id uuid
 );
 
 create table if not exists public.campaign_rivals (
@@ -54,7 +55,8 @@ create table if not exists public.campaign_rivals (
   ranking_points integer not null default 0,
   points_reward integer not null default 0,
   trait_liar smallint not null default 5,
-  trait_aggressive smallint not null default 5
+  trait_aggressive smallint not null default 5,
+  strategy_profile text
 );
 
 create table if not exists public.campaign_style (
@@ -383,3 +385,44 @@ create table if not exists public.tables (
   target_score integer not null default 30,
   time_limit integer not null default 30
 );
+
+-- OFFLINE_SYNC_SNAPSHOT_BEGIN
+create schema if not exists offline_replay_v1;
+revoke all on schema offline_replay_v1 from public, anon, authenticated;
+
+create table if not exists offline_replay_v1.downloads (
+  id uuid primary key default gen_random_uuid(),
+  owner uuid not null references public.profiles(id) on delete cascade,
+  seed bigint not null check (seed between 1 and 4294967295),
+  snapshot jsonb not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists offline_downloads_owner on offline_replay_v1.downloads(owner);
+create table if not exists offline_replay_v1.receipts (
+  owner uuid not null references public.profiles(id) on delete cascade,
+  id uuid not null,
+  download_id uuid not null references offline_replay_v1.downloads(id) on delete cascade,
+  sequence integer not null check (sequence >= 0),
+  record jsonb not null,
+  receipt jsonb not null,
+  local_state jsonb not null,
+  accepted_at timestamptz not null default now(),
+  primary key (owner,id), unique (download_id,sequence)
+);
+
+-- Las filas de replay no pertenecen al juego online ni a Realtime. Se crean
+-- y eliminan en la misma transacción, bajo el lock del perfil humano.
+create table if not exists offline_replay_v1.games (like public.games including defaults);
+create unique index if not exists offline_replay_games_id on offline_replay_v1.games(id);
+create table if not exists offline_replay_v1.game_hands (like public.game_hands including defaults);
+create table if not exists offline_replay_v1.profiles (id uuid primary key, is_bot boolean not null, campaign_points integer not null default 0);
+create table if not exists offline_replay_v1.campaign_style (like public.campaign_style including defaults);
+create unique index if not exists offline_replay_style_user on offline_replay_v1.campaign_style(user_id);
+create table if not exists offline_replay_v1.campaign_rivals (like public.campaign_rivals including defaults);
+create unique index if not exists offline_replay_rivals_id on offline_replay_v1.campaign_rivals(id);
+create table if not exists offline_replay_v1.lobby_bots (like public.lobby_bots including defaults);
+create table if not exists offline_replay_v1.bot_decisions (like public.bot_decisions including defaults including identity);
+create table if not exists offline_replay_v1.random_state (game_id uuid primary key, value bigint not null);
+
+
+-- OFFLINE_SYNC_SNAPSHOT_END

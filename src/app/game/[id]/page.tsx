@@ -8,7 +8,8 @@ import WaitingRoom from './WaitingRoom'
 import ShareTableInvite from '@/components/ShareTableInvite'
 import WaitingForPlayers from '@/components/WaitingForPlayers'
 
-export default async function GamePage({ params }: { params: { id: string } }) {
+export default async function GamePage({ params: routeParams }: { params: Promise<{ id: string }> }) {
+  const params = await routeParams
   const supabase = await createClient()
 
   // Quién sos y qué mesa es son dos preguntas independientes: la mesa se busca

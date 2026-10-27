@@ -23,7 +23,7 @@ export default function WaitingRoom({ tableId, isPrivate = false }: { tableId: s
   useEffect(() => {
     if (isPrivate) return
     const supabase = createClient()
-    const llamarBot = () => { supabase.rpc('bot_join_table', { p_table_id: tableId }) }
+    const llamarBot = async () => { await supabase.rpc('bot_join_table', { p_table_id: tableId }) }
 
     let reintento: ReturnType<typeof setInterval> | undefined
     const primera = setTimeout(() => {

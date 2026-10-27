@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -18,9 +22,28 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
-    }
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "target": "ES2017"
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "my-video", "android/tools/node_modules", "android/generated"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "android/generated/android-12-next-final/types/**/*.ts",
+    "android/generated/android-12-next/types/**/*.ts",
+    "android/generated/android-14-next-final/types/**/*.ts",
+    "android/generated/android-14-next-verified/types/**/*.ts",
+    "android/generated/android-14-next/types/**/*.ts",
+    "next-env.d.ts",
+    "android/generated/android-16-next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "my-video",
+    "android/tools/node_modules",
+    "android/generated"
+  ]
 }

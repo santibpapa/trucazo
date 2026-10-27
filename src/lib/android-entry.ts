@@ -2,6 +2,7 @@ import { invitationPath } from './table-invites'
 
 // Marcador por pestaña: una visita a la app no cambia la política de invitados
 // en las otras pestañas del navegador. No es una credencial ni autorización.
+import { authDestinationCookie } from './auth-links'
 const KEY = 'trucazo:android-entry:v1'
 
 export function isAndroidEntry(): boolean {
@@ -16,8 +17,13 @@ export function isAndroidEntry(): boolean {
 }
 
 export function loginDestination(): string {
-  const next = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('next')
-  return invitationPath(next) ?? (isAndroidEntry() ? '/android' : '/lobby')
+  const invitation = typeof window === 'undefined' ? null : invitationPath(new URLSearchParams(window.location.search).get('next'))
+  if (invitation) return invitation
+  if (typeof document !== 'undefined') {
+    const next = authDestinationCookie(document.cookie)
+    if (next) { document.cookie = 'trucazo_auth_next=; Path=/; Max-Age=0; SameSite=Lax'; return next }
+  }
+  return isAndroidEntry() ? '/android' : '/lobby'
 }
 
 export async function clearAndroidProbe() {

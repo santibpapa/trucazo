@@ -53,20 +53,27 @@ export default function EnvidoCalculator() {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const parsed = [decode(params.get('c1')), decode(params.get('c2')), decode(params.get('c3'))]
-    if (parsed.every(Boolean)) {
-      const valid = parsed as Card[]
-      if (new Set(valid.map(encode)).size === 3) setCards(valid)
+    const load = () => {
+      const params = new URLSearchParams(window.location.hash.startsWith('#/') ? window.location.hash.split('?')[1] : window.location.search)
+      const parsed = [decode(params.get('c1')), decode(params.get('c2')), decode(params.get('c3'))]
+      if (parsed.every(Boolean)) {
+        const valid = parsed as Card[]
+        if (new Set(valid.map(encode)).size === 3) setCards(valid)
+      }
+      setReady(true)
     }
-    setReady(true)
+    load()
+    window.addEventListener('hashchange', load)
+    window.addEventListener('popstate', load)
+    return () => { window.removeEventListener('hashchange', load); window.removeEventListener('popstate', load) }
   }, [])
 
   useEffect(() => {
     if (!ready) return
     const params = new URLSearchParams()
     cards.forEach((card, index) => params.set(`c${index + 1}`, encode(card)))
-    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+    const path = window.location.hash.startsWith('#/') ? window.location.hash.split('?')[0] : window.location.pathname
+    window.history.replaceState(null, '', `${path}?${params.toString()}`)
   }, [cards, ready])
 
   const duplicated = new Set(cards.map(encode)).size !== cards.length
@@ -82,7 +89,9 @@ export default function EnvidoCalculator() {
   }
 
   async function share() {
-    const url = window.location.href
+    const params = new URLSearchParams()
+    cards.forEach((card, index) => params.set(`c${index + 1}`, encode(card)))
+    const url = `https://www.trucazo.com.ar/calculadora-envido?${params.toString()}`
     const text = result == null ? 'Calculadora de envido de Trucazo' : `Tengo ${result} de envido.`
     if (navigator.share) {
       await navigator.share({ title: 'Calculadora de envido', text, url }).catch(() => null)

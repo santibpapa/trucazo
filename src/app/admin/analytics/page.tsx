@@ -11,10 +11,11 @@ export const metadata: Metadata = {
 }
 
 export default async function AnalyticsPage({
-  searchParams,
+  searchParams: query,
 }: {
-  searchParams: { dias?: string }
+  searchParams: Promise<{ dias?: string }>
 }) {
+  const searchParams = await query
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

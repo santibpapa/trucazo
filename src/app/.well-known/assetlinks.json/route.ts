@@ -5,7 +5,11 @@ import config from '../../../../android/twa-manifest.json'
 export const dynamic = 'force-dynamic'
 
 export function GET() {
-  return NextResponse.json(androidAssetLinks(config.packageId, process.env.ANDROID_SHA256_FINGERPRINTS), {
+  return NextResponse.json([
+    ...androidAssetLinks(config.packageId, process.env.ANDROID_SHA256_FINGERPRINTS),
+    ...androidAssetLinks(process.env.ANDROID_CAPACITOR_PACKAGE_ID || 'ar.com.trucazo.capacitor.dev', process.env.ANDROID_CAPACITOR_SHA256_FINGERPRINTS),
+    ...androidAssetLinks('ar.com.trucazo.app', process.env.ANDROID_RELEASE_SHA256_FINGERPRINTS),
+  ], {
     headers: { 'Cache-Control': 'public, max-age=300', 'X-Robots-Tag': 'noindex' },
   })
 }

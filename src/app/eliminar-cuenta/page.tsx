@@ -18,6 +18,8 @@ export default function DeleteAccountPage() {
         <h2 className="font-display text-xl font-bold text-cream">Qué se elimina</h2>
         <p>La cuenta de acceso, email, perfil, fotos subidas, monedas, personalización, progreso de campaña, misiones, amistades, mensajes, reseñas y preferencias de correo. También se eliminan los datos de navegación vinculados a tu cuenta.</p>
         <p>Los resultados compartidos que necesitan otros jugadores se conservan sin tu identidad, con la leyenda “Cuenta eliminada”. Si liderás un grupo con otros miembros, el liderazgo pasa a otro jugador.</p>
+        <p>También se eliminan los dispositivos y preferencias de notificaciones. Las denuncias pueden conservar evidencia privada de texto e imágenes hasta 180 días desde su recepción o 90 desde su resolución, lo que ocurra primero, por prevención de abuso y revisión de decisiones.</p>
+        <p>Desde Android se borra el guardado de esta cuenta en ese teléfono; desde esta página, el de este navegador. Los resultados de Historia sin sincronizar se pierden. Otros equipos desconectados ocultarán el guardado al reconectarse; podés borrar sus datos desde Android o el navegador.</p>
         <p>Normalmente el proceso termina al confirmar. Si falla un proveedor, guardamos la solicitud y reintentamos automáticamente. Conservamos únicamente tu identificador y la lista de archivos pendientes hasta completar el borrado; después también se eliminan.</p>
         <p>Los proveedores técnicos pueden conservar copias de seguridad o registros durante sus plazos propios, sin utilizarlos como una cuenta activa.</p>
       </section>

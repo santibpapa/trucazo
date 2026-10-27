@@ -7,17 +7,14 @@ import path from 'node:path'
 import { build } from 'esbuild'
 import { chromium } from 'playwright'
 
-// Componente real con respuestas controladas de los dos cierres; sin cuentas reales.
+// El componente recibe las respuestas producidas por PostgreSQL en la regresión.
 const root=process.cwd(), folder=await mkdtemp(path.join(tmpdir(),'trucazo-envido-'))
-const a='ee250000-0000-4000-a000-000000000001',b='ee250000-0000-4000-a000-000000000002'
-const five={suit:'basto',value:5,rank:13},seven={suit:'basto',value:7,rank:11},sota={suit:'basto',value:10,rank:10}
-const hand=[{suit:'espada',value:4,rank:14},{suit:'copa',value:10,rank:10},{suit:'oro',value:12,rank:8}]
-const base={id:'ee250000-0000-4000-a000-000000000010',player1_id:a,player2_id:b,player1_username:'Prueba A',player2_username:'Prueba B',player1_score:0,player2_score:2,played_cards:[],current_turn:a,mano_player:b,hand_number:1,round_number:1,envido_state:{status:'accepted',chain:['envido'],value:2,last_singer:b,winner_id:b,awarded:2,mano_declared:25,player1_points:4,player2_points:25},truco_state:{status:'truco',value:2,last_singer:b},round_results:[],status:'playing',winner_id:null,bet:0,target_score:30,time_limit:120,turn_started_at:new Date().toISOString(),mazo_count_p1:0,mazo_count_p2:0,envido_reveal:null,awaiting_deal:false,rematch_p1:false,rematch_p2:false,rematch_game_id:null,campaign_rival_id:null,updated_at:new Date().toISOString()}
-const beforeFalta={...base,mano_player:a,player2_score:3,envido_state:{status:'declaring',chain:['real_envido','falta_envido'],value:27,last_singer:a,declare_turn:b,mano_declared:4},truco_state:{status:'none',value:1,last_singer:null}}
-const fixtures=[
- {name:'truco',user:a,hand,before:base,after:{...base,player2_score:3,truco_state:{...base.truco_state,status:'rejected'},awaiting_deal:true,envido_reveal:{player_id:b,cards:[five,sota]}}},
- {name:'falta',user:a,hand,before:beforeFalta,after:{...beforeFalta,status:'finished',winner_id:b,player2_score:30,envido_state:{...beforeFalta.envido_state,status:'accepted',winner_id:b,awarded:27,player1_points:4,player2_points:32},envido_reveal:{player_id:b,cards:[seven,five]}}},
-]
+const fixtureFile=path.join(folder,'responses.json')
+execFileSync(process.execPath,['--import','tsx','scripts/check-envido-reveal.ts'],{
+  cwd:root,env:{...process.env,ENVIDO_REVEAL_FIXTURES:fixtureFile},stdio:'inherit',
+})
+const fixtures=JSON.parse(await readFile(fixtureFile,'utf8'))
+assert.equal(fixtures.length,2)
 await build({
   stdin:{contents:`
     import React from 'react'; import {createRoot} from 'react-dom/client';
@@ -103,7 +100,7 @@ try{
       await page.getByRole('heading',{name:'Perdiste',exact:true}).waitFor()
     }
     assert.deepEqual(errors,[])
-    console.log(`${name} ${width}×${height}: cartas del tanto visibles, privacidad y cierre correctos.`)
+    console.log(`${name} ${width}×${height}: cartas del SQL visibles, privacidad y cierre correctos.`)
     await context.close()
   }
 }finally{
