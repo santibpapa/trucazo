@@ -39,6 +39,9 @@ jobs:
       - name: Instalar (limpio, desde el lockfile)
         run: npm ci && npm ci --prefix apps/mobile
 
+      - name: Generar el manifiesto local que importa la API Android
+        run: npm run build:offline-campaign
+
       - name: Tipos, que nada quede mal escrito
         run: npx tsc --noEmit
 
