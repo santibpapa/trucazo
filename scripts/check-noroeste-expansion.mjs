@@ -7,7 +7,7 @@ import sharp from 'sharp'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const sql = await readFile(path.join(root,'supabase/migrations/20260923120000_campana_ruta_noroeste.sql'),'utf8')
 const brain = await readFile(path.join(root,'supabase/migrations/20260923121000_campana_noroeste_estrategia.sql'),'utf8')
-const ui = await readFile(path.join(root,'src/app/historia/HistoriaClient.tsx'),'utf8')
+const ui = await readFile(path.join(root,'src/components/historia/HistoriaScreen.tsx'),'utf8')
 const phrases = await readFile(path.join(root,'src/lib/botFrases.ts'),'utf8')
 const provinces=['la-rioja','catamarca','tucuman','salta','jujuy']
 const rivals=[

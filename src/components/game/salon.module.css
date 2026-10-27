@@ -222,7 +222,14 @@
 .game .actions { flex-basis: 152px; min-height: 152px; }
 .game .actions > button:last-child { min-height: 44px; margin: 0; }
 .game .actions div:has(> button:nth-child(3)) > button[data-tone='gold'] { font-size: 14px; }
-.game .shell { height: 100dvh; min-height: 0; }
+.game .shell {
+  height: 100dvh;
+  min-height: 0;
+  padding: max(6px, var(--safe-area-inset-top, env(safe-area-inset-top)))
+    max(12px, var(--safe-area-inset-right, env(safe-area-inset-right)))
+    max(8px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom)))
+    max(12px, var(--safe-area-inset-left, env(safe-area-inset-left)));
+}
 .game .stage {
   min-height: 0;
   container-type: size;

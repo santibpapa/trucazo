@@ -86,6 +86,14 @@ try {
     const state=await f.rpc('team_snapshot',{p_table_id:id},ids.B);assert.ok(long.every(a=>state.legal.includes(a)))
     report.screens.push({width,height,controls:view.controls.length});await B.page.screenshot({path:`android/generated/android-09-long-${width}x${height}.png`})
   }
+  await B.page.setViewportSize({width:360,height:820})
+  await B.page.evaluate(()=>{document.documentElement.style.setProperty('--safe-area-inset-top','34px');document.documentElement.style.setProperty('--safe-area-inset-bottom','47px')})
+  const safe=await bounds(B.page)
+  assert.ok(await B.page.locator('[aria-label="Trucazo"]').evaluate(e=>e.getBoundingClientRect().top>=34),'Cabecera detrás de la barra de Android')
+  assert.equal(safe.scroll,820)
+  assert.ok(safe.controls.every(r=>r.top>=34&&r.bottom<=820-47),'Controles dentro de las barras Android')
+  report.safeArea={top:34,bottom:47,headerAndControlsInside:true}
+  await B.page.evaluate(()=>{document.documentElement.style.removeProperty('--safe-area-inset-top');document.documentElement.style.removeProperty('--safe-area-inset-bottom')})
   await B.page.setViewportSize({width:360,height:568})
   await B.page.getByRole('button',{name:'Chat de la mesa',exact:true}).click()
   await B.page.getByLabel('Escribir mensaje',{exact:true}).fill('Mesa compartida Android 09')

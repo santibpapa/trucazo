@@ -44,7 +44,7 @@ jobs:
           version: 2.117.0
       - name: Preparar copia vacía con Auth y Realtime
         run: |
-          npm ci
+          npm ci && npm ci --prefix apps/mobile
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends postgresql-client ripgrep
           npx playwright install --with-deps chromium

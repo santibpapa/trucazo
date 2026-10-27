@@ -11,6 +11,7 @@ import { connectReleaseDevice } from './release-device.mjs'
 nextEnv.loadEnvConfig(process.cwd())
 const saved = await loadQaAccounts(), accounts = [...saved.accounts, saved.registrationAccount]
 const clients = [], c = await connectReleaseDevice(), sleep = ms => new Promise(r => setTimeout(r, ms))
+const build = await c.evaluate("fetch('/build-info.json').then(r=>r.json()).then(({version,versionCode})=>({version,versionCode}))")
 const deviceTag = process.env.ANDROID_QA_SERIAL?.startsWith('emulator-') ? 'emulator' : 'phone'
 const wait = async fn => { for (let i = 0; i < 120; i++) { const value = await fn(); if (value) return value; await sleep(150) } throw Error('La mesa de parejas no llegó al estado esperado') }
 for (const a of accounts) {
@@ -42,7 +43,10 @@ try {
   const layout = await c.evaluate(`({height:innerHeight,scroll:document.documentElement.scrollHeight,buttons:Array.from(document.querySelectorAll('button')).map(b=>({text:b.textContent.trim(),rect:b.getBoundingClientRect().toJSON()})).filter(b=>b.rect.width&&b.rect.height)})`)
   assert.equal(layout.scroll, layout.height)
   assert.ok(layout.buttons.every(b => b.rect.top >= 0 && b.rect.bottom <= layout.height))
-  await writeFile('android/generated/android-17-' + deviceTag + '-team-long-options.png', execFileSync(process.env.ADB, ['-s', process.env.ANDROID_QA_SERIAL, 'exec-out', 'screencap', '-p']))
+  const safeArea = await c.evaluate(`(()=>{const e=document.createElement('div');e.style.padding='var(--safe-area-inset-top,env(safe-area-inset-top)) 0 var(--safe-area-inset-bottom,env(safe-area-inset-bottom))';document.body.append(e);const s=getComputedStyle(e),top=parseFloat(s.paddingTop),bottom=parseFloat(s.paddingBottom);e.remove();return {top,bottom,headerTop:document.querySelector('[aria-label="Trucazo"]').getBoundingClientRect().top}})()`)
+  assert.ok(safeArea.headerTop >= safeArea.top)
+  assert.ok(layout.buttons.every(b => b.rect.top >= safeArea.top && b.rect.bottom <= layout.height - safeArea.bottom))
+  await writeFile('android/generated/android-17-' + deviceTag + '-team-long-options-' + build.versionCode + '.png', execFileSync(process.env.ADB, ['-s', process.env.ANDROID_QA_SERIAL, 'exec-out', 'screencap', '-p']))
   await c.evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent.trim()==='Quiero'&&!b.disabled).click()`)
   await wait(async () => (await snap()).game.truco.status === 'accepted')
   const rival = await snap(1)
@@ -54,10 +58,10 @@ try {
   const finished = await snap(), after = await balances()
   await action(0, 'forfeit'); assert.deepEqual(await balances(), after)
   await wait(() => c.evaluate('document.body.innerText.includes("Volver al lobby")'))
-  const report = { scope: 'Release0.17.1/19 instalado, Supabase HTTPS real, tres QA y bot en mesa privada', device: deviceTag, serial: process.env.ANDROID_QA_SERIAL, id, target: 30,
+  const report = { scope: 'Release instalado, Supabase HTTPS real, tres QA y bot en mesa privada', build, safeArea, device: deviceTag, serial: process.env.ANDROID_QA_SERIAL, id, target: 30,
     ownHandOnly: true, longTrucoOptionsInScreen: true, viewportHeight: layout.height, playedFromNative: true, playedCards: played,
     finished: finished.table.status, finishReason: finished.game.finish_reason, before, after, noDuplicatePayout: true }
-  await writeFile('android/generated/android-17-' + deviceTag + '-team-real.json', JSON.stringify(report, null, 2))
+  await writeFile('android/generated/android-17-' + deviceTag + '-team-real-' + build.versionCode + '.json', JSON.stringify(report, null, 2))
   console.log(JSON.stringify(report))
 } finally {
   if (id) { const state = await snap().catch(() => null); if (state?.table.status === 'waiting') await action(0, 'leave').catch(() => {}); else if (state?.table.status === 'playing') await action(0, 'forfeit').catch(() => {}) }

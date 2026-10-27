@@ -80,6 +80,14 @@ public class ReleaseAcceptanceTest {
         var context = instrumentation.getTargetContext();
         assertEquals("ar.com.trucazo.app", context.getPackageName());
         assertEquals(0, context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE);
+        if ("battery-read".equals(InstrumentationRegistry.getArguments().getString("phase"))) {
+            var file = new java.io.File(context.getCacheDir(), "android17-battery.json");
+            assertTrue("No hay muestras guardadas", file.isFile());
+            var status = new android.os.Bundle();
+            status.putString("batterySamples", new String(java.nio.file.Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8));
+            instrumentation.sendStatus(0, status);
+            return;
+        }
         var intent = new Intent().setClassName(context, MainActivity.class.getName()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         activity = (MainActivity) instrumentation.startActivitySync(intent);
         assertFalse(activity.getBridge().getConfig().isWebContentsDebuggingEnabled());

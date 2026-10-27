@@ -7,6 +7,9 @@ import { connectReleaseDevice } from './release-device.mjs'
 const serial = process.env.ANDROID_QA_SERIAL
 assert.ok(serial && process.env.ADB, 'Indicar teléfono y cargar entorno Android')
 const adb = args => execFileSync(process.env.ADB, ['-s', serial, ...args], { encoding: 'utf8' })
+const info = adb(['shell', 'dumpsys', 'package', 'ar.com.trucazo.app'])
+const versionCode = Number(info.match(/versionCode=(\d+)/)?.[1]), version = info.match(/versionName=(\S+)/)?.[1]
+assert.ok(versionCode && version)
 await connectReleaseDevice().then(device => device.stop()).catch(() => {})
 await new Promise(r => setTimeout(r, 1000))
 const starts = []
@@ -23,8 +26,8 @@ for (let i = 0; i < 3; i++) {
   starts.push({ launchedAt, nativeFirstFrameMs: Number(launch.match(/TotalTime:\s*(\d+)/)?.[1]),
     lobbyUsableMs: Number(duration[1] || 0) * 1000 + Number(duration[2]), systemEvidence: line.trim() })
 }
-const result = { scope: 'Release0.17.1/código19 real, arranque frío desde MAIN/LAUNCHER, Auth/datos Supabase HTTPS reales',
+const result = { scope: 'Release real, arranque frío desde MAIN/LAUNCHER, Auth/datos Supabase HTTPS reales', version, versionCode,
   device: { model: adb(['shell', 'getprop', 'ro.product.model']).trim(), android: adb(['shell', 'getprop', 'ro.build.version.release']).trim() },
   serial, network: 'Wi-Fi', charging: true, starts, goalMs: 3000, passed: starts.every(x => x.lobbyUsableMs <= 3000) }
-await writeFile('android/generated/android-17-phone-startup.json', JSON.stringify(result, null, 2))
+await writeFile('android/generated/android-17-phone-startup-' + versionCode + '.json', JSON.stringify(result, null, 2))
 console.log(JSON.stringify(result))
