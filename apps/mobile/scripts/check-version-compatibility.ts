@@ -1,6 +1,6 @@
 // SQL real en Postgres descartable: no modifica Supabase ni cuentas reales.
 import assert from 'node:assert/strict'
-import { readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { onlineFixture, ids } from './online-fixture'
 
 const f = await onlineFixture(), { db } = f
@@ -59,6 +59,7 @@ try {
   const result = { scope: 'Postgres descartable, contrato v1', admitted: true, retiredDirectRestRejected: true,
     omittedHeadersRejected: true, getRpcRejected: true, policyPrivate: true, unavailableReplacementCannotRetire: true,
     activeGameCanFinish: true, prizesNotDuplicated: true, syncRecoveryAllowed: true, updatePreservesSessionBinding: true }
+  await mkdir('android/generated', { recursive: true })
   await writeFile('android/generated/android-17-version-sql.json', JSON.stringify(result, null, 2))
   console.log(JSON.stringify(result))
 } finally { await db.close() }
