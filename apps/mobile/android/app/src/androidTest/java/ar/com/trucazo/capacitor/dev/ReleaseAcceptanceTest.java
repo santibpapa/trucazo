@@ -57,7 +57,8 @@ public class ReleaseAcceptanceTest {
         return value.get();
     }
     private String execute(String script) throws Exception {
-        evaluate("window.__acceptanceResult=null;Promise.resolve().then(()=> (" + script + ")).then(value=>window.__acceptanceResult={value},()=>window.__acceptanceResult={error:'Falló el recorrido'});void 0");
+        evaluate("window.__acceptanceResult=null;void 0");
+        evaluate("Promise.resolve().then(()=> (0,eval)(" + JSONObject.quote(script) + ")).then(value=>window.__acceptanceResult={value},error=>window.__acceptanceResult={error:'Falló el recorrido ('+error.name+')'});void 0");
         for (int i = 0; i < 600; i++) {
             String result = evaluate("JSON.stringify(window.__acceptanceResult)");
             Object parsed = new JSONTokener(result).nextValue();

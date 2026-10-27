@@ -99,7 +99,7 @@ export default function OfflineGame({ campaign, busy, onAction, onLeave, onRepla
       </FinishScreen>
     </div>
   }
-  return <div id="table" className="h-dvh">
+  return <div id="table">
     <GameTable game={{ ...g, bet: 0 }} currentUserId={owner} opponentId={g.player2_id}
       myUsername={myUsername} opponentUsername={rival.display_name} myScore={g.player1_score} opponentScore={g.player2_score}
       isMano={g.mano_player === owner} isMyTurn={!g.awaiting_deal && g.current_turn === owner} meActive={actions.length > 0 && !g.awaiting_deal}

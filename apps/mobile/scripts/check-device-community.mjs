@@ -7,18 +7,24 @@ import { createClient } from '@supabase/supabase-js'
 import nextEnv from '@next/env'
 import { loadQaAccounts } from './qa-accounts.mjs'
 import { deviceCDP } from './device-cdp.mjs'
+import { releaseDevice } from './release-device.mjs'
+import { releaseQaLogin } from './release-qa-login.mjs'
 nextEnv.loadEnvConfig(process.cwd())
 const saved = await loadQaAccounts(), qa = [...saved.accounts, saved.registrationAccount]
 const origin = process.env.ANDROID_QA_WEB_ORIGIN || 'http://localhost:3002'
-const c = await deviceCDP(), clients = [], browser = await chromium.launch({ executablePath: process.env.PWA_BROWSER_EXECUTABLE, headless: true })
-const report = { scope: 'APK Android 11/WebView 133 + web Next local + Supabase real; sólo QA1/QA3; sin chat público ni campañas', routes: [], flows: [] }
+const release = process.argv.includes('--release-device')
+const c = release ? await releaseDevice({ serial: process.env.ANDROID_QA_SERIAL, port: 9239 }) : await deviceCDP()
+if (release) await releaseQaLogin(3, false, c)
+const clients = [], browser = await chromium.launch({ executablePath: process.env.PWA_BROWSER_EXECUTABLE, headless: true })
+const prefix = release ? 'android-17-community-release20' : 'android-11-real'
+const report = { scope: release ? 'APK20 Android11/WebView133 y web pública HTTPS; Supabase real; sólo QA1/QA3, sin chat público/campañas' : 'APK Android 11/WebView 133 + web Next local + Supabase real; sólo QA1/QA3; sin chat público ni campañas', routes: [], flows: [] }
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms))
 async function wait(test) { for (let i = 0; i < 160; i++) { const result = await test(); if (result) return result; await pause(200) } throw Error('No llegó el estado esperado') }
 const text = () => c.evaluate('document.body.innerText')
-async function go(route, expected) { await c.evaluate(`if(location.hash===${JSON.stringify('#' + route)})window.dispatchEvent(new Event('mobile:refresh'));else location.hash=${JSON.stringify('#' + route)}`); await pause(350); if (expected) await wait(async () => (await text()).toLowerCase().includes(expected.toLowerCase())) }
+async function go(route, expected) { await c.evaluate(`if(location.hash===${JSON.stringify('#' + route)})window.dispatchEvent(new Event('mobile:refresh'));else location.hash=${JSON.stringify('#' + route)}`); await pause(350); if (route === '/comunidad' && expected?.toLowerCase() === 'mis amigos') await click('Amigos'); if (expected) await wait(async () => (await text()).toLowerCase().includes(expected.toLowerCase())) }
 async function click(label) { await wait(() => c.evaluate(`(()=>{const b=Array.from(document.querySelectorAll('button')).find(b=>(b.getAttribute('aria-label')||b.textContent.trim())===${JSON.stringify(label)}&&!b.disabled&&b.getBoundingClientRect().width);if(!b)return false;b.click();return true})()`)) }
 async function fill(selector, value) { assert.ok(await c.evaluate(`(()=>{const input=document.querySelector(${JSON.stringify(selector)});if(!input)return false;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(value)});input.dispatchEvent(new Event('input',{bubbles:true}));return true})()`)) }
-async function shot(name) { await writeFile('android/generated/android-11-real-' + name + '.png', Buffer.from((await c.send('Page.captureScreenshot', { format: 'png' })).data, 'base64')) }
+async function shot(name) { await writeFile('android/generated/' + prefix + '-' + name + '.png', Buffer.from((await c.send('Page.captureScreenshot', { format: 'png' })).data, 'base64')) }
 async function clientFor(account) {
   const client = createClient(saved.projectUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
   assert.equal((await client.auth.signInWithPassword({ email: account.email, password: account.password })).error, null)
@@ -39,11 +45,15 @@ try {
   await wait(async () => (await state(b)).incoming.some(f => f.username === qa[2].username))
   await page.reload(); await page.getByRole('button', { name: 'Aceptar', exact: true }).click()
   await wait(async () => (await state(a)).friends.some(f => f.username === qa[0].username))
+  report.friendshipId = (await state(a)).friends.find(f => f.user_id === qa[0].id).friendship_id
+  await writeFile('android/generated/' + prefix + '-progress.json', JSON.stringify(report, null, 2))
   await go('/lobby', 'Mesas disponibles'); await go('/comunidad', qa[0].username)
   await wait(async () => (await text()).includes('Conectado')); await shot('friends')
   report.flows.push('amistad APK QA3 → web QA1, aceptación y presencia real')
-  await click('Grupo'); await fill('input[placeholder="Nombre del grupo"]', 'ANDROID-11 QA privado'); await click('Crear grupo')
+  await click('Grupo'); await fill('input[placeholder="Nombre del grupo"]', release ? 'ANDROID-17 QA privado' : 'ANDROID-11 QA privado'); await click('Crear grupo')
   await wait(async () => (await text()).includes('1/20 integrantes')); await click('Invitar')
+  report.createdGroupId = (await state(a)).group.id
+  await writeFile('android/generated/' + prefix + '-progress.json', JSON.stringify(report, null, 2))
   await wait(async () => (await state(b)).group_invites_in.length === 1)
   await page.reload(); await page.getByRole('button', { name: /^Grupo/ }).click(); await page.getByRole('button', { name: 'Unirme', exact: true }).click()
   await wait(async () => (await state(a)).group?.members.length === 2)
@@ -82,5 +92,5 @@ try {
   await click('Cancelar'); await wait(async () => (await text()).includes('Mesas disponibles'))
   await go('/comunidad', qa[0].username); await click('Quitar a ' + qa[0].username); await click('¿Quitar?'); await wait(async () => !(await state(a)).friends.some(f => f.user_id === qa[0].id))
   await go('/lobby', 'Mesas disponibles')
-  await writeFile('android/generated/android-11-real.json', JSON.stringify(report, null, 2)); console.log('OK', report.flows, report.routes.length + ' rutas')
-} finally { c.close(); await browser.close(); for (const client of clients) await client.auth.signOut({ scope: 'local' }) }
+  await writeFile('android/generated/' + prefix + '.json', JSON.stringify(report, null, 2)); console.log('OK', report.flows, report.routes.length + ' rutas')
+} finally { await c.close(); await browser.close(); for (const client of clients) await client.auth.signOut({ scope: 'local' }) }

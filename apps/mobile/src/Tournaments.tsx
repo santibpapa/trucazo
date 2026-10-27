@@ -31,7 +31,7 @@ async function loadScreen(path: string, owner: string): Promise<ReactElement> {
     const { data, error } = await client.rpc('tournament_spectator_snapshot', { p_match_id: parts[4] })
     const snapshot = data as SpectatorSnapshot | null
     if (error || !snapshot || snapshot.tournament_id !== id) throw new Error('Esta partida no está disponible para espectadores.')
-    return <main className="mx-auto flex h-dvh w-full max-w-3xl flex-col px-3 py-3 sm:px-4"><Link href={`/torneos/${id}`} className="text-sm font-semibold text-gold">← Volver al torneo</Link><SpectatorClient initial={snapshot} /></main>
+    return <main className="mx-auto flex w-full max-w-3xl flex-col px-3 py-3 sm:px-4" style={{ height: 'calc(100dvh - var(--safe-area-inset-top, env(safe-area-inset-top)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom)))' }}><Link href={`/torneos/${id}`} className="text-sm font-semibold text-gold">← Volver al torneo</Link><SpectatorClient initial={snapshot} /></main>
   }
   const [detail, entry] = await Promise.all([api.detail(id), admin ? Promise.resolve({ data: null, error: null }) : api.myEntry(id)])
   if (detail.error || !detail.data || entry.error) throw new Error('No pudimos abrir el torneo. Reintentá en un momento.')

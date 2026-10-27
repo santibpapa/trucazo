@@ -10,10 +10,13 @@ import { tournamentFixture } from './tournament-fixture.ts'
 import { deviceCDP } from './device-cdp.mjs'
 process.chdir(fileURLToPath(new URL('../../..', import.meta.url)))
 const native = process.argv.includes('--device'), f = await tournamentFixture()
+const evidencePrefix = process.env.ANDROID_TOURNAMENT_REPORT_PREFIX || 'android-10'
+const packed = JSON.parse(await readFile('apps/mobile/dist/build-info.json', 'utf8'))
 const qa = ['b00d207b-8d36-4b59-8479-346b91ce762d', 'ebf2c130-304d-431f-9754-110715ca2892', '2c9dd1e8-a39b-41e7-af2a-f67502691795']
 const admin = 'a0100000-0000-4000-a000-000000000000'
 const people = [qa[2], qa[0], ...Array.from({ length: 14 }, (_, i) => 'a0100000-0000-4000-a000-' + String(i + 1).padStart(12, '0'))]
 const errors = [], calls = [], contexts = [], report = { scope: 'UI empaquetada + SQL PGlite; Auth/PostgREST/WebSocket simulados; sin servidor real de torneos', native, tournaments: [] }
+report.build = { version: packed.version, versionCode: packed.versionCode }
 const user = id => ({ id, email: id + '@fixture.invalid', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, is_anonymous: false, created_at: new Date().toISOString() })
 let c, browser
 const server = createServer(async (req, res) => {
@@ -27,7 +30,7 @@ async function rest(url, body, owner, headers = {}) {
   const name = url.pathname.split('/').at(-1)
   if (url.pathname.includes('/rpc/')) {
     calls.push({ owner, name })
-    if (name === 'app_compatibility') return { compatible: true, versionCode: 19, minimumCode: 17, updateUrl: null, contract: 'trucazo-online-v1', serverNow: Date.now(), activeGameId: null, activeTeamId: null }
+    if (name === 'app_compatibility') return { compatible: true, versionCode: packed.versionCode, minimumCode: 17, updateUrl: null, contract: 'trucazo-online-v1', serverNow: Date.now(), activeGameId: null, activeTeamId: null }
     if (name === 'active_medal_for') return 'ninguno'
     if (name === 'get_community') return { friends: [], incoming: [], outgoing: [], invites_in: [], invite_out: null, group: null, group_invites_in: [] }
     if (['touch_online', 'touch_last_seen', 'get_my_objectives', 'ensure_lobby_tables', 'touch_presence'].includes(name)) return null
@@ -76,7 +79,7 @@ async function click(page, name) {
   await wait(() => c.evaluate(`(()=>{const b=Array.from(document.querySelectorAll('button')).find(b=>(b.getAttribute('aria-label')||b.textContent.trim())===${JSON.stringify(name)}&&!b.disabled);if(!b)return false;b.click();return true})()`))
 }
 async function shot(page, name) {
-  const file = 'android/generated/android-10-' + (native ? 'native-' : '') + name + '.png'
+  const file = 'android/generated/' + evidencePrefix + '-' + (native ? 'native-' : '') + name + '.png'
   if (page === c) await writeFile(file, Buffer.from((await c.send('Page.captureScreenshot', { format: 'png' })).data, 'base64'))
   else await page.screenshot({ path: file })
 }
@@ -219,7 +222,17 @@ try {
       assert.ok(view.cards.every(card => card.bottom <= view.height && card.right <= view.width && card.x >= 0), JSON.stringify(view))
       await shot(A, mode + '-spectator-' + view.width + 'x' + view.height)
     }
-    if (!native) await A.setViewportSize({ width: 360, height: 568 })
+    if (!native) {
+      await A.setViewportSize({ width: 360, height: 820 })
+      await A.evaluate(() => { document.documentElement.style.setProperty('--safe-area-inset-top','34px'); document.documentElement.style.setProperty('--safe-area-inset-bottom','47px'); document.body.style.paddingTop='34px' })
+      const safe = await A.evaluate(geometry)
+      assert.equal(safe.scroll, safe.height, 'Espectador sin scroll entre barras Android simuladas34/47')
+      assert.ok(safe.cards.every(card=>card.y>=34&&card.bottom<=820-47), 'Cartas dentro de las barras Android simuladas')
+      await shot(A, mode + '-spectator-safe-area')
+      report.spectatorSafeArea = {top:34,bottom:47,bodyTopPadding:34,simulated:true}
+      await A.evaluate(() => { document.documentElement.style.removeProperty('--safe-area-inset-top'); document.documentElement.style.removeProperty('--safe-area-inset-bottom'); document.body.style.removeProperty('padding-top') })
+      await A.setViewportSize({ width: 360, height: 568 })
+    }
     await go(A, '/torneos/' + t.id); await wait(() => has(A, 'Ir a la partida')); await go(A, gamePath); await wait(() => has(A, 'Abandonar partida'))
     await finishMatches(t.id)
     await refresh(A); await wait(() => has(A, 'Volver al torneo')); await shot(A, mode + '-result')
@@ -259,7 +272,7 @@ try {
     await wait(() => has(A, 'Avisos de torneos'))
   }
   assert.deepEqual(errors, []); report.admin = true; report.rescheduleCancel = true; report.calls = calls.length
-  await writeFile('android/generated/android-10-' + (native ? 'native' : 'browser') + '.json', JSON.stringify(report, null, 2))
+  await writeFile('android/generated/' + evidencePrefix + '-' + (native ? 'native' : 'browser') + '.json', JSON.stringify(report, null, 2))
   console.log('OK torneos 1v1/2v2, inscripción/equipo, espera/check-in, pausa, mesas/reingreso, espectador privado, cierre/premio, avisos y rol.', report.tournaments.map(t => ({ mode: t.mode, id: t.id, awards: t.awards.length })))
 } catch (error) {
   if (c) console.log('APK:', await c.evaluate('({route:location.hash,text:document.body.innerText})'))

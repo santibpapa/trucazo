@@ -6,11 +6,14 @@ import { writeFile } from 'node:fs/promises'
 import { createClient } from '@supabase/supabase-js'
 import nextEnv from '@next/env'
 import { loadQaAccounts } from './qa-accounts.mjs'
-import { connectReleaseDevice } from './release-device.mjs'
+import { connectReleaseDevice, releaseDevice } from './release-device.mjs'
+import { releaseQaLogin } from './release-qa-login.mjs'
 
 nextEnv.loadEnvConfig(process.cwd())
 const saved = await loadQaAccounts(), accounts = [...saved.accounts, saved.registrationAccount]
-const clients = [], c = await connectReleaseDevice(), sleep = ms => new Promise(r => setTimeout(r, ms))
+const isolated = process.argv.includes('--isolated-device'), complete = process.argv.includes('--finish-points')
+const clients = [], c = isolated ? await releaseDevice({ serial: process.env.ANDROID_QA_SERIAL, port: 9239 }) : await connectReleaseDevice(), sleep = ms => new Promise(r => setTimeout(r, ms))
+if (isolated) await releaseQaLogin(1, false, c)
 const build = await c.evaluate("fetch('/build-info.json').then(r=>r.json()).then(({version,versionCode})=>({version,versionCode}))")
 const deviceTag = process.env.ANDROID_QA_SERIAL?.startsWith('emulator-') ? 'emulator' : 'phone'
 const wait = async fn => { for (let i = 0; i < 120; i++) { const value = await fn(); if (value) return value; await sleep(150) } throw Error('La mesa de parejas no llegó al estado esperado') }
@@ -46,7 +49,7 @@ try {
   const safeArea = await c.evaluate(`(()=>{const e=document.createElement('div');e.style.padding='var(--safe-area-inset-top,env(safe-area-inset-top)) 0 var(--safe-area-inset-bottom,env(safe-area-inset-bottom))';document.body.append(e);const s=getComputedStyle(e),top=parseFloat(s.paddingTop),bottom=parseFloat(s.paddingBottom);e.remove();return {top,bottom,headerTop:document.querySelector('[aria-label="Trucazo"]').getBoundingClientRect().top}})()`)
   assert.ok(safeArea.headerTop >= safeArea.top)
   assert.ok(layout.buttons.every(b => b.rect.top >= safeArea.top && b.rect.bottom <= layout.height - safeArea.bottom))
-  await writeFile('android/generated/android-17-' + deviceTag + '-team-long-options-' + build.versionCode + '.png', execFileSync(process.env.ADB, ['-s', process.env.ANDROID_QA_SERIAL, 'exec-out', 'screencap', '-p']))
+  await writeFile('android/generated/android-17-' + deviceTag + '-team-' + (complete ? 'complete-' : '') + 'long-options-' + build.versionCode + '.png', execFileSync(process.env.ADB, ['-s', process.env.ANDROID_QA_SERIAL, 'exec-out', 'screencap', '-p']))
   await c.evaluate(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent.trim()==='Quiero'&&!b.disabled).click()`)
   await wait(async () => (await snap()).game.truco.status === 'accepted')
   const rival = await snap(1)
@@ -54,17 +57,42 @@ try {
   await wait(() => c.evaluate(`(()=>{const b=Array.from(document.querySelectorAll('button')).find(b=>b.getAttribute('aria-label')?.startsWith('Jugar ')&&!b.disabled);if(!b)return false;b.click();return true})()`))
   await wait(async () => (await snap()).game.played.length >= 2)
   const played = (await snap()).game.played.length
-  await action(0, 'forfeit')
+  if (complete) {
+    const labels = { falta_envido: 'Falta Envido', envido_yes: 'Quiero', truco_yes: 'Quiero', truco: 'Truco', envido: 'Envido' }
+    for (let step = 0; step < 600; step++) {
+      const current = await snap()
+      if (current.table.status === 'finished') break
+      const actor = current.members.find(m => m.seat === current.actor)
+      const n = accounts.findIndex(a => a.id === actor?.user_id)
+      if (current.game.awaiting_deal || current.actor_is_bot || n < 0) {
+        await action(0, 'tick'); await sleep(350); continue
+      }
+      const own = await snap(n)
+      const key = ['falta_envido', 'envido_yes', 'truco_yes', 'tengo', 'play', 'truco', 'envido'].find(a => own.legal.includes(a))
+      if (!key) { await sleep(150); continue }
+      const card = key === 'play' ? [...own.hand].sort((a,b) => a.rank-b.rank)[0] : null
+      if (n === 0) {
+        const clicked = await c.evaluate(`(()=>{const b=Array.from(document.querySelectorAll('button')).find(b=>!b.disabled&&${key === 'play' ? 'b.getAttribute("aria-label")===' + JSON.stringify('Jugar '+card.value+' de '+card.suit) : key === 'tengo' ? '/^Tengo [0-9]+/.test(b.textContent.trim())' : 'b.textContent.trim()===' + JSON.stringify(labels[key])});if(!b)return false;b.click();return true})()`)
+        if (clicked) await wait(async () => (await snap()).table.version > own.table.version)
+        else await sleep(150)
+      } else await action(n, key, card ? { p_card: card } : {})
+      if (step === 599) throw Error('La partida no terminó por puntos')
+    }
+  } else await action(0, 'forfeit')
   const finished = await snap(), after = await balances()
+  if (complete) { assert.equal(finished.table.status, 'finished'); assert.ok(finished.game.scores.some(s=>s>=30)); assert.notEqual(finished.game.finish_reason, 'forfeit') }
   await action(0, 'forfeit'); assert.deepEqual(await balances(), after)
   await wait(() => c.evaluate('document.body.innerText.includes("Volver al lobby")'))
   const report = { scope: 'Release instalado, Supabase HTTPS real, tres QA y bot en mesa privada', build, safeArea, device: deviceTag, serial: process.env.ANDROID_QA_SERIAL, id, target: 30,
     ownHandOnly: true, longTrucoOptionsInScreen: true, viewportHeight: layout.height, playedFromNative: true, playedCards: played,
     finished: finished.table.status, finishReason: finished.game.finish_reason, before, after, noDuplicatePayout: true }
-  await writeFile('android/generated/android-17-' + deviceTag + '-team-real-' + build.versionCode + '.json', JSON.stringify(report, null, 2))
+  report.completedByPoints = complete
+  if (complete) report.scores = finished.game.scores
+  await writeFile('android/generated/android-17-' + deviceTag + '-team-' + (complete ? 'complete-' : '') + 'real-' + build.versionCode + '.json', JSON.stringify(report, null, 2))
   console.log(JSON.stringify(report))
 } finally {
   if (id) { const state = await snap().catch(() => null); if (state?.table.status === 'waiting') await action(0, 'leave').catch(() => {}); else if (state?.table.status === 'playing') await action(0, 'forfeit').catch(() => {}) }
   await c.evaluate("location.hash='#/lobby'").catch(() => {})
   for (const sdk of clients) await sdk.auth.signOut({ scope: 'local' })
+  if (isolated) await c.close()
 }

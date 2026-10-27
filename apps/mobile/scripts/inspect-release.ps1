@@ -1,6 +1,7 @@
 param(
     [string]$Apk = 'apps/mobile/android/app/build/outputs/apk/release/app-release.apk',
     [string]$Aab = 'apps/mobile/android/app/build/outputs/bundle/release/app-release.aab',
+    [string]$Report = '',
     [Parameter(Mandatory=$true)][string]$Package,
     [Parameter(Mandatory=$true)][string]$CertificateSha256
 )
@@ -12,6 +13,10 @@ $taskApk = (Resolve-Path -LiteralPath $Apk).Path
 $taskAab = (Resolve-Path -LiteralPath $Aab).Path
 $taskBadging = @(& (Join-Path $taskTools 'aapt.exe') dump badging $taskApk)
 if ($LASTEXITCODE -ne 0 -or -not ($taskBadging -match "^package: name='$([regex]::Escape($Package))'")) { throw 'Paquete inesperado.' }
+if (-not $Report) {
+    $taskReportCode = [regex]::Match(($taskBadging -join "`n"), "versionCode='(\d+)'").Groups[1].Value
+    $Report = "android/generated/android-release-code-$taskReportCode-inventory.json"
+}
 if ($taskBadging -match '^application-debuggable') { throw 'El candidato permite debug.' }
 $taskCert = @(& java -jar (Join-Path $taskTools 'lib/apksigner.jar') verify --print-certs $taskApk)
 if ($LASTEXITCODE -ne 0 -or -not (($taskCert | Out-String).ToLower().Contains($CertificateSha256.Replace(':','').ToLower()))) { throw 'Firma APK incorrecta.' }
@@ -87,5 +92,5 @@ $taskReport = [ordered]@{
     certificateSha256=$CertificateSha256; badging=@($taskBadging | Where-Object { $_ -match '^package:|^sdkVersion:|^targetSdkVersion:|^uses-permission|^native-code:' })
     nativeLibraries=$taskLibraries; alignment16KB=$true; bundleAlignment=$taskBundleAlignment; scannedEntries=$taskScanned; privateCredentialMatches=0; debuggable=$false; apiOrigin='https://www.trucazo.com.ar'
 }
-$taskReport | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath 'android/generated/android-16-release-inventory.json' -Encoding utf8
+$taskReport | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $Report -Encoding utf8
 $taskReport | ConvertTo-Json -Depth 8
