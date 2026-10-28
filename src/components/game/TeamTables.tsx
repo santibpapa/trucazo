@@ -53,8 +53,7 @@ export default function TeamTables({ onPlayUnavailable }: { onPlayUnavailable?: 
     </Panel>)}
     <div className="grid gap-3 sm:grid-cols-2">
       {data.tables.filter(t => !data.mine.some(m => m.id === t.id)).map(t => <Panel key={t.id} className="p-4 flex flex-col gap-3">
-        <div className="flex justify-between gap-2"><p className="font-semibold text-cream truncate">{t.name}</p><span className="text-sm text-muted shrink-0">{t.occupied}/4</span></div>
-        <SafetyActions kind="team_table" target={t.id} label="Denunciar mesa" />
+        <div className="flex items-center justify-between gap-2"><p className="font-semibold text-cream truncate">{t.name}</p><div className="flex shrink-0 items-center gap-1"><span className="text-sm text-muted">{t.occupied}/4</span><SafetyActions kind="team_table" target={t.id} label="Denunciar mesa" /></div></div>
         <p className="text-sm text-subtle">A {t.target_score} · {t.time_limit} segundos por turno</p>
         <div className="flex justify-between items-center"><Coins amount={t.bet} size="sm" /><Button size="sm" disabled={busy || t.occupied >= 4} onClick={() => { void join(t.id) }}>Elegir asiento</Button></div>
       </Panel>)}
