@@ -9,6 +9,7 @@ export default function CommunityDialog({ title, onClose, children }: { title: s
   const close = useRef(onClose)
   close.current = onClose
   const overlay = useRef<HTMLDivElement>(null)
+  const portalRoot = useRef(document.activeElement?.closest('dialog[open]') ?? document.body)
   useDialog(overlay, true, onClose)
   useEffect(() => {
     const dismiss = () => close.current()
@@ -19,5 +20,5 @@ export default function CommunityDialog({ title, onClose, children }: { title: s
     <Panel role="dialog" aria-modal="true" aria-label={title} className="w-full max-w-md max-h-[90dvh] overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
       <div className="flex flex-col gap-2">{children}</div>
     </Panel>
-  </div>, document.body)
+  </div>, portalRoot.current)
 }
