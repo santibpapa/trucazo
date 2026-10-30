@@ -4,6 +4,7 @@
 
 ## Estado actual
 
+- **Producción web = `master` otra vez, 30/10:** del 27 al 30/10 Vercel publicó desde la rama Android (`575bedc`, después `8e90f9d`). El [PR #147](https://github.com/santibpapa/trucazo/pull/147) integra esa rama a `master`. Nunca volver a publicar producción desde otra rama: ver [AGENTS.md](../AGENTS.md).
 - **Controles discretos publicados,27/10:** web en `8e90f9d`, tres puntos en chats/mesas, opciones utilizables dentro de la ventana del chat y serviciosAndroid conservados. [Registro de publicación](#controles-discretos-2026-10-27).
 
 - **Aviso de seguridad de Node, 21/10:** repo actualizado mediante PR #141, pruebas aprobadas con Node 24.22.1 y publicación final correcta. **El servidor público sigue ejecutando 24.21.0**, comprobado a las 11:57 de Argentina; el parche nativo queda pendiente de Vercel. Ver [evidencia y siguiente paso](#node-seguridad-2026-10-21).
