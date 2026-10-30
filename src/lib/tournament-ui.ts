@@ -65,6 +65,20 @@ export function formatTournamentDate(iso: string): string {
   return `${argentinaDateTime.format(date).replace(/\u202f|\u00a0/g, ' ')} hs`
 }
 
+const argentinaTime = new Intl.DateTimeFormat('es-AR', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: ARGENTINA_TZ,
+})
+
+/** Sólo la hora en Argentina, por ejemplo "19:30". */
+export function formatTournamentTime(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  return argentinaTime.format(date).replace(/\u202f|\u00a0/g, ' ')
+}
+
 export function isoToArgentinaInput(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''

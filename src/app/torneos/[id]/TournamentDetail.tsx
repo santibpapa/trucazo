@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Alert, Avatar, Button, Input, Panel } from '@/components/ui'
+import CheckInNotice from '@/components/tournaments/CheckInNotice'
 import Competition from '@/components/tournaments/Competition'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -48,6 +49,8 @@ export default function TournamentDetail({
   const [now, setNow] = useState(initialNow)
   const [enteringMatchId, setEnteringMatchId] = useState<string | null>(null)
   const [waitingMatchId, setWaitingMatchId] = useState<string | null>(null)
+  // Inscripción esperando que la persona lea y acepte el aviso del check-in.
+  const [notice, setNotice] = useState<'register' | 'invite' | 'accept' | null>(null)
 
   const refresh = useCallback(async (quiet = true) => {
     if (document.visibilityState === 'hidden') return
@@ -253,12 +256,31 @@ export default function TournamentDetail({
             partnerName={partnerName}
             busy={busy}
             onPartnerNameChange={setPartnerName}
-            onRegister={() => void registerSolo()}
-            onInvite={() => void invitePartner()}
-            onAccept={() => respondInvitation(true)}
+            onRegister={() => setNotice('register')}
+            onInvite={() => {
+              if (myMember?.status === 'accepted') void invitePartner()
+              else if (!partnerName.trim()) setError('Escribí el nombre de usuario de tu compañero.')
+              else setNotice('invite')
+            }}
+            onAccept={() => setNotice('accept')}
             onReject={() => respondInvitation(false)}
             onWithdraw={withdraw}
             onCheckIn={() => void checkIn()}
+          />
+
+          <CheckInNotice
+            open={notice !== null}
+            mode={tournament.mode}
+            startsAt={tournament.starts_at}
+            busy={busy !== null}
+            onClose={() => setNotice(null)}
+            onConfirm={() => {
+              const action = notice
+              setNotice(null)
+              if (action === 'register') void registerSolo()
+              else if (action === 'invite') void invitePartner()
+              else if (action === 'accept') respondInvitation(true)
+            }}
           />
 
           <Roster title="Participantes confirmados" empty="Todavía no hay inscriptos." entries={detail.participants} />
