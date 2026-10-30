@@ -21,6 +21,7 @@ import {
   type TournamentFormat,
   type TournamentMode,
 } from '@/lib/tournaments'
+import BotFillCheckbox from './BotFillCheckbox'
 
 interface FormState {
   name: string
@@ -33,9 +34,16 @@ interface FormState {
   prizeSecond: string
   prizeThird: string
   startsAt: string
+  botFill: boolean
 }
 
-export default function TournamentForm({ initialTournament }: { initialTournament?: Tournament }) {
+export default function TournamentForm({
+  initialTournament,
+  initialBotFill = false,
+}: {
+  initialTournament?: Tournament
+  initialBotFill?: boolean
+}) {
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const api = useMemo(() => tournamentApi(supabase), [supabase])
@@ -51,6 +59,7 @@ export default function TournamentForm({ initialTournament }: { initialTournamen
     prizeSecond: String(initialTournament.prize_second),
     prizeThird: String(initialTournament.prize_third),
     startsAt: isoToArgentinaInput(initialTournament.starts_at),
+    botFill: initialBotFill,
   } : {
     name: '',
     description: '',
@@ -62,6 +71,7 @@ export default function TournamentForm({ initialTournament }: { initialTournamen
     prizeSecond: '0',
     prizeThird: '0',
     startsAt: defaultTournamentStart(),
+    botFill: false,
   })
   const [busy, setBusy] = useState<'draft' | 'publish' | 'cancel' | null>(null)
   const [error, setError] = useState('')
@@ -140,6 +150,8 @@ export default function TournamentForm({ initialTournament }: { initialTournamen
         setBusy(null)
         return
       }
+      // Si falla, el torneo queda sin bots y la casilla aparece destildada al abrirlo.
+      if (form.mode === '1v1' && form.botFill) await api.adminSetBotFill(created.id, true)
       router.push(`/admin/torneos/${created.id}`)
       router.refresh()
       return
@@ -150,6 +162,15 @@ export default function TournamentForm({ initialTournament }: { initialTournamen
       setError(friendlyAdminError(updateResult.error.message))
       setBusy(null)
       return
+    }
+    const botFill = form.mode === '1v1' && form.botFill
+    if (botFill !== initialBotFill) {
+      const botFillResult = await api.adminSetBotFill(initialTournament.id, botFill)
+      if (botFillResult.error) {
+        setError(friendlyAdminError(botFillResult.error.message))
+        setBusy(null)
+        return
+      }
     }
     if (publish) {
       const publishResult = await api.adminPublish(crypto.randomUUID(), initialTournament.id)
@@ -266,6 +287,13 @@ export default function TournamentForm({ initialTournament }: { initialTournamen
             onChange={event => setForm(current => ({ ...current, startsAt: event.target.value }))}
             required
           />
+
+          {form.mode === '1v1' && (
+            <BotFillCheckbox
+              checked={form.botFill}
+              onChange={botFill => setForm(current => ({ ...current, botFill }))}
+            />
+          )}
 
           <fieldset>
             <legend className="text-sm font-medium text-muted">Monedas por jugador</legend>
