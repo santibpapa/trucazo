@@ -120,6 +120,23 @@ El dueño del proyecto **no escribe código**: define el qué y el por qué, no 
   continente: medido, con las funciones en Washington el HTML del lobby tardaba
   3 segundos en llegar; con las dos en São Paulo, 523 ms.
 
+## Web y app Android: un solo servidor, dos pantallas
+Guía completa y ejemplos: [Cómo llegan los cambios](docs/android.md#como-llegan-los-cambios).
+- **Producción web = `master`.** Vercel publica solo cada merge a `master`. Nunca
+  publicar producción desde otra rama ni con la CLI de Vercel; para probar, usar la
+  preview del PR. (Hasta el 30/10/2026 la web salía de la rama Android: no repetirlo.)
+- **Supabase y los servicios web que usa la app** (`src/app/api/android`, `community`,
+  `account`, `uploads`, `analytics`) atienden a la vez a la web y a **todas las
+  versiones de la app instaladas**, que se actualizan cuando cada persona quiere. Todo
+  cambio debe seguir funcionando para la versión mínima admitida
+  (`app_compatibility.policy.minimum_code`). Agregar en vez de renombrar o borrar:
+  función nueva, parámetro opcional, campo nuevo en la respuesta.
+- **Las pantallas de la app son las de `src/`**: `apps/mobile` las importa. Un cambio de
+  pantalla web entra en el próximo APK; el workflow «Android Capacitor» lo verifica en
+  cada PR que toca `src/`. Lo que es sólo de la app va por props opcionales que dejan
+  la web igual.
+- En cada PR, decir en la descripción si **necesita versión nueva de la app** (sí/no).
+
 ## Diseño y estética
 Prioridad alta: todo pulido y simple de entender. UI limpia, sin texto denso.
 - La partida debe entrar completa en una sola pantalla, sin deslizar. Adaptar

@@ -6,11 +6,18 @@ Truco argentino online a **15 o 30 puntos, sin flor y con monedas ficticias**. I
 
 <a id="estado-actual"></a>
 
-## En qué estamos
+## En qué estamos — 30/10/2026
 
-**Android: ANDROID-01 a17 cerradas.** La aceptación de17 corresponde a **0.17.4/código22**; [acta y último traspaso](docs/android.md#android-17-traspaso-2026-10-27). Después se agregó el [menú principal](docs/android.md#android-menu-principal), candidato firmado **0.17.6/código24**, con Campaña, Multijugador, Ajustes y Salir, botones ilustrados y sin indicador de conexión. Próxima etapa: **ANDROID-18**, todavía sin iniciar; leer primero esa adaptación y comprobar servidor, guardados y candidato24 antes de revisar Play Console. Producción web `8e90f9d` (parche visual sobre la base compatible `575bedc`), firma y contratos conservados. Email y push público apagados; nada publicado en Play.
+- **Web:** [www.trucazo.com.ar](https://www.trucazo.com.ar), con Next.js 15. **Lo publicado es siempre `master`:** Vercel publica solo cada merge. Del 27 al 30/10 la web salió de la rama Android; desde la integración del 30/10, `master` volvió a ser igual a producción.
+- **App Android** (`apps/mobile`, Capacitor): etapas ANDROID-01 a 17 cerradas, más el menú principal (Modo Campaña, Multijugador, Ajustes y Salir). Último candidato firmado: **0.17.6 / código 24**, probado en emuladores; falta probar el menú en un teléfono. **Nada publicado en Play.** Confirmación de email y notificaciones públicas, apagadas. Próximo paso: **ANDROID-18** (Play Console, ficha y canal interno). [Estado y último traspaso](docs/android.md#android-estado-actual).
+- **Un servidor para la web y la app:** todo cambio en Supabase o en los servicios web tiene que seguir funcionando para las apps ya instaladas. [Guía práctica de cómo llegan los cambios](docs/android.md#como-llegan-los-cambios).
+- **Vidas de Historia:** programadas pero **apagadas** desde el 19/10. Los jugadores no ven nada ni pierden vidas. AdSense sigue «preparando el sitio» (30/10), y su aprobación sola no alcanza: los anuncios con premio necesitan una cuenta de Google Ad Manager con un bloque configurado. [Reglas y cómo activarlas](docs/juego.md#vidas-de-historia).
+- **Reseñas de jugadores:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118).
 
-**Sincronización local del 21/10:** GitHub incorporado hasta `38002ae` (PR #141), conservando las etapas Android y Next.js 15. Invitaciones, mejoras de chat/lobby, recuperación de partidas y dependencias integradas. Respaldo y verificaciones en [Android](docs/android.md#android-sync-github-2026-10-21). Los APK/AAB firmados de16 son anteriores a esta integración; preparar un candidato actualizado para la aceptación de17.
+**Pendientes del dueño, fuera del código:**
+
+1. Crear la cuenta de Google Play Console (pago único de US$ 25). En cuentas personales nuevas, Google exige 12 personas probando la app durante 14 días seguidos antes de publicar: conviene ir juntándolas.
+2. Guardar una copia de la firma de la app fuera de la PC (pendrive o nube privada): la carpeta `C:\Users\santy\Desktop\proyectos\trucazo-entorno\android-signing`. Hoy sus dos copias están en la misma computadora, y sin la firma no se pueden publicar actualizaciones de la misma app.
 
 <a id="indice"></a>
 
@@ -61,7 +68,8 @@ Comprobaciones habituales: `npm run lint`, `npx tsc --noEmit` y `npm run build`.
 - El servidor decide las reglas online, puntajes y monedas. Las manos son privadas y quedan fuera de Realtime.
 - Una función SQL aplicada se corrige mediante una migración nueva. El dueño aplica el backend manualmente; no hay despliegue automático de SQL.
 - Web y Android comparten el diseño. La partida debe entrar completa en una pantalla, con todos sus controles.
-- Para modificar código, respetar las instrucciones de [AGENTS.md](AGENTS.md); [CLAUDE.md](CLAUDE.md) conserva las instrucciones del otro asistente.
+- Para modificar código, respetar las instrucciones de [AGENTS.md](AGENTS.md). [CLAUDE.md](CLAUDE.md) las importa tal cual para Claude y sólo agrega lo de The Agentcy: editar siempre AGENTS.md.
+- Producción web = `master`, y todo cambio de servidor debe servirle también a la app instalada: ver [Cómo llegan los cambios](docs/android.md#como-llegan-los-cambios).
 
 <a id="mantener-documentacion"></a>
 

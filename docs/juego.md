@@ -2410,6 +2410,12 @@ presentación: no requiere SQL ni altera el ingreso, los cobros o los asientos.
 
 ## Vidas de Historia — 18/10/2026
 
+**En corto (30/10/2026):** el código está hecho y publicado, pero **apagado**. Los
+jugadores no ven vidas ni las pierden. No hay que reprogramarlo: sólo prenderlo cuando
+haya anuncios con premio. El dueño confirmó que AdSense sigue «preparando el sitio».
+Aun aprobado, AdSense no alcanza: falta una cuenta de Google Ad Manager con un bloque
+rewarded real (ver «Para retomar más adelante», al final de esta sección).
+
 **Estado vigente — 19/10/2026:** la implementación del
 [PR #130](https://github.com/santibpapa/trucazo/pull/130) y la pausa del
 [PR #133](https://github.com/santibpapa/trucazo/pull/133) están integradas en master.

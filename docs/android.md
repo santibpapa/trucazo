@@ -26,6 +26,106 @@ Para ese trabajo consultar también [Juego](juego.md) y [Backend](backend.md). R
 
 > Comenzá ANDROID-18. 01–17 cerradas. Leé AGENTS.md, README.md, la adaptación del menú principal y el último traspaso de17 del27/10 en docs/android.md. Primero comprobá servidor, cinco guardados, tresQA y candidato firmado0.17.6/código24. Revalidá el menú en teléfono; después revisá PlayConsole y coordiná el canal interno. Conservá email y push público apagados, firma y contratos compatibles; no publiques en producciónPlay.
 
+<a id="como-llegan-los-cambios"></a>
+
+## Cómo llegan los cambios a la web y a la app — guía práctica
+
+Escrita el 30/10/2026 a partir del diseño de compatibilidad de ANDROID-17. Es la base
+del [procedimiento permanente de ANDROID-20](#android-20-actualizaciones); su ensayo
+completo por el canal de Play sigue pendiente en 18–20.
+
+**La idea en una frase:** hay una sola cocina (Supabase y los servicios de Vercel) y
+dos formas de servir. La web es una pizarra que se reescribe en cada publicación; la
+app es un menú impreso que cada jugador se lleva y cambia recién cuando actualiza.
+
+### Qué vive dónde
+
+| Pieza | Dónde corre | Cómo se publica un cambio | Cuándo lo ven los jugadores |
+| --- | --- | --- | --- |
+| Reglas, monedas, premios, partidas (SQL) | Supabase, compartido | El dueño corre una migración nueva en el SQL Editor | Al instante, en la web y en todas las apps |
+| Pantallas de la web | Vercel, `www.trucazo.com.ar` | Merge a `master`: Vercel publica solo | En la próxima carga de la página |
+| Servicios web que llama la app: `/api/android/*` (login, historia, push, preferencias, admin-emails), `/api/community/*`, `/api/account/delete`, `/api/uploads/cleanup`, `/api/analytics` | Vercel, en la misma publicación que la web | Merge a `master` | Al instante, también para apps viejas |
+| Pantallas de la app | Dentro del APK/AAB (la app importa las de `src/` y suma las suyas de `apps/mobile/src`) | Versión nueva firmada y subida a Play | Cuando cada persona actualiza: días o semanas, y algunas nunca |
+
+La carpeta `android/` y el workflow `android.yml` son del prototipo TWA de septiembre;
+la app real es `apps/mobile` (Capacitor).
+
+### La regla de oro
+
+Supabase y los servicios de Vercel tienen que seguir funcionando para **la versión de
+la app más vieja que todavía se admite** (`app_compatibility.policy.minimum_code`,
+hoy **17**). Mientras no haya nada publicado en Play, esa exigencia alcanza a los APK
+de prueba instalados (QA y teléfono del dueño); desde la primera publicación alcanza
+a jugadores reales.
+
+### Los cuatro tipos de cambio
+
+1. **Arreglo interno** (misma función, mismos parámetros, misma forma de respuesta;
+   por ejemplo, un envido mal sumado): migración nueva. Llega a todos al instante. No
+   hace falta versión nueva de la app.
+2. **Algo nuevo en el servidor:** se agrega. Función nueva, parámetro opcional con
+   valor por defecto o campo nuevo en la respuesta. Nunca renombrar, borrar ni cambiar
+   el tipo de lo existente. Las apps viejas ignoran lo que no conocen.
+3. **Cambio de pantalla:** en la web se publica con el merge. En la app entra en la
+   próxima versión: como reutiliza las pantallas de `src/`, el próximo APK lo trae
+   solo. Si es sólo para la app, va con una prop opcional cuyo valor por defecto deja
+   la web igual (así se hizo el menú principal).
+4. **Cambio que rompe, cuando no hay otra salida:** en pasos separados, sin apurarlos.
+   1. Migración que acepta lo viejo y lo nuevo a la vez.
+   2. Versión nueva de la app que usa lo nuevo, publicada y descargable en Play.
+   3. Subir la versión mínima (ver abajo). Las apps viejas pueden terminar la partida
+      en curso y sincronizar la campaña, pero no empezar otra.
+   4. Recién después, otra migración que retira lo viejo.
+
+### El freno de versión mínima
+
+Aplicado en producción el 27/10/2026 (`20261027005516_android_version_compatibility.sql`
+y `20261027013911_android_compatibility_service_role.sql`; no repetirlas). La app
+informa su código de versión al entrar. Si está por debajo del mínimo, el servidor
+rechaza crear o sumarse a mesas, pedir revancha, comprar o abrir campañas nuevas,
+aunque alguien saltee el aviso. Igual deja terminar la partida activa, sincronizar la campaña sin internet y
+leer datos, y la app muestra «Actualizá Trucazo» con el enlace a Play.
+
+Para subirlo, **sólo cuando la versión nueva ya se pueda descargar desde Play**, el
+dueño copia esto en Supabase → SQL Editor → New query, cambia `25` por el código nuevo
+y toca Run:
+
+```sql
+update app_compatibility.policy
+set minimum_code = 25,
+    replacement_code = 25,
+    replacement_url = 'https://play.google.com/store/apps/details?id=ar.com.trucazo.app',
+    replacement_available = true
+where singleton;
+```
+
+Para deshacerlo: `update app_compatibility.policy set minimum_code = 17 where singleton;`
+
+Dos cuidados técnicos:
+- El freno ocupa el único «control previo» de PostgREST (`pgrst.db_pre_request`). Si
+  otro cambio necesita uno, hay que sumarlo dentro de `app_compatibility.check_request`,
+  no reemplazarlo; la migración original se frena sola si encuentra otro.
+- La lista de funciones permitidas a una versión retirada está escrita en
+  `check_request`. Una función nueva queda bloqueada para versiones retiradas, que es
+  lo esperable.
+
+### Lista de control para cada cambio
+
+- ¿Toca SQL o `src/app/api/`? ¿Cambia el nombre, los parámetros o la forma de
+  respuesta de algo que ya existe? Si es así, es del tipo 4.
+- ¿Toca pantallas de `src/`? Revisar que el workflow «Android Capacitor» del PR quede
+  en verde, además de la revisión automática de siempre.
+- En la descripción del PR: **«¿Necesita versión nueva de la app? sí/no»**.
+- Para sacar una versión de la app:
+  1. Subir `versionCode` y `versionName` en `apps/mobile/android/app/build.gradle` y
+     `version` en `apps/mobile/package.json`. Tienen que coincidir: Gradle lo verifica.
+  2. Construir con `apps/mobile/scripts/build-release.ps1` en la PC del dueño, donde
+     vive la firma (ver [firma y construcción de 16](#android-etapa-16)).
+  3. Inspeccionar con `inspect-release.ps1` y subir el AAB a Play (canal interno,
+     cerrado o producción, según la etapa).
+- Subir la versión mínima sólo en cambios del tipo 4. Un cambio compatible del
+  servidor nunca obliga a actualizar.
+
 <a id="android-menu-principal"></a>
 
 ## Menú principal — adaptación posterior a17 — 27/10/2026
@@ -1319,7 +1419,7 @@ Comprobar los formatos/tamaños vigentes de ícono, gráfico y capturas y las de
 
 <a id="android-20-actualizaciones"></a>
 
-**Procedimiento permanente de actualizaciones — añadido el 20/10/2026 (pendiente de preparar y verificar):** entregar instrucciones reproducibles para cada cambio posterior en web, Supabase, servicios Vercel o app, usando la [política y pruebas de17](#android-17-compatibilidad).
+**Procedimiento permanente de actualizaciones — añadido el 20/10/2026.** Guía práctica redactada el 30/10 en [Cómo llegan los cambios](#como-llegan-los-cambios); falta ensayarla por el canal de Play. Requisitos originales: entregar instrucciones reproducibles para cada cambio posterior en web, Supabase, servicios Vercel o app, usando la [política y pruebas de17](#android-17-compatibilidad).
 
 1. Identificar qué plataformas/versiones afecta el cambio y qué pedidos/respuestas modifica. Distinguir una corrección interna compatible de una función que requiere pantallas/código nuevos; compartir repositorio no sincroniza las instalaciones Android.
 2. Preparar primero servidor/base capaces de atender las versiones admitidas y la nueva, mediante migraciones nuevas cuando corresponda. Probar app anterior, candidata y web en entorno aislado; después aplicar/desplegar en orden compatible y registrar lo realmente aplicado. No retirar de antemano funciones, campos o permisos que las versiones admitidas todavía usan.
