@@ -1,5 +1,8 @@
 'use client'
 
+import SafetyActions from '@/components/SafetyActions'
+import { ensureCommunityRules } from '@/lib/community-safety'
+
 import { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
@@ -21,6 +24,7 @@ import ShareTableInvite from '@/components/ShareTableInvite'
 import WaitingForPlayers from '@/components/WaitingForPlayers'
 
 const FriendsPanel = dynamic(() => import('@/components/FriendsPanel'))
+const GameInvites = dynamic(() => import('@/components/FriendsPanel').then(module => module.GameInvites))
 const ChatGlobal = dynamic(() => import('@/components/ChatGlobal'))
 
 interface Props {
@@ -31,6 +35,12 @@ interface Props {
   isGuest: boolean
   initialObjectives: ObjectivesData | null
   initialReadyMatch: boolean
+  onLogout?: () => Promise<void>
+  onPlayUnavailable?: () => void
+  onTeamPlayUnavailable?: () => void
+  gameInvitesInLobby?: boolean
+  mainMenuHref?: string
+  campaignHref?: string
 }
 
 // "Jugar ya": mesa pública, apuesta fija y partida a 30. Un solo toque y a jugar.
@@ -45,6 +55,12 @@ export default function LobbyClient({
   isGuest,
   initialObjectives,
   initialReadyMatch,
+  onLogout,
+  onPlayUnavailable,
+  onTeamPlayUnavailable,
+  gameInvitesInLobby = false,
+  mainMenuHref,
+  campaignHref = '/historia',
 }: Props) {
   const router = useRouter()
   const [tables, setTables] = useState<Table[]>(initialTables)
@@ -64,6 +80,7 @@ export default function LobbyClient({
   const [createdCode, setCreatedCode] = useState('')
   const [createdTableId, setCreatedTableId] = useState('')
   const [coins, setCoins] = useState(profile.coins)
+  useEffect(() => setCoins(profile.coins), [profile.coins])
   // Amigos: presencia, solicitudes e invitaciones para el panel social de escritorio
   // y la insignia de Amigos en la navegación móvil.
   const community = useCommunity(profile.id)
@@ -142,6 +159,9 @@ export default function LobbyClient({
   }), [supabase, profile.id, router])
 
   async function handleCreateTable() {
+    if (onPlayUnavailable) { onPlayUnavailable(); return }
+    if (mode === '2vs2' && onTeamPlayUnavailable) { onTeamPlayUnavailable(); return }
+    if (!isGuest) { try { await ensureCommunityRules() } catch (cause) { setError((cause as Error).message); return } }
     if (!tableName.trim()) {
       setError('Ponele un nombre a la mesa')
       return
@@ -224,6 +244,7 @@ export default function LobbyClient({
   // ella. Si en unos segundos no entra nadie, la sala de espera invita a un
   // jugador de la casa, así nunca te quedás sin partida.
   async function handleJugarYa() {
+    if (onPlayUnavailable) { onPlayUnavailable(); return }
     if (loading) return
     if (coins < JUGAR_YA_APUESTA) {
       setError(`Necesitás ${JUGAR_YA_APUESTA} monedas para jugar ya`)
@@ -254,6 +275,7 @@ export default function LobbyClient({
   }
 
   async function handleJoinTable(table: Table) {
+    if (onPlayUnavailable) { onPlayUnavailable(); return }
     if (coins < table.bet) {
       setError('No tenés suficientes monedas para unirte a esta mesa')
       return
@@ -281,6 +303,8 @@ export default function LobbyClient({
   // permitía leer los códigos ajenos): manda el código y el servidor hace todo
   // junto — lo busca, valida y descuenta la apuesta una sola vez.
   async function handleJoinPrivate() {
+    if (onPlayUnavailable) { onPlayUnavailable(); return }
+    if (/^P[0-9A-F]{9}$/i.test(joinCode.trim()) && onTeamPlayUnavailable) { onTeamPlayUnavailable(); return }
     if (!joinCode.trim()) {
       setError('Ingresá el código de la mesa')
       return
@@ -324,6 +348,7 @@ export default function LobbyClient({
   }
 
   async function handleLogout() {
+    if (onLogout) { await onLogout(); return }
     await supabase.auth.signOut()
     router.push('/login')
   }
@@ -376,8 +401,8 @@ export default function LobbyClient({
           <Logo size="md" />
         </div>
         <nav className="flex flex-col gap-1 mt-2">
-          <NavItem href="/lobby" icon={<HomeIcon />} label="Inicio" active />
-          <NavItem href="/historia" icon={<SwordsIcon />} label="Modo Historia" />
+          <NavItem href={mainMenuHref || '/lobby'} icon={<HomeIcon />} label={mainMenuHref ? 'Menú principal' : 'Inicio'} active={!mainMenuHref} />
+          <NavItem href={campaignHref} icon={<SwordsIcon />} label={mainMenuHref ? 'Modo Campaña' : 'Modo Historia'} />
           <NavItem href="/ranking" icon={<RankIcon />} label="Ranking" />
           <NavItem href="/comunidad" icon={<UsersIcon />} label="Amigos" badge={friendsBadge} />
           <button
@@ -423,7 +448,7 @@ export default function LobbyClient({
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Barra superior (solo celular/tablet: en compu todo esto vive en el menú lateral) */}
         <header className="flex lg:hidden items-center justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-5">
-          <Logo size="md" />
+          {mainMenuHref ? <Link href={mainMenuHref} aria-label="Volver al menú principal" className="flex min-h-11 items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"><span aria-hidden="true" className="text-gold">‹</span><Logo size="md" /></Link> : <Logo size="md" />}
 
           <button
             type="button"
@@ -440,6 +465,7 @@ export default function LobbyClient({
             <button
               onClick={() => setMenuOpen(o => !o)}
               aria-label="Perfil"
+              aria-expanded={menuOpen}
               className="rounded-full transition-opacity hover:opacity-90"
             >
               <Avatar url={profile.avatar_url} name={profile.username} size={40} frame={profile.active_frame} medal={myMedal} className="border-gold/40" />
@@ -456,6 +482,9 @@ export default function LobbyClient({
                   >
                     Mi perfil
                   </Link>
+                  <Link href="/como-se-juega-al-truco" onClick={() => setMenuOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium text-cream hover:bg-surface2 transition-colors">Ayuda y reglas</Link>
+                  <Link href="/contacto" onClick={() => setMenuOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium text-cream hover:bg-surface2 transition-colors">Contacto y soporte</Link>
+                  {profile.is_admin && <Link href="/admin" onClick={() => setMenuOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium text-cream hover:bg-surface2 transition-colors">Administración</Link>}
                   <button
                     onClick={handleLogout}
                     className="w-full text-left rounded-lg px-3 py-2 text-sm font-medium text-subtle hover:text-negative hover:bg-surface2 transition-colors"
@@ -477,6 +506,10 @@ export default function LobbyClient({
 
         <main className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 lg:mx-0 lg:max-w-none lg:pb-28 lg:pt-6 xl:mx-0">
           {error && <Alert>{error}</Alert>}
+          {gameInvitesInLobby && (!!community.data?.invites_in.length || !!community.error) && <div className="flex flex-col gap-3 xl:hidden">
+            <GameInvites c={community} />
+            {community.error && <Alert>{community.error}</Alert>}
+          </div>}
 
           {/* Volver a la partida en curso */}
           {activeGameId && (
@@ -581,6 +614,7 @@ export default function LobbyClient({
                   <div className="flex items-center gap-2 -mt-1.5 min-w-0">
                     <Avatar url={creatorAvatars[table.creator_id]} name={table.creator_username} size={22} frame={creatorFrames[table.creator_id]} />
                     <p className="text-sm text-subtle truncate">por {table.creator_username}</p>
+                    {!isGuest && table.creator_id !== profile.id && <SafetyActions kind="table" target={table.id} label="Denunciar mesa" />}
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex flex-col leading-tight">
@@ -605,7 +639,7 @@ export default function LobbyClient({
               ))}
             </div>
           </section>
-          {teamModeEnabled && !readyMatch && <TeamTables />}
+          {teamModeEnabled && !readyMatch && <TeamTables onPlayUnavailable={onPlayUnavailable ?? onTeamPlayUnavailable} />}
         </main>
       </div>
 
@@ -797,7 +831,7 @@ export default function LobbyClient({
       >
         <BottomTab href="/lobby" icon={<HomeIcon size={22} />} label="Inicio" active />
         <BottomTab href="/ranking" icon={<RankIcon size={22} />} label="Ranking" />
-        <CampaignBottomTab />
+        <CampaignBottomTab href={campaignHref} />
         <BottomTab href="/tienda" icon={<StoreIcon size={22} />} label="Tienda" />
         <BottomTab
           href="/comunidad"
@@ -896,10 +930,10 @@ function RankIcon({ size = 18 }: { size?: number }) {
   )
 }
 
-function CampaignBottomTab() {
+function CampaignBottomTab({ href }: { href: string }) {
   return (
     <Link
-      href="/historia"
+      href={href}
       aria-label="Abrir Modo Campaña"
       className="group relative min-w-0 flex-1 focus-visible:outline-none"
     >

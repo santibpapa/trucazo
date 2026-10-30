@@ -1,4 +1,5 @@
 {
+  "installCommand": "npm ci && npm ci --prefix apps/mobile",
   "crons": [
     {
       "path": "/api/email/cron",

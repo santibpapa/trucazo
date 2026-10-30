@@ -1,18 +1,22 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Panel, Logo, Input, Button, Alert } from '@/components/ui'
+import LoginScreen from '@/components/LoginScreen'
 import GuestButton from '@/components/GuestButton'
 import GoogleButton from '@/components/GoogleButton'
 import InstallButton from '@/components/InstallButton'
 import { loginDestination } from '@/lib/android-entry'
 import { invitationAuthLink, invitationPath } from '@/lib/table-invites'
 
-export default function LoginPage({ searchParams }: { searchParams: { next?: string } }) {
-  const next = invitationPath(searchParams.next)
+export default function LoginPage() {
+  return <Suspense><LoginForm /></Suspense>
+}
+
+function LoginForm() {
+  const next = invitationPath(useSearchParams().get('next'))
   const router = useRouter()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -76,57 +80,24 @@ export default function LoginPage({ searchParams }: { searchParams: { next?: str
   }
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-6">
-      <Panel className="w-full max-w-sm p-8 flex flex-col gap-6">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <Logo size="md" />
-          <p className="text-sm text-muted">Entrá a jugar</p>
-        </div>
-
-        {error && <Alert>{error}</Alert>}
-
-        <div className="flex flex-col gap-4">
-          <Input
-            label="Email o usuario"
-            name="identifier"
-            type="text"
-            value={identifier}
-            onChange={e => setIdentifier(e.target.value)}
-            placeholder="tu@email.com o tu usuario"
-            onKeyDown={e => e.key === 'Enter' && handleLogin()}
-          />
-          <Input
-            label="Contraseña"
-            name="password"
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="Tu contraseña"
-            onKeyDown={e => e.key === 'Enter' && handleLogin()}
-          />
-        </div>
-
-        <Button fullWidth size="lg" onClick={handleLogin} disabled={loading}>
-          {loading ? 'Entrando…' : 'Iniciar sesión'}
-        </Button>
-
-        <div className="flex items-center gap-3 text-xs text-subtle">
-          <span className="h-px flex-1 bg-line" />o<span className="h-px flex-1 bg-line" />
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <GoogleButton variant="secondary" size="lg" />
-          <GuestButton variant="ghost" size="lg" returnTo={next ?? undefined} />
-          <InstallButton />
-        </div>
-
-        <p className="text-center text-sm text-muted">
-          ¿No tenés cuenta?{' '}
-          <Link href={invitationAuthLink('/register', next)} className="text-gold font-semibold hover:underline">
-            Registrate gratis
-          </Link>
-        </p>
-      </Panel>
-    </main>
+    <LoginScreen
+      identifier={identifier}
+      password={password}
+      error={error}
+      loading={loading}
+      onIdentifierChange={setIdentifier}
+      onPasswordChange={setPassword}
+      onLogin={handleLogin}
+      registration={
+        <Link href={invitationAuthLink('/register', next)} className="text-gold font-semibold hover:underline">
+          Registrate gratis
+        </Link>
+      }
+    >
+      <Link href="/recuperar-cuenta" className="text-center text-sm text-gold hover:underline">Olvidé mi contraseña</Link>
+      <GoogleButton variant="secondary" size="lg" />
+      <GuestButton variant="ghost" size="lg" returnTo={next ?? undefined} />
+      <InstallButton />
+    </LoginScreen>
   )
 }

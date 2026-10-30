@@ -7,7 +7,8 @@ import SpectatorClient, { type SpectatorSnapshot } from './SpectatorClient'
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Ver partida de torneo | Trucazo', robots: { index: false, follow: false } }
 
-export default async function SpectatorPage({ params }: { params: { id: string; matchId: string } }) {
+export default async function SpectatorPage({ params: routeParams }: { params: Promise<{ id: string; matchId: string }> }) {
+  const params = await routeParams
   if (!tournamentModeEnabled) notFound()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -15,7 +16,7 @@ export default async function SpectatorPage({ params }: { params: { id: string; 
   const { data, error } = await supabase.rpc('tournament_spectator_snapshot', { p_match_id: params.matchId })
   if (error || !data || (data as SpectatorSnapshot).tournament_id !== params.id) notFound()
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-6 pb-16">
+    <main className="mx-auto flex h-dvh w-full max-w-3xl flex-col px-3 py-3 sm:px-4">
       <Link href={`/torneos/${params.id}`} className="text-sm font-semibold text-gold hover:underline">← Volver al torneo</Link>
       <SpectatorClient initial={data as SpectatorSnapshot} />
     </main>

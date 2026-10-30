@@ -9,8 +9,10 @@ export default function AndroidSessionGuard() {
   const pathname = usePathname()
 
   useEffect(() => {
+    // El código de este puente pertenece al APK, no a las cookies de Chrome.
+    if (pathname === '/auth/mobile') return
     if (!isAndroidEntry()) return
-    const accessPage = ['/login', '/register', '/auth/callback'].includes(pathname)
+    const accessPage = ['/login', '/register', '/auth/callback', '/auth/mobile', '/recuperar-cuenta'].includes(pathname)
     const supabase = createClient()
     let cancelled = false
     const requireAccount = (user: { is_anonymous?: boolean } | null) => {

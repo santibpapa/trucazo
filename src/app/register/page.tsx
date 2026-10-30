@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Panel, Logo, Input, Button, Alert, CoinIcon } from '@/components/ui'
@@ -9,20 +9,27 @@ import { track } from '@vercel/analytics'
 import { trackFirstParty } from '@/lib/analytics/client'
 import { loginDestination } from '@/lib/android-entry'
 import { invitationAuthLink, invitationPath } from '@/lib/table-invites'
+import { COMMUNITY_RULES, RULES_VERSION } from '@/lib/community-safety'
 
-export default function RegisterPage({ searchParams }: { searchParams: { next?: string } }) {
-  const next = invitationPath(searchParams.next)
+export default function RegisterPage() {
+  return <Suspense><RegisterForm /></Suspense>
+}
+
+function RegisterForm() {
+  const next = invitationPath(useSearchParams().get('next'))
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [rules, setRules] = useState(false)
   // Cuando el proyecto pide confirmar el email, signUp no devuelve sesión: en
   // vez de mandarlo al lobby (donde no podría entrar), le avisamos.
   const [confirmarEmail, setConfirmarEmail] = useState(false)
 
   async function handleRegister() {
+    if (!rules) { setError('Aceptá las normas de convivencia para crear tu cuenta.'); return }
     if (!email || !password || !username) {
       setError('Completá todos los campos')
       return
@@ -60,7 +67,7 @@ export default function RegisterPage({ searchParams }: { searchParams: { next?: 
       email,
       password,
       options: {
-        data: { username },
+        data: { username, community_rules_version: RULES_VERSION },
         ...(next ? { emailRedirectTo: `${window.location.origin}/auth/callback` } : {}),
       },
     })
@@ -167,7 +174,8 @@ export default function RegisterPage({ searchParams }: { searchParams: { next?: 
           />
         </div>
 
-        <Button fullWidth size="lg" onClick={handleRegister} disabled={loading}>
+        <label className="text-xs text-muted flex items-start gap-2"><input type="checkbox" checked={rules} onChange={e => setRules(e.target.checked)} /><span>Acepto las <Link href="/terminos" target="_blank" className="text-gold underline">normas de convivencia</Link>. {COMMUNITY_RULES}</span></label>
+        <Button fullWidth size="lg" onClick={handleRegister} disabled={loading || !rules}>
           {loading ? (
             'Creando cuenta…'
           ) : (

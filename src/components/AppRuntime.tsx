@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import RegisterSW from '@/components/RegisterSW'
 import AnalyticsTracker from '@/components/AnalyticsTracker'
 import { isAndroidEntry } from '@/lib/android-entry'
+import CommunityRulesPrompt from '@/components/CommunityRulesPrompt'
 
 const AndroidSessionGuard = dynamic(() => import('@/components/AndroidSessionGuard'), {
   ssr: false,
@@ -37,10 +38,11 @@ export default function AppRuntime() {
 
   return (
     <>
-      <AnalyticsTracker />
+      {!pathname.startsWith('/auth/') && pathname !== '/recuperar-cuenta' && <AnalyticsTracker />}
       {android ? <AndroidSessionGuard /> : null}
       {needsGuestGuard ? <GuestSessionGuard /> : null}
       <RegisterSW />
+      <CommunityRulesPrompt />
     </>
   )
 }

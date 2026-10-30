@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button, Input, Alert, cn } from '@/components/ui'
 import type { useCommunity } from '@/lib/useCommunity'
+import SafetyActions from '@/components/SafetyActions'
 
 type Community = ReturnType<typeof useCommunity>
 
@@ -46,6 +47,7 @@ function NoGroupView({ c }: { c: Community }) {
         >
           <div className="min-w-0">
             <p className="text-sm font-semibold text-cream truncate">{inv.group_name}</p>
+            <SafetyActions kind="group" target={inv.group_id} label="Denunciar grupo" />
             <p className="text-xs text-subtle truncate">te invitó {inv.from_username}</p>
           </div>
           <div className="flex gap-1.5 shrink-0">
@@ -109,6 +111,7 @@ function GroupView({ c, myId }: { c: Community; myId: string }) {
           <h3 className="font-display text-lg font-extrabold text-cream truncate">{group.name}</h3>
         </div>
         {group.description && <p className="text-sm text-muted">{group.description}</p>}
+        <SafetyActions kind="group" target={group.id} label="Denunciar grupo" />
         <p className="text-[11px] text-subtle mt-0.5">{group.members.length}/20 integrantes</p>
       </div>
 
@@ -123,6 +126,7 @@ function GroupView({ c, myId }: { c: Community; myId: string }) {
                 {m.user_id === myId ? 'Vos' : m.username}
                 {m.is_leader && <span title="Líder" className="text-gold"><CrownIcon /></span>}
               </p>
+              {m.user_id !== myId && <SafetyActions target={m.user_id} userId={m.user_id} label={'Opciones de ' + m.username} />}
               <p className="text-[11px] text-subtle">
                 {m.playing ? 'Jugando' : m.online ? 'Conectado' : 'Desconectado'}
               </p>

@@ -51,6 +51,7 @@ drop schema if exists campaign_internal cascade;
 drop schema if exists match_chat_internal cascade;
 drop schema if exists account_internal cascade;
 drop schema if exists feedback_internal cascade;
+drop schema if exists app_compatibility cascade;
 drop schema if exists tournament_internal cascade;
 drop schema if exists net cascade;
 create schema public;
@@ -107,13 +108,15 @@ else
 fi
 
 echo "==> 2/5  Tablas"
-"${PSQL[@]}" -f supabase/schema/tables.sql
+# La foto de sync necesita claves y tablas creadas por migraciones posteriores.
+# Su migración 20261011123215 la reconstruye en el orden correcto, en el paso5.
+sed '/-- OFFLINE_SYNC_SNAPSHOT_BEGIN/,/-- OFFLINE_SYNC_SNAPSHOT_END/d' supabase/schema/tables.sql | "${PSQL[@]}"
 
 echo "==> 3/5  Funciones"
-"${PSQL[@]}" -f supabase/schema/functions.sql
+sed '/-- OFFLINE_SYNC_SNAPSHOT_BEGIN/,/-- OFFLINE_SYNC_SNAPSHOT_END/d' supabase/schema/functions.sql | "${PSQL[@]}"
 
 echo "==> 4/5  Llaves, restricciones y reglas de seguridad"
-"${PSQL[@]}" -f supabase/schema/policies.sql
+sed '/-- OFFLINE_SYNC_SNAPSHOT_BEGIN/,/-- OFFLINE_SYNC_SNAPSHOT_END/d' supabase/schema/policies.sql | "${PSQL[@]}"
 "${PSQL[@]}" -f supabase/schema/feedback_review.sql
 "${PSQL[@]}" -f supabase/schema/feedback_images.sql
 

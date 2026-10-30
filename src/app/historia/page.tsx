@@ -37,6 +37,7 @@ export default async function HistoriaPage() {
       provinces={campaign.provinces}
       coins={profile?.coins ?? 0}
       lives={lives as CampaignLives | null}
+      storageOwner={user.id}
     />
   )
 }

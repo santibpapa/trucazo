@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { NewsItem } from '@/lib/types'
 import { Button, Input, Alert, cn } from '@/components/ui'
+import SafetyActions from '@/components/SafetyActions'
+import { ensureCommunityRules } from '@/lib/community-safety'
 
 // Novedades: foro solo-lectura. Todos leen; solo el admin publica y borra.
 export default function NewsPanel({ isAdmin }: { isAdmin: boolean }) {
@@ -35,6 +37,7 @@ export default function NewsPanel({ isAdmin }: { isAdmin: boolean }) {
   async function publish() {
     if (!title.trim() || !body.trim()) return
     setBusy(true); setError('')
+    try { await ensureCommunityRules() } catch (cause) { setBusy(false); setError((cause as Error).message); return }
     const { error: e } = await supabase.rpc('publish_news', { p_title: title.trim(), p_body: body.trim() })
     setBusy(false)
     if (e) { setError(e.message); return }
@@ -100,6 +103,7 @@ export default function NewsPanel({ isAdmin }: { isAdmin: boolean }) {
             >
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-display font-bold text-cream leading-tight">{n.title}</h3>
+                {!isAdmin && <SafetyActions kind="news" target={n.id} label="Denunciar novedad" />}
                 {isAdmin && (
                   <button
                     onClick={() => remove(n.id)}

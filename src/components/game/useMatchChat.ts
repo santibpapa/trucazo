@@ -61,7 +61,7 @@ export function useMatchChat(mode: 'game' | 'team', matchId: string, open: boole
     for (const message of incoming) known.current.add(message.id)
     initialized.current = true
     if (newCount) setUnread(count => count + newCount)
-    setMessages(previous => merge(previous, incoming))
+    setMessages(merge([], incoming))
   }, [supabase, mode, matchId, userId])
 
   useEffect(() => {
@@ -114,11 +114,15 @@ export function useMatchChat(mode: 'game' | 'team', matchId: string, open: boole
     }
     document.addEventListener('visibilitychange', recover)
     window.addEventListener('focus', recover)
+    window.addEventListener('community:safety-changed', recover)
+    const poll = setInterval(recover, 15000)
     return () => {
       alive = false
       clearReadyTimer()
       document.removeEventListener('visibilitychange', recover)
       window.removeEventListener('focus', recover)
+      window.removeEventListener('community:safety-changed', recover)
+      clearInterval(poll)
       void supabase.removeChannel(channel)
     }
   }, [supabase, mode, matchId, userId, refresh, retry, showBubble])

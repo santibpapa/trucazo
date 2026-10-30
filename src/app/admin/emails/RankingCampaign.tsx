@@ -12,7 +12,7 @@ export type RankingCampaignState = {
   skipped: number
 }
 
-export default function RankingCampaign({ state }: { state: RankingCampaignState | null }) {
+export default function RankingCampaign({ state, request = fetch }: { state: RankingCampaignState | null; request?: typeof fetch }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -22,7 +22,7 @@ export default function RankingCampaign({ state }: { state: RankingCampaignState
     setBusy(true)
     setError('')
     try {
-      const response = await fetch('/api/admin/ranking-campaign', {
+      const response = await request('/api/admin/ranking-campaign', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !state.active }),

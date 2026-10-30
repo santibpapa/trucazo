@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import type { SupabaseClient, User } from '@supabase/supabase-js'
-import { validDeletionRequest, hasRecentSignIn, needsPassword } from '../src/lib/account-deletion/identity'
+import { validDeletionRequest, hasRecentSignIn, hasRecentGoogleSignIn, needsPassword } from '../src/lib/account-deletion/identity'
 import { processAccountDeletion, type DeletionJob } from '../src/lib/account-deletion/process'
 
 const request = (origin: string | null, type = 'application/json') => new Request('https://www.trucazo.com.ar/api/account/delete', {
@@ -9,6 +9,10 @@ const request = (origin: string | null, type = 'application/json') => new Reques
 assert(validDeletionRequest(request('https://www.trucazo.com.ar'), { confirmation: 'ELIMINAR' }))
 assert(!validDeletionRequest(request('https://otro.test'), { confirmation: 'ELIMINAR' }))
 assert(!validDeletionRequest(request(null), { confirmation: 'ELIMINAR' }))
+assert(validDeletionRequest(new Request('https://www.trucazo.com.ar/api/account/delete', {
+  method: 'POST', headers: { origin: 'https://localhost', 'content-type': 'application/json', authorization: 'Bearer fixture' },
+}), { confirmation: 'ELIMINAR' }))
+assert(!validDeletionRequest(request('https://localhost'), { confirmation: 'ELIMINAR' }))
 assert(!validDeletionRequest(request('https://www.trucazo.com.ar', 'text/plain'), { confirmation: 'ELIMINAR' }))
 assert(!validDeletionRequest(request('https://www.trucazo.com.ar'), { confirmation: 'eliminar' }))
 assert(!validDeletionRequest(request('https://www.trucazo.com.ar'), { confirmation: 'ELIMINAR', password: 123 }))
@@ -21,6 +25,11 @@ assert(!hasRecentSignIn(user('2026-10-01T19:01:00Z'), now))
 assert(!hasRecentSignIn(user(undefined), now))
 assert(needsPassword({ identities: [{ provider: 'email' }] } as User))
 assert(!needsPassword({ identities: [{ provider: 'google' }] } as User))
+const google = { id: 'owner', last_sign_in_at: '2026-10-01T18:59:00Z' } as User
+assert(hasRecentGoogleSignIn(google, { sub: 'owner', amr: [{ method: 'oauth', timestamp: now / 1000 - 60 }] }, now))
+assert(!hasRecentGoogleSignIn(google, { sub: 'owner', amr: [{ method: 'oauth', timestamp: now / 1000 - 660 }] }, now))
+assert(!hasRecentGoogleSignIn(google, { sub: 'other', amr: [{ method: 'oauth', timestamp: now / 1000 - 60 }] }, now))
+assert(!hasRecentGoogleSignIn(google, { sub: 'owner', amr: [{ method: 'token_refresh', timestamp: now / 1000 - 60 }] }, now))
 
 const job: DeletionJob = { id: 'job', user_id: 'owner', lease_id: 'lease',
   objects: [{ bucket: 'avatars', name: 'owner/a.jpg' }, { bucket: 'avatars', name: 'owner/a.jpg' }] }

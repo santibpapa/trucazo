@@ -47,6 +47,7 @@ export default function ComunidadClient({ profile, initialCommunity }: Props) {
       </header>
 
       {/* Pestañas (en compu, Chat no aparece: vive fijo a la izquierda) */}
+      <Link href="/convivencia" className="text-sm text-gold underline">Convivencia: denuncias y bloqueos</Link>
       <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1">
         <TabButton active={tab === 'chat'} onClick={() => setTab('chat')} className="lg:hidden">
           Chat
@@ -62,14 +63,14 @@ export default function ComunidadClient({ profile, initialCommunity }: Props) {
         </TabButton>
       </div>
 
-      <div className="flex-1 grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] items-start">
+      <div className="flex-1 min-w-0 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] items-start">
         {/* Chat global */}
         <Panel className={cn('p-4 sm:p-5', tab === 'chat' ? 'block' : 'hidden lg:block')}>
           <ChatGlobal myId={profile.id} isAdmin={!!profile.is_admin} />
         </Panel>
 
         {/* Columna derecha: pestaña activa */}
-        <Panel className={cn('p-5', tab !== 'chat' ? 'block' : 'hidden lg:block')}>
+        <Panel className={cn('min-w-0 p-5', tab !== 'chat' ? 'block' : 'hidden lg:block')}>
           {rightTab === 'amigos' && <FriendsPanel c={c} />}
           {rightTab === 'grupo' && <GroupPanel c={c} myId={profile.id} />}
           {rightTab === 'novedades' && <NewsPanel isAdmin={!!profile.is_admin} />}

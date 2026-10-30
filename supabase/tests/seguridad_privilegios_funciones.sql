@@ -13,7 +13,11 @@ begin;
 do $test$
 declare
   v_client_functions constant text[] := array[
-    'active_medal_for', 'admin_acquisition', 'admin_player', 'admin_stats', 'advance_hand',
+    'active_medal_for', 'admin_acquisition', 'admin_player', 'admin_stats', 'advance_hand', 'app_compatibility',
+    'prepare_offline_campaign', 'sync_offline_campaign',
+    'accept_community_rules', 'community_safety_state', 'report_community_content',
+    'set_player_block', 'moderation_reports', 'moderation_feedback', 'resolve_community_report',
+    'native_push_state', 'native_push_preferences', 'native_push_register', 'native_push_unregister',
     'bot_join_table',
     'bot_step', 'buy_accessory', 'buy_frame', 'buy_salon',
     'cancel_game_invite', 'cancel_table', 'claim_bonus', 'claim_objective_reward', 'claim_table_notification',

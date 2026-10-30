@@ -68,7 +68,7 @@ export function subscribeLobbyTables(
   let replenishPending = false
 
   async function refresh(replenish = false) {
-    if (disposed || document.visibilityState === 'hidden') return
+    if (disposed || document.visibilityState === 'hidden' || navigator.onLine === false) return
     replenishPending ||= replenish
     if (inFlight) { pending = true; return }
     inFlight = true

@@ -6,19 +6,17 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Game } from '@/lib/types'
 import { createDeck, getCardImage, getEnvidoPoints, type Card } from '@/lib/truco'
-import { Button, CoinIcon } from '@/components/ui'
-import PlayingCard from '@/components/game/PlayingCard'
-import { SeatAvatar, TableAccessory, MesaButton, MesaAnnouncement, MesaHeader, MesaTurn, MesaToolbar, EmoteTray, MesaDeck, DEAL_ORIGINS, type Announce } from '@/components/game/MesaUI'
-import MatchChat, { MatchChatBubble } from '@/components/game/MatchChat'
+import { Button, CoinIcon, Modal } from '@/components/ui'
+import GameTable from '@/components/game/GameTable'
+import { EmoteTray } from '@/components/game/MesaUI'
+import { useGameAnnouncements } from '@/components/game/useGameAnnouncements'
+import MatchChat from '@/components/game/MatchChat'
 import type { MatchChatMessage } from '@/components/game/useMatchChat'
 import { EMOTES } from '@/lib/emotes'
-import CardBack from '@/components/game/CardBack'
-import { TableCard, useCardFlight } from '@/components/game/CardMotion'
+import { useCardFlight } from '@/components/game/CardMotion'
 import { playSound, isMuted, setMuted } from '@/lib/sounds'
-import { SalonBackground, SalonTable } from '@/components/game/SalonScene'
-import styles from '@/components/game/salon.module.css'
-import { getSalonTheme } from '@/lib/salones'
 import { fraseDelBot, type MomentoFrase } from '@/lib/botFrases'
+import { botThinkMs } from '@/lib/bot-presentation'
 import { track } from '@vercel/analytics'
 import { trackFirstParty } from '@/lib/analytics/client'
 
@@ -55,12 +53,15 @@ interface Props {
 
 type EnvidoType = 'envido' | 'real_envido' | 'falta_envido'
 
-// Etiquetas legibles para los cantos (el estado guarda el snake_case)
-const ENVIDO_LABEL: Record<string, string> = {
-  envido: 'envido', real_envido: 'real envido', falta_envido: 'falta envido',
-}
-const TRUCO_LABEL: Record<string, string> = {
-  truco: 'truco', retruco: 'retruco', vale_cuatro: 'vale cuatro',
+function ResultObjectives({ gameId, isGuest }: { gameId: string; isGuest: boolean }) {
+  const [open, setOpen] = useState(false)
+  return <>
+    <Button variant="secondary" size="sm" fullWidth onClick={() => setOpen(true)}>Objetivos de esta partida</Button>
+    <Modal open={open} onClose={() => setOpen(false)} title="Objetivos de esta partida" showCloseButton
+      panelClassName="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+      <ObjectiveProgressDelta gameId={gameId} isGuest={isGuest} />
+    </Modal>
+  </>
 }
 
 // Emotes / chat rápido (efímeros, por broadcast)
@@ -70,20 +71,20 @@ const EMOTE_COOLDOWN_MS = 3000
 export default function GameClient({ game: initialGame, serverNow, currentUserId, isGuest = false, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory, opponentIsBot = false, tournamentId = null }: Props) {
   const router = useRouter()
   const [game, setGame] = useState<Game>(initialGame)
+  const latestGame = useRef(game)
+  latestGame.current = game
   const cardFlight = useCardFlight(game.hand_number)
   const initialCardKeys = useRef(new Set(initialGame.played_cards.map(pc => `${initialGame.hand_number}:${pc.player_id}:${pc.round}`)))
   const [myHand, setMyHand] = useState<Card[]>(initialMyHand)
-  const [loading, setLoading] = useState(false)
+  const [actionLoading, setLoading] = useState(false)
+  const [recovering, setRecovering] = useState(false)
+  const [recoveryRevision, setRecoveryRevision] = useState(0)
+  const loading = actionLoading || recovering
   // Segundos que le quedan al jugador de turno (reloj por jugada)
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const [actionError, setActionError] = useState('')
   // Saludo de gracias al volver de dejar una reseña
   const [showThanks, setShowThanks] = useState(false)
-  // Cartel central de anuncios (cantos y resultados), sale del lado del que actuó
-  const [announce, setAnnounce] = useState<Announce | null>(null)
-  const announceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Snapshot del truco_state previo, para detectar el "no quiero" (canto pendiente → mano nueva)
-  const prevTrucoRef = useRef<{ status: string; singer: string | null; value: number; hand: number } | null>(null)
   // El timeout por jugada se dispara una sola vez por turno (clave = turn_started_at)
   const timeoutFiredRef = useRef<string | null>(null)
   const serverClockRef = useRef({ serverNow, startedAt: performance.now() })
@@ -131,8 +132,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   // Cartas del envido a revelar (el ganador cerró la mano sin mostrarlas): se
   // bajan a la mesa como una jugada normal, ocupando las rondas que ese jugador
   // no llegó a usar, al cerrar la mano o la partida.
-  const handClosed = game.awaiting_deal || game.status === 'finished'
-  const envidoReveal = handClosed ? game.envido_reveal : null
+  const envidoReveal = game.awaiting_deal || game.status === 'finished' ? game.envido_reveal : null
   const revealIsMine = envidoReveal?.player_id === currentUserId
   const revealByRound = new Map<number, Card>()
   if (envidoReveal) {
@@ -161,7 +161,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   const opponentUsername = isPlayer1 ? game.player2_username : game.player1_username
   // awaiting_deal = la mano terminó y se está mostrando antes de repartir la próxima:
   // congelamos las acciones para que se vea la última carta.
-  const isMyTurn = !handClosed && game.current_turn === currentUserId
+  const isMyTurn = game.status === 'playing' && !game.awaiting_deal && game.current_turn === currentUserId
   const isMano = game.mano_player === currentUserId
 
   const currentRoundCards = game.played_cards.filter(pc => pc.round === game.round_number)
@@ -224,6 +224,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   // Me toca actuar (jugar o responder): lo usan el marcador, la pastilla de
   // turno y el destello dorado del borde de la pantalla.
   const meActive = !game.awaiting_deal && game.status === 'playing' && humanCanAct
+  const { announce, showAnnounce } = useGameAnnouncements({ game, currentUserId, myUsername, opponentUsername, isPlayer1, soundReadyRef, botHabla })
 
   // Las tres cartas visibles conservan prioridad. El resto del mazo se prepara
   // después de cargar la pantalla, de a dos y con prioridad baja.
@@ -248,9 +249,10 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
 
   // Al volver de dejar una reseña (?gracias=1), mostramos un saludo y limpiamos la URL.
   useEffect(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('gracias') === '1') {
+    const local = window.location.hash.startsWith('#/game/')
+    if (new URLSearchParams(local ? window.location.hash.split('?')[1] : window.location.search).get('gracias') === '1') {
       setShowThanks(true)
-      window.history.replaceState(null, '', window.location.pathname)
+      window.history.replaceState(null, '', local ? window.location.hash.split('?')[0] : window.location.pathname)
     }
   }, [])
 
@@ -281,6 +283,44 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       document.removeEventListener('visibilitychange', recover)
     }
   }, [game.id, game.status])
+
+  // Al volver a la pantalla o recuperar conexión, leer el estado confirmado y
+  // sólo la mano propia. Nunca repetir la última acción para "recuperarla".
+  useEffect(() => {
+    let disposed = false
+    let pending = false
+    const recover = async () => {
+      if (pending || document.visibilityState !== 'visible' || !navigator.onLine) return
+      pending = true
+      setRecovering(true)
+      try {
+        const [snapshot, hand] = await Promise.all([
+          supabase.from('games').select('*').eq('id', game.id).single(),
+          supabase.from('game_hands').select('cards').eq('game_id', game.id).eq('player_id', currentUserId).single(),
+        ])
+        if (disposed || (await supabase.auth.getSession()).data.session?.user.id !== currentUserId) return
+        if (snapshot.error || hand.error) { setActionError('No pudimos actualizar la mesa. Reintentamos al recuperar conexión.'); return }
+        if (snapshot.data) applyServerGame(snapshot.data as Game)
+        if (hand.data) setMyHand((hand.data.cards as Card[]) ?? [])
+        setRecoveryRevision(value => value + 1)
+      } finally {
+        pending = false
+        if (!disposed) setRecovering(false)
+      }
+    }
+    window.addEventListener('focus', recover)
+    window.addEventListener('online', recover)
+    window.addEventListener('mobile:refresh', recover)
+    document.addEventListener('visibilitychange', recover)
+    return () => {
+      disposed = true
+      window.removeEventListener('focus', recover)
+      window.removeEventListener('online', recover)
+      window.removeEventListener('mobile:refresh', recover)
+      document.removeEventListener('visibilitychange', recover)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.id, currentUserId])
 
   // Respaldo por polling, por si el realtime no entrega los cambios.
   // Se saltea si hubo una acción local hace muy poco (para no revertir lo optimista).
@@ -462,7 +502,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     let timer = setTimeout(advance, game.envido_reveal ? 2600 : 1800)
     return () => { disposed = true; clearTimeout(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.awaiting_deal, game.status, game.id, game.hand_number])
+  }, [game.awaiting_deal, game.status, game.id, game.hand_number, recoveryRevision])
 
   // La pantalla de fin ("Ganaste/Perdiste") se muestra con un pequeño delay tras
   // terminar la partida, para alcanzar a ver la última jugada resuelta en la mesa
@@ -554,17 +594,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   // canto/jugada del bot se dispara por separado y espaciado.
   useEffect(() => {
     if (!botTurnKey) return
-    const bigCall =
-      (['truco', 'retruco', 'vale_cuatro'].includes(game.truco_state.status) &&
-        game.truco_state.last_singer === currentUserId &&
-        !envidoUnresolved) ||
-      (['envido', 'real_envido', 'falta_envido'].includes(game.envido_state.status) &&
-        game.envido_state.last_singer === currentUserId)
-    const thinkMs = bigCall
-      ? 1800 + Math.random() * 2400 + (Math.random() < 0.18 ? 1800 : 0)
-      : game.envido_state.status === 'declaring'
-        ? 1200 + Math.random() * 1100
-        : 1100 + Math.random() * 1300
+    const thinkMs = botThinkMs(game, currentUserId)
     const t = setTimeout(async () => {
       const { data, error } = await supabase.rpc('bot_step', { p_game_id: game.id })
       if (!rpcFailed('bot_step RPC:', error) && data) {
@@ -578,12 +608,12 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
             && botCartas < next.round_number && campaignRivalSlug) {
           setOppEmote(fraseDelBot(campaignRivalSlug, 'mazo', botFrasesUsadasRef.current) ?? 'Me voy al mazo')
         }
-        setGame(next)
+        applyServerGame(next)
       }
     }, thinkMs)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [botTurnKey, game.id])
+  }, [botTurnKey, game.id, recoveryRevision])
 
   // El banner de error de una acción se autodescarta a los 4s
   useEffect(() => {
@@ -591,153 +621,6 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     const t = setTimeout(() => setActionError(''), 4000)
     return () => clearTimeout(t)
   }, [actionError])
-
-  // Anuncio del envido: canto (envido/real/falta, lado del que canta) y resultado
-  // (quiero/no quiero, lado del que responde). Depende de status/last_singer/winner.
-  useEffect(() => {
-    const es = game.envido_state
-    const st = es.status
-    const chain = es.chain ?? []
-    const tier = chain[chain.length - 1] ?? 'envido'
-
-    // Canto
-    if (st === 'envido' || st === 'real_envido' || st === 'falta_envido') {
-      const mine = es.last_singer === currentUserId
-      if (soundReadyRef.current) {
-        playSound(st === 'real_envido' ? 'real-envido' : st === 'falta_envido' ? 'falta-envido' : 'envido')
-      }
-      showAnnounce({
-        side: mine ? 'bottom' : 'top',
-        title: ENVIDO_LABEL[tier] ?? 'envido',
-        titleClass: 'text-gold uppercase tracking-wide',
-        subtitle: `lo cantó ${mine ? myUsername : opponentUsername}`,
-      })
-      if (!mine) botHabla('canta_envido')
-      return
-    }
-
-    // Diálogo de tantos (después del "quiero")
-    if (st === 'declaring') {
-      if (manoDeclared == null) {
-        // Recién aceptado: "Quiero" (lo dijo el que respondió, no el cantor)
-        const responderIsMe = es.last_singer !== currentUserId
-        if (soundReadyRef.current) playSound('quiero')
-        showAnnounce({ side: responderIsMe ? 'bottom' : 'top',
-          eyebrow: ENVIDO_LABEL[tier] ?? 'envido', title: 'Quiero', titleClass: 'text-cream' })
-        if (!responderIsMe) botHabla('quiere')
-      } else {
-        // La mano declaró su tanto
-        const manoIsMe = game.mano_player === currentUserId
-        showAnnounce({ side: manoIsMe ? 'bottom' : 'top',
-          title: `Tengo ${manoDeclared}`, titleClass: 'text-gold uppercase tracking-wide' })
-      }
-      return
-    }
-
-    // Resultado
-    if ((st === 'accepted' || st === 'rejected') && es.winner_id != null) {
-      const responderIsMe = es.last_singer !== currentUserId
-      const side: 'top' | 'bottom' = responderIsMe ? 'bottom' : 'top'
-      const won = es.winner_id === currentUserId
-      const eyebrow = ENVIDO_LABEL[tier] ?? 'envido'
-
-      if (st === 'rejected') {
-        if (soundReadyRef.current) playSound('no-quiero')
-        showAnnounce({ side, eyebrow, title: 'No quiero', titleClass: 'text-cream' })
-        if (!responderIsMe) botHabla('no_quiere')
-        return
-      }
-
-      const theirs = isPlayer1 ? es.player2_points : es.player1_points
-      const mineP = isPlayer1 ? es.player1_points : es.player2_points
-      // "Son buenas": alguien no reveló su tanto (queda null). Si están los dos, tablero.
-      const hidden = mineP == null || theirs == null
-
-      if (hidden) {
-        // El tanto del pie queda oculto; solo mostramos el resultado, sin puntos.
-        showAnnounce({ side, eyebrow,
-          title: won ? 'Son buenas' : 'Perdiste',
-          titleClass: won ? 'text-positive' : 'text-negative' })
-      } else {
-        // Ambos tantos visibles → tablero de 2 columnas (vos / rival).
-        showAnnounce({
-          side,
-          title: (ENVIDO_LABEL[tier] ?? 'envido').toUpperCase(),
-          titleClass: 'text-gold',
-          score: {
-            left: { label: 'Vos', points: mineP ?? null, won },
-            right: { label: opponentUsername, points: theirs ?? null, won: !won },
-          },
-        })
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.envido_state.status, game.envido_state.last_singer, game.envido_state.winner_id, game.envido_state.mano_declared])
-
-  // "33 en mesa": el ganador del envido cerró la mano sin mostrar las cartas de
-  // su tanto, así que se bajan a la mesa y se anuncia como un canto.
-  useEffect(() => {
-    if (!handClosed || !game.envido_reveal) return
-    const mine = game.envido_reveal.player_id === currentUserId
-    const pts = game.envido_reveal.player_id === game.player1_id
-      ? game.envido_state.player1_points
-      : game.envido_state.player2_points
-    if (soundReadyRef.current) playSound('carta')
-    showAnnounce({
-      side: mine ? 'bottom' : 'top',
-      title: pts != null ? `${pts} en mesa` : 'en mesa',
-      titleClass: 'text-gold uppercase tracking-wide',
-    })
-    // Deps booleanas: cada update del server trae un objeto envido_reveal nuevo
-    // con el mismo contenido, y no queremos re-disparar el sonido/cartel.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handClosed, !!game.envido_reveal])
-
-  // Anuncio central del truco: canto, "quiero" y "no quiero".
-  // El "no quiero" se infiere: un canto pendiente solo puede terminar en mano
-  // nueva si lo rechazaron (no se puede ir al mazo ni ganar la mano con un canto
-  // sin responder), así que "antes pendiente + hand_number subió" = no quiero.
-  useEffect(() => {
-    const ts = game.truco_state
-    const st = ts.status
-    const prev = prevTrucoRef.current
-
-    if (handClosed && game.envido_reveal) return
-
-    if (st === 'truco' || st === 'retruco' || st === 'vale_cuatro') {
-      // Canto: lado del que canta
-      const byMe = ts.last_singer === currentUserId
-      if (soundReadyRef.current) {
-        playSound(st === 'vale_cuatro' ? 'vale-cuatro' : st === 'retruco' ? 'retruco' : 'truco')
-      }
-      showAnnounce({ side: byMe ? 'bottom' : 'top',
-        title: TRUCO_LABEL[st] ?? 'truco', titleClass: 'text-gold uppercase tracking-wide',
-        subtitle: `lo cantó ${byMe ? myUsername : opponentUsername}` })
-      if (!byMe) botHabla(st === 'truco' ? 'canta_truco' : 'sube')
-    } else if (st === 'accepted' && prev?.status !== 'accepted') {
-      // Quiero: lado del que responde (no es el que cantó)
-      const responderIsMe = ts.last_singer !== currentUserId
-      if (soundReadyRef.current) playSound('quiero')
-      showAnnounce({ side: responderIsMe ? 'bottom' : 'top',
-        eyebrow: 'Truco', title: 'Quiero', titleClass: 'text-cream' })
-      if (!responderIsMe) botHabla('quiere')
-    } else if (st === 'rejected' && prev?.status !== 'rejected') {
-      // No quiero: el que cantó (last_singer) gana el valor anterior. El cartel
-      // sale del lado del que rechazó (el que NO es el cantor).
-      const winnerIsMe = ts.last_singer === currentUserId
-      const canto =
-        prev && ['truco', 'retruco', 'vale_cuatro'].includes(prev.status)
-          ? (TRUCO_LABEL[prev.status] ?? 'truco')
-          : ts.value === 4 ? 'vale cuatro' : ts.value === 3 ? 'retruco' : 'truco'
-      if (soundReadyRef.current) playSound('no-quiero')
-      showAnnounce({ side: winnerIsMe ? 'top' : 'bottom',
-        eyebrow: canto, title: 'No quiero', titleClass: 'text-cream' })
-      if (winnerIsMe) botHabla('no_quiere')
-    }
-
-    prevTrucoRef.current = { status: st, singer: ts.last_singer ?? null, value: ts.value ?? 1, hand: game.hand_number }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.truco_state.status, game.truco_state.last_singer, game.hand_number])
 
   // Sonido de carta: cada vez que aparece una carta nueva en la mesa (tuya o del
   // rival). Se basa en que played_cards crece; al empezar mano nueva vuelve a 0,
@@ -760,26 +643,12 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   // false y no suenen.
   useEffect(() => { soundReadyRef.current = true }, [])
 
-  // Al empezar una mano nueva, descartamos cualquier cartel que haya quedado de
-  // una mano anterior (p. ej. el "No quiero" del truco), para no tapar la mesa
-  // nueva. El cartel que nace junto con la mano nueva queda etiquetado con ella,
-  // así que no se descarta.
-  useEffect(() => {
-    setAnnounce(prev => (prev && prev.hand != null && prev.hand < game.hand_number ? null : prev))
-  }, [game.hand_number])
 
-
-  // Muestra un cartel de anuncio y lo autodescarta (cancelando el anterior).
-  // Lo etiquetamos con la mano actual para poder descartarlo al empezar otra.
-  function showAnnounce(a: Announce, ms = 3600) {
-    if (announceTimer.current) clearTimeout(announceTimer.current)
-    setAnnounce({ ...a, hand: game.hand_number })
-    announceTimer.current = setTimeout(() => setAnnounce(null), ms)
-  }
 
   // Loguea y muestra el error de una RPC; devuelve true si hubo error.
   function rpcFailed(label: string, error: { message?: string } | null): boolean {
     if (!error) return false
+    if (latestGame.current.status === 'finished' && !['request_rematch RPC:', 'start_campaign_duel RPC:'].includes(label)) return true
     console.error(label, error)
     setActionError(error.message || 'No se pudo completar la acción')
     return true
@@ -817,10 +686,9 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   // Realtime, polling y reintentos pueden llegar fuera de orden. Un snapshot
   // anterior no debe revivir una espera de reparto ni una partida terminada.
   function applyServerGame(next: Game) {
-    setGame(prev => (
-      (prev.status === 'finished' && next.status !== 'finished') ||
-      Date.parse(next.updated_at) < Date.parse(prev.updated_at) ? prev : next
-    ))
+    if (next.status === 'finished' && latestGame.current.status !== 'finished') setActionError('')
+    setGame(prev => (prev.status === 'finished' && next.status !== 'finished'
+      || Date.parse(next.updated_at) < Date.parse(prev.updated_at) ? prev : next))
   }
 
   // Jugar una carta: el servidor valida turno/carta, resuelve la ronda y la mano,
@@ -844,7 +712,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       setLoading(false)
       return
     }
-    if (data) setGame(data as Game)
+    if (data) applyServerGame(data as Game)
     await refetchMyHand()
     setLoading(false)
   }
@@ -858,7 +726,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     try {
       lastActionRef.current = Date.now()
       const { data, error } = await supabase.rpc('sing_envido', { p_game_id: game.id, p_type: type }).abortSignal(AbortSignal.timeout(8000))
-      if (!rpcFailed('sing_envido RPC:', error) && data) setGame(data as Game)
+      if (!rpcFailed('sing_envido RPC:', error) && data) applyServerGame(data as Game)
     } catch (error) {
       rpcFailed('singEnvido RPC:', error instanceof Error ? error : { message: 'No se pudo completar la acción. Volvé a intentar.' })
     } finally {
@@ -879,7 +747,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       // Si acepta, el servidor abre el diálogo de tantos (la mano declara primero).
       // Si no, resuelve el "no quiero" como antes.
       const { data, error } = await supabase.rpc('respond_envido', { p_game_id: game.id, p_accept: accept }).abortSignal(AbortSignal.timeout(8000))
-      if (!rpcFailed('respond_envido RPC:', error) && data) setGame(data as Game)
+      if (!rpcFailed('respond_envido RPC:', error) && data) applyServerGame(data as Game)
     } catch (error) {
       rpcFailed('respondEnvido RPC:', error instanceof Error ? error : { message: 'No se pudo completar la acción. Volvé a intentar.' })
     } finally {
@@ -901,7 +769,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       setMyEmote(bubble)
       const { data, error } = await supabase.rpc('envido_say', { p_game_id: game.id, p_action: action }).abortSignal(AbortSignal.timeout(8000))
       if (rpcFailed('envido_say RPC:', error) || !data) return
-      setGame(data as Game)
+      applyServerGame(data as Game)
       // La relectura de cartas no debe mantener bloqueados los controles.
       void refetchMyHand().catch(error => { console.error('refetch envido hand:', error) })
     } catch (error) {
@@ -917,7 +785,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     setLoading(true)
     lastActionRef.current = Date.now()
     const { data, error } = await supabase.rpc('sing_truco', { p_game_id: game.id, p_type: type })
-    if (!rpcFailed('sing_truco RPC:', error) && data) setGame(data as Game)
+    if (!rpcFailed('sing_truco RPC:', error) && data) applyServerGame(data as Game)
     setLoading(false)
   }
 
@@ -926,7 +794,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     setLoading(true)
     lastActionRef.current = Date.now()
     const { data, error } = await supabase.rpc('respond_truco', { p_game_id: game.id, p_accept: accept })
-    if (!rpcFailed('respond_truco RPC:', error) && data) setGame(data as Game)
+    if (!rpcFailed('respond_truco RPC:', error) && data) applyServerGame(data as Game)
     await refetchMyHand() // por si el rechazo repartió una mano nueva
     setLoading(false)
   }
@@ -939,7 +807,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     chatChannelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text: 'Me voy al mazo' } })
     setMyEmote('Me voy al mazo')
     const { data, error } = await supabase.rpc('irse_al_mazo', { p_game_id: game.id })
-    if (!rpcFailed('irse_al_mazo RPC:', error) && data) setGame(data as Game)
+    if (!rpcFailed('irse_al_mazo RPC:', error) && data) applyServerGame(data as Game)
     // La próxima mano la reparte el delay (advance_hand) al ver awaiting_deal
     setLoading(false)
   }
@@ -950,7 +818,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     if (!window.confirm('¿Seguro que querés abandonar? Pierdes la partida y el pozo.')) return
     setLoading(true)
     const { data, error } = await supabase.rpc('forfeit', { p_game_id: game.id })
-    if (!rpcFailed('forfeit RPC:', error) && data) setGame(data as Game)
+    if (!rpcFailed('forfeit RPC:', error) && data) applyServerGame(data as Game)
     setLoading(false)
   }
 
@@ -959,7 +827,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     if (loading) return
     setLoading(true)
     const { data, error } = await supabase.rpc('request_rematch', { p_game_id: game.id })
-    if (!rpcFailed('request_rematch RPC:', error) && data) setGame(data as Game)
+    if (!rpcFailed('request_rematch RPC:', error) && data) applyServerGame(data as Game)
     setLoading(false)
   }
 
@@ -1034,7 +902,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
           </div>
         )}
       >
-        <ObjectiveProgressDelta gameId={game.id} isGuest={isGuest} />
+        <ResultObjectives gameId={game.id} isGuest={isGuest} />
 
         {showThanks && (
           <p className="text-xs font-semibold text-gold text-center">¡Gracias por tu reseña! 🌟</p>
@@ -1075,7 +943,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
         me={{ url: myAvatarUrl, name: myUsername, score: myScore, highlight: !voided && won }}
         opponent={{ url: opponentAvatarUrl, name: opponentUsername, score: opponentScore, highlight: !voided && !won }}
       >
-        {!voided && <ObjectiveProgressDelta gameId={game.id} isGuest={isGuest} />}
+        {!voided && <ResultObjectives gameId={game.id} isGuest={isGuest} />}
         <Button variant="primary" size="md" fullWidth
           onClick={() => router.push(`/torneos/${tournamentId}`)}>
           Volver al torneo
@@ -1089,6 +957,9 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     const voided = game.winner_id == null
     const won = game.winner_id === currentUserId
     const net = game.bet / 2
+    const endedByTimeout = (won ? (isPlayer1 ? game.mazo_count_p2 : game.mazo_count_p1)
+      : (isPlayer1 ? game.mazo_count_p1 : game.mazo_count_p2)) >= 3
+    const endedByForfeit = !voided && !endedByTimeout && Math.max(myScore, opponentScore) < game.target_score
     const myVote = isPlayer1 ? game.rematch_p1 : game.rematch_p2
     const oppVote = isPlayer1 ? game.rematch_p2 : game.rematch_p1
     const rematchCount = (game.rematch_p1 ? 1 : 0) + (game.rematch_p2 ? 1 : 0)
@@ -1101,6 +972,10 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
         title={voided ? 'Partida anulada' : won ? '¡Ganaste!' : 'Perdiste'}
         subtitle={voided
           ? 'Los dos abandonaron la mesa.'
+          : endedByTimeout
+            ? won ? 'Tu rival agotó sus oportunidades de tiempo.' : 'Agotaste tus oportunidades de tiempo.'
+          : endedByForfeit
+            ? won ? 'Tu rival abandonó la partida.' : 'Abandonaste la partida.'
           : won
             ? <>Le ganaste a <b className="font-semibold text-cream">{opponentUsername}</b> {myScore} a {opponentScore}</>
             : <><b className="font-semibold text-cream">{opponentUsername}</b> te ganó {opponentScore} a {myScore}</>}
@@ -1124,7 +999,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
           </div>
         )}
       >
-        {!voided && <ObjectiveProgressDelta gameId={game.id} isGuest={isGuest} />}
+        {!voided && <ResultObjectives gameId={game.id} isGuest={isGuest} />}
 
         {showThanks && (
           <p className="text-xs font-semibold text-gold text-center">¡Gracias por tu reseña! 🌟</p>
@@ -1159,313 +1034,66 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   const oppRevealedCount = envidoReveal && !revealIsMine ? envidoReveal.cards.length : 0
   const oppCardsLeft = Math.max(0, 3 - game.played_cards.filter(pc => pc.player_id === opponentId).length - oppRevealedCount)
   return (
-    <main className={`${styles.game} ${getSalonTheme(salonSlug).integratedTable ? styles.reference : ''}`}>
-      {!getSalonTheme(salonSlug).integratedTable && <SalonBackground slug={salonSlug} />}
-      <div className={styles.shell}>
-      {getSalonTheme(salonSlug).integratedTable && <SalonBackground slug={salonSlug} />}
-      <MesaHeader salonSlug={salonSlug} left={{ name: `${myUsername} (vos)`, score: myScore }} right={{ name: opponentUsername, score: opponentScore }} target={game.target_score} pot={game.bet} mano={isMano ? 'vos' : 'rival'} />
-
-      {/* Error de la última acción (se autodescarta). Flota sobre la mesa (h-0 +
-          absolute) para no empujar el layout: la mesa no cambia de tamaño. */}
-      {actionError && (
-        <div className="relative z-40 h-0 overflow-visible">
-        <div
-          role="alert"
-          onClick={() => setActionError('')}
-          className="absolute inset-x-0 top-1 rounded-xl border border-negative/40 bg-negative/60 backdrop-blur p-2 text-center text-sm font-medium text-white shadow-card cursor-pointer animate-fade-up"
-        >
-          {actionError}
-        </div>
-        </div>
-      )}
-
-      {/* Cada fila reserva su lugar: los cantos y el reparto no mueven la mesa. */}
-      <div className={styles.stage} ref={cardFlight.stageRef} data-card-stage>
-        <SalonTable slug={salonSlug} />
-        <div className={styles.tablePlay}>
-          <div className={`${styles.seat} ${styles.opponentSeat}`}>
-            <SeatAvatar slug={campaignRivalSlug} imageUrl={opponentAvatarUrl} name={opponentUsername} active={!meActive} frame={opponentFrame} medal={opponentMedal} />
-            <span className={styles.seatName}>{opponentUsername}</span>
-          </div>
-        {/* Accesorios sobre el paño: el del rival a la izquierda (debajo de sus
-            cartas) y el mío a la derecha, en los costados para no pisar cartas. */}
-        <TableAccessory slug={opponentAccessory} who="opponent" />
-        <TableAccessory slug={myAccessory} who="me" />
-
-        <MesaToolbar muted={muted} onToggleMute={toggleMute} emoteTray={emoteTray} onToggleEmotes={() => setEmoteTray(v => !v)} chatControl={process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isCampaign
-          ? <MatchChat key={game.id} mode="game" matchId={game.id} userId={currentUserId} isGuest={isGuest} quick={EMOTES} onQuickSend={sendEmote} quickCooldown={emoteCooldown} onBubblesChange={setChatBubbles} /> : undefined} />
-        {emoteTray && !(process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isCampaign) && (
-          <EmoteTray onSend={sendEmote} cooldown={emoteCooldown} />
-        )}
-
-        {/* Burbujas de emote (efímeras) */}
-        {game.status === 'playing' && chatBubbles.map(message => {
-          const mine = message.sender_id === currentUserId
-          if (mine ? myEmote : oppEmote) return null
-          return <MatchChatBubble key={message.id} message={message} className={`absolute left-2 z-20 ${mine ? 'bottom-2 rounded-bl-sm border-gold/40 bg-gold/15' : 'top-2 rounded-tl-sm'}`} />
-        })}
-        {oppEmote && (
-          <div className="absolute top-2 left-2 z-20 rounded-2xl rounded-tl-sm border border-line bg-base/90 backdrop-blur px-3 py-1.5 text-lg shadow-card animate-scale-in">
-            {oppEmote}
-          </div>
-        )}
-        {myEmote && (
-          <div className="absolute bottom-2 left-2 z-20 rounded-2xl rounded-bl-sm border border-gold/40 bg-gold/15 backdrop-blur px-3 py-1.5 text-lg shadow-card animate-scale-in">
-            {myEmote}
-          </div>
-        )}
-
-        {/* Cartel de anuncio (cantos / resultados): sale del lado del que actuó.
-            Solo se muestra si pertenece a la mano actual: apenas empieza una mano
-            nueva, ningún cartel de una mano anterior sigue en pantalla (aunque una
-            actualización tardía del servidor intente revivirlo). */}
-        {announce && announce.hand === game.hand_number && (
-          <MesaAnnouncement announce={announce} />
-        )}
-
-        {/* Mazo: pila de dorsos de la que "salen" las cartas al repartir. En
-            celular va más abajo, bien sobre el paño (arriba quedaba fuera del
-            óvalo, que en la mesa achatada ya no llega a esa esquina). */}
-        <MesaDeck />
-
-        {/* Cartas del oponente boca abajo, en abanico (no conocemos sus cartas,
-            solo cuántas le quedan). Alto fijo: cuando se queda sin cartas la fila
-            no colapsa y nada de la mesa se mueve. */}
-        <div className={styles.opponentHand} data-card-hand="opponent">
-          {[...Array(oppCardsLeft)].map((_, i) => {
-            const mid = (oppCardsLeft - 1) / 2
-            return (
-              <div
-                // Abanico invertido (es la mano del rival vista desde enfrente):
-                // pivote arriba → juntas arriba, separadas abajo.
-                key={i}
-                style={{
-                  transform: `rotate(${(mid - i) * 8}deg) translateY(${Math.abs(i - mid) * -4}px)`,
-                  transformOrigin: '50% -30%',
-                }}
-              >
-                <CardBack className={styles.back} />
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Historial de rondas: 3 ranuras SIEMPRE reservadas (aunque estén vacías),
-            así la fila nunca se re-centra y cada carta cae en un lugar fijo y se
-            queda ahí (mesa real). Se centra en el espacio entre el abanico del
-            rival y la mano (que ya no se superpone: tiene su propia fila). */}
-        <div className={styles.rounds}>
-          {[1, 2, 3].map(roundNum => {
-            const roundCards = game.played_cards.filter(pc => pc.round === roundNum)
-            const myRoundCard = roundCards.find(pc => pc.player_id === currentUserId)
-            const opponentRoundCard = roundCards.find(pc => pc.player_id !== currentUserId)
-            const roundResult = game.round_results.find(r => r.round === roundNum)
-            // Carta del envido revelada que "cae" en esta ronda (como jugada normal)
-            const revealCard = revealByRound.get(roundNum)
-
-            // La carta ganadora va encima; en parda se mantiene el orden visual.
-            const myCardOnTop = roundResult
-              ? roundResult.winner_id === currentUserId
-              : false
-
-            // Posiciones definitivas desde el inicio, incluso en una parda.
-            // El resultado solo cambia cuál queda encima, nunca sus coordenadas.
-            const oppCardCls = `top-0 left-0 ${myCardOnTop ? 'z-0' : 'z-10'}`
-            const myCardCls = `top-6 left-3 ${myCardOnTop ? 'z-10' : 'z-0'}`
-            const myMotionKey = `${game.hand_number}:${currentUserId}:${roundNum}`
-            const oppMotionKey = `${game.hand_number}:${opponentId}:${roundNum}`
-
-            return (
-              <div key={roundNum} className="flex flex-col items-center">
-                <div className={styles.roundSlot}>
-                  <div data-card-target={`${roundNum}-opponent`} data-card-rank={opponentRoundCard?.card.rank} className={`absolute ${styles.playedCard} ${oppCardCls}`}>
-                    {opponentRoundCard && (
-                      <TableCard
-                        card={opponentRoundCard.card}
-                        owner="opponent"
-                        motionKey={oppMotionKey}
-                        animate={!initialCardKeys.current.has(oppMotionKey)}
-                      />
-                    )}
-                  </div>
-                  {/* Mi carta entra desde la dirección de mi mano (abajo), en su lugar real. */}
-                  <div data-card-target={`${roundNum}-me`} className={`absolute ${styles.playedCard} ${myCardCls}`}>
-                    {myRoundCard && (
-                      <TableCard
-                        card={myRoundCard.card}
-                        owner="me"
-                        motionKey={myMotionKey}
-                        animate={!initialCardKeys.current.has(myMotionKey)}
-                      />
-                    )}
-                  </div>
-                  {/* Carta del envido revelada: entra desde el lado del que la muestra */}
-                  {revealCard && (
-                    <PlayingCard
-                      card={revealCard}
-                      flip
-                      style={{ '--fromY': revealIsMine ? '70px' : '-50px', boxShadow: '0 12px 20px -6px rgba(0,0,0,0.55)' } as React.CSSProperties}
-                      className={`absolute ${styles.playedCard} z-10 ${revealIsMine ? 'top-6 left-3' : 'top-0 left-0'}`}
-                    />
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        </div>
-
-        {/* La mano tiene su propia fila, separada de las tres rondas jugadas. */}
-        <div className={styles.hand} data-card-hand="me">
-          {myCards.map((card, i) => {
-            const mid = (myCards.length - 1) / 2
-            return (
-              <div
-                // Key por identidad de carta: al repartir una mano nueva cambian las
-                // cartas → se remontan → se vuelve a disparar el reparto escalonado.
-                key={`${card.suit}-${card.value}`}
-                className="relative"
-                style={{
-                  transform: `rotate(${(i - mid) * 7}deg) translateY(${Math.abs(i - mid) * 7}px)`,
-                  transformOrigin: '50% 135%',
-                  zIndex: i + 1,
-                }}
-              >
-                <PlayingCard
-                  card={card}
-                  interactive
-                  deal
-                  // Origen aproximado en el mazo (arriba-derecha): la carta de la
-                  // izquierda viaja más a la derecha para converger hacia el mazo.
-                  style={{
-                    animationDelay: `${i * 110}ms`,
-                    ...DEAL_ORIGINS[Math.min(i, DEAL_ORIGINS.length - 1)],
-                  } as React.CSSProperties}
-                  onClick={e => { void cardFlight.play(e.currentTarget, game.round_number, card, () => playCard(card)) }}
-                  disabled={!isMyTurn || loading || !!myPlayedCard || hasPendingEnvido || hasPendingTruco || isDeclaring}
-                  className={styles.handCard}
-                />
-              </div>
-            )
-          })}
-        </div>
-        <div className={`${styles.seat} ${styles.mySeat}`}>
-          <SeatAvatar imageUrl={myAvatarUrl} name={myUsername} active={meActive} frame={myFrame} medal={myMedal} />
-          <span className={styles.seatName}>{myUsername}</span>
-        </div>
-      </div>
-
-      {/* Estado y reloj debajo de la mano, con espacio reservado para los cantos. */}
-      <MesaTurn active={meActive} seconds={handClosed ? null : secondsLeft}>
-        {game.status === 'finished' ? 'Fin de la partida…' :
-         game.awaiting_deal ? 'Fin de la mano…' :
-         hasPendingEnvido ? `Te cantaron ${ENVIDO_LABEL[game.envido_state.status] ?? 'envido'} — respondé` :
-         hasPendingTruco ? `Te cantaron ${TRUCO_LABEL[game.truco_state.status] ?? 'truco'} — respondé` :
-         isDeclaring ? (myDeclareTurn ? 'Tu turno — decí tu tanto' : `Turno de ${opponentUsername}`) :
-         isMyTurn ? 'Tu turno' : `Turno de ${opponentUsername}`}
-      </MesaTurn>
-
-      {/* Botones de acción (z-30: siempre por encima de la mesa, que asoma detrás).
-          Alto FIJO (el del caso más alto: responder truco + envido va primero),
-          con el contenido anclado abajo: aparezcan los botones que aparezcan, la
-          mesa no cambia de tamaño ni se mueve nada. */}
-      <div className={styles.actions}>
-        {!handClosed && <>
-        {/* Responder envido */}
-        {hasPendingEnvido && (
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2">
-              <MesaButton tone="positive" onClick={() => respondEnvido(true)} disabled={loading}>Quiero</MesaButton>
-              <MesaButton tone="danger" onClick={() => respondEnvido(false)} disabled={loading}>No quiero</MesaButton>
-            </div>
-            {/* Escalar el envido */}
-            <div className="flex gap-2">
-              {game.envido_state.status === 'envido' &&
-                (game.envido_state.chain?.filter(c => c === 'envido').length ?? 0) < 2 && (
-                <MesaButton onClick={() => singEnvido('envido')} disabled={loading}>Envido</MesaButton>
-              )}
-              {game.envido_state.status === 'envido' && (
-                <MesaButton onClick={() => singEnvido('real_envido')} disabled={loading}>Real Envido</MesaButton>
-              )}
-              {game.envido_state.status !== 'falta_envido' && (
-                <MesaButton onClick={() => singEnvido('falta_envido')} disabled={loading}>Falta Envido</MesaButton>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Diálogo de tantos: la mano (Tengo/Mazo) o el pie (Son buenas/Tengo/Mazo) */}
-        {myDeclareTurn && (
-          <div className="flex gap-2">
-            {manoDeclared != null && (
-              <MesaButton onClick={() => envidoSay('son_buenas')} disabled={loading}>Son buenas</MesaButton>
-            )}
-            <MesaButton tone="gold" onClick={() => envidoSay('tengo')} disabled={loading}>Tengo {myEnvido}</MesaButton>
-            <MesaButton tone="ghost" onClick={() => envidoSay('mazo')} disabled={loading}>Ir al mazo</MesaButton>
-          </div>
-        )}
-
-        {isMyTurn && !isDeclaring && !hasPendingEnvido && !hasPendingTruco && canSingEnvido && (
-          <div className="flex gap-2">
-            <MesaButton onClick={() => singEnvido('envido')} disabled={loading}>Envido</MesaButton>
-            <MesaButton onClick={() => singEnvido('real_envido')} disabled={loading}>Real Envido</MesaButton>
-            <MesaButton onClick={() => singEnvido('falta_envido')} disabled={loading}>Falta Envido</MesaButton>
-          </div>
-        )}
-
-        {/* Responder truco */}
-        {hasPendingTruco && (
-          <div className="flex flex-col gap-1">
-            <div className="flex gap-2">
-              <MesaButton tone="positive" onClick={() => respondTruco(true)} disabled={loading}>Quiero</MesaButton>
-              {game.truco_state.status !== 'vale_cuatro' && (
-                <MesaButton tone="gold" onClick={() => singTruco(game.truco_state.status === 'truco' ? 'retruco' : 'vale_cuatro')} disabled={loading}>
-                  {game.truco_state.status === 'truco' ? 'Retruco' : 'Vale Cuatro'}
-                </MesaButton>
-              )}
-              <MesaButton tone="danger" onClick={() => respondTruco(false)} disabled={loading}>No quiero</MesaButton>
-            </div>
-            {/* El envido va primero: se puede cantar envido en respuesta al truco */}
-            {canSingEnvido && (
-              <>
-                <p className="text-[11px] leading-none text-center text-cream/60">…o el envido va primero:</p>
-                <div className="flex gap-2">
-                  <MesaButton onClick={() => singEnvido('envido')} disabled={loading}>Envido</MesaButton>
-                  <MesaButton onClick={() => singEnvido('real_envido')} disabled={loading}>Real Envido</MesaButton>
-                  <MesaButton onClick={() => singEnvido('falta_envido')} disabled={loading}>Falta Envido</MesaButton>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Truco + Irse al mazo comparten fila para ahorrar alto; si no se puede
-            cantar truco, Irse al mazo queda solo. */}
-        {isMyTurn && !isDeclaring && !hasPendingEnvido && !hasPendingTruco && (
-          <div className="flex gap-2">
-            {canSingTruco && (
-              <MesaButton tone="gold" className="h-11 text-base" onClick={() => singTruco(
-                game.truco_state.status === 'none' ? 'truco' :
-                game.truco_state.value === 2 ? 'retruco' : 'vale_cuatro'
-              )} disabled={loading}>
-                {game.truco_state.status === 'none' ? 'Truco' :
-                  game.truco_state.value === 2 ? 'Retruco' : 'Vale Cuatro'}
-              </MesaButton>
-            )}
-            <MesaButton tone="ghost" className={canSingTruco ? 'h-11' : 'h-10'} onClick={irseAlMazo} disabled={loading}>
-              Ir al mazo
-            </MesaButton>
-          </div>
-        )}
-
-        </>}
-        {/* Abandonar la partida (derrota) */}
-        <button onClick={forfeit} disabled={loading || handClosed}
-          className="self-center -my-1 py-1.5 px-3 inline-flex items-center text-xs text-subtle hover:text-negative transition-colors disabled:opacity-50">
-          Abandonar partida
-        </button>
-      </div>
-      </div>
-    </main>
+    <GameTable
+      game={game}
+      currentUserId={currentUserId}
+      opponentId={opponentId}
+      myUsername={myUsername}
+      opponentUsername={opponentUsername}
+      myScore={myScore}
+      opponentScore={opponentScore}
+      isMano={isMano}
+      isMyTurn={isMyTurn}
+      meActive={meActive}
+      salonSlug={salonSlug}
+      campaignRivalSlug={campaignRivalSlug}
+      myAvatarUrl={myAvatarUrl}
+      opponentAvatarUrl={opponentAvatarUrl}
+      myFrame={myFrame}
+      opponentFrame={opponentFrame}
+      myMedal={myMedal}
+      opponentMedal={opponentMedal}
+      myAccessory={myAccessory}
+      opponentAccessory={opponentAccessory}
+      myCards={myCards}
+      oppCardsLeft={oppCardsLeft}
+      revealByRound={revealByRound}
+      revealIsMine={revealIsMine}
+      cardFlight={cardFlight}
+      loading={loading}
+      actionError={actionError}
+      secondsLeft={secondsLeft}
+      muted={muted}
+      toggleMute={toggleMute}
+      emoteTray={emoteTray}
+      myEmote={myEmote}
+      oppEmote={oppEmote}
+      chatBubbles={game.status === 'playing' ? chatBubbles : []}
+      announce={announce}
+      hasPendingEnvido={hasPendingEnvido}
+      hasPendingTruco={hasPendingTruco}
+      isDeclaring={isDeclaring}
+      myDeclareTurn={myDeclareTurn}
+      manoDeclared={manoDeclared}
+      myEnvido={myEnvido}
+      canSingEnvido={canSingEnvido}
+      canSingTruco={canSingTruco}
+      playCard={playCard}
+      singEnvido={singEnvido}
+      respondEnvido={respondEnvido}
+      singTruco={singTruco}
+      respondTruco={respondTruco}
+      envidoSay={envidoSay}
+      irseAlMazo={irseAlMazo}
+      initialCardKeys={initialCardKeys.current}
+      cardsDisabled={!isMyTurn || loading || !!myPlayedCard || hasPendingEnvido || hasPendingTruco || isDeclaring}
+      dismissError={() => setActionError('')}
+      toggleEmotes={() => setEmoteTray(v => !v)}
+      onLeave={forfeit}
+      chatControl={process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isCampaign
+        ? <MatchChat key={game.id} mode="game" matchId={game.id} userId={currentUserId} isGuest={isGuest} quick={EMOTES} onQuickSend={sendEmote} quickCooldown={emoteCooldown} onBubblesChange={setChatBubbles} /> : undefined}
+      emoteTrayContent={emoteTray && !(process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isCampaign)
+        ? <EmoteTray onSend={sendEmote} cooldown={emoteCooldown} /> : undefined}
+    />
   )
 }

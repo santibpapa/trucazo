@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui'
 import { invitationPath } from '@/lib/table-invites'
+import { appOrigin } from '@/lib/app-request'
 
 export default function ShareTableInvite({ tableId, mode }: { tableId: string; mode: '1v1' | '2v2' }) {
   const [link, setLink] = useState('')
@@ -21,7 +22,7 @@ export default function ShareTableInvite({ tableId, mode }: { tableId: string; m
         .abortSignal(AbortSignal.timeout(8000))
       const path = invitationPath(data)
       if (error || !path) throw new Error('No pudimos preparar el enlace. Revisá que la mesa siga abierta y reintentá.')
-      setLink(`${window.location.origin}${path}`)
+      setLink(`${appOrigin()}${path}`)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'No pudimos preparar el enlace. Reintentá.')
     } finally {

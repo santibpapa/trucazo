@@ -15,7 +15,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-export default async function TournamentDetailPage({ params }: { params: { id: string } }) {
+export default async function TournamentDetailPage({ params: routeParams }: { params: Promise<{ id: string }> }) {
+  const params = await routeParams
   if (!tournamentModeEnabled) notFound()
 
   const supabase = await createClient()

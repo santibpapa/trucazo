@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { authDestination, invitationAuthLink } from '@/lib/table-invites'
+import { authDestination } from '@/lib/auth-links'
+import { invitationAuthLink } from '@/lib/table-invites'
 
 /**
  * Página de vuelta del login con Google (y cualquier OAuth).
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Respuesta que devolvemos; el cliente de Supabase escribe las cookies acá.
-  const destination = authDestination(requestedDestination)
+  const destination = authDestination(requestedDestination) || '/lobby'
   const response = NextResponse.redirect(`${origin}${destination}`)
   response.cookies.set('trucazo_auth_next', '', { path: '/', maxAge: 0 })
 

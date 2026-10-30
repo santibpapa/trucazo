@@ -27,7 +27,7 @@ const domino = createRequire(join(process.cwd(), 'package.json'))(
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.trucazo.com.ar').replace(/\/$/, '')
 
-const BUILD_DIR = join(process.cwd(), '.next', 'server', 'app')
+const BUILD_DIR = join(process.cwd(), process.env.TRUCAZO_NEXT_DIST_DIR || '.next', 'server', 'app')
 const OUT_DIR = join(process.cwd(), 'public', '_md')
 
 const turndown = new TurndownService({

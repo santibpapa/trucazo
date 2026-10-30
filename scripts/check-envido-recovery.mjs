@@ -41,7 +41,7 @@ function fixture(name, rpcResult = { data: null, error: null }, handFails = fals
   const scope = {
     supabase: { rpc }, game: { id: 'game-test' }, isMyTurn: true, hasPendingEnvido: true,
     lastActionRef: { current: 0 }, chatChannelRef: { current: null }, myEnvido: 33,
-    setLoading: value => { loading = value }, setGame: value => { state = value },
+    setLoading: value => { loading = value }, applyServerGame: value => { state = value },
     setMyEmote() {}, setActionError() {},
     console: { error() {} },
     rpcFailed: (_label, error) => { if (error) errors.push(error); return !!error },
@@ -112,7 +112,8 @@ test('el botón de declaración sigue declare_turn, incluso si current_turn es d
       }
     }
   }
-  assert.match(source, /onClick=\{\(\) => envidoSay\('tengo'\)\} disabled=\{loading\}>Tengo \{myEnvido\}/)
+  const table = readFileSync('src/components/game/GameTable.tsx', 'utf8')
+  assert.match(table, /onClick=\{\(\) => envidoSay\('tengo'\)\} disabled=\{loading\}>Tengo \{myEnvido\}/)
 })
 
 test('reconectar o volver a la pestaña relee el estado; salir elimina los listeners', async () => {

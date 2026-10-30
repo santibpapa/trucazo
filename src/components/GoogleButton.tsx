@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui'
 import { isAndroidEntry } from '@/lib/android-entry'
-import { authDestination, invitationPath } from '@/lib/table-invites'
+import { invitationPath } from '@/lib/table-invites'
+import { authDestinationCookie } from '@/lib/auth-links'
 
 interface Props {
   variant?: 'primary' | 'secondary' | 'ghost'
@@ -12,7 +13,7 @@ interface Props {
 }
 
 /** Logo oficial de Google (multicolor). */
-function GoogleLogo() {
+export function GoogleLogo() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
       <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z" />
@@ -36,9 +37,10 @@ export default function GoogleButton({ variant = 'secondary', size = 'lg', retur
 
     // Mantener la URL de callback ya autorizada en Supabase. Sólo recordar
     // el destino local; el servidor admite sólo los destinos explícitos.
+    const remembered = authDestinationCookie(document.cookie)
     const next = invitationPath(new URLSearchParams(window.location.search).get('next'))
-    const destination = returnTo ?? next ?? (isAndroidEntry() ? '/android' : undefined)
-    document.cookie = `trucazo_auth_next=${destination ? authDestination(destination) : ''}; Path=/; Max-Age=600; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`
+    const destination = returnTo ?? next ?? remembered ?? (isAndroidEntry() ? '/android' : undefined)
+    document.cookie = `trucazo_auth_next=${destination ?? ''}; Path=/; Max-Age=600; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`
     const { error: authErr } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback`,

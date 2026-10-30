@@ -61,7 +61,7 @@ export default function PlayingCard({
   if (interactive) {
     return (
       <button
-        aria-label={ariaLabel}
+        aria-label={ariaLabel ?? `Jugar ${card.value} de ${card.suit}`}
         onClick={onClick}
         disabled={disabled}
         style={style}

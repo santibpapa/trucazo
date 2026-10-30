@@ -1230,12 +1230,9 @@ begin
 end;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.finish_game(p_game_id uuid, p_winner_id uuid, p_p1_score integer, p_p2_score integer)
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
+create or replace function public.finish_game(p_game_id uuid, p_winner_id uuid, p_p1_score integer, p_p2_score integer)
+ returns void language plpgsql security definer set search_path to 'public'
+as $function$
 declare
   g            games%rowtype;
   v_loser_id   uuid;
@@ -1252,7 +1249,7 @@ declare
 begin
   select * into g from games where id = p_game_id for update;
   if not found then raise exception 'game not found'; end if;
-  if g.status = 'finished' then return; end if;
+  if g.status = 'finished' then return; end if;  -- idempotente
   if auth.uid() <> g.player1_id and auth.uid() <> g.player2_id then
     raise exception 'not a player of this game';
   end if;
@@ -1265,6 +1262,7 @@ begin
     g.envido_reveal := public._envido_reveal_for(g, (g.envido_state->>'winner_id')::uuid);
   end if;
 
+  -- --- Duelo de campaña: sin apuesta ni estadísticas; da puntos de ranking ---
   if g.campaign_rival_id is not null then
     update games
        set status = 'finished', winner_id = p_winner_id,
@@ -1274,6 +1272,7 @@ begin
 
     select id into v_human from profiles
      where id in (g.player1_id, g.player2_id) and not is_bot limit 1;
+    perform 1 from profiles where id=v_human for update;
 
     if v_human is not null and p_winner_id = v_human then
       select points_reward, reward_coins into r_base, r_coins
@@ -1281,6 +1280,7 @@ begin
       r_base  := coalesce(r_base, 0);
       r_coins := coalesce(r_coins, 0);
 
+      -- Margen del marcador final (a favor del humano), para el plus.
       v_margin := case when v_human = g.player1_id
                        then p_p1_score - p_p2_score else p_p2_score - p_p1_score end;
       v_margin := greatest(coalesce(v_margin, 0), 0);
@@ -1290,6 +1290,7 @@ begin
       on conflict (user_id, rival_id) do nothing;
 
       if found then
+        -- Primera victoria: monedas + puntos base + plus por margen (hasta +20%).
         v_pts := r_base + round(r_base * 0.20 * v_margin::numeric / greatest(g.target_score, 1))::int;
         update profiles
            set coins = coins + r_coins, campaign_points = campaign_points + v_pts
@@ -1298,6 +1299,7 @@ begin
            set campaign_reward = r_coins, campaign_points_earned = v_pts
          where id = p_game_id;
       else
+        -- Revancha ganada: miguita (10% del base) con tope acumulado (30% del base).
         select rematch_points into v_acc from campaign_progress
          where user_id = v_human and rival_id = g.campaign_rival_id;
         v_crumb := least(floor(r_base * 0.10)::int,
@@ -1317,6 +1319,7 @@ begin
     return;
   end if;
 
+  -- --- Partida normal (vs humano): comportamiento original intacto ---
   v_loser_id  := case when p_winner_id = g.player1_id then g.player2_id else g.player1_id end;
   v_winner_un := case when p_winner_id = g.player1_id then g.player1_username else g.player2_username end;
   v_loser_un  := case when p_winner_id = g.player1_id then g.player2_username else g.player1_username end;
@@ -3498,3 +3501,1757 @@ begin
 end;
 $function$;
 
+
+-- Descarga inicial de Historia (11/10/2026; pendiente de aplicar en producción).
+create or replace function public.export_offline_campaign()
+returns jsonb language plpgsql stable security definer set search_path = ''
+as $function$
+declare
+  uid uuid := auth.uid();
+  result jsonb;
+begin
+  if uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, true) then
+    raise exception 'Entrá con una cuenta registrada.' using errcode = '42501';
+  end if;
+  select jsonb_build_object(
+    'version', 'historia-local-v1', 'engine_version', 'historia-bots-v1',
+    'userId', uid, 'exported_at', statement_timestamp(),
+    'points', p.campaign_points, 'coins', p.coins,
+    'style', jsonb_build_object(
+      'hands_played', coalesce(s.hands_played,0), 'envido_sung', coalesce(s.envido_sung,0),
+      'envido_bluff', coalesce(s.envido_bluff,0), 'envido_folded', coalesce(s.envido_folded,0),
+      'truco_sung', coalesce(s.truco_sung,0), 'truco_bluff', coalesce(s.truco_bluff,0),
+      'truco_folded', coalesce(s.truco_folded,0)),
+    'progress', coalesce((select jsonb_agg(jsonb_build_object(
+      'rival_id', cp.rival_id, 'beaten_at', cp.beaten_at, 'wins', cp.wins, 'rematch_points', cp.rematch_points)
+      order by cp.rival_id) from public.campaign_progress cp where cp.user_id = uid), '[]'::jsonb),
+    'catalog', jsonb_build_object(
+      'provinces', (select jsonb_agg(jsonb_build_object(
+        'id', pv.id, 'order_index', pv.order_index, 'slug', pv.slug, 'name', pv.name,
+        'points_required', pv.points_required, 'required_rival_id', pv.required_rival_id)
+        order by pv.points_required,pv.order_index) from public.campaign_provinces pv),
+      'rivals', (select jsonb_agg(jsonb_build_object(
+        'id', r.id, 'order_index', r.order_index, 'slug', r.slug, 'display_name', r.display_name,
+        'tagline', r.tagline, 'difficulty', r.difficulty, 'target_score', r.target_score,
+        'reward_coins', r.reward_coins, 'bot_id', r.bot_id, 'province_id', r.province_id,
+        'points_required', r.points_required, 'ranking_points', r.ranking_points,
+        'points_reward', r.points_reward, 'trait_liar', r.trait_liar,
+        'trait_aggressive', r.trait_aggressive, 'strategy_profile', r.strategy_profile)
+        order by r.order_index) from public.campaign_rivals r)))
+  into result from public.profiles p left join public.campaign_style s on s.user_id = p.id
+  where p.id = uid and not p.is_bot;
+  if result is null then raise exception 'Cuenta no disponible.' using errcode = '42501'; end if;
+  return result;
+end;
+$function$;
+
+revoke all on function public.export_offline_campaign() from public, anon;
+grant execute on function public.export_offline_campaign() to authenticated;
+
+-- OFFLINE_SYNC_SNAPSHOT_BEGIN
+CREATE OR REPLACE FUNCTION offline_replay_v1._bot_hand_power(cards jsonb)
+ RETURNS integer
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select coalesce(sum(15 - (c->>'rank')::int), 0)::int
+  from jsonb_array_elements(coalesce(cards, '[]'::jsonb)) c;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._bot_step_pre_noroeste(p_game_id uuid)
+ RETURNS offline_replay_v1.games
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare
+  uid     uuid := auth.uid();
+  g       offline_replay_v1.games%rowtype;
+  v_bot   uuid;
+  v_human uuid;
+  d       int;
+  tl      int; ta int;
+  liar_n  numeric; aggr_n numeric;
+  -- Reputación del humano:
+  cs        campaign_style%rowtype;
+  hp        int;
+  fama_pts  int;
+  fama      numeric;          -- 0..1
+  read      numeric;          -- 0..1 fuerza de lectura
+  liar_rate numeric; fold_rate numeric; aggr_rate numeric;
+  r_call    numeric;          -- empujón a "quiero" (lectura 1)
+  r_bluff   numeric;          -- empujón a farolear (lecturas 2 y 3 combinadas)
+  fama_cap  constant int := 2000;
+  acted_ok boolean;
+  v_err    text;
+  sit      text;
+  es_status text; tr_status text; last_env text; last_truco text; declare_turn text;
+  cur_truco_val int; mano_declared int;
+  bot_remaining jsonb; bot_full jsonb;
+  et int; power int; standing int; eff int; bot_won int; opp_won int;
+  opp_rank int; best_rank int; ncards int; env_need int;
+  rr numeric;
+  act text; p_type text; chosen jsonb; esc_type text; can_env boolean;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+  select * into g from offline_replay_v1.games where id = p_game_id;
+  if not found then raise exception 'game not found'; end if;
+  if uid <> g.player1_id and uid <> g.player2_id then raise exception 'not a player of this game'; end if;
+
+  select id into v_bot from profiles where id in (g.player1_id, g.player2_id) and is_bot limit 1;
+  if v_bot is null then raise exception 'esta partida no tiene bot'; end if;
+  if uid = v_bot then raise exception 'el bot no juega solo'; end if;
+  v_human := case when v_bot = g.player1_id then g.player2_id else g.player1_id end;
+
+  if g.status <> 'playing' or g.awaiting_deal then return g; end if;
+
+  -- De dónde sale el nivel: campaña => el rival de la galería; si no => el bot
+  -- del lobby (máxima dificultad).
+  if g.campaign_rival_id is not null then
+    select coalesce(difficulty, 5), coalesce(trait_liar, 5), coalesce(trait_aggressive, 5)
+      into d, tl, ta
+      from campaign_rivals where id = g.campaign_rival_id;
+  else
+    select coalesce(difficulty, 10), coalesce(trait_liar, 5), coalesce(trait_aggressive, 5)
+      into d, tl, ta
+      from lobby_bots where bot_id = v_bot;
+    if not found then raise exception 'este bot no juega en el lobby'; end if;
+  end if;
+  liar_n := tl - 5;
+  aggr_n := ta - 5;
+
+  -- ===== Reputación: qué tanto "lee" este rival al humano =====
+  select coalesce(campaign_points, 0) into fama_pts from profiles where id = v_human;
+  fama := least(1.0, fama_pts::numeric / fama_cap);          -- 0..1 (progreso)
+  select * into cs from campaign_style where user_id = v_human;
+  hp := coalesce(cs.hands_played, 0);
+  liar_rate := (coalesce(cs.envido_bluff,0) + coalesce(cs.truco_bluff,0))::numeric
+               / greatest(1, coalesce(cs.envido_sung,0) + coalesce(cs.truco_sung,0));
+  fold_rate := least(1.0, (coalesce(cs.envido_folded,0) + coalesce(cs.truco_folded,0))::numeric
+               / greatest(1, hp) * 2);
+  aggr_rate := least(1.0, (coalesce(cs.envido_sung,0) + coalesce(cs.truco_sung,0))::numeric
+               / greatest(1, hp) / 1.5);
+  -- read: solo si hay fama, el rival es difícil (d>5) y jugaste varias manos.
+  read := fama * greatest(0, (d - 5) / 5.0) * least(1.0, hp / 20.0);
+  -- Empujones (PERILLAS de intensidad: 0.45 y 0.40, moderados):
+  r_call  := read * liar_rate * 0.45;                        -- lectura 1
+  r_bluff := read * (fold_rate - aggr_rate) * 0.40;          -- lecturas 2 (fold+) y 3 (aggr-)
+
+  es_status    := g.envido_state->>'status';
+  tr_status    := g.truco_state->>'status';
+  last_env     := g.envido_state->>'last_singer';
+  last_truco   := g.truco_state->>'last_singer';
+  declare_turn := g.envido_state->>'declare_turn';
+  cur_truco_val := coalesce((g.truco_state->>'value')::int, 1);
+  act := null; p_type := null; chosen := null;
+
+  select cards into bot_remaining from game_hands where game_id = p_game_id and player_id = v_bot;
+  bot_full := coalesce(bot_remaining, '[]'::jsonb) || coalesce(
+    (select jsonb_agg(pc.value->'card') from jsonb_array_elements(g.played_cards) pc
+     where pc.value->>'player_id' = v_bot::text), '[]'::jsonb);
+
+  et    := offline_replay_v1._envido_points(bot_full);
+  power := offline_replay_v1._bot_hand_power(bot_remaining);
+  select count(*) into ncards from jsonb_array_elements(coalesce(bot_remaining, '[]'::jsonb));
+  select count(*) filter (where e.value->>'winner_id' = v_bot::text),
+         count(*) filter (where e.value->>'winner_id' is not null and e.value->>'winner_id' <> v_bot::text)
+    into bot_won, opp_won
+    from jsonb_array_elements(g.round_results) e;
+  standing := coalesce(bot_won, 0) - coalesce(opp_won, 0);
+  -- La suma de cartas restantes se lleva a escala de 3 cartas, así las varas
+  -- de abajo valen igual en cualquier ronda.
+  eff := round(power * 3.0 / greatest(ncards, 1)) + standing * 6;
+  rr  := offline_replay_v1.random();
+
+  if es_status = 'declaring' and declare_turn = v_bot::text then
+    sit := 'declarar_tanto';
+    if (g.envido_state->>'mano_declared') is null then
+      act := 'envido_say'; p_type := 'tengo';
+    else
+      mano_declared := (g.envido_state->>'mano_declared')::int;
+      if et > mano_declared then
+        act := 'envido_say'; p_type := 'tengo';
+      elsif rr < d::numeric / 10 + liar_n * 0.02 then
+        act := 'envido_say'; p_type := 'son_buenas';
+      else
+        act := 'envido_say'; p_type := 'tengo';
+      end if;
+    end if;
+
+  elsif es_status in ('envido','real_envido','falta_envido') and last_env is distinct from v_bot::text then
+    sit := 'responder_envido';
+    esc_type := case es_status when 'envido' then 'real_envido' when 'real_envido' then 'falta_envido' else null end;
+    -- Cuánto tanto pido para querer, según lo que está EN JUEGO: el envido
+    -- simple se quiere con poco; la falta envido se juega la partida, así que
+    -- solo se quiere con un tanto muy fuerte.
+    env_need := case es_status
+                  when 'falta_envido' then greatest(29, 34 - d)   -- ~29-31: casi siempre no quiero
+                  when 'real_envido'  then greatest(24, 29 - d)
+                  else                     greatest(20, 27 - d)
+                end;
+    if et >= 31 and d >= 6 and esc_type is not null and rr < 0.45 then
+      act := 'sing_envido'; p_type := esc_type;
+    elsif et >= env_need or (rr < r_call and es_status <> 'falta_envido') then
+      act := 'respond_envido_yes';                            -- lectura 1: al mentiroso lo quiero más (no en la falta)
+    elsif d <= 3 and es_status <> 'falta_envido' and rr < 0.5 then
+      act := 'respond_envido_yes';                            -- el bot tonto acepta a ciegas, salvo la falta
+    else
+      act := 'respond_envido_no';
+    end if;
+
+  elsif tr_status in ('truco','retruco','vale_cuatro') and last_truco is distinct from v_bot::text then
+    sit := 'responder_truco';
+    if eff >= 30 and d >= 6 and cur_truco_val < 4 and rr < 0.40 + aggr_n * 0.015 then
+      act := 'sing_truco';
+      p_type := case cur_truco_val when 2 then 'retruco' when 3 then 'vale_cuatro' else 'retruco' end;
+    elsif eff >= greatest(12, 22 - d) or rr < r_call then    -- lectura 1: al mentiroso lo quiero más
+      act := 'respond_truco_yes';
+    elsif d <= 3 and rr < 0.6 then
+      act := 'respond_truco_yes';
+    else
+      act := 'respond_truco_no';
+    end if;
+
+  elsif g.current_turn = v_bot then
+    sit := 'turno';
+    can_env := (es_status = 'none' and g.round_number = 1 and tr_status <> 'accepted'
+                and not exists (select 1 from jsonb_array_elements(g.played_cards) pc
+                                where pc.value->>'player_id' = v_bot::text));
+
+    if can_env and ( et >= 27
+                     or (et >= 23 and rr < d::numeric / 12 + aggr_n * 0.01)
+                     or (et <= 20 and d >= 5 and rr < (d - 4) * 0.02 + liar_n * 0.005 + greatest(0, r_bluff)) ) then
+      act := 'sing_envido';                                  -- lecturas 2/3 en el farol de envido
+      p_type := case when et >= 32 and d >= 7 then 'real_envido' else 'envido' end;
+
+    elsif tr_status = 'none' and ( (eff >= 24 and rr < 0.35 + 0.05 * d + aggr_n * 0.02)
+                                   or (eff <= 12 and d >= 6 and rr < (d - 5) * 0.035 + liar_n * 0.005 + greatest(0, r_bluff)) ) then
+      act := 'sing_truco'; p_type := 'truco';                -- lecturas 2/3 en el farol de truco
+
+    elsif tr_status = 'accepted' and last_truco is distinct from v_bot::text
+          and cur_truco_val < 4 and eff >= 30 and d >= 7 and rr < 0.30 + aggr_n * 0.015 then
+      act := 'sing_truco'; p_type := case cur_truco_val when 2 then 'retruco' else 'vale_cuatro' end;
+
+    else
+      act := 'play';
+      select (e.value->'card'->>'rank')::int into opp_rank
+        from jsonb_array_elements(g.played_cards) e
+        where (e.value->>'round')::int = g.round_number and e.value->>'player_id' <> v_bot::text
+        limit 1;
+
+      -- ¿Se va al mazo? Solo en ronda 2, respondiendo a una carta que lo deja
+      -- sin salida (perdiendo nunca le toca abrir: abre el que ganó la 1ra):
+      --   * perdió la 1ra: condenado si no puede SUPERAR la carta (empatar
+      --     tampoco lo salva);
+      --   * la 1ra fue parda: condenado solo si su mejor carta PIERDE (con
+      --     un empate sigue vivo hasta la 3ra).
+      if g.round_number = 2 and opp_rank is not null then
+        select min((e.value->>'rank')::int) into best_rank
+          from jsonb_array_elements(coalesce(bot_remaining, '[]'::jsonb)) e;
+        if best_rank is not null
+           and ( (standing < 0 and best_rank >= opp_rank)
+              or (standing = 0 and best_rank > opp_rank) )
+           and offline_replay_v1.random() < 0.55 - aggr_n * 0.03 then
+          act := 'mazo';
+        end if;
+      end if;
+
+      if act = 'play' then
+        if opp_rank is not null then
+          if rr < d::numeric / 10 then
+            select e.value into chosen from jsonb_array_elements(bot_remaining) e
+              where (e.value->>'rank')::int < opp_rank
+              order by (e.value->>'rank')::int desc limit 1;
+            if chosen is null then
+              select e.value into chosen from jsonb_array_elements(bot_remaining) e
+                order by (e.value->>'rank')::int desc limit 1;
+            end if;
+          else
+            select e.value into chosen from jsonb_array_elements(bot_remaining) e order by offline_replay_v1.random() limit 1;
+          end if;
+        else
+          if rr < d::numeric / 10 then
+            if standing < 0 or g.round_number >= 2 then
+              select e.value into chosen from jsonb_array_elements(bot_remaining) e
+                order by (e.value->>'rank')::int asc limit 1;
+            else
+              select e.value into chosen from jsonb_array_elements(bot_remaining) e
+                order by (e.value->>'rank')::int asc offset greatest(0, (ncards - 1) / 2) limit 1;
+            end if;
+          else
+            select e.value into chosen from jsonb_array_elements(bot_remaining) e order by offline_replay_v1.random() limit 1;
+          end if;
+        end if;
+
+        if chosen is null then
+          select e.value into chosen from jsonb_array_elements(bot_remaining) e limit 1;
+        end if;
+        if chosen is null then return g; end if;
+      end if;
+    end if;
+
+  else
+    return g;
+  end if;
+
+  if act is null then return g; end if;
+
+  perform set_config('request.jwt.claim.sub', v_bot::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', v_bot::text, 'role', 'authenticated')::text, true);
+  acted_ok := true;
+  begin
+    case act
+      when 'play'               then perform offline_replay_v1.play_card(p_game_id, chosen);
+      when 'mazo'               then perform offline_replay_v1.irse_al_mazo(p_game_id);
+      when 'sing_envido'        then perform offline_replay_v1.sing_envido(p_game_id, p_type);
+      when 'sing_truco'         then perform offline_replay_v1.sing_truco(p_game_id, p_type);
+      when 'respond_envido_yes' then perform offline_replay_v1.respond_envido(p_game_id, true);
+      when 'respond_envido_no'  then perform offline_replay_v1.respond_envido(p_game_id, false);
+      when 'respond_truco_yes'  then perform offline_replay_v1.respond_truco(p_game_id, true);
+      when 'respond_truco_no'   then perform offline_replay_v1.respond_truco(p_game_id, false);
+      when 'envido_say'         then perform offline_replay_v1.envido_say(p_game_id, p_type);
+    end case;
+  exception when others then
+    acted_ok := false;
+    v_err := sqlerrm;
+  end;
+  perform set_config('request.jwt.claim.sub', uid::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', uid::text, 'role', 'authenticated')::text, true);
+
+  -- Registro de la decisión (y limpieza ocasional de lo viejo).
+  insert into bot_decisions (game_id, rival_id, situation, action, detail, numbers, ok, error)
+  values (p_game_id, g.campaign_rival_id, sit, act, p_type,
+          jsonb_build_object('d', d, 'round', g.round_number, 'ncards', ncards,
+                             'power', power, 'eff', eff, 'et', et,
+                             'standing', standing, 'truco_val', cur_truco_val,
+                             'rr', round(rr, 3), 'card', chosen, 'opp_rank', opp_rank),
+          acted_ok, v_err);
+  if rr < 0.02 then
+    delete from bot_decisions where created_at < now() - interval '30 days';
+  end if;
+
+  select * into g from offline_replay_v1.games where id = p_game_id;
+  return g;
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._deal_hands(OUT h1 jsonb, OUT h2 jsonb)
+ RETURNS record
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+declare deck jsonb := offline_replay_v1._truco_deck(); i integer; j integer; card jsonb;
+begin
+  for i in reverse 39..1 loop
+    j := floor(offline_replay_v1.random()*(i+1))::integer;
+    card := deck->i;
+    deck := jsonb_set(deck,array[i::text],deck->j);
+    deck := jsonb_set(deck,array[j::text],card);
+  end loop;
+  select jsonb_agg(value order by ordinal) filter(where ordinal<=3),
+         jsonb_agg(value order by ordinal) filter(where ordinal between 4 and 6)
+    into h1,h2 from jsonb_array_elements(deck) with ordinality e(value,ordinal);
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._envido_points(cards jsonb)
+ RETURNS integer
+ LANGUAGE plpgsql
+ IMMUTABLE
+AS $function$
+declare
+  best int := 0;
+  r record;
+begin
+  for r in
+    select cnt, digs from (
+      select suit, count(*) as cnt, array_agg(dig order by dig desc) as digs
+      from (
+        select (c->>'suit') as suit,
+               case when (c->>'value')::int <= 7 then (c->>'value')::int else 0 end as dig
+        from jsonb_array_elements(cards) c
+      ) x
+      group by suit
+    ) y
+  loop
+    if r.cnt >= 2 then
+      best := greatest(best, coalesce(r.digs[1],0) + coalesce(r.digs[2],0) + 20);
+    else
+      best := greatest(best, coalesce(r.digs[1],0));
+    end if;
+  end loop;
+  return best;
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._envido_quiero_value(chain jsonb, p1 integer, p2 integer, p_target integer)
+ RETURNS integer
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select case
+    when chain ? 'falta_envido' then p_target - greatest(p1, p2)
+    else coalesce((
+      select sum(case when e.value #>> '{}' = 'envido' then 2
+                      when e.value #>> '{}' = 'real_envido' then 3
+                      else 0 end)
+      from jsonb_array_elements(chain) e), 0)
+  end::int;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._envido_reject_value(chain jsonb, p1 integer, p2 integer, p_target integer)
+ RETURNS integer
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select case
+    when jsonb_array_length(coalesce(chain, '[]'::jsonb)) <= 1 then 1
+    else greatest(offline_replay_v1._envido_quiero_value(chain - (jsonb_array_length(chain) - 1), p1, p2, p_target), 1)
+  end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._envido_reveal_for(g offline_replay_v1.games, p_player uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+AS $function$
+declare full_hand jsonb; win_cards jsonb; played_by jsonb; unplayed jsonb := '[]'::jsonb; wc jsonb;
+begin
+  -- 'accepted' = resuelto declarando; 'mazo' = el rival abandonó y ganó el declarante
+  if g.envido_state->>'status' not in ('accepted','mazo') then return null; end if;
+  if (g.envido_state->>'winner_id') is distinct from p_player::text then return null; end if;
+
+  select cards into full_hand from game_hands where game_id = g.id and player_id = p_player;
+  full_hand := coalesce(full_hand,'[]'::jsonb) || coalesce(
+    (select jsonb_agg(pc->'card') from jsonb_array_elements(g.played_cards) pc
+     where pc->>'player_id' = p_player::text), '[]'::jsonb);
+
+  win_cards := offline_replay_v1._envido_winning_cards(full_hand);
+
+  played_by := coalesce(
+    (select jsonb_agg(pc->'card') from jsonb_array_elements(g.played_cards) pc
+     where pc->>'player_id' = p_player::text), '[]'::jsonb);
+
+  for wc in select value from jsonb_array_elements(win_cards) loop
+    if not exists (
+      select 1 from jsonb_array_elements(played_by) pj
+      where pj->>'suit' = wc->>'suit' and (pj->>'value')::int = (wc->>'value')::int
+    ) then
+      unplayed := unplayed || jsonb_build_array(wc);
+    end if;
+  end loop;
+
+  if jsonb_array_length(unplayed) = 0 then return null; end if;
+  return jsonb_build_object('player_id', p_player, 'cards', unplayed);
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._envido_winning_cards(cards jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE
+AS $function$
+declare
+  best_val int := -1; v int; r record; result jsonb := '[]'::jsonb;
+begin
+  for r in
+    select cnt, digs, cards_ordered from (
+      select count(*) as cnt,
+             array_agg(dig order by dig desc) as digs,
+             jsonb_agg(card order by dig desc) as cards_ordered
+      from (
+        select (c->>'suit') as suit,
+               case when (c->>'value')::int <= 7 then (c->>'value')::int else 0 end as dig,
+               c as card
+        from jsonb_array_elements(cards) c
+      ) x
+      group by suit
+    ) y
+  loop
+    if r.cnt >= 2 then v := coalesce(r.digs[1],0) + coalesce(r.digs[2],0) + 20;
+    else v := coalesce(r.digs[1],0); end if;
+    if v > best_val then
+      best_val := v;
+      if r.cnt >= 2 then result := jsonb_build_array(r.cards_ordered->0, r.cards_ordered->1);
+      else result := jsonb_build_array(r.cards_ordered->0); end if;
+    end if;
+  end loop;
+  return result;
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._northwest_bot_step(p_game_id uuid)
+ RETURNS offline_replay_v1.games
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare
+  uid uuid := auth.uid(); g offline_replay_v1.games%rowtype; r campaign_rivals%rowtype;
+  v_bot uuid; v_human uuid; remaining jsonb; full_hand jsonb;
+  cs campaign_style%rowtype; hp int; fama numeric; reads numeric;
+  style jsonb; decision jsonb; action text; ok boolean := true; error_text text;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+  select * into g from offline_replay_v1.games where id=p_game_id;
+  if not found then raise exception 'game not found'; end if;
+  if uid not in (g.player1_id,g.player2_id) then raise exception 'not a player of this game'; end if;
+  select * into r from campaign_rivals where id=g.campaign_rival_id;
+  if r.strategy_profile is null then raise exception 'rival sin estrategia del Noroeste'; end if;
+  select id into v_bot from profiles where id in (g.player1_id,g.player2_id) and is_bot limit 1;
+  if v_bot is null or uid=v_bot then raise exception 'el bot no juega solo'; end if;
+  if g.status<>'playing' or g.awaiting_deal then return g; end if;
+  v_human := case when v_bot=g.player1_id then g.player2_id else g.player1_id end;
+
+  -- ÚNICA lectura de game_hands: la fila del bot. Las cartas jugadas son
+  -- públicas; se reconstruye así el envido de su mano original.
+  select cards into remaining from game_hands where game_id=p_game_id and player_id=v_bot;
+  full_hand := coalesce(remaining,'[]'::jsonb) || coalesce(
+    (select jsonb_agg(e.value->'card') from jsonb_array_elements(g.played_cards) e
+     where e.value->>'player_id'=v_bot::text),'[]'::jsonb);
+  select * into cs from campaign_style where user_id=v_human;
+  hp := coalesce(cs.hands_played,0);
+  select least(1,coalesce(campaign_points,0)::numeric/2000) into fama from profiles where id=v_human;
+  reads := coalesce(fama,0)*least(1,hp::numeric/20);
+  style := jsonb_build_object('read',reads,
+    'liar_rate',(coalesce(cs.envido_bluff,0)+coalesce(cs.truco_bluff,0))::numeric /
+      greatest(1,coalesce(cs.envido_sung,0)+coalesce(cs.truco_sung,0)),
+    'fold_rate',least(1,(coalesce(cs.envido_folded,0)+coalesce(cs.truco_folded,0))::numeric /
+      greatest(1,hp)*2),
+    'aggr_rate',least(1,(coalesce(cs.envido_sung,0)+coalesce(cs.truco_sung,0))::numeric /
+      greatest(1,hp)/1.5));
+  decision := offline_replay_v1._northwest_plan(remaining,full_hand,g.played_cards,g.round_results,
+    g.envido_state,g.truco_state,v_bot,g.mano_player,g.round_number,
+    g.current_turn=v_bot,
+    case when v_bot=g.player1_id then g.player1_score else g.player2_score end,
+    case when v_human=g.player1_id then g.player1_score else g.player2_score end,
+    r.strategy_profile,r.trait_liar::int,r.trait_aggressive::int,
+    style,offline_replay_v1.random()::numeric);
+  action := decision->>'action';
+  if action='wait' then return g; end if;
+
+  perform set_config('request.jwt.claim.sub',v_bot::text,true);
+  perform set_config('request.jwt.claims',json_build_object('sub',v_bot::text,'role','authenticated')::text,true);
+  begin
+    case action
+      when 'play' then perform offline_replay_v1.play_card(p_game_id,decision->'card');
+      when 'sing_envido' then perform offline_replay_v1.sing_envido(p_game_id,decision->>'type');
+      when 'sing_truco' then perform offline_replay_v1.sing_truco(p_game_id,decision->>'type');
+      when 'respond_envido_yes' then perform offline_replay_v1.respond_envido(p_game_id,true);
+      when 'respond_envido_no' then perform offline_replay_v1.respond_envido(p_game_id,false);
+      when 'respond_truco_yes' then perform offline_replay_v1.respond_truco(p_game_id,true);
+      when 'respond_truco_no' then perform offline_replay_v1.respond_truco(p_game_id,false);
+      when 'envido_say' then perform offline_replay_v1.envido_say(p_game_id,decision->>'type');
+    end case;
+  exception when others then
+    ok := false; error_text := sqlerrm;
+  end;
+  perform set_config('request.jwt.claim.sub',uid::text,true);
+  perform set_config('request.jwt.claims',json_build_object('sub',uid::text,'role','authenticated')::text,true);
+  insert into bot_decisions (game_id,rival_id,situation,action,detail,numbers,ok,error)
+  values (p_game_id,g.campaign_rival_id,'noroeste',action,decision->>'type',decision,ok,error_text);
+  select * into g from offline_replay_v1.games where id=p_game_id;
+  return g;
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._northwest_card_choice(p_remaining jsonb, p_full jsonb, p_played jsonb, p_results jsonb, p_bot uuid, p_mano uuid, p_round integer, p_profile text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare
+  known jsonb:=coalesce(p_full,'[]')||coalesce((select jsonb_agg(e.value->'card')
+    from jsonb_array_elements(coalesce(p_played,'[]')) e where e.value->>'player_id'<>p_bot::text),'[]');
+  unseen jsonb; shown jsonb; own_shown jsonb; candidates jsonb;
+  candidate jsonb; rest jsonb; future_card jsonb; result_row jsonb;
+  w numeric[]; t numeric[]; odds_w numeric[]:=array_fill(0::numeric,array[14]);
+  odds_t numeric[]:=array_fill(0::numeric,array[14]);
+  n int; k int; j int; ordering int; r int; rank_now int; shown_rank int;
+  chance numeric; best numeric:=-1; best_card jsonb; ow numeric; ot numeric;
+  standing int:=0; best_current numeric:=0; best_future numeric:=0;
+begin
+  select coalesce(jsonb_agg(d.value),'[]') into unseen from jsonb_array_elements(_truco_deck()) d
+    where not exists(select 1 from jsonb_array_elements(known) x
+      where x.value->>'suit'=d.value->>'suit' and x.value->>'value'=d.value->>'value');
+  n:=greatest(1,jsonb_array_length(unseen));
+  for k in 1..14 loop
+    select count(*) filter(where (e.value->>'rank')::int>k)::numeric/n,
+           count(*) filter(where (e.value->>'rank')::int=k)::numeric/n
+      into ow,ot from jsonb_array_elements(unseen) e;
+    odds_w[k]:=ow;odds_t[k]:=ot;
+  end loop;
+  select e.value->'card' into shown from jsonb_array_elements(p_played) e
+    where (e.value->>'round')::int=p_round and e.value->>'player_id'<>p_bot::text limit 1;
+  select e.value->'card' into own_shown from jsonb_array_elements(p_played) e
+    where (e.value->>'round')::int=p_round and e.value->>'player_id'=p_bot::text limit 1;
+  shown_rank:=(shown->>'rank')::int;
+  -- Responder un canto DESPUÉS de tirar no significa jugar otra carta:
+  -- valorar la que ya está en la mesa aunque p_remaining esté vacío.
+  candidates:=case when own_shown is not null then jsonb_build_array(own_shown) else p_remaining end;
+  for candidate in select value from jsonb_array_elements(candidates) loop
+    rank_now:=(candidate->>'rank')::int;
+    select coalesce(jsonb_agg(e.value order by (e.value->>'rank')::int),'[]') into rest
+      from jsonb_array_elements(p_remaining) e where own_shown is not null or e.value<>candidate;
+    -- A lo sumo dos órdenes futuros. No inspecciona la mano humana:
+    -- las probabilidades son estimaciones con las cartas aún posibles.
+    for ordering in 0..case when jsonb_array_length(rest)=2 then 1 else 0 end loop
+      w:=array[0::numeric,0,0]; t:=array[0::numeric,0,0]; standing:=0;
+      for result_row in select value from jsonb_array_elements(p_results) loop
+        r:=(result_row->>'round')::int;
+        if r is null then
+          -- Compatibilidad con fixtures antiguos sin número de baza.
+          r:=1;
+        end if;
+        if result_row->>'winner_id'=p_bot::text then w[r]:=1; standing:=standing+1;
+        elsif result_row->>'winner_id' is null then t[r]:=1;
+        else standing:=standing-1; end if;
+      end loop;
+      if shown_rank is null then w[p_round]:=odds_w[rank_now];t[p_round]:=odds_t[rank_now];
+      else w[p_round]:=case when rank_now<shown_rank then 1 else 0 end;
+           t[p_round]:=case when rank_now=shown_rank then 1 else 0 end; end if;
+      for j in 0..jsonb_array_length(rest)-1 loop
+        future_card:=rest->case when ordering=0 then j else jsonb_array_length(rest)-1-j end;
+        r:=p_round+j+1;
+        w[r]:=odds_w[(future_card->>'rank')::int];t[r]:=odds_t[(future_card->>'rank')::int];
+      end loop;
+      chance:=_northwest_win_probability(w,t,p_mano=p_bot);
+      if chance>best or (chance=best and (best_card is null or rank_now>(best_card->>'rank')::int)) then
+        best:=chance;best_card:=candidate;best_current:=w[p_round]+t[p_round]*0.5;
+        best_future:=case when p_round<3 then w[p_round+1]+t[p_round+1]*0.5 else 0 end;
+      end if;
+    end loop;
+  end loop;
+  return jsonb_build_object('card',case when own_shown is null then best_card else null end,
+    'chance',best_current,'future',best_future,'hand_chance',greatest(0,best),
+    'standing',standing,'opponent_rank',shown_rank);
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._northwest_plan(p_remaining jsonb, p_full jsonb, p_played jsonb, p_results jsonb, p_envido jsonb, p_truco jsonb, p_bot uuid, p_mano uuid, p_round integer, p_bot_turn boolean, p_bot_score integer, p_human_score integer, p_profile text, p_liar integer, p_aggressive integer, p_style jsonb, p_seed numeric)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare
+  choice jsonb; card jsonb; et int; hand_chance numeric; env_chance numeric;
+  gain numeric; loss numeric; reject_loss numeric;
+  es text := coalesce(p_envido->>'status','none');
+  ts text := coalesce(p_truco->>'status','none');
+  value_truco int := coalesce((p_truco->>'value')::int,2);
+  value_env int; reject_env int; acceptance numeric; bluff numeric;
+  human_bluff numeric := coalesce((p_style->>'liar_rate')::numeric,0);
+  human_fold numeric := coalesce((p_style->>'fold_rate')::numeric,0);
+  human_aggr numeric := coalesce((p_style->>'aggr_rate')::numeric,0);
+  reads numeric := coalesce((p_style->>'read')::numeric,0);
+  can_env boolean;
+begin
+  choice := offline_replay_v1._northwest_card_choice(p_remaining,p_full,p_played,p_results,
+                                           p_bot,p_mano,p_round,p_profile);
+  card := choice->'card';
+  hand_chance := coalesce((choice->>'hand_chance')::numeric,0);
+  et := offline_replay_v1._envido_points(p_full);
+  env_chance := greatest(0.04,least(0.97,0.16 + (et-20)*0.055));
+  if et=33 and p_mano=p_bot then env_chance:=1; end if;
+  bluff := case when p_profile='farolera' then 0.08
+                when p_profile='agresivo' then 0.045 else 0.015 end
+           + greatest(0, human_fold-human_aggr)*reads*0.12
+           + greatest(0,p_liar-5)*0.004;
+
+  if es='declaring' and p_envido->>'declare_turn'=p_bot::text then
+    if (p_envido->>'mano_declared') is null or et>(p_envido->>'mano_declared')::int then
+      return jsonb_build_object('action','envido_say','type','tengo');
+    end if;
+    return jsonb_build_object('action','envido_say','type','son_buenas');
+  end if;
+
+  if es in ('envido','real_envido','falta_envido')
+     and p_envido->>'last_singer' is distinct from p_bot::text then
+    value_env := greatest(1,coalesce((p_envido->>'value')::int,2));
+    reject_env := offline_replay_v1._envido_reject_value(p_envido->'chain',p_bot_score,p_human_score,30);
+    acceptance := greatest(case es when 'falta_envido' then 0.80
+                                   when 'real_envido' then 0.65 else 0.47 end,
+                           (value_env-reject_env)::numeric/(2*value_env)+0.10);
+    if p_human_score+value_env>=30 then acceptance := acceptance+0.06; end if;
+    if es<>'falta_envido' then acceptance := acceptance-human_bluff*reads*0.12; end if;
+    if es='falta_envido' and et<29 then acceptance := 1; end if;
+    -- No querer también concede puntos. No regalar el punto del partido.
+    if p_human_score+reject_env>=30 then acceptance:=0;
+    elsif p_bot_score+value_env>=30 then
+      gain:=30; loss:=case when p_human_score+value_env>=30 then 30 else value_env end;
+      acceptance:=least(acceptance,(loss-reject_env)/(gain+loss)+0.05);
+    end if;
+    -- Con 33 siendo mano no hay riesgo: cobrar el máximo posible.
+    if es<>'falta_envido' and env_chance=1 then
+      return jsonb_build_object('action','sing_envido','type','falta_envido');
+    end if;
+    if es='envido' and env_chance>0.81 and p_seed<0.30
+       and p_human_score+5<30 then
+      return jsonb_build_object('action','sing_envido','type','real_envido');
+    end if;
+    if env_chance>=acceptance then
+      return jsonb_build_object('action','respond_envido_yes');
+    end if;
+    return jsonb_build_object('action','respond_envido_no');
+  end if;
+
+  if ts in ('truco','retruco','vale_cuatro')
+     and p_truco->>'last_singer' is distinct from p_bot::text then
+    acceptance := 0.42 + case when p_human_score+value_truco>=30 then 0.12 else 0 end
+                       - case when p_bot_score+value_truco>=30 then 0.06 else 0 end
+                       - human_bluff*reads*0.10;
+    reject_loss:=greatest(1,value_truco-1);
+    if p_human_score+reject_loss>=30 then acceptance:=0;
+    elsif p_bot_score+value_truco>=30 then
+      gain:=30;loss:=case when p_human_score+value_truco>=30 then 30 else value_truco end;
+      acceptance:=least(acceptance,(loss-reject_loss)/(gain+loss)+0.05);
+    end if;
+    if value_truco<4 and (hand_chance=1 or (hand_chance>0.78
+       and p_seed<0.25 + greatest(0,p_aggressive-5)*0.025
+       and p_human_score+value_truco+1<30)) then
+      return jsonb_build_object('action','sing_truco','type',
+                                case value_truco when 2 then 'retruco' else 'vale_cuatro' end);
+    end if;
+    if hand_chance>=acceptance then
+      return jsonb_build_object('action','respond_truco_yes');
+    end if;
+    return jsonb_build_object('action','respond_truco_no');
+  end if;
+
+  if not p_bot_turn then return jsonb_build_object('action','wait'); end if;
+  can_env := es='none' and p_round=1 and ts<>'accepted'
+             and not exists (select 1 from jsonb_array_elements(p_played) e
+                             where e.value->>'player_id'=p_bot::text);
+  -- Reservar el canto por valor para tantos competitivos. Los tantos medios
+  -- presionan sólo si la reputación pública muestra que el rival se retira.
+  if can_env and (et>=27 or
+     (et>=25 and human_fold*reads>0.45 and p_seed<0.60) or
+     (et<=19 and p_seed<bluff and p_human_score+2<30)) then
+    return jsonb_build_object('action','sing_envido','type',
+      case when env_chance=1 then 'falta_envido'
+           when et>=32 and p_bot_score+3>=30 then 'real_envido' else 'envido' end);
+  end if;
+
+  if ts='none' and (hand_chance>case p_profile
+                    when 'paciente' then 0.68 when 'agresivo' then 0.56
+                    when 'marcador' then case when p_bot_score<p_human_score then 0.57 else 0.66 end
+                    else 0.62 end
+                    or (hand_chance<0.24 and p_seed<bluff
+                        and p_human_score+2<30)) then
+    return jsonb_build_object('action','sing_truco','type','truco');
+  end if;
+  if ts='accepted' and p_truco->>'last_singer' is distinct from p_bot::text
+     and value_truco<4 and (hand_chance=1 or (hand_chance>0.78 and p_seed<0.18
+     and p_human_score+value_truco+1<30)) then
+    return jsonb_build_object('action','sing_truco','type',
+                              case value_truco when 2 then 'retruco' else 'vale_cuatro' end);
+  end if;
+  if card is null or card='null'::jsonb then return jsonb_build_object('action','wait'); end if;
+  return jsonb_build_object('action','play','card',card,'chance',hand_chance);
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._northwest_win_probability(w numeric[], t numeric[], is_mano boolean)
+ RETURNS numeric
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare a int; b int; c int; pa numeric; pb numeric; pc numeric; result numeric:=0;
+begin
+  for a in -1..1 loop
+    pa:=case a when 1 then w[1] when 0 then t[1] else 1-w[1]-t[1] end;
+    if pa=0 then continue; end if;
+    for b in -1..1 loop
+      pb:=case b when 1 then w[2] when 0 then t[2] else 1-w[2]-t[2] end;
+      if pb=0 then continue; end if;
+      -- Dos ganadas o una ganada y una parda cierran en segunda.
+      if a+b>0 and a>=0 and b>=0 then result:=result+pa*pb; continue; end if;
+      if a+b<0 and a<=0 and b<=0 then continue; end if;
+      for c in -1..1 loop
+        pc:=case c when 1 then w[3] when 0 then t[3] else 1-w[3]-t[3] end;
+        if a+b+c>0 or (a+b+c=0 and is_mano) then result:=result+pa*pb*pc; end if;
+      end loop;
+    end loop;
+  end loop;
+  return greatest(0,least(1,result));
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._record_style(p_game_id uuid, p_signal text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare
+  g        offline_replay_v1.games%rowtype;
+  actor    uuid := auth.uid();
+  v_human  uuid;
+  remaining jsonb; full_hand jsonb;
+  tanto int; power int; n int;
+  bluff_envido constant int := 24;
+  bluff_truco  constant int := 12;
+begin
+  select * into g from offline_replay_v1.games where id = p_game_id;
+  if not found or g.campaign_rival_id is null then return; end if;
+
+  select id into v_human from profiles
+   where id in (g.player1_id, g.player2_id) and not is_bot limit 1;
+  if v_human is null or actor is distinct from v_human then return; end if;
+
+  insert into campaign_style (user_id) values (v_human) on conflict (user_id) do nothing;
+
+  if p_signal = 'hand_played' then
+    update campaign_style set hands_played = hands_played + 1, updated_at = now()
+     where user_id = v_human;
+
+  elsif p_signal = 'envido_sung' then
+    select cards into remaining from game_hands where game_id = p_game_id and player_id = v_human;
+    full_hand := coalesce(remaining, '[]'::jsonb) || coalesce(
+      (select jsonb_agg(pc.value->'card') from jsonb_array_elements(g.played_cards) pc
+       where pc.value->>'player_id' = v_human::text), '[]'::jsonb);
+    tanto := offline_replay_v1._envido_points(full_hand);
+    update campaign_style set
+      envido_sung  = envido_sung + 1,
+      envido_bluff = envido_bluff + (case when tanto < bluff_envido then 1 else 0 end),
+      updated_at = now()
+     where user_id = v_human;
+
+  elsif p_signal = 'truco_sung' then
+    select cards into remaining from game_hands where game_id = p_game_id and player_id = v_human;
+    select count(*) into n from jsonb_array_elements(coalesce(remaining, '[]'::jsonb));
+    -- misma escala de 3 cartas que usa el bot para su propia mano
+    power := round(offline_replay_v1._bot_hand_power(remaining) * 3.0 / greatest(n, 1));
+    update campaign_style set
+      truco_sung  = truco_sung + 1,
+      truco_bluff = truco_bluff + (case when power < bluff_truco then 1 else 0 end),
+      updated_at = now()
+     where user_id = v_human;
+
+  elsif p_signal = 'envido_folded' then
+    update campaign_style set envido_folded = envido_folded + 1, updated_at = now()
+     where user_id = v_human;
+
+  elsif p_signal = 'truco_folded' then
+    update campaign_style set truco_folded = truco_folded + 1, updated_at = now()
+     where user_id = v_human;
+  end if;
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._round_leader(g offline_replay_v1.games, rnum integer)
+ RETURNS uuid
+ LANGUAGE sql
+ STABLE
+AS $function$
+  select case when rnum = 1 then g.mano_player
+    else coalesce(
+      (select (e.value->>'winner_id')::uuid
+       from jsonb_array_elements(g.round_results) e
+       where (e.value->>'round')::int = rnum - 1 and e.value->>'winner_id' is not null
+       limit 1),
+      g.mano_player) end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._truco_deck()
+ RETURNS jsonb
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select jsonb_agg(jsonb_build_object('suit', s, 'value', v, 'rank',
+    case
+      when v = 1  and s = 'espada'            then 1
+      when v = 1  and s = 'basto'             then 2
+      when v = 7  and s = 'espada'            then 3
+      when v = 7  and s = 'oro'               then 4
+      when v = 3                              then 5
+      when v = 2                              then 6
+      when v = 1  and s in ('copa','oro')     then 7
+      when v = 12                             then 8
+      when v = 11                             then 9
+      when v = 10                             then 10
+      when v = 7  and s in ('copa','basto')   then 11
+      when v = 6                              then 12
+      when v = 5                              then 13
+      when v = 4                              then 14
+      else 15
+    end))
+  from unnest(array['espada','basto','oro','copa']) s
+  cross join unnest(array[1,2,3,4,5,6,7,10,11,12]) v;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._turn_after_envido(g offline_replay_v1.games)
+ RETURNS uuid
+ LANGUAGE sql
+ STABLE
+AS $function$
+  select case
+    when g.truco_state->>'status' in ('truco','retruco','vale_cuatro')
+    then case when (g.truco_state->>'last_singer') = g.player1_id::text
+              then g.player2_id else g.player1_id end
+    else offline_replay_v1._who_plays_next(g) end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1._who_plays_next(g offline_replay_v1.games)
+ RETURNS uuid
+ LANGUAGE sql
+ STABLE
+AS $function$
+  select case
+    when not exists (
+      select 1 from jsonb_array_elements(g.played_cards) e
+      where (e.value->>'round')::int = g.round_number)
+    then offline_replay_v1._round_leader(g, g.round_number)
+    else case
+      when (select e.value->>'player_id' from jsonb_array_elements(g.played_cards) e
+            where (e.value->>'round')::int = g.round_number limit 1) = g.player1_id::text
+      then g.player2_id else g.player1_id end
+  end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1.advance_hand(p_game_id uuid)
+ RETURNS offline_replay_v1.games
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare g offline_replay_v1.games%rowtype; new_mano uuid; h1 jsonb; h2 jsonb;
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  select * into g from offline_replay_v1.games where id = p_game_id for update;
+  if not found then raise exception 'game not found'; end if;
+  if auth.uid() <> g.player1_id and auth.uid() <> g.player2_id then raise exception 'not a player of this game'; end if;
+  if not g.awaiting_deal then return g; end if;
+
+  if g.player1_score >= g.target_score or g.player2_score >= g.target_score then
+    update offline_replay_v1.games set awaiting_deal = false where id = p_game_id;
+    perform offline_replay_v1.finish_game(p_game_id,
+      case when g.player1_score >= g.target_score then g.player1_id else g.player2_id end,
+      g.player1_score, g.player2_score);
+    select * into g from offline_replay_v1.games where id = p_game_id;
+    return g;
+  end if;
+
+  new_mano := case when g.mano_player = g.player1_id then g.player2_id else g.player1_id end;
+  select d.h1, d.h2 into h1, h2 from offline_replay_v1._deal_hands() d;
+  update game_hands set cards = h1 where game_id = p_game_id and player_id = g.player1_id;
+  update game_hands set cards = h2 where game_id = p_game_id and player_id = g.player2_id;
+
+  update offline_replay_v1.games set
+    played_cards  = '[]'::jsonb,
+    current_turn  = new_mano,
+    mano_player   = new_mano,
+    hand_number   = g.hand_number + 1,
+    round_number  = 1,
+    round_results = '[]'::jsonb,
+    envido_state  = '{"value":0,"status":"none","last_singer":null,"chain":[]}'::jsonb,
+    truco_state   = '{"value":1,"status":"none","last_singer":null}'::jsonb,
+    envido_reveal = null,
+    awaiting_deal = false,
+    updated_at    = now()
+  where id = p_game_id returning * into g;
+
+  begin perform offline_replay_v1._record_style(p_game_id, 'hand_played'); exception when others then null; end;
+  return g;
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1.bot_step(p_game_id uuid)
+ RETURNS offline_replay_v1.games
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+begin
+  if exists (select 1 from offline_replay_v1.games g join campaign_rivals r on r.id=g.campaign_rival_id
+             where g.id=p_game_id and r.strategy_profile is not null) then
+    return offline_replay_v1._northwest_bot_step(p_game_id);
+  end if;
+  return offline_replay_v1._bot_step_pre_noroeste(p_game_id);
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1.duel_seed(p_seed bigint, p_sequence integer)
+ RETURNS bigint
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO ''
+AS $function$
+  select greatest(1,(p_seed # (((p_sequence::bigint+1)*2654435761) & 4294967295)) & 4294967295);
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1.envido_say(p_game_id uuid, p_action text)
+ RETURNS offline_replay_v1.games
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare
+  g offline_replay_v1.games%rowtype; uid uuid := auth.uid();
+  es jsonb; dturn uuid; mano uuid; pie uuid;
+  my_tanto int; mano_tanto int; winner uuid; val int;
+  next_turn uuid; s1 int; s2 int; stake int; oppid uuid;
+  myhand jsonb; expose1 int; expose2 int; v_reveal jsonb;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+  if p_action not in ('tengo','son_buenas','mazo') then raise exception 'accion invalida'; end if;
+  select * into g from offline_replay_v1.games where id = p_game_id for update;
+  if not found then raise exception 'game not found'; end if;
+  if g.status <> 'playing' then raise exception 'la partida no esta en juego'; end if;
+  if uid <> g.player1_id and uid <> g.player2_id then raise exception 'not a player of this game'; end if;
+
+  es := g.envido_state;
+  if es->>'status' <> 'declaring' then raise exception 'no hay envido para declarar'; end if;
+  dturn := (es->>'declare_turn')::uuid;
+  if dturn is distinct from uid then raise exception 'no es tu turno de declarar'; end if;
+
+  mano := g.mano_player;
+  pie := case when mano = g.player1_id then g.player2_id else g.player1_id end;
+  val := coalesce((es->>'value')::int, 0);
+
+  -- IR AL MAZO: abandona la mano. El rival cobra el envido aceptado + la mano.
+  if p_action = 'mazo' then
+    oppid := case when uid = g.player1_id then g.player2_id else g.player1_id end;
+    stake := case when g.truco_state->>'status' = 'accepted' then (g.truco_state->>'value')::int else 1 end;
+    s1 := g.player1_score + case when oppid = g.player1_id then val + stake else 0 end;
+    s2 := g.player2_score + case when oppid = g.player2_id then val + stake else 0 end;
+
+    es := es || jsonb_build_object('status','mazo','winner_id',oppid);
+    -- Si el rival (la mano) ya había declarado su tanto, queda expuesto y debe
+    -- mostrar las cartas que lo forman. Si nadie declaró, no hay nada que probar.
+    if oppid = mano and (es->>'mano_declared') is not null then
+      es := es || (case when mano = g.player1_id
+        then jsonb_build_object('player1_points',(es->>'mano_declared')::int)
+        else jsonb_build_object('player2_points',(es->>'mano_declared')::int) end);
+      g.envido_state := es;
+      v_reveal := offline_replay_v1._envido_reveal_for(g, oppid);
+    end if;
+
+    if s1 >= g.target_score or s2 >= g.target_score then
+      update offline_replay_v1.games set player1_score = s1, player2_score = s2,
+        envido_state = es, updated_at = now() where id = p_game_id;
+      perform offline_replay_v1.finish_game(p_game_id, oppid, s1, s2);
+    else
+      update offline_replay_v1.games set player1_score = s1, player2_score = s2,
+        envido_state = es, envido_reveal = v_reveal,
+        awaiting_deal = true, updated_at = now() where id = p_game_id;
+    end if;
+    select * into g from offline_replay_v1.games where id = p_game_id;
+    return g;
+  end if;
+
+  -- TENGO: el tanto real lo calcula el server desde las cartas (no se puede mentir)
+  if p_action = 'tengo' then
+    select cards into myhand from game_hands where game_id = p_game_id and player_id = uid;
+    myhand := coalesce(myhand,'[]'::jsonb) || coalesce(
+      (select jsonb_agg(pc->'card') from jsonb_array_elements(g.played_cards) pc
+       where pc->>'player_id' = uid::text), '[]'::jsonb);
+    my_tanto := offline_replay_v1._envido_points(myhand);
+  end if;
+
+  -- Turno de la MANO (primer declarante; todavía no declaró)
+  if uid = mano and (es->>'mano_declared') is null then
+    if p_action = 'son_buenas' then raise exception 'la mano no dice son buenas'; end if;
+    update offline_replay_v1.games set
+      envido_state = es || jsonb_build_object('mano_declared', my_tanto, 'declare_turn', pie),
+      updated_at = now()
+    where id = p_game_id returning * into g;
+    return g;
+  end if;
+
+  -- Turno del PIE (la mano ya declaró)
+  mano_tanto := (es->>'mano_declared')::int;
+  next_turn := offline_replay_v1._turn_after_envido(g);
+
+  if p_action = 'son_buenas' then
+    winner := mano;
+    if mano = g.player1_id then expose1 := mano_tanto; expose2 := null;
+    else expose2 := mano_tanto; expose1 := null; end if;
+  else
+    -- tengo: gana el mayor; empate -> mano
+    if my_tanto > mano_tanto then winner := pie; else winner := mano; end if;
+    if mano = g.player1_id then expose1 := mano_tanto; expose2 := my_tanto;
+    else expose2 := mano_tanto; expose1 := my_tanto; end if;
+  end if;
+
+  s1 := g.player1_score + case when winner = g.player1_id then val else 0 end;
+  s2 := g.player2_score + case when winner = g.player2_id then val else 0 end;
+
+  update offline_replay_v1.games set
+    player1_score = s1, player2_score = s2,
+    envido_state = es || jsonb_build_object(
+      'status','accepted','winner_id',winner,
+      'player1_points',expose1,'player2_points',expose2,'awarded',val),
+    current_turn = next_turn, updated_at = now()
+  where id = p_game_id returning * into g;
+
+  if s1 >= g.target_score or s2 >= g.target_score then
+    perform offline_replay_v1.finish_game(p_game_id, case when s1 >= g.target_score then g.player1_id else g.player2_id end, s1, s2);
+    select * into g from offline_replay_v1.games where id = p_game_id;
+  end if;
+  return g;
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1.finish_game(p_game_id uuid, p_winner_id uuid, p_p1_score integer, p_p2_score integer)
+ RETURNS void
+ LANGUAGE sql
+ SET search_path TO ''
+AS $function$
+  update offline_replay_v1.games set status='finished',winner_id=p_winner_id,
+    player1_score=p_p1_score,player2_score=p_p2_score where id=p_game_id;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1.irse_al_mazo(p_game_id uuid)
+ RETURNS offline_replay_v1.games
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare g offline_replay_v1.games%rowtype; uid uuid := auth.uid(); oppid uuid; stake int; s1 int; s2 int; v_reveal jsonb;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+  select * into g from offline_replay_v1.games where id = p_game_id for update;
+  if not found then raise exception 'game not found'; end if;
+  if g.status <> 'playing' then raise exception 'la partida no esta en juego'; end if;
+  if g.awaiting_deal then raise exception 'esperando la proxima mano'; end if;
+  if g.envido_state->>'status' = 'declaring' then raise exception 'estas en el envido'; end if;
+  if uid <> g.player1_id and uid <> g.player2_id then raise exception 'not a player of this game'; end if;
+  if g.current_turn <> uid then raise exception 'no es tu turno'; end if;
+  if g.envido_state->>'status' in ('envido','real_envido','falta_envido')
+     and (g.envido_state->>'last_singer') is distinct from uid::text then
+    raise exception 'respondé el envido pendiente';
+  end if;
+  if g.truco_state->>'status' in ('truco','retruco','vale_cuatro')
+     and (g.truco_state->>'last_singer') is distinct from uid::text then
+    raise exception 'respondé el truco pendiente';
+  end if;
+
+  oppid := case when uid = g.player1_id then g.player2_id else g.player1_id end;
+  stake := case when g.truco_state->>'status' = 'accepted' then (g.truco_state->>'value')::int else 1 end;
+  s1 := g.player1_score + case when oppid = g.player1_id then stake else 0 end;
+  s2 := g.player2_score + case when oppid = g.player2_id then stake else 0 end;
+
+  -- Revelación del envido: siempre la del ganador (haya sido el que se va o el otro)
+  v_reveal := offline_replay_v1._envido_reveal_for(g, (g.envido_state->>'winner_id')::uuid);
+
+  update offline_replay_v1.games set player1_score = s1, player2_score = s2, awaiting_deal = true,
+    envido_reveal = v_reveal, updated_at = now()
+  where id = p_game_id returning * into g;
+  return g;
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1.play_card(p_game_id uuid, p_card jsonb)
+ RETURNS offline_replay_v1.games
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare
+  g offline_replay_v1.games%rowtype; uid uuid := auth.uid(); oppid uuid;
+  myhand jsonb; newhand jsonb := '[]'::jsonb; matched jsonb; found_card boolean := false; elem jsonb;
+  played jsonb; rcount int;
+  results jsonb := '[]'::jsonb; r int; c1 jsonb; c2 jsonb; w uuid;
+  w1 int := 0; w2 int := 0; ties int := 0; num_results int := 0; last_round_winner uuid;
+  hand_done boolean := false; hand_winner uuid; truco_val int; s1 int; s2 int; v_reveal jsonb;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+  select * into g from offline_replay_v1.games where id = p_game_id for update;
+  if not found then raise exception 'game not found'; end if;
+  if g.status <> 'playing' then raise exception 'la partida no esta en juego'; end if;
+  if g.awaiting_deal then raise exception 'esperando la proxima mano'; end if;
+  if g.envido_state->>'status' = 'declaring' then raise exception 'estas en el envido'; end if;
+  if uid <> g.player1_id and uid <> g.player2_id then raise exception 'not a player of this game'; end if;
+  if g.current_turn <> uid then raise exception 'no es tu turno'; end if;
+
+  if g.envido_state->>'status' in ('envido','real_envido','falta_envido')
+     and (g.envido_state->>'last_singer') is distinct from uid::text then
+    raise exception 'hay un envido pendiente';
+  end if;
+  if g.truco_state->>'status' in ('truco','retruco','vale_cuatro')
+     and (g.truco_state->>'last_singer') is distinct from uid::text then
+    raise exception 'hay un truco pendiente';
+  end if;
+
+  oppid := case when uid = g.player1_id then g.player2_id else g.player1_id end;
+
+  if exists (select 1 from jsonb_array_elements(g.played_cards) e
+             where e.value->>'player_id' = uid::text and (e.value->>'round')::int = g.round_number) then
+    raise exception 'ya jugaste esta ronda';
+  end if;
+
+  select cards into myhand from game_hands where game_id = p_game_id and player_id = uid for update;
+  for elem in select e.value from jsonb_array_elements(coalesce(myhand,'[]'::jsonb)) e loop
+    if not found_card and elem->>'suit' = p_card->>'suit' and (elem->>'value')::int = (p_card->>'value')::int then
+      found_card := true; matched := elem;
+    else
+      newhand := newhand || jsonb_build_array(elem);
+    end if;
+  end loop;
+  if not found_card then raise exception 'no tenes esa carta'; end if;
+
+  update game_hands set cards = newhand where game_id = p_game_id and player_id = uid;
+  played := g.played_cards || jsonb_build_array(jsonb_build_object('player_id', uid, 'card', matched, 'round', g.round_number));
+
+  select count(*) into rcount from jsonb_array_elements(played) e where (e.value->>'round')::int = g.round_number;
+
+  if rcount < 2 then
+    update offline_replay_v1.games set played_cards = played, current_turn = oppid, updated_at = now()
+    where id = p_game_id returning * into g;
+    return g;
+  end if;
+
+  for r in 1..3 loop
+    c1 := null; c2 := null;
+    select e.value->'card' into c1 from jsonb_array_elements(played) e
+      where (e.value->>'round')::int = r and e.value->>'player_id' = g.player1_id::text limit 1;
+    select e.value->'card' into c2 from jsonb_array_elements(played) e
+      where (e.value->>'round')::int = r and e.value->>'player_id' = g.player2_id::text limit 1;
+    exit when c1 is null or c2 is null;
+    if    (c1->>'rank')::int < (c2->>'rank')::int then w := g.player1_id;
+    elsif (c2->>'rank')::int < (c1->>'rank')::int then w := g.player2_id;
+    else  w := null; end if;
+    results := results || jsonb_build_array(jsonb_build_object('round', r, 'winner_id', w));
+    num_results := num_results + 1; last_round_winner := w;
+    if    w = g.player1_id then w1 := w1 + 1;
+    elsif w = g.player2_id then w2 := w2 + 1;
+    else  ties := ties + 1; end if;
+  end loop;
+
+  if w1 >= 2 then hand_winner := g.player1_id; hand_done := true;
+  elsif w2 >= 2 then hand_winner := g.player2_id; hand_done := true;
+  elsif num_results = 3 then
+    if    w1 > w2 then hand_winner := g.player1_id;
+    elsif w2 > w1 then hand_winner := g.player2_id;
+    -- Una baza para cada jugador y tercera parda: gana la primera.
+    -- Sólo las tres pardas se resuelven a favor de quien es mano.
+    else  hand_winner := coalesce((results->0->>'winner_id')::uuid, g.mano_player); end if;
+    hand_done := true;
+  elsif ties = 1 and num_results = 2 then
+    select (e.value->>'winner_id')::uuid into hand_winner
+    from jsonb_array_elements(results) e where e.value->>'winner_id' is not null limit 1;
+    if hand_winner is not null then hand_done := true; end if;
+  end if;
+
+  if not hand_done then
+    update offline_replay_v1.games set played_cards = played, round_number = g.round_number + 1, round_results = results,
+      current_turn = coalesce(last_round_winner, g.mano_player), updated_at = now()
+    where id = p_game_id returning * into g;
+    return g;
+  end if;
+
+  truco_val := case when g.truco_state->>'status' = 'accepted' then (g.truco_state->>'value')::int else 1 end;
+  s1 := g.player1_score; s2 := g.player2_score;
+  if    hand_winner = g.player1_id then s1 := s1 + truco_val;
+  elsif hand_winner = g.player2_id then s2 := s2 + truco_val; end if;
+
+  -- Fin de partida: si con estos puntos alguien llegó al objetivo, la partida
+  -- TERMINA acá (no se reparte otra mano ni se muestra revelado). Este chequeo
+  -- faltaba en la rama "ganar la mano por cartas".
+  if s1 >= g.target_score or s2 >= g.target_score then
+    perform offline_replay_v1.finish_game(p_game_id, case when s1 >= g.target_score then g.player1_id else g.player2_id end, s1, s2);
+    select * into g from offline_replay_v1.games where id = p_game_id;
+    return g;
+  end if;
+
+  -- Regla del envido: si el ganador del envido no llegó a mostrar sus cartas
+  -- ganadoras, se revelan en la mesa antes de repartir (caso "termina por cartas").
+  g.played_cards := played;  -- para que el cálculo vea todas las cartas de la mano
+  v_reveal := offline_replay_v1._envido_reveal_for(g, (g.envido_state->>'winner_id')::uuid);
+
+  update offline_replay_v1.games set
+    played_cards = played, round_results = results,
+    player1_score = s1, player2_score = s2,
+    awaiting_deal = true, envido_reveal = v_reveal, updated_at = now()
+  where id = p_game_id returning * into g;
+  return g;
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1.random()
+ RETURNS double precision
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+declare x bigint; gid uuid := current_setting('trucazo.offline_game')::uuid;
+begin
+  select value into strict x from offline_replay_v1.random_state where game_id=gid;
+  x := (x # ((x << 13) & 4294967295)) & 4294967295;
+  x := (x # (x >> 17)) & 4294967295;
+  x := (x # ((x << 5) & 4294967295)) & 4294967295;
+  update offline_replay_v1.random_state set value=x where game_id=gid;
+  return x::double precision / 4294967296.0;
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1.respond_envido(p_game_id uuid, p_accept boolean)
+ RETURNS offline_replay_v1.games
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare
+  g offline_replay_v1.games%rowtype; uid uuid := auth.uid();
+  singer uuid; val int; next_turn uuid; s1 int; s2 int;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+  select * into g from offline_replay_v1.games where id = p_game_id for update;
+  if not found then raise exception 'game not found'; end if;
+  if g.status <> 'playing' then raise exception 'la partida no esta en juego'; end if;
+  if uid <> g.player1_id and uid <> g.player2_id then raise exception 'not a player of this game'; end if;
+
+  if not (g.envido_state->>'status' in ('envido','real_envido','falta_envido')
+          and (g.envido_state->>'last_singer') is distinct from uid::text) then
+    raise exception 'no hay envido para responder';
+  end if;
+
+  if p_accept then
+    update offline_replay_v1.games set
+      envido_state = g.envido_state || jsonb_build_object(
+        'status','declaring','declare_turn', g.mano_player, 'mano_declared', null),
+      updated_at = now()
+    where id = p_game_id returning * into g;
+    return g;
+  end if;
+
+  begin perform offline_replay_v1._record_style(p_game_id, 'envido_folded'); exception when others then null; end;
+
+  next_turn := offline_replay_v1._turn_after_envido(g);
+  singer := (g.envido_state->>'last_singer')::uuid;
+  val := offline_replay_v1._envido_reject_value(g.envido_state->'chain', g.player1_score, g.player2_score, g.target_score);
+  s1 := g.player1_score + case when singer = g.player1_id then val else 0 end;
+  s2 := g.player2_score + case when singer = g.player2_id then val else 0 end;
+  update offline_replay_v1.games set
+    player1_score = s1, player2_score = s2,
+    envido_state = g.envido_state || jsonb_build_object('status','rejected','winner_id',singer,'awarded',val),
+    current_turn = next_turn, updated_at = now()
+  where id = p_game_id returning * into g;
+  if s1 >= g.target_score or s2 >= g.target_score then
+    perform offline_replay_v1.finish_game(p_game_id, case when s1 >= g.target_score then g.player1_id else g.player2_id end, s1, s2);
+    select * into g from offline_replay_v1.games where id = p_game_id;
+  end if;
+  return g;
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1.respond_truco(p_game_id uuid, p_accept boolean)
+ RETURNS offline_replay_v1.games
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare g offline_replay_v1.games%rowtype; uid uuid := auth.uid(); singer uuid; val int; s1 int; s2 int;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+  select * into g from offline_replay_v1.games where id = p_game_id for update;
+  if not found then raise exception 'game not found'; end if;
+  if g.status <> 'playing' then raise exception 'la partida no esta en juego'; end if;
+  if uid <> g.player1_id and uid <> g.player2_id then raise exception 'not a player of this game'; end if;
+
+  if not (g.truco_state->>'status' in ('truco','retruco','vale_cuatro')
+          and (g.truco_state->>'last_singer') is distinct from uid::text) then
+    raise exception 'no hay truco para responder';
+  end if;
+
+  -- El envido va primero: con un envido sin resolver, el truco espera.
+  if g.envido_state->>'status' in ('envido','real_envido','falta_envido','declaring') then
+    raise exception 'primero se resuelve el envido';
+  end if;
+
+  if p_accept then
+    update offline_replay_v1.games set truco_state = g.truco_state || jsonb_build_object('status','accepted'),
+      current_turn = offline_replay_v1._who_plays_next(g), updated_at = now()
+    where id = p_game_id returning * into g;
+    return g;
+  end if;
+
+  begin perform offline_replay_v1._record_style(p_game_id, 'truco_folded'); exception when others then null; end;
+
+  singer := (g.truco_state->>'last_singer')::uuid;
+  val := (g.truco_state->>'value')::int - 1;
+  s1 := g.player1_score + case when singer = g.player1_id then val else 0 end;
+  s2 := g.player2_score + case when singer = g.player2_id then val else 0 end;
+
+  if s1 >= g.target_score or s2 >= g.target_score then
+    perform offline_replay_v1.finish_game(p_game_id, case when s1 >= g.target_score then g.player1_id else g.player2_id end, s1, s2);
+  else
+    update offline_replay_v1.games set
+      player1_score = s1, player2_score = s2,
+      truco_state = g.truco_state || jsonb_build_object('status','rejected'),
+      awaiting_deal = true, updated_at = now()
+    where id = p_game_id;
+  end if;
+
+  select * into g from offline_replay_v1.games where id = p_game_id;
+  return g;
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1.sing_envido(p_game_id uuid, p_type text)
+ RETURNS offline_replay_v1.games
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare
+  g offline_replay_v1.games%rowtype; uid uuid := auth.uid(); oppid uuid;
+  is_escalation boolean; is_my_turn boolean; truco_pending_on_me boolean;
+  cur_status text; envido_count int; new_chain jsonb; val int;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+  if p_type not in ('envido','real_envido','falta_envido') then raise exception 'tipo invalido'; end if;
+
+  select * into g from offline_replay_v1.games where id = p_game_id for update;
+  if not found then raise exception 'game not found'; end if;
+  if g.status <> 'playing' then raise exception 'la partida no esta en juego'; end if;
+  if uid <> g.player1_id and uid <> g.player2_id then raise exception 'not a player of this game'; end if;
+
+  oppid := case when uid = g.player1_id then g.player2_id else g.player1_id end;
+  cur_status := g.envido_state->>'status';
+  is_escalation := cur_status in ('envido','real_envido','falta_envido')
+                   and (g.envido_state->>'last_singer') is distinct from uid::text;
+
+  if is_escalation then
+    envido_count := (select count(*) from jsonb_array_elements_text(coalesce(g.envido_state->'chain','[]'::jsonb)) c where c = 'envido');
+    if p_type = 'envido' then
+      if not (cur_status = 'envido' and envido_count < 2) then raise exception 'no podes cantar envido de nuevo'; end if;
+    elsif p_type = 'real_envido' then
+      if cur_status <> 'envido' then raise exception 'no podes cantar real envido aca'; end if;
+    elsif p_type = 'falta_envido' then
+      if cur_status not in ('envido','real_envido') then raise exception 'no podes cantar falta envido aca'; end if;
+    end if;
+  else
+    if cur_status <> 'none' then raise exception 'el envido ya fue cantado'; end if;
+    if g.round_number <> 1 then raise exception 'el envido solo se canta en la primera ronda'; end if;
+    if g.truco_state->>'status' = 'accepted' then raise exception 'el truco ya esta en juego'; end if;
+    if exists (select 1 from jsonb_array_elements(g.played_cards) e where e.value->>'player_id' = uid::text)
+      then raise exception 'ya jugaste una carta'; end if;
+    is_my_turn := g.current_turn = uid;
+    truco_pending_on_me := g.truco_state->>'status' in ('truco','retruco','vale_cuatro')
+                           and (g.truco_state->>'last_singer') is distinct from uid::text;
+    if not (is_my_turn or truco_pending_on_me) then raise exception 'no podes cantar ahora'; end if;
+  end if;
+
+  new_chain := coalesce(g.envido_state->'chain', '[]'::jsonb) || to_jsonb(p_type);
+  val := offline_replay_v1._envido_quiero_value(new_chain, g.player1_score, g.player2_score, g.target_score);
+
+  update offline_replay_v1.games set
+    envido_state = jsonb_build_object('status', p_type, 'last_singer', uid, 'value', val, 'chain', new_chain),
+    current_turn = oppid, updated_at = now()
+  where id = p_game_id returning * into g;
+
+  begin perform offline_replay_v1._record_style(p_game_id, 'envido_sung'); exception when others then null; end;
+  return g;
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1.sing_truco(p_game_id uuid, p_type text)
+ RETURNS offline_replay_v1.games
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare
+  g       offline_replay_v1.games%rowtype;
+  uid     uuid := auth.uid();
+  oppid   uuid;
+  st      text;
+  last_s  text;
+  pending boolean;
+  cur_val int;
+  req_val int;
+begin
+  if uid is null then raise exception 'no autenticado'; end if;
+  if p_type not in ('truco','retruco','vale_cuatro') then raise exception 'tipo invalido'; end if;
+
+  select * into g from offline_replay_v1.games where id = p_game_id for update;
+  if not found then raise exception 'game not found'; end if;
+  if g.status <> 'playing' then raise exception 'la partida no esta en juego'; end if;
+  if uid <> g.player1_id and uid <> g.player2_id then raise exception 'not a player of this game'; end if;
+
+  oppid  := case when uid = g.player1_id then g.player2_id else g.player1_id end;
+  st     := g.truco_state->>'status';
+  last_s := g.truco_state->>'last_singer';
+  pending := st in ('truco','retruco','vale_cuatro');
+  cur_val := case when st = 'none' then 1 else (g.truco_state->>'value')::int end;
+  req_val := case p_type when 'truco' then 2 when 'retruco' then 3 else 4 end;
+
+  -- El envido va primero: con un envido sin resolver no se canta ni escala truco.
+  if g.envido_state->>'status' in ('envido','real_envido','falta_envido','declaring') then
+    raise exception 'primero se resuelve el envido';
+  end if;
+
+  if pending and last_s is distinct from uid::text then
+    -- respondés subiendo la apuesta
+    if req_val <> cur_val + 1 then raise exception 'escalada de truco invalida'; end if;
+  elsif st = 'none' then
+    if p_type <> 'truco' then raise exception 'primero hay que cantar truco'; end if;
+    if g.current_turn <> uid then raise exception 'no es tu turno'; end if;
+  elsif st = 'accepted' and last_s is distinct from uid::text and cur_val < 4 then
+    if req_val <> cur_val + 1 then raise exception 'escalada de truco invalida'; end if;
+    if g.current_turn <> uid then raise exception 'no es tu turno'; end if;
+  else
+    raise exception 'no podes cantar truco ahora';
+  end if;
+
+  update offline_replay_v1.games set
+    truco_state = jsonb_build_object('status', p_type, 'last_singer', uid, 'value', req_val),
+    current_turn = oppid,
+    updated_at = now()
+  where id = p_game_id returning * into g;
+
+  begin perform offline_replay_v1._record_style(p_game_id, 'truco_sung'); exception when others then null; end;
+  return g;
+end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION offline_replay_v1.validate_game(p_trial jsonb, p_base jsonb, p_seed bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SET search_path TO 'offline_replay_v1', 'pg_catalog', 'pg_temp'
+AS $function$
+declare
+  uid uuid := auth.uid(); gid uuid := (p_trial->>'id')::uuid;
+  rival jsonb; g offline_replay_v1.games%rowtype; a jsonb; item jsonb; expected jsonb;
+  decision offline_replay_v1.bot_decisions%rowtype; h1 jsonb; h2 jsonb; initial_style jsonb;
+  expected_game jsonb; key text; actor uuid; n integer := 0; rng bigint; mano uuid; bot uuid;
+  saved_claims text := current_setting('request.jwt.claims',true);
+  saved_sub text := current_setting('request.jwt.claim.sub',true);
+begin
+  select value into rival from jsonb_array_elements(p_base->'catalog'->'rivals') where value->>'id'=p_trial->>'rival';
+  bot := (rival->>'bot_id')::uuid;
+  if rival is null or p_trial->>'version' is distinct from 'historia-bots-v1' or p_trial->>'owner' is distinct from uid::text
+    or (p_trial->>'seed')::bigint is distinct from p_seed or p_trial->'bot'->'rival' is distinct from rival
+    or p_trial->'bot'->'initial_style' is distinct from p_base->'style'
+    or (p_trial->'bot'->>'campaign_points')::integer is distinct from (p_base->>'points')::integer then
+    raise exception 'offline:record';
+  end if;
+  if jsonb_typeof(p_trial->'actions') is distinct from 'array'
+    or jsonb_array_length(p_trial->'actions') not between 1 and 4000 then raise exception 'offline:record'; end if;
+  insert into offline_replay_v1.profiles values(uid,false,(p_base->>'points')::integer);
+  insert into offline_replay_v1.campaign_style
+    select (jsonb_populate_record(null::offline_replay_v1.campaign_style,p_base->'style'||jsonb_build_object('user_id',uid,'updated_at',now()))).*;
+  insert into offline_replay_v1.random_state values(gid,p_seed);
+  perform set_config('trucazo.offline_game',gid::text,true);
+  mano := case when offline_replay_v1.random()<0.5 then uid else bot end;
+  select * into h1,h2 from offline_replay_v1._deal_hands();
+  insert into offline_replay_v1.games(id,player1_id,player2_id,player1_username,player2_username,bet,
+    target_score,current_turn,mano_player,campaign_rival_id,envido_state,truco_state)
+    values(gid,uid,bot,'Offline',rival->>'display_name',0,(rival->>'target_score')::integer,mano,mano,(rival->>'id')::uuid,
+      '{"status":"none","value":0,"last_singer":null,"chain":[]}', '{"status":"none","value":1,"last_singer":null}');
+  insert into offline_replay_v1.game_hands(game_id,player_id,cards) values(gid,uid,h1),(gid,bot,h2);
+  perform offline_replay_v1._record_style(gid,'hand_played');
+  for item in select value from jsonb_array_elements(p_trial->'actions') loop
+    select * into strict g from offline_replay_v1.games where id=gid;
+    if g.status<>'playing' then raise exception 'offline:record'; end if;
+    a := item->'action'; actor := (a->>'player')::uuid;
+    if actor=bot then
+      if g.awaiting_deal or (case when g.envido_state->>'status'='declaring'
+        then g.envido_state->>'declare_turn'<>bot::text else g.current_turn<>bot end) then raise exception 'offline:record'; end if;
+      perform offline_replay_v1.bot_step(gid);
+      select * into strict decision from offline_replay_v1.bot_decisions where game_id=gid order by id desc limit 1;
+      if not decision.ok then raise exception 'offline:record'; end if;
+      expected := jsonb_build_object('player',bot,'type',case decision.action
+        when 'play' then 'play_card' when 'mazo' then 'irse_al_mazo'
+        else regexp_replace(decision.action,'_(yes|no)$','') end);
+      if decision.action='play' then expected := expected||jsonb_build_object('card',decision.numbers->'card');
+      elsif decision.action ~ '^respond_.*_(yes|no)$' then expected := expected||jsonb_build_object('accept',decision.action ~ '_yes$');
+      elsif decision.detail is not null then expected := expected||jsonb_build_object('value',decision.detail); end if;
+    elsif actor=uid then
+      expected := jsonb_build_object('player',uid,'type',a->>'type');
+      case a->>'type'
+        when 'play_card' then
+          if not exists(select 1 from offline_replay_v1.game_hands h,jsonb_array_elements(h.cards) c
+            where h.game_id=gid and h.player_id=uid and c.value=a->'card') then raise exception 'offline:record'; end if;
+          expected := expected||jsonb_build_object('card',a->'card');
+          perform offline_replay_v1.play_card(gid,a->'card');
+        when 'sing_envido' then expected := expected||jsonb_build_object('value',a->'value'); perform offline_replay_v1.sing_envido(gid,a->>'value');
+        when 'respond_envido' then expected := expected||jsonb_build_object('accept',a->'accept'); perform offline_replay_v1.respond_envido(gid,(a->>'accept')::boolean);
+        when 'envido_say' then expected := expected||jsonb_build_object('value',a->'value'); perform offline_replay_v1.envido_say(gid,a->>'value');
+        when 'sing_truco' then expected := expected||jsonb_build_object('value',a->'value'); perform offline_replay_v1.sing_truco(gid,a->>'value');
+        when 'respond_truco' then expected := expected||jsonb_build_object('accept',a->'accept'); perform offline_replay_v1.respond_truco(gid,(a->>'accept')::boolean);
+        when 'irse_al_mazo' then perform offline_replay_v1.irse_al_mazo(gid);
+        when 'advance_hand' then
+          if not g.awaiting_deal then raise exception 'offline:record'; end if;
+          perform offline_replay_v1.advance_hand(gid);
+        else raise exception 'offline:record';
+      end case;
+    else raise exception 'offline:record'; end if;
+    select value into rng from offline_replay_v1.random_state where game_id=gid;
+    if a is distinct from expected or (item->>'rng')::bigint is distinct from rng then
+      raise exception 'offline:record' using detail=jsonb_build_object('turn',n,'expected',expected,'received',a,'rng',rng,'received_rng',item->'rng')::text;
+    end if;
+    n := n+1;
+  end loop;
+  perform set_config('request.jwt.claims',coalesce(saved_claims,''),true);
+  perform set_config('request.jwt.claim.sub',coalesce(saved_sub,''),true);
+  select * into strict g from offline_replay_v1.games where id=gid;
+  select jsonb_agg(cards order by case player_id when uid then 0 else 1 end) into h1
+    from offline_replay_v1.game_hands where game_id=gid;
+  select to_jsonb(s)-'user_id'-'updated_at' into initial_style from offline_replay_v1.campaign_style s where user_id=uid;
+  expected_game := to_jsonb(g);
+  -- El cliente muestra la última carta al cerrar; SQL cierra sin persistirla.
+  -- Envidο empatado puede revelar otro palo con el mismo tanto. Ninguno altera premio.
+  if (select array_agg(k order by k) from jsonb_object_keys(p_trial->'game') k) is distinct from
+    array['awaiting_deal','current_turn','envido_reveal','envido_state','hand_number','id','mano_player',
+      'played_cards','player1_id','player1_score','player2_id','player2_score','round_number','round_results',
+      'status','target_score','truco_state','winner_id'] then raise exception 'offline:record'; end if;
+  for key in select jsonb_object_keys(p_trial->'game') loop
+    if key not in ('played_cards','round_results','envido_reveal')
+      and p_trial->'game'->key is distinct from expected_game->key then raise exception 'offline:record'; end if;
+  end loop;
+  if g.status<>'finished' or (p_trial->>'revision')::integer is distinct from n or (p_trial->>'rng')::bigint is distinct from rng
+    or p_trial->'hands' is distinct from h1 or p_trial->'bot'->'style' is distinct from initial_style
+    or p_trial->'result' is distinct from jsonb_build_object('status','trial-only','winner',g.winner_id,'scores',jsonb_build_array(g.player1_score,g.player2_score)) then
+    raise exception 'offline:record';
+  end if;
+  delete from offline_replay_v1.game_hands where game_id=gid;
+  delete from offline_replay_v1.games where id=gid;
+  delete from offline_replay_v1.bot_decisions where game_id=gid;
+  delete from offline_replay_v1.random_state where game_id=gid;
+  delete from offline_replay_v1.campaign_style where user_id=uid;
+  delete from offline_replay_v1.profiles where id=uid;
+  return jsonb_build_object('winner',g.winner_id,'scores',jsonb_build_array(g.player1_score,g.player2_score),'style',initial_style);
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION public.prepare_offline_campaign()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare s jsonb; d offline_replay_v1.downloads%rowtype;
+begin
+  s := public.export_offline_campaign();
+  insert into offline_replay_v1.downloads(owner,seed,snapshot)
+    values(auth.uid(),1+floor(random()*4294967295)::bigint,s) returning * into d;
+  return s || jsonb_build_object('grant',jsonb_build_object('id',d.id,'seed',d.seed,'rules','historia-sql-v1'));
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION public.sync_offline_campaign(p_records jsonb, p_complete boolean DEFAULT true)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  uid uuid := auth.uid(); snapshot jsonb; entry jsonb; d offline_replay_v1.downloads%rowtype;
+  prior offline_replay_v1.receipts%rowtype; existing offline_replay_v1.receipts%rowtype;
+  base jsonb; verified jsonb; rival jsonb; province jsonb; progress jsonb; dependencies jsonb;
+  projection jsonb; receipt jsonb; receipts jsonb := '[]'; seq integer; gid uuid;
+  won boolean; pts integer; coins integer; acc integer; b integer; margin integer; key text;
+  before_points integer; before_coins integer;
+begin
+  -- La exportación rechaza sesión ausente, invitado, bot o cuenta eliminada.
+  snapshot := public.export_offline_campaign();
+  if jsonb_typeof(p_records) is distinct from 'array' or jsonb_array_length(p_records) not between 1 and 10
+    or octet_length(p_records::text)>2097152 then raise exception 'offline:batch'; end if;
+  -- Orden de locks: estilo y luego perfil, como una jugada online que termina.
+  insert into public.campaign_style(user_id) values(uid) on conflict (user_id) do nothing;
+  perform 1 from public.campaign_style where user_id=uid for update;
+  perform 1 from public.profiles where id=uid for update;
+  for entry in select value from jsonb_array_elements(p_records) loop
+    gid := (entry->>'id')::uuid; seq := (entry->>'sequence')::integer;
+    if gid is null or seq is null or seq<0 or entry->>'status' is distinct from 'pending'
+      or entry->'trial'->>'id' is distinct from gid::text or entry->>'finished_at' is null
+      or (entry->>'finished_at')::timestamptz is null then raise exception 'offline:record'; end if;
+    select * into d from offline_replay_v1.downloads where id=(entry->>'grant_id')::uuid and owner=uid;
+    if not found then raise exception 'offline:download'; end if;
+    select * into existing from offline_replay_v1.receipts where owner=uid and id=gid;
+    if found then
+      if existing.record is distinct from entry then raise exception 'offline:conflict'; end if;
+      receipts := receipts||jsonb_build_array(existing.receipt); continue;
+    end if;
+    if exists(select 1 from offline_replay_v1.receipts where download_id=d.id and sequence=seq)
+      or exists(select 1 from public.games where id=gid) or exists(select 1 from public.tables where id=gid)
+      then raise exception 'offline:conflict'; end if;
+    if d.snapshot->'catalog' is distinct from snapshot->'catalog' then raise exception 'offline:catalog'; end if;
+    select coalesce(jsonb_agg(id order by sequence),'[]') into dependencies
+      from offline_replay_v1.receipts where download_id=d.id and sequence<seq;
+    if jsonb_array_length(dependencies)<>seq or entry->'dependencies' is distinct from dependencies then raise exception 'offline:dependencies'; end if;
+    base := d.snapshot;
+    if seq>0 then
+      select * into strict prior from offline_replay_v1.receipts where download_id=d.id and sequence=seq-1;
+      base := base||prior.local_state;
+    end if;
+    select value into rival from jsonb_array_elements(base->'catalog'->'rivals') where value->>'id'=entry->'trial'->>'rival';
+    select value into province from jsonb_array_elements(base->'catalog'->'provinces') where value->>'id'=rival->>'province_id';
+    select value into progress from jsonb_array_elements(base->'progress') where value->>'rival_id'=rival->>'id';
+    if rival is null or province is null or (progress is null and
+      ((base->>'points')::integer<(rival->>'points_required')::integer
+      or (base->>'points')::integer<(province->>'points_required')::integer
+      or (province->>'required_rival_id' is not null and not exists(select 1 from jsonb_array_elements(base->'progress') p where p->>'rival_id'=province->>'required_rival_id'))))
+      then raise exception 'offline:locked'; end if;
+    verified := offline_replay_v1.validate_game(entry->'trial',base,offline_replay_v1.duel_seed(d.seed,seq));
+    won := verified->>'winner'=uid::text; b := (rival->>'points_reward')::integer; pts := 0; coins := 0;
+    -- Proyección local original: sólo alimenta el próximo bot de esta descarga.
+    if won then
+      if progress is null then
+        margin := greatest(0,(verified->'scores'->>0)::integer-(verified->'scores'->>1)::integer);
+        pts := b+round(b*0.20*margin/(rival->>'target_score')::integer)::integer;
+        coins := (rival->>'reward_coins')::integer;
+        progress := jsonb_build_object('rival_id',rival->>'id','beaten_at',entry->>'finished_at','wins',1,'rematch_points',0);
+      else
+        acc := (progress->>'rematch_points')::integer;
+        pts := greatest(0,least(floor(b*0.10)::integer,floor(b*0.30)::integer-acc));
+        progress := progress||jsonb_build_object('wins',(progress->>'wins')::integer+1,'rematch_points',acc+pts);
+      end if;
+    end if;
+    if entry->'projected_reward' is distinct from jsonb_build_object('points',pts,'coins',coins) then raise exception 'offline:record'; end if;
+    projection := jsonb_build_object('points',(base->>'points')::integer+pts,'style',verified->'style','progress',base->'progress');
+    if won then
+      select coalesce(jsonb_agg(p),'[]') into dependencies from jsonb_array_elements(base->'progress') p where p->>'rival_id'<>rival->>'id';
+      projection := projection||jsonb_build_object('progress',dependencies||jsonb_build_array(progress));
+    end if;
+    select campaign_points,profiles.coins into before_points,before_coins from public.profiles where id=uid;
+    insert into public.tables(id,name,creator_id,opponent_id,creator_username,opponent_username,bet,target_score,status,is_private)
+      select gid,'Modo Historia',uid,(rival->>'bot_id')::uuid,username,rival->>'display_name',0,(rival->>'target_score')::integer,'playing',true from public.profiles where id=uid;
+    insert into public.games(id,player1_id,player2_id,player1_username,player2_username,bet,target_score,current_turn,mano_player,campaign_rival_id)
+      select gid,uid,(rival->>'bot_id')::uuid,username,rival->>'display_name',0,(rival->>'target_score')::integer,uid,uid,(rival->>'id')::uuid from public.profiles where id=uid;
+    -- Una vez validado, la función de premios habitual sigue siendo la autoridad.
+    perform public.finish_game(gid,(verified->>'winner')::uuid,(verified->'scores'->>0)::integer,(verified->'scores'->>1)::integer);
+    update public.tables set status='finished' where id=gid;
+    for key in select jsonb_object_keys(verified->'style') loop
+      if key not in ('hands_played','envido_sung','envido_bluff','envido_folded','truco_sung','truco_bluff','truco_folded') then raise exception 'offline:record'; end if;
+      execute format('update public.campaign_style set %1$I=%1$I+$1,updated_at=now() where user_id=$2',key)
+        using (verified->'style'->>key)::integer-(base->'style'->>key)::integer,uid;
+    end loop;
+    select jsonb_build_object('id',gid,'status','accepted','points',campaign_points-before_points,'coins',profiles.coins-before_coins,
+      'winner',verified->'winner','scores',verified->'scores') into receipt from public.profiles where id=uid;
+    insert into offline_replay_v1.receipts(owner,id,download_id,sequence,record,receipt,local_state)
+      values(uid,gid,d.id,seq,entry,receipt,projection);
+    receipts := receipts||jsonb_build_array(receipt);
+  end loop;
+  return jsonb_build_object('receipts',receipts,'snapshot',case when p_complete then public.prepare_offline_campaign() else null end);
+end $function$
+;
+-- OFFLINE_SYNC_SNAPSHOT_END

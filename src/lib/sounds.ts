@@ -37,11 +37,20 @@ export function isMuted(): boolean {
 
 export function setMuted(v: boolean): void {
   muted = v
+  if (v) pauseSounds()
   try { localStorage.setItem(KEY, v ? '1' : '0') } catch {}
 }
 
+export function pauseSounds(): void {
+  for (const audio of Object.values(cache)) { audio.pause(); audio.currentTime = 0 }
+}
+
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => {
+  if (document.hidden) pauseSounds()
+})
+
 export function playSound(name: SoundName): void {
-  if (typeof window === 'undefined' || muted) return
+  if (typeof window === 'undefined' || document.hidden || muted) return
   try {
     let audio = cache[name]
     if (!audio) {

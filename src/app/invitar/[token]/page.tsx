@@ -14,11 +14,12 @@ export const metadata: Metadata = {
   referrer: 'no-referrer',
 }
 
-export default async function InvitePage({ params }: { params: { token: string } }) {
+export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params
   const supabase = await createClient()
   const [{ data: preview, error }, { data: { user } }] = await Promise.all([
-    INVITE_TOKEN.test(params.token)
-      ? supabase.rpc('preview_table_invite', { p_token: params.token }).abortSignal(AbortSignal.timeout(8000))
+    INVITE_TOKEN.test(token)
+      ? supabase.rpc('preview_table_invite', { p_token: token }).abortSignal(AbortSignal.timeout(8000))
       : Promise.resolve({ data: null, error: null }),
     supabase.auth.getUser(),
   ])
@@ -31,11 +32,11 @@ export default async function InvitePage({ params }: { params: { token: string }
       {error ? <>
         <h1 className="font-display text-2xl font-bold text-cream">No pudimos cargar la invitación</h1>
         <p className="text-sm text-muted">Revisá tu conexión y volvé a intentar.</p>
-        <a href={`/invitar/${params.token}`} className="text-gold font-semibold">Reintentar</a>
+        <a href={`/invitar/${token}`} className="text-gold font-semibold">Reintentar</a>
       </> : !invite || !enabled ? <>
         <h1 className="font-display text-2xl font-bold text-cream">Esta invitación ya no está disponible</h1>
         <p className="text-sm text-muted">Pedile un enlace nuevo a quien te invitó.</p>
-      </> : <InviteClient token={params.token} invite={invite} signedIn={!!user} />}
+      </> : <InviteClient token={token} invite={invite} signedIn={!!user} />}
       <Link href="/lobby" className="text-center text-sm text-subtle hover:text-cream">Ir al inicio</Link>
     </Panel>
   </main>

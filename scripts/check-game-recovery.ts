@@ -196,7 +196,10 @@ test('snapshot atrasado no revive reparto ni partida terminada', () => {
   visit(source)
   const js = ts.transpileModule(`${body}; return applyServerGame`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
   let state = { status: 'playing', awaiting_deal: false, updated_at: '2026-10-14T12:01:00Z' }
-  const apply = new Function('setGame', js)((update: (previous: typeof state) => typeof state) => { state = update(state) })
+  const apply = new Function('setGame', 'latestGame', 'setActionError', js)(
+    (update: (previous: typeof state) => typeof state) => { state = update(state) },
+    { get current() { return state } }, () => {},
+  )
   apply({ ...state, awaiting_deal: true, updated_at: '2026-10-14T12:00:59Z' })
   assert.equal(state.awaiting_deal, false)
   apply({ ...state, status: 'finished', updated_at: '2026-10-14T12:01:01Z' })

@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useId } from 'react'
+import { useId, useRef } from 'react'
+import { useDialog } from '@/lib/useDialog'
 import Panel from './Panel'
 import { cn } from './cn'
 
@@ -28,17 +29,14 @@ export default function Modal({
   children,
 }: ModalProps) {
   const titleId = useId()
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  const overlay = useRef<HTMLDivElement>(null)
+  useDialog(overlay, open, onClose)
 
   if (!open) return null
 
   return (
     <div
+      ref={overlay}
       className={cn(
         'fixed inset-0 z-50 flex justify-center bg-black/60 p-2 backdrop-blur-sm animate-fade-in sm:p-4',
         centered ? 'items-center' : 'items-end sm:items-center',
@@ -50,7 +48,7 @@ export default function Modal({
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         aria-label={!title ? ariaLabel : undefined}
-        className={cn('relative flex w-full max-w-sm flex-col gap-5 p-6 animate-scale-in', panelClassName)}
+        className={cn('relative flex max-h-[calc(100dvh-1rem)] w-full max-w-sm flex-col gap-5 overflow-y-auto p-6 animate-scale-in', panelClassName)}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (

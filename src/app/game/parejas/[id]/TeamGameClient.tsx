@@ -126,12 +126,14 @@ export default function TeamGameClient({ initial, userId, isGuest, salonSlug }: 
     const focus = () => { presence(); void refresh() }
     window.addEventListener('online', focus)
     window.addEventListener('focus', focus)
+    window.addEventListener('mobile:refresh', focus)
     document.addEventListener('visibilitychange', focus)
     presence(); void refresh()
     return () => {
       disposed.current = true; clearInterval(poll); clearInterval(heartbeat)
       void supabase.removeChannel(channel)
       window.removeEventListener('online', focus); window.removeEventListener('focus', focus)
+      window.removeEventListener('mobile:refresh', focus)
       document.removeEventListener('visibilitychange', focus)
     }
   }, [initial.table.id, apply, supabase])
@@ -206,6 +208,8 @@ export default function TeamGameClient({ initial, userId, isGuest, salonSlug }: 
     : g.envido.status === 'declaring' ? `Declara ${actor?.username ?? ''}`
       : g.envido.status === 'pending' || g.truco.status === 'pending' ? `Responde el equipo de ${actor?.username ?? ''}`
         : actor?.user_id === userId ? 'Tu turno' : `Turno de ${actor?.username ?? ''}`
+  const actionRows = teamActionRows(state.legal)
+  const leaveControl = <button onClick={() => setShowExit(true)} disabled={busy || table.status !== 'playing'} className={`${styles.leave} flex-1 px-3 inline-flex items-center justify-center text-xs text-subtle hover:text-negative transition-colors disabled:opacity-50`}>Abandonar partida</button>
 
   function seatView(m: TeamMember | undefined, relative: number) {
     if (!m || m.seat === null) return null
@@ -246,11 +250,12 @@ export default function TeamGameClient({ initial, userId, isGuest, salonSlug }: 
       <MesaTurn className={styles.turn} active={active} seconds={g.awaiting_deal || table.status !== 'playing' ? null : seconds}><span className={styles.turnText} title={connected ? status : 'Reconectando…'}>{connected ? status : 'Reconectando…'}</span></MesaTurn>
       <div className={`${salon.actions} ${styles.actions}`} aria-label="Acciones de la partida">
         <div className={styles.actionRows}>
-          {teamActionRows(state.legal).map((row, i) => <div key={i} className="flex gap-2">
+          {actionRows.map((row, i) => <div key={i} className="flex gap-2">
             {row.map(a => <MesaButton key={a} tone={a === 'mazo' ? 'ghost' : a.endsWith('_no') ? 'danger' : a.endsWith('_yes') ? 'positive' : ['tengo', 'truco', 'retruco', 'vale_cuatro'].includes(a) ? 'gold' : 'outline'} disabled={busy || table.status !== 'playing'} onClick={() => { void act(a) }}>{a === 'tengo' ? `Tengo ${tanto}` : labels[a]}</MesaButton>)}
+            {actionRows.length === 3 && i === 2 && leaveControl}
           </div>)}
+          {actionRows.length < 3 && <div className="flex gap-2">{leaveControl}</div>}
         </div>
-        <button onClick={() => setShowExit(true)} disabled={busy || table.status !== 'playing'} className="self-center -my-1 py-1.5 px-3 inline-flex items-center text-xs text-subtle hover:text-negative transition-colors disabled:opacity-50">Abandonar partida</button>
       </div>
       {error && <div className={styles.error} role="alert" onClick={() => setError('')}>{error}</div>}
       <Modal open={showExit} title="¿Abandonar la partida?" onClose={() => setShowExit(false)}><p className="text-sm text-muted">Tu equipo perderá la partida{tournament ? '.' : ' y la apuesta.'} Para perder solamente esta mano, usá «Irse al mazo» cuando sea tu turno.</p><Button variant="danger" disabled={busy} onClick={() => { setShowExit(false); void act('forfeit') }}>Abandonar partida</Button><Button variant="ghost" onClick={() => setShowExit(false)}>Seguir jugando</Button></Modal>

@@ -216,6 +216,7 @@ export default function TournamentDetail({
         ← Todos los torneos
       </Link>
 
+      {tournament.paused_at && <Alert className="mt-4">Torneo pausado. Las partidas abiertas continúan; la próxima ronda espera a que se reanude.</Alert>}
       <section className="mt-4 rounded-3xl border border-gold/35 bg-gradient-to-br from-gold/15 via-surface to-surface p-5 shadow-lift sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-2xl">

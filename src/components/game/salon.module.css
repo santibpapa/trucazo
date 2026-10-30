@@ -217,7 +217,19 @@
    Las cartas y los asientos se calculan sobre el espacio REAL de la mesa,
    después de reservar marcador y controles: no sobre un alto mínimo fijo. */
 .game { overflow: hidden; }
-.game .shell { height: 100dvh; min-height: 0; }
+.game .toolButton { width: 44px; height: 44px; }
+.game .action { line-height: 1.05; }
+.game .actions { flex-basis: 152px; min-height: 152px; }
+.game .actions > button:last-child { min-height: 44px; margin: 0; }
+.game .actions div:has(> button:nth-child(3)) > button[data-tone='gold'] { font-size: 14px; }
+.game .shell {
+  height: 100dvh;
+  min-height: 0;
+  padding: max(6px, var(--safe-area-inset-top, env(safe-area-inset-top)))
+    max(12px, var(--safe-area-inset-right, env(safe-area-inset-right)))
+    max(8px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom)))
+    max(12px, var(--safe-area-inset-left, env(safe-area-inset-left)));
+}
 .game .stage {
   min-height: 0;
   container-type: size;
@@ -262,4 +274,17 @@
   .game .turnLabel { font-size: 13px; padding-block: 3px; }
   .game .action { font-size: 14px; }
   .game .action[data-tone='gold'] { font-size: 20px; }
+}
+
+/* En horizontal las barras Android pueden dejar menos de 300px de alto.
+   Reservar el costado para los controles mantiene la mesa y la salida visibles. */
+@media (max-height: 400px) and (min-width: 480px) {
+  .game .shell.shell.shell { display: grid; grid-template-columns: minmax(0,1fr) minmax(212px,38%); grid-template-rows: 26px 58px minmax(0,1fr) 32px; gap: 3px 12px; }
+  .game .shell > [aria-label='Trucazo'] { grid-column: 1; grid-row: 1; flex-direction: row; gap: 8px; font-size: 18px; line-height: 1; }
+  .game .salonName { margin-top: 0; font-size: 11px; white-space: nowrap; }
+  .game .salonName::before, .game .salonName::after { width: 10px; }
+  .game .shell > [aria-label='Marcador'] { grid-column: 1; grid-row: 2; width: 100%; min-width: 0; }
+  .game [data-card-stage], .game [data-team-stage] { grid-column: 1; grid-row: 3; margin-top: 0; }
+  .game .turn.turn.turn { grid-column: 1; grid-row: 4; min-height: 30px; margin-top: 0; padding: 0; }
+  .game .actions.actions.actions { grid-column: 2; grid-row: 1 / -1; min-height: 0; align-self: center; }
 }

@@ -1,0 +1,23 @@
+Cartas de Trucazo — baraja española de tema GNU
+
+Autores de la baraja: Germarquezm y Basquetteur.
+Baraja base (Germarquezm, 2013):
+https://commons.wikimedia.org/wiki/File:Baraja_espa%C3%B1ola.svg
+Versión completa (Basquetteur, 2014):
+https://commons.wikimedia.org/wiki/File:Baraja_espa%C3%B1ola_completa.png
+Presentación de 40 cartas y créditos de los elementos reutilizados:
+https://commons.wikimedia.org/wiki/File:Baraja_de_40_cartas.png
+
+Licencia de estas ilustraciones y de sus adaptaciones incluidas en Trucazo:
+Creative Commons Atribución-CompartirIgual 3.0 No portada (CC BY-SA 3.0).
+https://creativecommons.org/licenses/by-sa/3.0/deed.es
+Texto de la licencia: https://creativecommons.org/licenses/by-sa/3.0/legalcode
+
+Adaptaciones para Trucazo: archivos individuales por carta, redimensionado
+y conversión a WebP. Se conserva el diseño de las ilustraciones.
+La fuente acredita también elementos de heráldica de Wikimedia y el caballo
+de GnuBond en Aisleriot; los detalles y enlaces figuran en las páginas originales.
+
+Se permite compartir y adaptar las imágenes respetando la atribución,
+indicando cambios y conservando la misma licencia para esas adaptaciones.
+La atribución no implica respaldo de los autores a Trucazo.

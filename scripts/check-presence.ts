@@ -18,7 +18,7 @@ function presenceEffect(path: string, rpc: string) {
   }
   visit(source)
   assert.equal(effects.length, 1, `Un único efecto de ${rpc}`)
-  return new Function('supabase', 'game', 'setInterval', 'clearInterval', 'initial', 'refresh', effects[0].body.getText(source))
+  return new Function('supabase', 'game', 'setInterval', 'clearInterval', 'initial', 'refresh', 'document', 'window', 'navigator', effects[0].body.getText(source))
 }
 
 const gameEffect = presenceEffect('src/app/game/[id]/GameClient.tsx', 'touch_presence')
@@ -42,9 +42,11 @@ function fixture(effect: Function, game = { id: 'game-a', status: 'playing' }, i
       return new Response('null', { status: 200, headers: { 'Content-Type': 'application/json' } })
     } },
   })
+  const events = { addEventListener() {}, removeEventListener() {} }
   const stop = effect(client, game,
     (callback: () => void, ms: number) => { timers.set(ms, callback); return ms },
-    (id: number) => timers.delete(id), initial, () => { refreshes++ })
+    (id: number) => timers.delete(id), initial, () => { refreshes++ },
+    { ...events, hidden: false }, events, { onLine: true })
   return { requests, timers, stop, refreshes: () => refreshes, disconnect: () => { offline = true } }
 }
 

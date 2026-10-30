@@ -24,7 +24,7 @@ test('clave opaca normalizada y destino local estricto', () => {
 
 test('email y registro vuelven a la invitación, sin aceptar destinos externos', () => {
   const location = { pathname: '/login', search: `?next=${encodeURIComponent(next)}` }
-  Object.assign(globalThis, { window: { location }, document: { referrer: '' }, sessionStorage: { getItem: () => null } })
+  Object.assign(globalThis, { window: { location }, document: { referrer: '', cookie: '' }, sessionStorage: { getItem: () => null } })
   try {
     assert.equal(loginDestination(), next)
     location.search = '?next=https://evil.test'

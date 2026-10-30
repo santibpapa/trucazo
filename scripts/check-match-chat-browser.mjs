@@ -35,6 +35,7 @@ window.__quick = () => {
 const client = {
   from: table => query(() => ({data: table === 'match_chat_messages' ? window.__history : table === 'games' ? window.__game : table === 'game_hands' ? {cards: window.__hand} : [], error: null})),
   rpc: (name, args) => query(() => {
+    if (name === 'community_safety_state') return {data: {accepted:true, restricted_until:null}, error:null};
     if (name === 'send_match_chat_message') {
       if (window.__reject) return {data: null, error: {message: 'Esperá 3 segundos antes de enviar otro mensaje'}};
       const message = {id: args.p_request_id, sender_id: window.__user, sender_name: 'Prueba', body: args.p_body, created_at: new Date().toISOString(), client_request_id: args.p_request_id};

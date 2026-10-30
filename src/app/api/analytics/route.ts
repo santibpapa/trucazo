@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createApiClient } from '@/lib/supabase/api'
+import { androidOptions, withAndroidCors } from '@/lib/android-api'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   classifyAcquisition,
@@ -33,8 +34,13 @@ type Payload = {
   properties?: unknown
 }
 
-export async function POST(request: Request) {
-  if (!isTrustedAnalyticsRequest({
+export const OPTIONS = androidOptions
+export function POST(request: Request) {
+  return withAndroidCors(request, () => recordEvent(request))
+}
+async function recordEvent(request: Request) {
+  const native = request.headers.get('origin') === 'https://localhost' && request.headers.has('authorization')
+  if (!native && !isTrustedAnalyticsRequest({
     requestUrl: request.url,
     origin: request.headers.get('origin'),
     fetchSite: request.headers.get('sec-fetch-site'),
@@ -58,8 +64,11 @@ export async function POST(request: Request) {
   const parsed = validate(body)
   if (!parsed) return NextResponse.json({ error: 'Datos inválidos.' }, { status: 400 })
 
-  const session = await createClient()
-  const { data: { user } } = await session.auth.getUser()
+  const session = await createApiClient(request)
+  const { data: { user }, error: authError } = await session.auth.getUser()
+  if (request.headers.has('authorization') && (authError || !user || user.is_anonymous)) {
+    return NextResponse.json({ error: 'No autorizado.' }, { status: 401 })
+  }
   const admin = createAdminClient()
   if (!admin) return new NextResponse(null, { status: 204 })
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { CommunityData } from '@/lib/types'
+import { ensureCommunityRules } from '@/lib/community-safety'
 
 // Estado compartido de la comunidad (amigos, solicitudes, invitaciones a jugar).
 // Lo usan la página Comunidad y el panel rápido del lobby. Se encarga de:
@@ -22,6 +23,7 @@ export function useCommunity(myId: string, initial: CommunityData | null = null)
   const waitingRef = useRef<string | null>(null)
 
   const refresh = useCallback(async () => {
+    if (document.hidden || !navigator.onLine) return
     const { data: d, error: e } = await supabase.rpc('get_community')
     if (!e && d) setData(d as CommunityData)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -29,12 +31,20 @@ export function useCommunity(myId: string, initial: CommunityData | null = null)
 
   // Latido de presencia + refresco periódico.
   useEffect(() => {
-    const touch = async () => { await supabase.rpc('touch_online') }
+    window.addEventListener('community:safety-changed', refresh)
+    return () => window.removeEventListener('community:safety-changed', refresh)
+  }, [refresh])
+
+  useEffect(() => {
+    const touch = async () => { if (!document.hidden && navigator.onLine) await supabase.rpc('touch_online') }
     touch()
     if (!initial) refresh()
     const hb = setInterval(touch, 30000)
     const poll = setInterval(refresh, 15000)
-    return () => { clearInterval(hb); clearInterval(poll) }
+    const resume = () => { void touch(); void refresh() }
+    document.addEventListener('visibilitychange', resume)
+    window.addEventListener('online', resume)
+    return () => { clearInterval(hb); clearInterval(poll); document.removeEventListener('visibilitychange', resume); window.removeEventListener('online', resume) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -82,6 +92,7 @@ export function useCommunity(myId: string, initial: CommunityData | null = null)
     }
     waitingRef.current = out.table_id
     const iv = setInterval(async () => {
+      if (document.hidden || !navigator.onLine) return
       const { data: t } = await supabase.from('tables').select('id,status').eq('id', out.table_id).maybeSingle()
       if (t?.status === 'playing') {
         waitingRef.current = null
@@ -101,6 +112,7 @@ export function useCommunity(myId: string, initial: CommunityData | null = null)
     const name = username.trim()
     if (!name) return false
     setBusy(true); setError(''); setNotice('')
+    try { await ensureCommunityRules() } catch (cause) { setBusy(false); setError((cause as Error).message); return false }
     const { data: res, error: e } = await supabase.rpc('send_friend_request', { p_username: name })
     setBusy(false)
     if (e) { setError(e.message); return false }
@@ -111,6 +123,7 @@ export function useCommunity(myId: string, initial: CommunityData | null = null)
   }
 
   async function respondRequest(friendshipId: string, accept: boolean) {
+    if (accept) { try { await ensureCommunityRules() } catch (cause) { setError((cause as Error).message); return } }
     setBusy(true)
     const { error: e } = await supabase.rpc('respond_friend_request', {
       p_friendship_id: friendshipId, p_accept: accept,
@@ -129,6 +142,7 @@ export function useCommunity(myId: string, initial: CommunityData | null = null)
   }
 
   async function invite(friendId: string) {
+    try { await ensureCommunityRules() } catch (cause) { setError((cause as Error).message); return }
     setBusy(true); setError('')
     const { error: e } = await supabase.rpc('invite_friend', { p_friend_id: friendId })
     setBusy(false)
@@ -166,6 +180,7 @@ export function useCommunity(myId: string, initial: CommunityData | null = null)
   async function createGroup(name: string, description: string): Promise<boolean> {
     if (!name.trim()) return false
     setBusy(true); setError('')
+    try { await ensureCommunityRules() } catch (cause) { setBusy(false); setError((cause as Error).message); return false }
     const { error: e } = await supabase.rpc('create_group', {
       p_name: name.trim(), p_description: description.trim(),
     })
@@ -176,6 +191,7 @@ export function useCommunity(myId: string, initial: CommunityData | null = null)
   }
 
   async function inviteToGroup(friendId: string) {
+    try { await ensureCommunityRules() } catch (cause) { setError((cause as Error).message); return }
     setBusy(true); setError('')
     const { error: e } = await supabase.rpc('invite_to_group', { p_friend_id: friendId })
     setBusy(false)
@@ -185,6 +201,7 @@ export function useCommunity(myId: string, initial: CommunityData | null = null)
   }
 
   async function respondGroupInvite(inviteId: string, accept: boolean) {
+    if (accept) { try { await ensureCommunityRules() } catch (cause) { setError((cause as Error).message); return } }
     setBusy(true); setError('')
     const { error: e } = await supabase.rpc('respond_group_invite', {
       p_invite_id: inviteId, p_accept: accept,

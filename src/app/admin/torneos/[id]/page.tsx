@@ -11,7 +11,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-export default async function AdminTournamentPage({ params }: { params: { id: string } }) {
+export default async function AdminTournamentPage({ params: routeParams }: { params: Promise<{ id: string }> }) {
+  const params = await routeParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

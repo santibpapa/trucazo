@@ -1,0 +1,33 @@
+{
+  "name": "trucazo-mobile",
+  "version": "0.17.6",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm --prefix ../.. run build:offline-campaign && node --import tsx scripts/build.ts && node scripts/prepare-native.mjs",
+    "sync": "npm run build && cap sync android",
+    "apk:debug": "npm run sync && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-apk.ps1",
+    "check": "node scripts/check-browser.mjs",
+    "check:session": "node scripts/check-session.mjs && node scripts/check-server.mjs",
+    "check:history": "node scripts/check-session.mjs --history",
+    "check:menu": "node scripts/check-session.mjs --menu",
+    "check:online": "node --import tsx scripts/check-online-rules.ts && node --import tsx scripts/check-online.mjs",
+    "check:sync": "node scripts/check-session.mjs --sync",
+    "check:auth": "node scripts/check-auth.mjs",
+    "check:auth:web": "node scripts/check-auth-web.mjs",
+    "check:player": "node --import tsx scripts/check-player-rules.ts && node --import tsx scripts/check-player-browser.mjs",
+    "check:team": "node --import tsx scripts/check-team-rules.ts && node --import tsx scripts/check-team-browser.mjs",
+    "check:tournaments": "node --import tsx scripts/check-tournament-rules.ts && node --import tsx scripts/check-tournament-browser.mjs",
+    "check:push": "node --import tsx scripts/check-push-rules.ts && node --import tsx scripts/check-push-api.ts"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/browser": "8.0.5",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/push-notifications": "8.1.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3"
+  }
+}

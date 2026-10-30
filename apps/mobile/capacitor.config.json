@@ -1,0 +1,23 @@
+{
+  "appId": "ar.com.trucazo.app",
+  "appName": "Trucazo",
+  "webDir": "dist",
+  "loggingBehavior": "none",
+  "backgroundColor": "#1A0F10",
+  "android": {
+    "backgroundColor": "#1A0F10",
+    "minWebViewVersion": 105
+  },
+  "server": {
+    "errorPath": "webview-update.html"
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": []
+    },
+    "SystemBars": {
+      "style": "DARK",
+      "initialViewportFitValueHint": "cover"
+    }
+  }
+}

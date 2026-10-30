@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { teamModeEnabled, type TeamSnapshot } from '@/lib/team-game'
 import TeamGameClient from './TeamGameClient'
 
-export default async function TeamGamePage({ params }: { params: { id: string } }) {
+export default async function TeamGamePage({ params: routeParams }: { params: Promise<{ id: string }> }) {
+  const params = await routeParams
   if (!teamModeEnabled) redirect('/lobby')
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

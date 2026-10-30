@@ -1,0 +1,110 @@
+name: Android Capacitor
+
+on:
+  pull_request:
+    paths:
+      - 'apps/mobile/**'
+      - 'src/**'
+      - 'public/**'
+      - 'scripts/build-offline-campaign.ts'
+      - 'package*.json'
+      - 'tailwind.config.ts'
+      - '.github/workflows/capacitor.yml'
+  workflow_dispatch:
+    inputs:
+      signed:
+        description: Construir candidato firmado (requiere entorno android-release)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '>=24.22.1 <25'
+          check-latest: true
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/mobile/package-lock.json
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v4
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+      - run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - run: npm ci && npm ci --prefix apps/mobile
+      - run: npm run sync --prefix apps/mobile
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://fixture.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_ci_fixture
+      - run: gradle -p apps/mobile/android assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v7
+        with:
+          name: capacitor-ci-debug-fixture-no-servicios-reales
+          path: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
+
+  release:
+    needs: debug
+    if: github.event_name == 'workflow_dispatch' && inputs.signed && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment: android-release
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '>=24.22.1 <25'
+          check-latest: true
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v4
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+      - run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - run: npm ci && npm ci --prefix apps/mobile
+      - run: npm run sync --prefix apps/mobile
+        env:
+          MOBILE_RELEASE: '1'
+          MOBILE_API_ORIGIN: https://www.trucazo.com.ar
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_ENABLE_2VS2: ${{ vars.ENABLE_2VS2 }}
+          NEXT_PUBLIC_ENABLE_TOURNAMENTS: ${{ vars.ENABLE_TOURNAMENTS }}
+          NEXT_PUBLIC_ENABLE_MATCH_CHAT: ${{ vars.ENABLE_MATCH_CHAT }}
+      - name: Firma protegida
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          set -euo pipefail
+          umask 077
+          trap 'rm -f "$RUNNER_TEMP/upload.jks" "$RUNNER_TEMP/signing.properties" apps/mobile/android/app/google-services.json' EXIT
+          test -n "$KEYSTORE_BASE64" && test -n "$GOOGLE_SERVICES_JSON"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload.jks"
+          printf '%s' "$GOOGLE_SERVICES_JSON" > apps/mobile/android/app/google-services.json
+          printf 'storeFile=%s\nstorePassword=%s\nkeyPassword=%s\nkeyAlias=%s\n' "$RUNNER_TEMP/upload.jks" "$STORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > "$RUNNER_TEMP/signing.properties"
+          TRUCAZO_SIGNING_PROPERTIES="$RUNNER_TEMP/signing.properties" gradle -p apps/mobile/android assembleRelease bundleRelease --no-daemon
+      - uses: actions/upload-artifact@v7
+        with:
+          name: capacitor-release-requiere-aceptacion
+          path: |
+            apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+            apps/mobile/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 14

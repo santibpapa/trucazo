@@ -102,6 +102,7 @@ alter table public.campaign_progress add constraint campaign_progress_user_id_fk
 alter table public.campaign_progress add constraint campaign_progress_rival_id_fkey FOREIGN KEY (rival_id) REFERENCES campaign_rivals(id) ON DELETE CASCADE;
 alter table public.campaign_provinces add constraint campaign_provinces_order_index_key UNIQUE (order_index);
 alter table public.campaign_provinces add constraint campaign_provinces_slug_key UNIQUE (slug);
+alter table public.campaign_provinces add constraint campaign_provinces_required_rival_id_fkey FOREIGN KEY (required_rival_id) REFERENCES campaign_rivals(id);
 alter table public.campaign_rivals add constraint campaign_rivals_order_index_key UNIQUE (order_index);
 alter table public.campaign_rivals add constraint campaign_rivals_slug_key UNIQUE (slug);
 alter table public.campaign_rivals add constraint campaign_rivals_target_score_chk CHECK ((target_score = ANY (ARRAY[15, 30])));
@@ -271,3 +272,24 @@ grant select on table public.objective_game_events to authenticated;
 insert into storage.buckets (id, name, public) values ('feedback-images', 'feedback-images', false)
   on conflict (id) do nothing;
 create policy "feedback subir imagenes" on storage.objects for INSERT to anon, authenticated with check ((bucket_id = 'feedback-images'::text));
+
+-- OFFLINE_SYNC_SNAPSHOT_BEGIN
+do $security$
+declare t record;
+begin
+  for t in select tablename from pg_tables where schemaname='offline_replay_v1' loop
+    execute format('alter table offline_replay_v1.%I enable row level security',t.tablename);
+  end loop;
+end $security$;
+revoke all on all tables in schema offline_replay_v1 from public, anon, authenticated;
+revoke all on all sequences in schema offline_replay_v1 from public, anon, authenticated;
+
+
+revoke all on all functions in schema offline_replay_v1 from public,anon,authenticated;
+revoke all on function public.prepare_offline_campaign() from public,anon;
+grant execute on function public.prepare_offline_campaign() to authenticated;
+revoke all on function public.sync_offline_campaign(jsonb,boolean) from public,anon;
+grant execute on function public.sync_offline_campaign(jsonb,boolean) to authenticated;
+revoke execute on function public.export_offline_campaign() from authenticated;
+
+-- OFFLINE_SYNC_SNAPSHOT_END

@@ -25,6 +25,7 @@ export default function ContactoPage() {
       <JsonLd data={createBreadcrumbJsonLd('Contacto', path)} />
 
       <Section title="Problemas técnicos">
+        <p>El responsable de Trucazo atiende soporte y consultas en <a href="mailto:hola@trucazo.com.ar" className="text-gold underline underline-offset-2">hola@trucazo.com.ar</a>. También podés usar la reseña privada dentro del juego. Para información personal, usá el correo y evitá el registro público.</p>
         <p>
           El canal público verificable del proyecto es el{' '}
           <a href="https://github.com/santibpapa/trucazo/issues" className="text-gold underline underline-offset-2" rel="noopener noreferrer">

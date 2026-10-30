@@ -1,0 +1,99 @@
+apply plugin: 'com.android.application'
+
+def signingPath = System.getenv('TRUCAZO_SIGNING_PROPERTIES')
+def releaseSigning = new Properties()
+if (signingPath) {
+    new File(signingPath).withInputStream { releaseSigning.load(it) }
+    ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].each {
+        if (!releaseSigning[it]) throw new GradleException("Falta ${it} en la configuración privada de firma")
+    }
+}
+def releaseRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
+if (releaseRequested && !signingPath) throw new GradleException('Release requiere TRUCAZO_SIGNING_PROPERTIES; no se genera un candidato sin firma')
+
+android {
+    if (project.hasProperty('trucazoReleaseTest')) testBuildType 'release'
+    namespace = "ar.com.trucazo.capacitor.dev"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "ar.com.trucazo"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 24
+        versionName "0.17.6"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        if (signingPath) {
+            upload {
+                storeFile new File(releaseSigning['storeFile'])
+                storePassword releaseSigning['storePassword']
+                keyAlias releaseSigning['keyAlias']
+                keyPassword releaseSigning['keyPassword']
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            applicationIdSuffix ".capacitor.dev"
+        }
+        release {
+            applicationIdSuffix ".app"
+            if (signingPath) signingConfig signingConfigs.upload
+            debuggable false
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    implementation 'com.google.firebase:firebase-messaging:25.0.1'
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+afterEvaluate {
+    tasks.named('preReleaseBuild') {
+        doFirst {
+            def info = new groovy.json.JsonSlurper().parse(file('src/main/assets/public/build-info.json'))
+            if (!info.release || info.apiOrigin != 'https://www.trucazo.com.ar') {
+                throw new GradleException('Regenerar recursos con MOBILE_RELEASE=1 y HTTPS de producción')
+            }
+            if (info.version != android.defaultConfig.versionName) throw new GradleException('Versiones web/nativa distintas')
+            def services = new groovy.json.JsonSlurper().parse(file('google-services.json'))
+            if (!services.client.any { it.client_info.android_client_info.package_name == android.defaultConfig.applicationId + android.buildTypes.release.applicationIdSuffix }) {
+                throw new GradleException('Falta el cliente Firebase del paquete final')
+            }
+        }
+    }
+}
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

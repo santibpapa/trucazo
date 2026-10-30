@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createApiClient } from '@/lib/supabase/api'
+import { androidOptions, withAndroidCors } from '@/lib/android-api'
 import { createEmailAdminClient } from '@/lib/email/admin'
 import { reengagementMail } from '@/lib/email/content'
 import type { ReengagementKind } from '@/lib/email/candidates'
@@ -20,8 +21,8 @@ type CampaignInput = {
   is_active: boolean
 }
 
-export async function POST(request: Request) {
-  const context = await requireAdmin()
+async function handlePOST(request: Request) {
+  const context = await requireAdmin(request)
   if (context instanceof NextResponse) return context
 
   const parsed = validateCampaign(await request.json().catch(() => null))
@@ -42,8 +43,8 @@ export async function POST(request: Request) {
   )
 }
 
-export async function PATCH(request: Request) {
-  const context = await requireAdmin()
+async function handlePATCH(request: Request) {
+  const context = await requireAdmin(request)
   if (context instanceof NextResponse) return context
 
   const payload = await request.json().catch(() => null) as Record<string, unknown> | null
@@ -68,8 +69,8 @@ export async function PATCH(request: Request) {
   return NextResponse.json({ campaign: data })
 }
 
-export async function PUT(request: Request) {
-  const context = await requireAdmin()
+async function handlePUT(request: Request) {
+  const context = await requireAdmin(request)
   if (context instanceof NextResponse) return context
 
   const parsed = validateCampaign(await request.json().catch(() => null))
@@ -136,8 +137,8 @@ export async function PUT(request: Request) {
   return NextResponse.json({ ok: true, to: context.email })
 }
 
-async function requireAdmin() {
-  const session = await createClient()
+async function requireAdmin(request: Request) {
+  const session = await createApiClient(request)
   const { data: { user } } = await session.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado.' }, { status: 401 })
 
@@ -212,3 +213,8 @@ function cleanText(value: unknown, maxLength: number) {
 }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export const OPTIONS = androidOptions
+export function POST(request: Request) { return withAndroidCors(request, () => handlePOST(request)) }
+export function PATCH(request: Request) { return withAndroidCors(request, () => handlePATCH(request)) }
+export function PUT(request: Request) { return withAndroidCors(request, () => handlePUT(request)) }
