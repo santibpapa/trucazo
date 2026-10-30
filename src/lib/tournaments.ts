@@ -232,6 +232,10 @@ export function tournamentApi(client: SupabaseClient) {
       }),
     adminDelete: (tournamentId: string) =>
       client.rpc('tournament_admin_delete', { p_tournament_id: tournamentId }),
+    adminBotFill: (tournamentId: string) =>
+      client.rpc('tournament_admin_bot_fill', { p_tournament_id: tournamentId }),
+    adminSetBotFill: (tournamentId: string, enabled: boolean) =>
+      client.rpc('tournament_admin_set_bot_fill', { p_tournament_id: tournamentId, p_enabled: enabled }),
     registerSolo: (requestId: string, tournamentId: string) =>
       client.rpc('tournament_register_solo', {
         p_request_id: requestId,

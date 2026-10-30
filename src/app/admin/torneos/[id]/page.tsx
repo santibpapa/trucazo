@@ -17,9 +17,10 @@ export default async function AdminTournamentPage({ params: routeParams }: { par
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [profileResult, detailResult] = await Promise.all([
+  const [profileResult, detailResult, botFillResult] = await Promise.all([
     supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle(),
     tournamentApi(supabase).detail(params.id),
+    tournamentApi(supabase).adminBotFill(params.id),
   ])
   if (!profileResult.data?.is_admin) redirect('/lobby')
   if (detailResult.error) {
@@ -29,8 +30,9 @@ export default async function AdminTournamentPage({ params: routeParams }: { par
   if (!detailResult.data) notFound()
 
   const detail = detailResult.data as TournamentDetailData
+  const botFill = botFillResult.data === true
   if (detail.tournament.status === 'draft') {
-    return <TournamentForm initialTournament={detail.tournament} />
+    return <TournamentForm initialTournament={detail.tournament} initialBotFill={botFill} />
   }
 
   const userIds = Array.from(new Set(
@@ -41,5 +43,5 @@ export default async function AdminTournamentPage({ params: routeParams }: { par
     : { data: [], error: null }
   const profiles = Object.fromEntries((profilesResult.data ?? []).map(profile => [profile.id, profile]))
 
-  return <AdminTournamentDetail initialDetail={detail} initialProfiles={profiles} />
+  return <AdminTournamentDetail initialDetail={detail} initialProfiles={profiles} initialBotFill={botFill} />
 }

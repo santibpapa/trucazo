@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import BotFillCheckbox from '../BotFillCheckbox'
 import DeleteTournamentButton from '../DeleteTournamentButton'
 import { Alert, Avatar, Button, Input, Panel } from '@/components/ui'
 import Competition from '@/components/tournaments/Competition'
@@ -30,9 +31,11 @@ type Monitor = { jobs: Record<string, number>; matches: Record<string, number>;
 export default function AdminTournamentDetail({
   initialDetail,
   initialProfiles,
+  initialBotFill = false,
 }: {
   initialDetail: TournamentDetailData
   initialProfiles: Record<string, ProfileSummary>
+  initialBotFill?: boolean
 }) {
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
@@ -47,6 +50,7 @@ export default function AdminTournamentDetail({
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [monitor, setMonitor] = useState<Monitor | null>(null)
+  const [botFill, setBotFill] = useState(initialBotFill)
 
   const loadProfiles = useCallback(async (next: TournamentDetailData) => {
     const ids = Array.from(new Set(
@@ -154,6 +158,19 @@ export default function AdminTournamentDetail({
     setBusy(null)
   }
 
+  const changeBotFill = async (enabled: boolean) => {
+    setBusy('botFill')
+    setError('')
+    setMessage('')
+    const result = await api.adminSetBotFill(tournament.id, enabled)
+    if (result.error) setError(result.error.message)
+    else {
+      setBotFill(enabled)
+      setMessage(enabled ? 'Si faltan jugadores, se completarán con bots.' : 'El torneo ya no se completará con bots.')
+    }
+    setBusy(null)
+  }
+
   return (
     <main className="mx-auto min-h-[100dvh] w-full max-w-6xl px-4 py-6 pb-20 sm:px-6">
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -208,6 +225,13 @@ export default function AdminTournamentDetail({
             'Correo puesto nuevamente en cola.', () => api.adminRetryEmail(job.id))}>Reintentar</Button>
         </div>)}
       </Panel>}
+
+      {tournament.status === 'published' && tournament.mode === '1v1' && (
+        <section className="mb-5">
+          <BotFillCheckbox checked={botFill} disabled={busy !== null}
+            onChange={enabled => void changeBotFill(enabled)} />
+        </section>
+      )}
 
       {tournament.status === 'published'
         && Date.now() >= new Date(tournament.starts_at).getTime() && (
