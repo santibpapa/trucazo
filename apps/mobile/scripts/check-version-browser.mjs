@@ -48,6 +48,7 @@ try {
   const page = await context.newPage(), errors = []
   page.on('pageerror', e => errors.push(e.message))
   await page.goto(origin)
+  await page.getByRole('link', { name: /^Multijugador/ }).click()
   await page.getByRole('heading', { name: 'Mesas disponibles', exact: true }).waitFor()
   mode = 'retired'; await page.reload()
   await page.getByRole('button', { name: 'Actualizar Trucazo', exact: true }).waitFor()

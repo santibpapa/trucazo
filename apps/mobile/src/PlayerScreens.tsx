@@ -11,7 +11,7 @@ type Data = { screen: '/profile'; data: Awaited<ReturnType<typeof loadProfile>> 
   | { screen: '/ranking'; data: Awaited<ReturnType<typeof loadRanking>> }
   | { screen: '/tienda'; data: Awaited<ReturnType<typeof loadShop>> }
 
-export default function PlayerScreens({ screen, owner, online }: { screen: Screen; owner: string; online: boolean }) {
+export default function PlayerScreens({ screen, owner, online, fromSettings = false }: { screen: Screen; owner: string; online: boolean; fromSettings?: boolean }) {
   const [result, setResult] = useState<Data>()
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)
@@ -37,10 +37,11 @@ export default function PlayerScreens({ screen, owner, online }: { screen: Scree
   if (!online || !result) return <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
     <p role={error ? 'alert' : 'status'}>{!online ? 'Conectate para consultar tu perfil, ranking y tienda.' : error || 'Cargando…'}</p>
     {online && error && <Button onClick={() => setRevision(value => value + 1)}>Reintentar</Button>}
-    <a href="#/lobby" className="text-gold">Volver al lobby</a>
+    <a href={fromSettings ? '#/ajustes' : '#/lobby'} className="text-gold">{fromSettings ? 'Volver a Ajustes' : 'Volver al lobby'}</a>
     {!online && <a href="#/historia/offline" className="text-gold">Historia sin internet</a>}
   </main>
   if (result.screen === '/profile') return <ProfileScreen {...result.data}
+    backLink={fromSettings ? <a href="#/ajustes" className="flex min-h-11 items-center text-sm text-gold">← Ajustes</a> : undefined}
     accountLink={<div className="flex flex-col gap-4"><a href="#/notificaciones" className="text-sm text-gold underline underline-offset-2 w-fit">Notificaciones</a>
       <a className="text-sm text-negative underline underline-offset-2 w-fit" href="#/eliminar-cuenta">Eliminar mi cuenta</a></div>} />
   if (result.screen === '/ranking') return <RankingScreen {...result.data} owner={owner} />

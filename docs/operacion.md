@@ -4,6 +4,8 @@
 
 ## Estado actual
 
+- **Controles discretos publicados,27/10:** web en `8e90f9d`, tres puntos en chats/mesas, opciones utilizables dentro de la ventana del chat y serviciosAndroid conservados. [Registro de publicación](#controles-discretos-2026-10-27).
+
 - **Aviso de seguridad de Node, 21/10:** repo actualizado mediante PR #141, pruebas aprobadas con Node 24.22.1 y publicación final correcta. **El servidor público sigue ejecutando 24.21.0**, comprobado a las 11:57 de Argentina; el parche nativo queda pendiente de Vercel. Ver [evidencia y siguiente paso](#node-seguridad-2026-10-21).
 - **Dependabot, tanda cerrada el 19/10:** los cinco PR #121 → #107 → #65 → #135 → #63 incorporados con pruebas nuevas aprobadas. Revisión final de `master` y publicación aprobadas; cero PR abiertos al cierre. Ver [evaluación y registro de incorporación](#dependabot-2026-10-19).
 - **Correcciones de reseñas del 14/10:** PR #127 incorporado, con recuperación de reparto/turno y declaración de envido, más lectura privada de capturas. Consultar [la entrega posterior](#correcciones-resenas-2026-10-14) antes de interpretar los pendientes del incidente original.
@@ -816,3 +818,24 @@ ya está resuelta; los bots mantienen la decisión de no responder chat escrito 
 La tarea continúa lunes, miércoles y viernes a las 09:00 de Argentina. El agente
 lee el README, este documento y el contrato vigente, conserva los issues existentes y distingue
 corrección integrada, validación pendiente y posible regresión posterior.
+
+
+### 27/10/2026 — Controles de convivencia visibles tras despliegue Android
+
+El despliegue autorizado575bedc incluyó componentes web compartidos de convivencia además de las API Android. El dueño señaló el exceso de texto «Opciones de…» en chats y «Denunciar mesa» en tarjetas, y eligió conservar las funciones con controles discretos. Parche preparado sobre la producción575: `src/components/SafetyActions.tsx` cambia el texto visible por tres puntos con nombre accesible/tooltip y foco visible; `src/components/game/TeamTables.tsx` coloca el control junto al nombre/cupo, sin fila adicional. No cambia RPC, reglas, permisos, API, SQL, configuración ni APK22 firmado.
+
+Rama `codex/web-discreet-controls`, commit `06353db8f5574122ade2476ce896415a1b2b9736`. Diferencia remota verificada: sólo esos dos archivos,8adiciones/3eliminaciones. CompilaciónNext15 y lint específicos aprobados; componentes web reales con datos aislados a320/360/1280 verifican textos no visibles, tres puntos, diálogos de denuncia/bloqueo y ausencia de desborde, sin enviar acciones. Evidencia `android/generated/web-discreet-safety/verification.json` y capturas; build separado `web-discreet-next` no reemplaza el servidorQA3000. **Publicación autorizada posteriormente por el dueño:** «ah perfecto, entonces si, mandale mecha», después de aclarar que el chat conserva su apertura en ventana. Parche06353db listo. **Aún sin publicar:** Vercel consultado nuevamente figura no instalado y el navegador local está deshabilitado; se pidió agregar/conectarVercel. No repetir autorización de publicación cuando se recupere la conexión. Antes de desplegar, releer la revisión productiva y conservar cambios ajenos si ya superó575. Producción conocida sigue575bedc hasta verificar un despliegue posterior.
+
+
+**Publicación retomada tras conectarVercel:** producción releída en575bedc, sin cambios posteriores. Parche06353db construido con variables deproducción en `dpl_CXsSLVSnubm712fCEF4ZFdtaGmVJ`, READY y dominioWWW asignado; servicios Android200, acceso anónimo401, retornos/asociación200 y emailconfirmationfalse. La primera comprobación abrió/cerró el chat pero no esperó los mensajes; al esperar la lectura real encontró16controles y un defecto previo: el portal del cuadro de denuncia enbody quedaba detrás del diálogoHTMLnativo del chat. No se dio esa interacción por aprobada.
+
+Corrección necesaria adicional en `CommunityDialog.tsx`: portal dentro del diálogoHTMLabierto que contiene el foco, obody cuando no hay uno. Mantiene ese contenedor estable mientras permanece abierto. Regresión aislada320/360/1280 verifica clic real enBloquear, Cerrar, yEscape sin cerrar el chat, sin enviar denuncias/bloqueos. Lint aprobado. Commit final `8e90f9dc1c222eb357751afad05dc7d0e571645a`; diferencia total sobre575: tres archivos,10adiciones/4eliminaciones. Segundo despliegue productivo `dpl_FrpQ26kX7xiVQxwFoSrBX2J4aBLa` construyéndose; todavía pendiente de verificar su activación y recorrido real. La autorización de publicar conserva su vigencia.
+
+
+<a id="controles-discretos-2026-10-27"></a>
+
+**27/10/2026 — Publicación final verificada:** `8e90f9dc1c222eb357751afad05dc7d0e571645a`, `dpl_FrpQ26kX7xiVQxwFoSrBX2J4aBLa`, READY/producción/SãoPaulo, dominio `www.trucazo.com.ar` releído en esa revisión. Tres puntos conservan nombre accesible y tooltip; no se alteró la apertura del chat ni se quitó denunciar/bloquear. La corrección de portal permite tocar/cerrar las opciones dentro del diálogo nativo yEscape vuelve al chat.
+
+Prueba web realQA2: ingreso normal, lectura de mensajes existentes y16controles discretos comprobados; abrir opciones, pasar aBloquear sin confirmar, cerrar, reabrir/Escape, cerrar chat y panel de escritorio aprobados. JavaScript servido contiene el control nuevo; sin desborde ni errores de página. APIAndroidHistoria/identidad, push y preferencias200; anónimo push401; asociación exacta del paquete/firma y retornoHTTPS200. Confirmación de emailfalse y consulta de piloto/despacho conserva `pilot=true`, `dispatch_enabled=false`. Registros del despliegue sin errores/fatales en la ventana consultada. No se enviaron mensajes, denuncias ni bloqueos, no se crearon partidas/cuentas, no hubo SQL/configuración, APK ni publicaciónPlay nuevos. Evidencia `android/generated/web-discreet-safety/production-verification.json` y comprobación320/360/1280.
+
+Versión compatible575bedc en `dpl_ErPCi4JTe2sbtARPB5CgSiaR2ZB3` conservadaREADY para rollback;06353db intermedia también conservada. `master` y fuentes/artefactos del menúAndroid que se trabajan por separado no se integraron ni sobrescribieron; este parche web vive en `codex/web-discreet-controls` y debe conservarse al integrar futuras fuentes. El APK ya instalado conserva su propia presentación hasta su próxima actualización autorizada; sus servicios remotos se verificaron. La autorización de publicación del dueño se cumplió.

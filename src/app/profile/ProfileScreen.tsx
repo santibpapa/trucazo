@@ -4,7 +4,7 @@ import AvatarUploader from '@/components/AvatarUploader'
 import MedalsShowcase from './MedalsShowcase'
 import type { loadProfile } from '@/lib/player-data'
 
-export default function ProfileScreen({ profile, history, earnedMedals, isGuest = false, accountLink }: Awaited<ReturnType<typeof loadProfile>> & { isGuest?: boolean; accountLink?: React.ReactNode }) {
+export default function ProfileScreen({ profile, history, earnedMedals, isGuest = false, accountLink, backLink }: Awaited<ReturnType<typeof loadProfile>> & { isGuest?: boolean; accountLink?: React.ReactNode; backLink?: React.ReactNode }) {
   const winRate = profile.games_played > 0
     ? Math.round((profile.games_won / profile.games_played) * 100)
     : 0
@@ -21,7 +21,7 @@ export default function ProfileScreen({ profile, history, earnedMedals, isGuest 
       {/* Header */}
       <header className="flex items-center justify-between gap-3 pt-1">
         <Logo size="md" />
-        <Link href="/lobby" className={buttonClass('ghost', 'sm')}>← Lobby</Link>
+        {backLink ?? <Link href="/lobby" className={buttonClass('ghost', 'sm')}>← Lobby</Link>}
       </header>
 
       {/* Identidad + monedas */}

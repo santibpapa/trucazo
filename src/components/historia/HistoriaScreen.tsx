@@ -61,6 +61,9 @@ export interface Props {
   livesControl?: React.ReactNode
   controls?: React.ReactNode
   storageOwner?: string
+  title?: string
+  backHref?: string
+  backLabel?: string
 }
 
 type Pos = { x: number; y: number }
@@ -125,7 +128,7 @@ const LUGARES: Record<string, Pos[]> = {
   'jujuy':               [{ x: 33, y: 26 }, { x: 54.7, y: 48.4 }, { x: 22.6, y: 66.7 }, { x: 80.9, y: 82 }],
 }
 
-export default function HistoriaScreen({ points, fama, style, provinces: initialProvinces, coins, onPlay, loadRanking, BackLink = 'a', controls, livesControl, storageOwner }: Props) {
+export default function HistoriaScreen({ points, fama, style, provinces: initialProvinces, coins, onPlay, loadRanking, BackLink = 'a', controls, livesControl, storageOwner, title = 'Modo Historia', backHref = '/lobby', backLabel = 'Volver al lobby' }: Props) {
   const seenKey = storageOwner ? `${SEEN_KEY}:${storageOwner}` : SEEN_KEY
   const tutorialKey = storageOwner ? `${TUTORIAL_KEY}:${storageOwner}` : TUTORIAL_KEY
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -291,7 +294,7 @@ export default function HistoriaScreen({ points, fama, style, provinces: initial
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/historia/mapa-argentina.webp"
-          alt="Mapa de Argentina del modo historia"
+          alt={'Mapa de Argentina · ' + title}
           className="block w-full h-full object-contain select-none"
           draggable={false}
         />
@@ -322,14 +325,14 @@ export default function HistoriaScreen({ points, fama, style, provinces: initial
         {/* Chip principal: volver + título + puntos, todo junto. */}
         <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2.5 rounded-full border border-line bg-surface2/95 px-1.5 sm:pr-4 py-1.5 shadow-card pointer-events-auto shrink-0">
           <BackLink
-            href="/lobby"
-            aria-label="Volver al lobby"
+            href={backHref}
+            aria-label={backLabel}
             className="w-9 h-9 rounded-full bg-base border border-gold/40 flex items-center justify-center text-cream hover:text-gold transition-colors shrink-0"
           >
             <BackIcon />
           </BackLink>
           <div className="flex flex-col items-center sm:items-start leading-tight">
-            <h1 aria-label="Modo Historia" className="font-display text-xs sm:text-base font-extrabold text-cream"><span className="hidden sm:inline">Modo </span>Historia</h1>
+            <h1 aria-label={title} className="font-display text-xs sm:text-base font-extrabold text-cream"><span className="hidden sm:inline">Modo </span>{title.replace(/^Modo /, '')}</h1>
             <span className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] sm:text-xs font-bold text-gold tabular">
               <StarIcon />{points.toLocaleString('es-AR')} pts
             </span>
@@ -529,12 +532,12 @@ export default function HistoriaScreen({ points, fama, style, provinces: initial
       </Modal>
 
       {/* Tutorial de bienvenida (una vez por cuenta en este dispositivo) */}
-      <Modal open={showTutorial} onClose={closeTutorial} ariaLabel="Modo Historia">
+      <Modal open={showTutorial} onClose={closeTutorial} ariaLabel={title}>
         <div className="flex flex-col items-center gap-4 text-center">
           <span className="w-12 h-12 rounded-full bg-gold/15 text-gold flex items-center justify-center shadow-gold-ring">
             <StarIcon size={20} />
           </span>
-          <h2 className="font-display text-2xl font-extrabold text-cream leading-tight">Modo Historia</h2>
+          <h2 className="font-display text-2xl font-extrabold text-cream leading-tight">{title}</h2>
           <div className="flex flex-col gap-3 w-full text-left">
             {TUTORIAL_PASOS.map((paso, i) => (
               <div key={i} className="flex items-start gap-3">

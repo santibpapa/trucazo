@@ -39,7 +39,13 @@ export default function SafetyActions({ kind = 'profile', target, userId, label 
     finally { setBusy(false) }
   }
   return <>
-    <button type="button" onClick={() => { setBlocking(false); setMessage(''); setOpen(true) }} className="text-xs text-gold underline underline-offset-2 p-1" aria-label={label}>{label}</button>
+    <button type="button" onClick={() => { setBlocking(false); setMessage(''); setOpen(true) }}
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-subtle hover:bg-surface2 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"
+      aria-label={label} title={label} aria-haspopup="dialog" aria-expanded={open}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <circle cx="5" cy="12" r="1.75" /><circle cx="12" cy="12" r="1.75" /><circle cx="19" cy="12" r="1.75" />
+      </svg>
+    </button>
     {open && <CommunityDialog title="Denunciar o bloquear" onClose={close}>
         <h2 className="font-bold text-lg">{blocking ? 'Bloquear persona' : 'Denunciar contenido'}</h2>
         {!blocking ? <>

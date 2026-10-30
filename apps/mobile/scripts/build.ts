@@ -95,6 +95,7 @@ await Promise.all([
   copyFile(path.join(root, 'src/app/fonts/GeistVF.woff2'), path.join(dist, 'font.woff2')),
   copyFile(path.join(root, 'public/icon-512.png'), path.join(dist, 'icon-512.png')),
   cp(path.join(root, 'public/lobby'), path.join(dist, 'lobby'), { recursive: true }),
+  cp(path.join(root, 'public/mesa/salon.webp'), path.join(dist, 'mesa/salon.webp')),
   cp(path.join(root, 'public/objetivos'), path.join(dist, 'objetivos'), { recursive: true }),
 ])
 const sha = (bytes: Buffer | string) => createHash('sha256').update(bytes).digest('hex')

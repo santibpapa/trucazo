@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Button from '../../../src/components/ui/Button'
 import { pushStatus, savePushPreferences, stopPush, syncPush, type PushPreferences } from './push'
 
-export default function PushScreen({ owner, online }: { owner: string; online: boolean }) {
+export default function PushScreen({ owner, online, fromSettings = false }: { owner: string; online: boolean; fromSettings?: boolean }) {
   const [state, setState] = useState<Awaited<ReturnType<typeof pushStatus>> | null>(null)
   const [error, setError] = useState(''), [busy, setBusy] = useState(false)
   useEffect(() => {
@@ -17,7 +17,7 @@ export default function PushScreen({ owner, online }: { owner: string; online: b
     finally { setBusy(false) }
   }
   return <main className="mx-auto flex min-h-dvh max-w-xl flex-col gap-5 p-5 pb-10">
-    <a href="#/profile" className="text-sm text-gold">← Volver al perfil</a>
+    <a href={fromSettings ? '#/ajustes' : '#/profile'} className="flex min-h-11 items-center text-sm text-gold">{fromSettings ? '← Volver a Ajustes' : '← Volver al perfil'}</a>
     <h1 className="font-display text-2xl font-bold">Notificaciones</h1>
     <p className="text-sm text-muted">Invitaciones y torneos que te esperan. Podés jugar aunque no actives los avisos.</p>
     {!online && <p role="status" className="text-sm text-muted">Conectate para cambiar tus avisos.</p>}

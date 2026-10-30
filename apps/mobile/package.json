@@ -1,6 +1,6 @@
 {
   "name": "trucazo-mobile",
-  "version": "0.17.4",
+  "version": "0.17.6",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
     "check": "node scripts/check-browser.mjs",
     "check:session": "node scripts/check-session.mjs && node scripts/check-server.mjs",
     "check:history": "node scripts/check-session.mjs --history",
+    "check:menu": "node scripts/check-session.mjs --menu",
     "check:online": "node --import tsx scripts/check-online-rules.ts && node --import tsx scripts/check-online.mjs",
     "check:sync": "node scripts/check-session.mjs --sync",
     "check:auth": "node scripts/check-auth.mjs",

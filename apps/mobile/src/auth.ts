@@ -15,7 +15,7 @@ export function rememberDestination(path: string) {
   if (safe) localStorage.setItem(DESTINATION_KEY, safe)
 }
 export function takeDestination() {
-  const value = authDestination(localStorage.getItem(DESTINATION_KEY)) || '/lobby'
+  const value = authDestination(localStorage.getItem(DESTINATION_KEY)) || '/inicio'
   localStorage.removeItem(DESTINATION_KEY)
   return value
 }

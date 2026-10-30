@@ -7,6 +7,12 @@ de casino, acento dorado usado con criterio. Todo se diseña sobre fondo oscuro.
 
 La app Android debe conservar el mismo diseño y experiencia visual que la web, por decisión del dueño del 11/10/2026. Reutilizar las pantallas, componentes, estilos y recursos reales; no mantener una interfaz alternativa para Historia offline. Descarga, guardado y premios pendientes usan el mismo sistema visual.
 
+**Menú principal Android, 27/10/2026:** entrada propia de la app con Modo Campaña, Multijugador, Ajustes y Salir, cada opción con una descripción breve. Campaña y Multijugador tienen mayor jerarquía; las cuatro opciones entran completas en vertical y horizontal. Reutiliza el salón, la marca y la paleta vino y oro, sin animación de entrada. El nombre visible de Historia en Android es Modo Campaña; conserva mapa, mesa y guardado compartidos. Ajustes reúne sonido, notificaciones y cuenta. Salir minimiza la app conservando sesión y progreso. Estado y pruebas en [Android](../docs/android.md#android-menu-principal).
+
+**Pulido del menú, 27/10/2026:** por pedido del dueño se retira el indicador de conexión del inicio. Los botones usan doble marco dorado, relieve y fondos vino con luz suave; Campaña lleva el retrato existente y Multijugador las cartas del mazo. Ajustes y Salir conservan menor jerarquía, con medallones para sus íconos. Todas las imágenes visibles cargan desde el inicio, sin animación de entrada ni efectos continuos. Hay respuesta al tocar, foco visible y respeto por la preferencia de reducir movimiento.
+
+**Convivencia, 27/10/2026:** conservar denunciar/bloquear detrás de un control discreto de tres puntos; no repetir «Opciones de…» o «Denunciar mesa» como texto visible. Conservar nombre accesible, tooltip y foco visible. En tarjetas de parejas, junto al nombre/cupo, sin fila adicional.
+
 **Pulido compartido de ANDROID-14, 16/10/2026:** ventanas con foco contenido, regreso al control que las abrió y fondo inaccesible al lector; cantos, salida, sonido y apertura/cierre de chat de al menos 44 px. En horizontal con poco alto, mesa a la izquierda y controles a la derecha, con todos los cantos y salida visibles. Parejas comparte mazo y salida en la última fila cuando hay siete permisos. Brillos infinitos sólo con opacidad/transformación. Texto terciario `#A08A86` y error `#E27960`; botones positivos/informativos con texto oscuro, peligro `bg-negative-600` (`#B3432E`) con texto blanco. Contraste de estos pares comprobado sobre superficies oscuras; no cambiar los recursos ni identidades de cosméticos.
 
 ## Setup

@@ -45,7 +45,7 @@ export default function OnlineHistory({ owner }: { owner: string }) {
     <Link href="/historia/offline" className="text-gold">Jugar sin internet</Link>
     <Link href="/lobby" className="text-gold">Volver al lobby</Link>
   </main>
-  return <HistoriaScreen {...map} storageOwner={owner} onPlay={play} loadRanking={ranking} BackLink={Link} livesControl={<CampaignLives initial={map.lives} />}
+  return <HistoriaScreen {...map} storageOwner={owner} onPlay={play} loadRanking={ranking} BackLink={Link} title="Modo Campaña" backHref="/inicio" backLabel="Volver al menú principal" livesControl={<CampaignLives initial={map.lives} />}
     controls={<div className="fixed bottom-3 inset-x-0 z-20 flex justify-center px-3 pointer-events-none">
       <Link href="/historia/offline" className="pointer-events-auto rounded-full border border-line bg-surface2/95 px-3 py-2 text-xs font-bold text-gold shadow-card">Jugar sin internet</Link>
     </div>} />

@@ -39,6 +39,8 @@ interface Props {
   onPlayUnavailable?: () => void
   onTeamPlayUnavailable?: () => void
   gameInvitesInLobby?: boolean
+  mainMenuHref?: string
+  campaignHref?: string
 }
 
 // "Jugar ya": mesa pública, apuesta fija y partida a 30. Un solo toque y a jugar.
@@ -57,6 +59,8 @@ export default function LobbyClient({
   onPlayUnavailable,
   onTeamPlayUnavailable,
   gameInvitesInLobby = false,
+  mainMenuHref,
+  campaignHref = '/historia',
 }: Props) {
   const router = useRouter()
   const [tables, setTables] = useState<Table[]>(initialTables)
@@ -397,8 +401,8 @@ export default function LobbyClient({
           <Logo size="md" />
         </div>
         <nav className="flex flex-col gap-1 mt-2">
-          <NavItem href="/lobby" icon={<HomeIcon />} label="Inicio" active />
-          <NavItem href="/historia" icon={<SwordsIcon />} label="Modo Historia" />
+          <NavItem href={mainMenuHref || '/lobby'} icon={<HomeIcon />} label={mainMenuHref ? 'Menú principal' : 'Inicio'} active={!mainMenuHref} />
+          <NavItem href={campaignHref} icon={<SwordsIcon />} label={mainMenuHref ? 'Modo Campaña' : 'Modo Historia'} />
           <NavItem href="/ranking" icon={<RankIcon />} label="Ranking" />
           <NavItem href="/comunidad" icon={<UsersIcon />} label="Amigos" badge={friendsBadge} />
           <button
@@ -444,7 +448,7 @@ export default function LobbyClient({
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Barra superior (solo celular/tablet: en compu todo esto vive en el menú lateral) */}
         <header className="flex lg:hidden items-center justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-5">
-          <Logo size="md" />
+          {mainMenuHref ? <Link href={mainMenuHref} aria-label="Volver al menú principal" className="flex min-h-11 items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"><span aria-hidden="true" className="text-gold">‹</span><Logo size="md" /></Link> : <Logo size="md" />}
 
           <button
             type="button"
@@ -827,7 +831,7 @@ export default function LobbyClient({
       >
         <BottomTab href="/lobby" icon={<HomeIcon size={22} />} label="Inicio" active />
         <BottomTab href="/ranking" icon={<RankIcon size={22} />} label="Ranking" />
-        <CampaignBottomTab />
+        <CampaignBottomTab href={campaignHref} />
         <BottomTab href="/tienda" icon={<StoreIcon size={22} />} label="Tienda" />
         <BottomTab
           href="/comunidad"
@@ -926,10 +930,10 @@ function RankIcon({ size = 18 }: { size?: number }) {
   )
 }
 
-function CampaignBottomTab() {
+function CampaignBottomTab({ href }: { href: string }) {
   return (
     <Link
-      href="/historia"
+      href={href}
       aria-label="Abrir Modo Campaña"
       className="group relative min-w-0 flex-1 focus-visible:outline-none"
     >

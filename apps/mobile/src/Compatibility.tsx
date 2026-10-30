@@ -37,7 +37,8 @@ export function CompatibilityScreen({ state, error, retry, logout }: {
     {openError && <p role="alert">No pudimos abrir la actualización. Reintentá.</p>}
     {state?.activeGameId && <a href={'#/game/' + state.activeGameId} className={buttonClass('secondary', 'lg')}>Terminar mi partida</a>}
     {state?.activeTeamId && <a href={'#/game/parejas/' + state.activeTeamId} className={buttonClass('secondary', 'lg')}>Terminar mi partida en parejas</a>}
-    <a href="#/historia/offline" className={buttonClass('secondary', 'lg')}>Abrir Historia y sincronizar</a>
+    <a href="#/historia/offline" className={buttonClass('secondary', 'lg')}>Abrir campaña y sincronizar</a>
+    <a href="#/inicio" className="flex min-h-11 items-center text-sm text-gold">← Menú principal</a>
     {(error || state) && <Button variant="ghost" onClick={retry}>Reintentar</Button>}
     <Button variant="ghost" onClick={() => { void logout() }}>Cerrar sesión</Button>
   </main>

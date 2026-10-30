@@ -33,6 +33,7 @@ import { androidBack, rememberScreen, restoreScreen } from './android-behavior'
 import { pauseSounds } from '../../../src/lib/sounds'
 import { trackFirstParty } from '../../../src/lib/analytics/client'
 import { CompatibilityScreen, useCompatibility } from './Compatibility'
+import MainMenu, { Settings } from './MainMenu'
 
 const startup = registerPlugin<{ ready(): Promise<void> }>('Startup')
 
@@ -67,13 +68,14 @@ function Lobby({ session, online, onLogout }: { session: Session; online: boolea
   if (!online || !data) return <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
     <Logo size="md" />
     <p role="status">{!online ? 'Sin conexión. Tu sesión está conservada.' : error || 'Cargando tu lobby…'}</p>
-    <a href="#/historia/offline" className={buttonClass('primary', 'lg')}>Abrir Historia sin internet</a>
+    <a href="#/historia/offline" className={buttonClass('primary', 'lg')}>Abrir Modo Campaña</a>
+    <a href="#/inicio" className="flex min-h-11 items-center text-sm text-gold">← Menú principal</a>
     {online && error && <Button onClick={() => setRevision(value => value + 1)}>Reintentar</Button>}
     <Button variant="ghost" onClick={() => { void onLogout() }}>Cerrar sesión</Button>
   </main>
   return <>
     {error && <p role="alert" className="bg-surface2 p-3 text-center text-sm text-negative">{error}</p>}
-    <LobbyClient {...data} onLogout={onLogout} gameInvitesInLobby />
+    <LobbyClient {...data} onLogout={onLogout} gameInvitesInLobby mainMenuHref="/inicio" campaignHref="/historia/offline" />
   </>
 }
 
@@ -93,6 +95,15 @@ function App() {
   const pushOwner = session?.user.id || ''
   const compatibility = useCompatibility(pushOwner, online)
 
+  useEffect(() => {
+    if (!session || !['', '#/login', '#/inicio'].includes(route)) return
+    const frame = requestAnimationFrame(() => {
+      performance.mark('trucazo:menu-ready')
+      if (Capacitor.isNativePlatform()) void startup.ready().catch(() => {})
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [route, session])
+
   useEffect(() => { if (online && pushOwner) trackFirstParty('page_view') }, [route, online, pushOwner])
 
   useEffect(() => {
@@ -102,8 +113,8 @@ function App() {
   }, [online, pushOwner])
 
   useEffect(() => {
-    if (Capacitor.isNativePlatform() && session) rememberScreen(session.user.id, route)
-  }, [route, session])
+    if (Capacitor.isNativePlatform() && session && route !== '#/historia/offline' && !(route === '#/historia' && !online)) rememberScreen(session.user.id, route)
+  }, [route, session, online])
 
   useEffect(() => {
     if (online || !pushOwner) void syncPush(pushOwner).catch(() => {})
@@ -118,7 +129,7 @@ function App() {
   useEffect(() => {
     if (!session) {
       const destination = authDestination(route.slice(1))
-      if (destination && !['/lobby', '/historia'].includes(destination)) rememberDestination(destination)
+      if (destination) rememberDestination(destination)
     }
   }, [route, session])
 
@@ -205,29 +216,31 @@ function App() {
   if (route === '#/recuperar-cuenta') return <>
     {error && <p role="alert" className="p-3 text-center text-sm text-negative">{error}</p>}
     <RecoveryScreen ready={recoveryReady()} request={requestRecovery} change={changePassword}
-      back={<a href={session ? '#/lobby' : '#/login'}>Volver</a>} done={() => navigate(takeDestination())} />
+      back={<a href={session ? '#/ajustes' : '#/login'}>Volver</a>} done={() => navigate(takeDestination())} />
   </>
   if (session) {
     const path = route.slice(1).split('?')[0]
+    if (['', '/login', '/inicio'].includes(path)) return <MainMenu />
+    if (path === '/ajustes') return <Settings online={online} error={error} onLogout={handleLogout} />
     const recoveryRoute = path === '/historia/offline' || /^\/game\/(?:parejas\/)?[0-9a-f-]{36}$/i.test(path)
     if (online && !compatibility.state?.compatible && !recoveryRoute) return <CompatibilityScreen
       state={compatibility.state} error={compatibility.error} retry={compatibility.retry} logout={handleLogout} />
     const invitation = invitationPath(path)
     if (invitation) return <Invitation key={session.user.id + invitation} token={invitation.slice('/invitar/'.length)} owner={session.user.id} online={online} />
-    if (path === '/notificaciones') return <PushScreen key={session.user.id} owner={session.user.id} online={online} />
+    if (path === '/notificaciones') return <PushScreen key={session.user.id} owner={session.user.id} online={online} fromSettings={route.includes('?from=ajustes')} />
     if (path === '/ayuda' || publicPages[path]) return <PublicContent path={path} />
     if (['/comunidad', '/convivencia', '/resena', '/email/preferencias', '/admin', '/admin/analytics', '/admin/emails', '/admin/denuncias'].includes(path) || /^\/admin\/persona\/[0-9a-f-]{36}$/i.test(path)) return <CommunityScreens key={session.user.id + route} path={route.slice(1)} owner={session.user.id} online={online} />
     if (/^#\/(?:torneos(?:\/[0-9a-f-]{36}(?:\/partidas\/[0-9a-f-]{36})?)?|admin\/torneos(?:\/(?:nuevo|[0-9a-f-]{36}))?)$/i.test(route)) return <Tournaments key={session.user.id + route} path={route.slice(1)} owner={session.user.id} online={online} />
     if (route === '#/historia/offline' || (route === '#/historia' && !online)) return <History key={session.user.id} owner={session.user.id} />
     if (route === '#/historia') return <OnlineHistory key={session.user.id} owner={session.user.id} />
-    if (route === '#/profile' || route === '#/ranking' || route === '#/tienda') return <PlayerScreens key={session.user.id + route} screen={route.slice(1) as '/profile' | '/ranking' | '/tienda'} owner={session.user.id} online={online} />
+    if (path === '/profile' || path === '/ranking' || path === '/tienda') return <PlayerScreens key={session.user.id + route} screen={path as '/profile' | '/ranking' | '/tienda'} owner={session.user.id} online={online} fromSettings={route.includes('?from=ajustes')} />
     const tableId = /^\/game\/([0-9a-f-]{36})$/i.exec(path)?.[1]
     if (tableId) return <OnlineGame key={session.user.id + tableId} tableId={tableId} owner={session.user.id} online={online} />
     const teamId = /^\/game\/parejas\/([0-9a-f-]{36})$/i.exec(path)?.[1]
     if (teamId) return <TeamGame key={session.user.id + teamId} tableId={teamId} owner={session.user.id} online={online} />
     if (route && !['#/login', '#/lobby'].includes(route)) return <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
       <Logo size="md" /><p>No encontramos esa pantalla.</p>
-      <a href="#/lobby" className={buttonClass('primary', 'lg')}>Volver al lobby</a>
+      <a href="#/inicio" className={buttonClass('primary', 'lg')}>Volver al menú principal</a>
     </main>
     return <>{error && <p role="alert" className="p-3 text-center text-sm text-negative">{error}</p>}
       <Lobby key={session.user.id} session={session} online={online} onLogout={handleLogout} /></>

@@ -9,6 +9,7 @@ import { playSound } from '../../../src/lib/sounds'
 import { botThinkMs } from '../../../src/lib/bot-presentation'
 import { synchronize } from '../../../src/lib/offline-campaign/sync'
 import { Link } from './navigation'
+import { rememberScreen } from './android-behavior'
 
 declare const MOBILE_CAMPAIGN_CATALOG: Catalog
 type Manifest = { digest: string; assets: { path: string; sha256: string }[] }
@@ -18,13 +19,14 @@ const hash = async (bytes: ArrayBuffer) => Array.from(new Uint8Array(await crypt
 export default function History({ owner }: { owner: string }) {
   const [view, setView] = useState<View>()
   useEffect(() => {
-    let campaign: Campaign | undefined, running = false, busy = true, disposed = false, status = 'Abriendo tu Historia…', error = ''
+    let campaign: Campaign | undefined, running = false, busy = true, disposed = false, status = 'Abriendo tu campaña…', error = ''
     let timer: ReturnType<typeof setTimeout> | undefined
     const isOwner = () => !disposed && cachedSession()?.user.id === owner
     function render() {
       clearTimeout(timer)
       if (disposed) return
-      setView({ campaign, running, busy, status, error, BackLink: Link, lobbyHref: '#/lobby', onlineHref: navigator.onLine ? '#/historia' : undefined,
+      if (!busy) rememberScreen(owner, campaign?.trial?.game.status === 'playing' ? '#/historia/offline' : '#/inicio')
+      setView({ campaign, running, busy, status, error, BackLink: Link, lobbyHref: '#/inicio', campaignMode: true,
         onPrepare: () => { void prepare() }, onSync: () => { void sync() }, onStart: start, onAction: act,
         onResume: () => { if (!busy) { running = true; render() } }, onLeave: () => { running = false; render() } })
       const trial = campaign?.trial
@@ -88,9 +90,9 @@ export default function History({ owner }: { owner: string }) {
     }
     async function prepare() {
       if (busy || !isOwner()) return
-      busy = true; error = ''; status = 'Preparando Historia…'; render()
+      busy = true; error = ''; status = 'Preparando campaña…'; render()
       try {
-        if (!navigator.onLine) throw new Error('Conectate una vez para descargar Historia.')
+        if (!navigator.onLine) throw new Error('Conectate una vez para preparar tu campaña.')
         // Los recursos ya viajan en el APK. Verificar todos antes de cambiar el guardado.
         const response = await fetch('/historia-manifest.json')
         if (!response.ok) throw new Error('Faltan recursos de Historia. Reinstalá la actualización sin borrar datos.')
@@ -104,7 +106,7 @@ export default function History({ owner }: { owner: string }) {
         if (snapshot.version !== CAMPAIGN_VERSION || snapshot.engine_version !== BOTS_VERSION || !snapshot.grant
           || canonical(snapshot.catalog) !== canonical(MOBILE_CAMPAIGN_CATALOG)) throw new Error('El catálogo cambió. Actualizá la app; se conserva el guardado.')
         campaign = await prepareCampaign(snapshot, manifest.digest); running = false
-        status = 'Historia lista para jugar sin internet. ' + campaign.pending.length + ' partidas pendientes conservadas.'
+        status = 'Campaña lista para jugar con o sin internet. ' + campaign.pending.length + ' partidas pendientes conservadas.'
       } catch (failure) { failed(failure) }
       finally { busy = false; render() }
       void sync()
@@ -112,7 +114,7 @@ export default function History({ owner }: { owner: string }) {
     async function reload() {
       if (busy || !isOwner()) return
       busy = true; render()
-      try { campaign = await activateCampaign(owner); if (campaign) saved(); else status = 'Descargá Historia una vez con tu cuenta.' }
+      try { campaign = await activateCampaign(owner); if (campaign) saved(); else status = 'Prepará tu campaña una vez con tu cuenta.' }
       catch (failure) { running = false; failed(failure) }
       finally { busy = false; render() }
       void sync()
@@ -126,5 +128,5 @@ export default function History({ owner }: { owner: string }) {
     busy = false; void reload()
     return () => { disposed = true; clearTimeout(timer); document.removeEventListener('visibilitychange', visibility); window.removeEventListener('mobile:back', back); window.removeEventListener('mobile:refresh', reload); window.removeEventListener('online', reload) }
   }, [owner])
-  return view ? <OfflineApp {...view} /> : <main className="flex min-h-dvh items-center justify-center" role="status">Abriendo tu Historia…</main>
+  return view ? <OfflineApp {...view} /> : <main className="flex min-h-dvh items-center justify-center" role="status">Abriendo tu campaña…</main>
 }

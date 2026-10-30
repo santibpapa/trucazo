@@ -6,13 +6,14 @@ const routeKey = (owner: string) => 'trucazo:mobile:screen:' + owner
 export function restoreScreen(owner?: string) {
   if (!location.hash && owner) {
     const saved = authDestination(localStorage.getItem(routeKey(owner)))
-    if (saved) history.replaceState(null, '', '#' + saved)
+    const resume = saved && (saved.startsWith('/game/') || saved === '/historia/offline')
+    history.replaceState(null, '', '#' + (resume ? saved : '/inicio'))
   }
   return location.hash
 }
 
 export function rememberScreen(owner: string, route: string) {
-  const path = authDestination(route.slice(1))
+  const path = ['', '#/inicio', '#/ajustes'].includes(route) ? '/inicio' : authDestination(route.slice(1))
   if (path && !path.includes('?')) localStorage.setItem(routeKey(owner), path)
 }
 
@@ -30,7 +31,8 @@ export function androidBack(canGoBack: boolean) {
     .find(button => button.getClientRects().length)
   if (expanded) { expanded.click(); return }
   if (!window.dispatchEvent(new Event('mobile:back', { cancelable: true }))) return
-  if (['', '#/login', '#/lobby'].includes(location.hash)) { void App.minimizeApp(); return }
+  if (['', '#/login', '#/inicio'].includes(location.hash)) { void App.minimizeApp(); return }
+  if (['#/lobby', '#/ajustes', '#/historia', '#/historia/offline'].includes(location.hash)) { location.replace('#/inicio'); return }
   if (canGoBack) history.back()
-  else location.replace('#/lobby')
+  else location.replace('#/inicio')
 }

@@ -13,7 +13,8 @@ const errors = [], calls = [], sessions = new Map()
 const ids = { A: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa', B: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb' }
 let refreshes = 0, serial = 0, context, page, brokenAsset = false, brokenSnapshot = false
 const syncMode = process.argv.includes('--sync')
-const historyMode = process.argv.includes('--history') || syncMode
+const menuMode = process.argv.includes('--menu')
+const historyMode = process.argv.includes('--history') || syncMode || menuMode
 let dropSync = false, incompatibleSync = false, delaySync = false, releaseSync
 const receipts = new Map(), official = new Map()
 const catalog = JSON.parse(await readFile('public/android/historia/catalog.json','utf8'))
@@ -99,9 +100,42 @@ async function login(identifier,password='fixture-password'){
   await page.getByLabel('Email o usuario').fill(identifier);await page.getByLabel('Contraseña').fill(password)
   await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click()
 }
-async function lobby(owner){await page.getByRole('heading',{name:'Mesas disponibles'}).waitFor();await page.getByText('Cuenta '+owner,{exact:true}).last().waitFor()}
+async function lobby(owner){await Promise.race([page.getByRole('navigation',{name:'Menú principal'}).waitFor(),page.getByRole('heading',{name:'Mesas disponibles'}).waitFor()]);if(await page.getByRole('navigation',{name:'Menú principal'}).count())await page.getByRole('link',{name:/^Multijugador/}).click();await page.getByRole('heading',{name:'Mesas disponibles'}).waitFor();await page.getByText('Cuenta '+owner,{exact:true}).last().waitFor()}
 async function logout(){await page.getByRole('button',{name:'Perfil',exact:true}).click();await page.getByRole('button',{name:'Cerrar sesión',exact:true}).last().click();await page.getByLabel('Email o usuario').waitFor()}
 async function history(){await page.evaluate(()=>location.hash='#/historia/offline');await page.addScriptTag({content:harness})}
+async function menuChecks() {
+  const menu = page.getByRole('navigation',{name:'Menú principal'})
+  await menu.waitFor()
+  assert.equal(await page.getByText('Con conexión',{exact:true}).count(),0)
+  assert.equal(calls.some(call=>call.path==='/rest/v1/rpc/ensure_lobby_tables'),false,'El inicio no carga el lobby')
+  for(const [width,height] of [[360,640],[320,568],[393,852],[640,360],[568,320]]) {
+    await page.setViewportSize({width,height});await page.evaluate(()=>document.fonts.ready)
+    await page.waitForFunction(()=>Array.from(document.querySelectorAll('main img')).every(img=>img.complete&&img.naturalWidth>0))
+    const bounds=await menu.locator('a,button').evaluateAll(elements=>elements.map(element=>{const r=element.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,height:r.height}}))
+    assert.equal(bounds.length,4);assert.ok(bounds.every(r=>r.top>=0&&r.bottom<=height&&r.left>=0&&r.right<=width&&r.height>=44),`Cuatro opciones completas en ${width}×${height}`)
+    await page.screenshot({path:path.join(evidence,`android-main-menu-${width}x${height}.png`)})
+    const overflow=await page.evaluate(()=>({height:document.documentElement.scrollHeight,width:document.documentElement.scrollWidth}))
+    assert.deepEqual(overflow,{height,width},`Menú sin scroll en ${width}×${height}`)
+  }
+  await page.setViewportSize({width:360,height:640})
+  await page.getByRole('link',{name:/^Ajustes/}).click()
+  const sound=page.getByRole('switch',{name:'Sonido del juego'})
+  const before=await sound.isChecked();await sound.click();assert.equal(await sound.isChecked(),!before)
+  await page.reload();assert.equal(await sound.isChecked(),!before);await sound.click()
+  await context.setOffline(true)
+  await page.getByRole('link',{name:'Menú principal',exact:false}).click();await menu.waitFor()
+  assert.equal(await page.getByRole('status').count(),0,'El menú no muestra un indicador de conexión')
+  await page.getByRole('link',{name:/^Modo Campaña/}).click();await page.getByRole('button',{name:'Preparar campaña'}).click()
+  await page.getByRole('alert').filter({hasText:'Conectate una vez'}).waitFor()
+  await page.getByRole('link',{name:'Volver al menú principal'}).click();await menu.waitFor()
+  const auth=await page.evaluate(()=>localStorage.getItem('trucazo:mobile:auth:v1'))
+  await page.getByRole('button',{name:/^Salir/}).click();await page.getByRole('alert').filter({hasText:'Tu sesión queda abierta'}).waitFor()
+  assert.equal(await page.evaluate(()=>localStorage.getItem('trucazo:mobile:auth:v1')),auth)
+  await context.setOffline(false)
+  await page.getByRole('link',{name:/^Multijugador/}).click();await lobby('A')
+  await page.getByRole('link',{name:'Volver al menú principal'}).click();await menu.waitFor()
+  await writeFile(path.join(evidence,'android-main-menu-browser.json'),JSON.stringify({scope:'UI empaquetada y SDK real, servicios simulados, sin cuentas reales',sizes:5,noConnectionIndicator:true,decorativeImagesLoaded:true,noLobbyPreload:true,offlineMenu:true,firstPreparationNeedsInternet:true,soundPersists:true,exitPreservesSession:true,lobbyReturnsToMenu:true},null,2))
+}
 async function saved(owner='A'){return page.evaluate(owner=>historyFixture.loadCampaign(owner),ids[owner])}
 async function finishOffline() {
   await context.setOffline(true)
@@ -160,10 +194,10 @@ try {
   await login('desconocido','incorrecta');await page.getByRole('alert').filter({hasText:'Email/usuario o contraseña incorrectos'}).waitFor()
   const unknownError=await page.getByRole('alert').innerText()
   await login('A','incorrecta');await page.getByRole('button',{name:'Iniciar sesión',exact:true}).waitFor();assert.equal(await page.getByRole('alert').innerText(),unknownError)
-  await login('A');await lobby('A')
+  await login('A');await page.getByRole('navigation',{name:'Menú principal'}).waitFor();if(menuMode)await menuChecks();await lobby('A')
   await page.screenshot({path:path.join(evidence,'android-03-fixture-lobby.png')})
   await page.getByRole('link',{name:'Abrir Modo Campaña'}).click()
-  await page.getByRole('link',{name:'Jugar sin internet',exact:true}).click();await page.getByRole('button',{name:'Descargar Historia'}).waitFor()
+  await page.getByRole('button',{name:'Preparar campaña'}).waitFor()
   if(historyMode){
     await page.addScriptTag({content:harness});brokenAsset=true
     await page.locator('#prepare').click();await page.getByRole('alert').filter({hasText:'incompleta'}).waitFor();assert.equal(await saved(),undefined)
@@ -188,7 +222,7 @@ try {
     await page.reload();await history();await page.locator('#resume').waitFor();assert.deepEqual(await saved(),before)
     await context.setOffline(false);await page.evaluate(()=>location.hash='#/lobby');await lobby('A')
   }
-  if(!historyMode)await page.getByRole('link',{name:'Volver al lobby'}).click();await lobby('A')
+  if(!historyMode)await page.getByRole('link',{name:'Volver al menú principal'}).click();await lobby('A')
   await context.close();await launch();await lobby('A')
   await page.evaluate(()=>{const key='trucazo:mobile:auth:v1',value=JSON.parse(localStorage.getItem(key));value.expires_at=1;localStorage.setItem(key,JSON.stringify(value))})
   await context.close();await launch();await lobby('A');assert.ok(refreshes>0)
