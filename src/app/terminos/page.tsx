@@ -49,7 +49,7 @@ export default function TerminosPage() {
           monetario, no representan depósitos, no se convierten en dinero y no pueden
           retirarse. Trucazo no ofrece apuestas con dinero real.
         </p>
-        <p>En algunas mesas se arriesgan monedas ficticias y se ganan o pierden según el resultado. No se compran con dinero real, no se transfieren entre personas ni se canjean por bienes de valor. La tienda sólo permite adquirir personalización con esas monedas. No hay anuncios, cobros ni suscripciones.</p>
+        <p>En algunas mesas se arriesgan monedas ficticias y se ganan o pierden según el resultado. No se compran con dinero real, no se transfieren entre personas ni se canjean por bienes de valor. La tienda sólo permite adquirir personalización con esas monedas. No hay cobros ni suscripciones. Si se habilitan anuncios, serán opcionales y se explican en la <Link href="/privacidad" className="text-gold underline">política de privacidad</Link>.</p>
       </Section>
 
       <Section title="Torneos">

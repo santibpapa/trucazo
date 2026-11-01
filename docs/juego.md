@@ -2724,3 +2724,21 @@ e [invitaciones](https://github.com/santibpapa/trucazo/actions/runs/39195468836)
 Las capturas finales del mapa y del resultado se descargaron y revisaron: no
 aparecen elementos ni mensajes de vidas durante la pausa. Las pruebas usan
 cuentas y bases descartables; no certifican aprobación publicitaria.
+
+
+### Textos de Privacidad y Términos para AdSense — 01/11/2026
+
+Revisión pedida por el dueño mientras AdSense sigue en revisión. Privacidad decía
+«No vendemos datos ni mostramos anuncios» y Términos «No hay anuncios, cobros ni
+suscripciones», en contradicción con la sección de anuncios opcionales y con el
+pedido de AdSense. Se cambian por textos que dicen que hoy no hay anuncios y que,
+si se habilitan, son opcionales. En «Anuncios opcionales y vidas de Historia» se
+suma el aviso que Google pide en la política de privacidad: proveedores externos,
+incluido Google, usan cookies según visitas anteriores, con enlaces para
+desactivar la publicidad personalizada
+([contenido obligatorio de AdSense](https://support.google.com/adsense/answer/1348695?hl=es)).
+Se actualiza la fecha de ambas páginas en el mapa del sitio.
+
+Sólo cambia texto: no requiere SQL, no activa vidas ni anuncios y no cambia la
+variable de Vercel. Sigue pendiente el aviso de consentimiento (CMP) para
+visitantes de Europa, Reino Unido y Suiza antes de servir anuncios.

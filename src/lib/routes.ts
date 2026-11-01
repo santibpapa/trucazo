@@ -160,7 +160,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/privacidad',
-    updated: '2026-10-01',
+    updated: '2026-11-01',
     label: 'Política de privacidad',
     blurb: 'qué datos se usan y para qué.',
     group: 'institucional',
@@ -178,7 +178,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/terminos',
-    updated: '2026-08-15',
+    updated: '2026-11-01',
     label: 'Términos de uso',
     blurb: 'condiciones para usar el sitio.',
     group: 'institucional',

@@ -39,7 +39,7 @@ export default function PrivacidadPage() {
       </Section>
 
       <Section title="Qué ven otras personas">
-        <p>El nombre, avatar, personalización, ranking y resultados públicos son visibles para otros jugadores. Los mensajes se comparten con quienes acceden al chat correspondiente; las fotos de soporte y las denuncias son privadas para administración. No publiques datos personales en chats, nombres o imágenes. No vendemos datos ni mostramos anuncios.</p>
+        <p>El nombre, avatar, personalización, ranking y resultados públicos son visibles para otros jugadores. Los mensajes se comparten con quienes acceden al chat correspondiente; las fotos de soporte y las denuncias son privadas para administración. No publiques datos personales en chats, nombres o imágenes. No vendemos datos. Por ahora no mostramos anuncios; si se habilitan, serán opcionales y se explican más abajo, en «Anuncios opcionales y vidas de Historia».</p>
         <p>Al ingresar con Google se recibe la identidad básica y el email de esa cuenta. Si Google entrega una foto y todavía no tenés una propia, se incorpora como avatar visible del perfil; podés reemplazarla desde tu perfil.</p>
         <p>Las amistades y relaciones sociales pertenecen al juego: no leemos la agenda del teléfono. Los nombres que buscás se envían al servicio para devolver coincidencias y pueden figurar en sus registros técnicos; no mantenemos un historial propio de búsquedas.</p>
       </Section>
@@ -111,6 +111,7 @@ export default function PrivacidadPage() {
         <p>Guardamos el estado de vidas, los pedidos de ayuda y la acreditación de recompensas
           para evitar duplicados. El navegador puede conservar un comprobante pendiente para
           reintentar una acreditación si se corta la conexión.</p>
+        <p>Proveedores externos, incluido Google, usan cookies para mostrar anuncios según visitas anteriores a este y otros sitios. Las cookies publicitarias de Google les permiten a Google y a sus socios elegir anuncios en función de esas visitas. Podés desactivar la publicidad personalizada en la <a className="underline" href="https://www.google.com/settings/ads" rel="noreferrer" target="_blank">Configuración de anuncios de Google</a>, y la de otros proveedores en <a className="underline" href="https://www.aboutads.info/choices/" rel="noreferrer" target="_blank">aboutads.info</a>.</p>
         <p>Más información en la <a className="underline" href="https://policies.google.com/technologies/ads" rel="noreferrer" target="_blank">política de publicidad de Google</a>.</p>
       </Section>
 
