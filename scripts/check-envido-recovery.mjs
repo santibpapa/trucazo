@@ -128,11 +128,15 @@ test('reconectar o volver a la pestaña relee el estado; salir elimina los liste
   const channel = { on() { return channel }, subscribe(cb) { subscribed = cb; return channel } }
   const events = { addEventListener: (event, cb) => listeners.set(event, cb), removeEventListener: event => listeners.delete(event) }
   const document = { ...events, visibilityState: 'visible' }
-  const run = new Function('supabase', 'game', 'applyServerGame', 'refetchMyHand', 'refreshGame', 'window', 'document', body)
-  const stop = run({ channel: () => channel, removeChannel: () => { removed++ } }, { id: 'game-test', status: 'playing' }, () => {}, () => {}, async () => { reads++ }, events, document)
+  const realtimeOkRef = { current: false }
+  const run = new Function('supabase', 'game', 'applyServerGame', 'syncMyHand', 'refreshGame', 'realtimeOkRef', 'window', 'document', body)
+  const stop = run({ channel: () => channel, removeChannel: () => { removed++ } }, { id: 'game-test', status: 'playing' }, () => {}, () => {}, async () => { reads++ }, realtimeOkRef, events, document)
   assert.equal(typeof subscribed, 'function')
   subscribed('SUBSCRIBED')
+  assert.equal(realtimeOkRef.current, true)
   subscribed('CHANNEL_ERROR')
+  // Sin Realtime, el respaldo por polling vuelve a preguntar seguido.
+  assert.equal(realtimeOkRef.current, false)
   subscribed('SUBSCRIBED')
   listeners.get('online')()
   listeners.get('visibilitychange')()

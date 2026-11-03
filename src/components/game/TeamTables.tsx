@@ -17,8 +17,11 @@ export default function TeamTables({ onPlayUnavailable }: { onPlayUnavailable?: 
   useEffect(() => {
     let disposed = false
     let revision = 0
+    let realtimeOk = false
+    let lastRefresh = 0
     async function refresh() {
       if (document.hidden || !navigator.onLine) return
+      lastRefresh = Date.now()
       const current = ++revision
       const result = await supabase.rpc('team_lobby')
       if (disposed || current !== revision) return
@@ -27,8 +30,9 @@ export default function TeamTables({ onPlayUnavailable }: { onPlayUnavailable?: 
     }
     void refresh()
     const channel = supabase.channel('team-lobby').on('postgres_changes', { event: '*', schema: 'public', table: 'team_tables' }, () => { void refresh() })
-      .subscribe(status => { if (status === 'SUBSCRIBED') void refresh() })
-    const interval = setInterval(() => { void refresh() }, 5000)
+      .subscribe(status => { realtimeOk = status === 'SUBSCRIBED'; if (realtimeOk) void refresh() })
+    // Realtime avisa cada cambio de mesa; el respaldo sólo hace falta seguido si se cayó.
+    const interval = setInterval(() => { if (!realtimeOk || Date.now() - lastRefresh >= 14500) void refresh() }, 5000)
     document.addEventListener('visibilitychange', refresh)
     window.addEventListener('online', refresh)
     return () => { disposed = true; clearInterval(interval); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('online', refresh); void supabase.removeChannel(channel) }
