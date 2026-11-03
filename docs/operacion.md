@@ -4,7 +4,7 @@
 
 ## Estado actual
 
-- **Lentitud y plan gratuito de Supabase, 03/11:** diagnóstico con datos de producción, arreglos de entrada y reducción de pedidos de la mesa (≈75 % menos en una mesa quieta) para seguir en el plan gratuito. Sin SQL ni versión nueva de la app. Pendiente del dueño: cerrar el emulador Android que quedó abierto contra producción y revisar el congelamiento del 02/11. Ver [diagnóstico](#lentitud-2026-11-03).
+- **Lentitud y plan gratuito de Supabase, 03/11:** diagnóstico con datos de producción, arreglos de entrada y reducción de pedidos de la mesa (≈75 % menos en una mesa quieta) para seguir en el plan gratuito. Sin SQL ni versión nueva de la app. Publicado y comprobado en producción el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157)). Pendiente del dueño: cerrar el emulador Android que quedó abierto contra producción y revisar el congelamiento del 02/11. Ver [diagnóstico](#lentitud-2026-11-03).
 - **Producción web = `master` otra vez, 30/10:** del 27 al 30/10 Vercel publicó desde la rama Android (`575bedc`, después `8e90f9d`). El [PR #147](https://github.com/santibpapa/trucazo/pull/147) integra esa rama a `master`. Nunca volver a publicar producción desde otra rama: ver [AGENTS.md](../AGENTS.md).
 - **Controles discretos publicados,27/10:** web en `8e90f9d`, tres puntos en chats/mesas, opciones utilizables dentro de la ventana del chat y serviciosAndroid conservados. [Registro de publicación](#controles-discretos-2026-10-27).
 
@@ -101,6 +101,8 @@ Si alguna gráfica toca el techo en ese rango, la base chica se quedó sin recur
 **Comprobado:** tipos, ESLint (las seis advertencias previas del 1v1, ninguna nueva), `npm run build`, allowlist de RPC, simulación SQL/cliente, Android, recuperación de partida, presencia, mesas del lobby, mesa iniciada, invitaciones, presentación 2vs2, chat de mesa (también en navegador), envido en navegador y rendimiento en navegador. `scripts/check-envido-recovery.mjs` se adaptó a las variables nuevas y ahora comprueba además el estado de Realtime. La prueba nueva se sumó al CI. **Pendiente:** releer los registros de Supabase un día después de publicar y comparar con estas cifras.
 
 **Para el dueño, al despertar:** cerrar el emulador Android de la PC (o la app Trucazo dentro de él) cuando no se esté probando.
+
+**Publicado y comprobado — 03/11/2026, 03:10 UTC:** [PR #157](https://github.com/santibpapa/trucazo/pull/157) integrado a `master` (`dde92c0`) con todo el CI en verde, incluida la prueba nueva. Producción: `/`, `/login` y guías 200; `/lobby`, `/admin` y `/game/…` sin sesión o con cookie inválida → `/login`; `/api/android/historia` sin sesión 401. Recorrido real con un invitado nuevo y un duelo de Historia contra Tobías (no se usó la única mesa pública, que era de una persona): lobby en 3,1 s y mesa en 1,3 s medidos desde Estados Unidos; 20 s de espera en el propio turno = 4 lecturas de partida, **0 de mano** y 2 latidos; cinco cartas jugadas con la mano correcta en cada paso y en dos repartos nuevos; cero errores de página. Registros de Supabase posteriores a la publicación: cero 5xx y cero 401/403. El emulador seguía activo (~460 pedidos cada 5 minutos). No se aplicó SQL.
 
 <a id="node-seguridad-2026-10-21"></a>
 
