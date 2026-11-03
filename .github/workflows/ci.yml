@@ -84,6 +84,9 @@ jobs:
       - name: Cartas del envido antes del reparto y del resultado
         run: node scripts/check-envido-reveal-browser.mjs
 
+      - name: Pedidos de la mesa 1v1 (mano y respaldo por polling)
+        run: node scripts/check-game-polling-browser.mjs
+
       - name: Declaración de envido y recuperación de controles
         run: node scripts/check-envido-recovery.mjs
 

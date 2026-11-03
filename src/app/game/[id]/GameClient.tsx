@@ -68,6 +68,13 @@ function ResultObjectives({ gameId, isGuest }: { gameId: string; isGuest: boolea
 
 const EMOTE_COOLDOWN_MS = 3000
 
+// Resume lo único que cambia mis cartas: la mano en juego, el reparto y cuántas
+// jugué. Sin `played_cards` legible devuelve null y se relee siempre.
+function handKeyOf(g: Game, userId: string): string | null {
+  if (!Array.isArray(g.played_cards)) return null
+  return `${g.hand_number}:${g.awaiting_deal}:${g.played_cards.filter(pc => pc.player_id === userId).length}`
+}
+
 export default function GameClient({ game: initialGame, serverNow, currentUserId, isGuest = false, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory, opponentIsBot = false, tournamentId = null }: Props) {
   const router = useRouter()
   const [game, setGame] = useState<Game>(initialGame)
@@ -93,6 +100,12 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   // Momento de la última acción local; el polling de respaldo se pausa un toque
   // después de jugar para no pisar la actualización optimista con datos viejos.
   const lastActionRef = useRef(0)
+  // Mis cartas sólo cambian al repartir o cuando se juega una mía. Esta clave
+  // resume eso; si no cambió, no hace falta volver a pedir la mano.
+  const handKeyRef = useRef<string | null>(handKeyOf(initialGame, currentUserId))
+  // El respaldo por polling se espacia mientras Realtime está conectado.
+  const realtimeOkRef = useRef(false)
+  const lastSyncRef = useRef(0)
   // Emotes / chat rápido
   const [emoteTray, setEmoteTray] = useState(false)
   const [emoteCooldown, setEmoteCooldown] = useState(false)
@@ -266,9 +279,10 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${game.id}` },
-        (payload) => { applyServerGame(payload.new as Game); refetchMyHand() }
+        (payload) => { applyServerGame(payload.new as Game); void syncMyHand(payload.new as Game) }
       )
       .subscribe(status => {
+        realtimeOkRef.current = status === 'SUBSCRIBED'
         if (status === 'SUBSCRIBED') void refreshGame()
       })
 
@@ -324,11 +338,15 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
 
   // Respaldo por polling, por si el realtime no entrega los cambios.
   // Se saltea si hubo una acción local hace muy poco (para no revertir lo optimista).
+  // Con Realtime conectado alcanza cada ~5 s; sin él, cada 2,5 s. Con la
+  // pantalla oculta no se pide nada: al volver, la recuperación relee todo.
   useEffect(() => {
     if (game.status === 'finished') return
 
     const interval = setInterval(async () => {
+      if (document.visibilityState === 'hidden') return
       if (Date.now() - lastActionRef.current < 2000) return
+      if (realtimeOkRef.current && Date.now() - lastSyncRef.current < 4500) return
       await refreshGame()
     }, 2500)
 
@@ -478,7 +496,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
         .abortSignal(AbortSignal.timeout(8000))
       if (rpcFailed('advance_hand RPC:', error) || !data) return false
       applyServerGame(data as Game)
-      await refetchMyHand()
+      await refetchMyHand(handKeyOf(data as Game, currentUserId))
       return true
     } catch (error) {
       rpcFailed('advance_hand RPC:', error instanceof Error ? error : { message: 'No se pudo repartir. Reintentando…' })
@@ -570,6 +588,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       )
       .subscribe()
     const iv = setInterval(async () => {
+      if (document.visibilityState === 'hidden') return
       const { data } = await supabase.from('games').select('*').eq('id', game.id).single()
       if (data) applyServerGame(data as Game)
     }, 2500)
@@ -656,7 +675,9 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
 
   // Mi mano vive en game_hands (la RLS solo me deja ver la mía). La recargamos
   // cuando llega un cambio de la partida (p.ej. al repartir una mano nueva).
-  async function refetchMyHand() {
+  // `key` es la clave del estado que ya confirmó el servidor; se recuerda
+  // sólo si la lectura salió bien, así un fallo se reintenta en el próximo aviso.
+  async function refetchMyHand(key?: string | null) {
     const { data } = await supabase
       .from('game_hands')
       .select('cards')
@@ -664,11 +685,21 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       .eq('player_id', currentUserId)
       .abortSignal(AbortSignal.timeout(8000))
       .single()
-    if (data) setMyHand((data.cards as Card[]) ?? [])
+    if (data) {
+      setMyHand((data.cards as Card[]) ?? [])
+      if (key !== undefined) handKeyRef.current = key
+    }
+  }
+
+  async function syncMyHand(next: Game) {
+    const key = handKeyOf(next, currentUserId)
+    if (key !== null && key === handKeyRef.current) return
+    await refetchMyHand(key)
   }
 
   // Releer al conectar/volver: los cambios ocurridos durante el corte no se reproducen.
   async function refreshGame() {
+    lastSyncRef.current = Date.now()
     try {
       const { data } = await supabase
         .from('games')
@@ -676,8 +707,12 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
         .eq('id', game.id)
         .abortSignal(AbortSignal.timeout(8000))
         .single()
-      if (data) applyServerGame(data as Game)
-      await refetchMyHand()
+      if (data) {
+        applyServerGame(data as Game)
+        await syncMyHand(data as Game)
+      } else {
+        await refetchMyHand()
+      }
     } catch (error) {
       console.error('refresh game:', error)
     }
@@ -713,7 +748,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       return
     }
     if (data) applyServerGame(data as Game)
-    await refetchMyHand()
+    await refetchMyHand(data ? handKeyOf(data as Game, currentUserId) : undefined)
     setLoading(false)
   }
 

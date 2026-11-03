@@ -107,7 +107,12 @@ export default function TeamGameClient({ initial, userId, isGuest, salonSlug }: 
 
   useEffect(() => {
     disposed.current = false
+    // Con Realtime conectado el respaldo pregunta cada ~5 s; sin él, cada 2,5 s.
+    // Con la pantalla oculta no pregunta: al volver, `focus` relee la mesa.
+    let realtimeOk = false
+    let lastRefresh = 0
     const refresh = async () => {
+      lastRefresh = Date.now()
       try {
         const result = await supabase.rpc('team_snapshot', { p_table_id: initial.table.id })
         if (disposed.current) return
@@ -120,8 +125,12 @@ export default function TeamGameClient({ initial, userId, isGuest, salonSlug }: 
     }
     const channel = supabase.channel(`team-${initial.table.id}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'team_tables', filter: `id=eq.${initial.table.id}` }, () => { void refresh() })
-      .subscribe(status => { if (status === 'SUBSCRIBED') void refresh() })
-    const poll = setInterval(() => { void refresh() }, 2500)
+      .subscribe(status => { realtimeOk = status === 'SUBSCRIBED'; if (realtimeOk) void refresh() })
+    const poll = setInterval(() => {
+      if (document.visibilityState === 'hidden') return
+      if (realtimeOk && Date.now() - lastRefresh < 4500) return
+      void refresh()
+    }, 2500)
     const heartbeat = setInterval(presence, 8000)
     const focus = () => { presence(); void refresh() }
     window.addEventListener('online', focus)

@@ -4,6 +4,7 @@
 
 ## Estado actual
 
+- **Lentitud y plan gratuito de Supabase, 03/11:** diagnóstico con datos de producción, arreglos de entrada y reducción de pedidos de la mesa (≈75 % menos en una mesa quieta) para seguir en el plan gratuito. Sin SQL ni versión nueva de la app. Pendiente del dueño: cerrar el emulador Android que quedó abierto contra producción y revisar el congelamiento del 02/11. Ver [diagnóstico](#lentitud-2026-11-03).
 - **Producción web = `master` otra vez, 30/10:** del 27 al 30/10 Vercel publicó desde la rama Android (`575bedc`, después `8e90f9d`). El [PR #147](https://github.com/santibpapa/trucazo/pull/147) integra esa rama a `master`. Nunca volver a publicar producción desde otra rama: ver [AGENTS.md](../AGENTS.md).
 - **Controles discretos publicados,27/10:** web en `8e90f9d`, tres puntos en chats/mesas, opciones utilizables dentro de la ventana del chat y serviciosAndroid conservados. [Registro de publicación](#controles-discretos-2026-10-27).
 
@@ -23,6 +24,7 @@ Para completar la aceptación de las partidas, leer primero [la verificación po
 
 ## Guía de lectura
 
+- [Lentitud al entrar: diagnóstico y arreglos, 03/11](#lentitud-2026-11-03).
 - [Revisión del aviso de seguridad de Node, 21/10](#node-seguridad-2026-10-21).
 - [Revisión de PR de Dependabot y orden de incorporación, 19/10](#dependabot-2026-10-19).
 - [Incidente: victorias bloqueadas y falsas ausencias](#incidente-resenas-2026-10-13).
@@ -34,6 +36,71 @@ Para completar la aceptación de las partidas, leer primero [la verificación po
 - Para las recetas SQL y pruebas, leer [Backend](backend.md); para publicar la app, [Android](android.md).
 
 Actualizar aquí incidentes, soporte, pasos de panel, publicación y evidencia operativa. Las rutas de código/SQL parten de la raíz del repositorio. Registrar por separado lo preparado y lo aplicado; conservar fechas y no convertir notas históricas en autorización para actuar sobre cuentas o contactar personas.
+
+<a id="lentitud-2026-11-03"></a>
+
+## Lentitud al entrar al lobby, al panel y a las partidas — 03/11/2026
+
+**Pedido del dueño:** «noto Trucazo muy lento: tarda en entrar, en el menú de admin, en entrar a una partida».
+
+### Qué se midió (sólo lectura, nada cambiado en producción)
+
+- **Regiones bien:** las funciones de Vercel responden desde `gru1` (cabecera `x-vercel-id` = `…::gru1::…`) y Supabase está en `sa-east-1`. No es el problema de Washington de antes.
+- **Supabase rápido en lo normal:** en las últimas 24 h, la mitad de los pedidos tardó ≤45 ms y el 90 % ≤95 ms. Las funciones que usan esas pantallas también: `admin_stats` 263 ms promedio, `start_game` 14 ms, `get_my_objectives` 66 ms.
+- **Congelamiento el 02/11 de 19:43 a 19:47 (hora argentina):** con sólo 14 jugadores, la base dejó de responder unos 4 minutos. Pedidos colgados hasta 2 minutos, 82 errores 5xx, la API sin conexiones libres (`PGRST003`) y Realtime con «Too many database timeouts». Incluso una tarea automática trivial (`native_push.dispatch`) tardó 14 s, así que no fue una consulta puntual sino la máquina entera trabada. Las herramientas de esta sesión no muestran CPU, memoria ni disco: hay que mirarlo en el panel (ver abajo).
+- **Cada pantalla privada preguntaba dos veces quién sos:** el middleware (el filtro que corre antes de cada página y cada API) llamaba al servidor de Auth, y después la página volvía a preguntar. Esa llamada tardó 23 ms la mitad de las veces, 142 ms el 10 % más lento y 1,9 s el 1 % más lento, y se pagaba entera antes de que la página arrancara.
+- **Sin pantalla de espera:** el lobby, el panel de admin y las mesas en parejas no tenían `loading.tsx`. Al tocar «Administración» o entrar a una mesa de parejas no cambiaba nada en pantalla hasta que el servidor terminaba: parecía colgado. La de mesa 1v1 existía pero entraba con `animate-fade-up` (arranca invisible).
+- **Next 15 en producción desde el 27/10:** a diferencia de Next 14, ya no reutiliza durante 30 s una pantalla dinámica recién visitada; volver al lobby la pide de nuevo al servidor. Puede sumar a la sensación de «está más lento desde la semana pasada». **No se cambió**: restaurarlo (`experimental.staleTimes.dynamic`) mostraría por unos segundos monedas o mesas viejas y necesita decisión del dueño.
+
+### Qué se cambió (rama `claude/bold-cerf-4ju9v5`)
+
+1. `src/lib/supabase/middleware.ts`: `getUser()` → `getClaims()`. Comprueba la firma de la sesión con la llave pública ES256 del proyecto (se descarga una vez y se guarda 10 minutos), sin ir al servidor de Auth. Las páginas siguen llamando a `getUser()` y la base sigue aplicando RLS con el mismo token, así que la seguridad de los datos no cambia. Las sesiones viejas firmadas con HS256 caen solas a `getUser()`.
+2. `src/components/PageLoading.tsx` nuevo, usado por `loading.tsx` de lobby, admin, mesa 1v1 y mesa en parejas: aparece en el primer cuadro, sin animación de entrada.
+
+**No requiere SQL, ni configuración de paneles, ni versión nueva de la app** (la app no importa estos archivos).
+
+**Comprobado:** tipos, ESLint de los archivos tocados y `npm run build` aprobados. Simulación del middleware con sesiones firmadas de prueba: con sesión entra; sin sesión o con firma falsa va a `/login`; cuenta en `/login` va a `/lobby`; invitado en `/login` pasa; invitado en `/android` va a `/login?android=1`. En los siete casos hubo un solo pedido de red (la llave pública) y ninguno a `/auth/v1/user`. **No medido todavía:** el tiempo real en producción; comparar Speed Insights de Vercel antes y después de publicar.
+
+### Pendiente del dueño: revisar el congelamiento del 02/11
+
+1. Entrar a [supabase.com/dashboard](https://supabase.com/dashboard) → el proyecto → **Reports** → **Database**.
+2. Elegir el rango del **2 de noviembre, 19:30 a 20:00 (hora argentina)** y mirar CPU, memoria y «Disk IO».
+3. En **Project Settings → Compute and Disk** anotar el tamaño de la base (por ejemplo «Micro»).
+
+Si alguna gráfica toca el techo en ese rango, la base chica se quedó sin recursos y el arreglo es subir un escalón de tamaño (tiene costo mensual); si no, abrir un pedido a soporte de Supabase con esa franja horaria.
+
+**Actualización 03/11 — el proyecto está en el plan gratuito de Supabase.** Captura del dueño, ciclo de facturación en curso: salida de datos (egress) 4,10 de 5 GB, registros (log ingestion) **2,49 de 1 GB, ya excedido**, base 253 de 500 MB, 238 de 50.000 usuarios activos. El plan gratuito usa la máquina más chica y compartida, sin recursos garantizados: es la explicación más probable del congelamiento del 02/11. Pasarse de las cuotas no vuelve más lento el sitio de a poco, pero según las reglas de uso justo de Supabase el proyecto puede quedar restringido (deja de responder) si sigue excedido. Los registros los genera sobre todo la cantidad de pedidos: ~206.000 por día, encabezados por las lecturas repetidas de la mesa (`game_hands` ~48.000, `tables` ~34.000, `games` ~19.000, `team_snapshot` ~19.000). Opciones: pasar a Pro, reducir esas lecturas repetidas, o las dos.
+
+### Reducción de pedidos para seguir en el plan gratuito — 03/11/2026
+
+**Decisión del dueño:** Trucazo todavía no genera ingresos; seguir en el plan gratuito y bajar los pedidos. Autorizó trabajar, aplicar SQL si hiciera falta e integrar sin esperar su revisión.
+
+**Origen de los ~206.000 pedidos diarios (registros de Supabase, 24 h):**
+
+- **Emulador Android de pruebas:** la cuenta `androidqa3`, desde Buenos Aires, con `sdk_gphone` y origen `https://localhost`, hizo **44.825 pedidos en 8 horas** (~1,5 por segundo) desde el lobby: `tables` una vez por segundo con la consulta anterior al [PR #134](https://github.com/santibpapa/trucazo/pull/134), más `team_lobby`, `tournament_ready_match`, comunidad y chat. Es un APK viejo instalado en el emulador de la PC del dueño, no código vigente. Abierto un día entero serían ~135.000 pedidos: por sí solo explica gran parte del exceso de registros. **No se cerró la sesión de esa cuenta a distancia** para no arriesgar el acceso a la cuenta de pruebas; hay que cerrar el emulador.
+- **Mesa 1v1 (jugadores reales):** el respaldo por polling pedía partida y mano cada 2,5 s, también con la pestaña oculta, y cada aviso de Realtime volvía a pedir la mano aunque no cambiara. `game_hands` ~47.600 y `games` ~18.500 por día.
+- **Mesa 2vs2:** `team_snapshot` ~18.500 por día con sólo 17 jugadores, por el mismo respaldo de 2,5 s.
+
+**Cambios:**
+
+1. `src/app/game/[id]/GameClient.tsx`: la mano se relee sólo si cambia la clave `mano:reparto:cartas propias jugadas` (o si `played_cards` no llega legible). El respaldo pregunta cada ~5 s con Realtime conectado, cada 2,5 s sin él y nada con la pantalla oculta; al volver, la recuperación existente relee todo. La espera de revancha tampoco pregunta oculta.
+2. `src/app/game/parejas/[id]/TeamGameClient.tsx`: mismo respaldo (~5 s conectado, 2,5 s sin Realtime, nada oculta). Las acciones `tick` de bots y relojes no cambian.
+3. `src/components/game/TeamTables.tsx`: la lista 2vs2 del lobby pregunta cada ~15 s si Realtime está conectado (unirse y jugar ya actualizan `team_tables` y disparan el aviso), cada 5 s sin él.
+4. **Sin tocar:** latidos de presencia (`touch_presence`/`team_presence` cada 8 s), porque torneos y ausencias dependen de ellos y ya hubo un incidente de falsas ausencias; cron de `native_push` cada 15 s, porque sus registros de Postgres pesan poco frente a los pedidos HTTP.
+
+**Medido (`node scripts/check-game-polling-browser.mjs`, navegador real con Supabase simulado y reloj controlado; `--baseline` da los contadores sin exigir):**
+
+| Escenario | Antes (partida + mano) | Después |
+| --- | ---: | ---: |
+| Mesa quieta 30 s, Realtime conectado | 12 + 12 | 6 + 0 |
+| Jugada del rival | 0 + 1 | 0 + 0 |
+| Reparto nuevo | 0 + 1 | 0 + 1 |
+| Sin Realtime 10 s | 4 + 4 | 4 + 0 |
+| Pantalla oculta 20 s | 8 + 8 | 0 + 0 |
+
+**Comprobado:** tipos, ESLint (las seis advertencias previas del 1v1, ninguna nueva), `npm run build`, allowlist de RPC, simulación SQL/cliente, Android, recuperación de partida, presencia, mesas del lobby, mesa iniciada, invitaciones, presentación 2vs2, chat de mesa (también en navegador), envido en navegador y rendimiento en navegador. `scripts/check-envido-recovery.mjs` se adaptó a las variables nuevas y ahora comprueba además el estado de Realtime. La prueba nueva se sumó al CI. **Pendiente:** releer los registros de Supabase un día después de publicar y comparar con estas cifras.
+
+**Para el dueño, al despertar:** cerrar el emulador Android de la PC (o la app Trucazo dentro de él) cuando no se esté probando.
 
 <a id="node-seguridad-2026-10-21"></a>
 
