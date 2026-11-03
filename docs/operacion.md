@@ -69,6 +69,8 @@ Actualizar aquí incidentes, soporte, pasos de panel, publicación y evidencia o
 
 Si alguna gráfica toca el techo en ese rango, la base chica se quedó sin recursos y el arreglo es subir un escalón de tamaño (tiene costo mensual); si no, abrir un pedido a soporte de Supabase con esa franja horaria.
 
+**Actualización 03/11 — el proyecto está en el plan gratuito de Supabase.** Captura del dueño, ciclo de facturación en curso: salida de datos (egress) 4,10 de 5 GB, registros (log ingestion) **2,49 de 1 GB, ya excedido**, base 253 de 500 MB, 238 de 50.000 usuarios activos. El plan gratuito usa la máquina más chica y compartida, sin recursos garantizados: es la explicación más probable del congelamiento del 02/11. Pasarse de las cuotas no vuelve más lento el sitio de a poco, pero según las reglas de uso justo de Supabase el proyecto puede quedar restringido (deja de responder) si sigue excedido. Los registros los genera sobre todo la cantidad de pedidos: ~206.000 por día, encabezados por las lecturas repetidas de la mesa (`game_hands` ~48.000, `tables` ~34.000, `games` ~19.000, `team_snapshot` ~19.000). Opciones: pasar a Pro, reducir esas lecturas repetidas, o las dos.
+
 <a id="node-seguridad-2026-10-21"></a>
 
 ## Revisión del aviso de seguridad de Node — 21/10/2026
