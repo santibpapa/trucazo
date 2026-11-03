@@ -447,8 +447,9 @@ export default function LobbyClient({
       {/* Columna central */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Barra superior (solo celular/tablet: en compu todo esto vive en el menú lateral) */}
+        {/* Con letra grande del sistema (marca que pone la app Android) Chat queda sólo con el ícono y, si es enorme, se achica el logo. */}
         <header className="flex lg:hidden items-center justify-between gap-2 px-4 pt-4 sm:px-6 sm:pt-5">
-          {mainMenuHref ? <Link href={mainMenuHref} aria-label="Volver al menú principal" className="flex min-h-11 items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"><span aria-hidden="true" className="text-gold">‹</span><Logo size="md" /></Link> : <Logo size="md" />}
+          {mainMenuHref ? <Link href={mainMenuHref} aria-label="Volver al menú principal" className="flex min-h-11 items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"><span aria-hidden="true" className="text-gold">‹</span><Logo size="md" className="[[data-large-text=xl]_&>span]:[font-size:1rem]" /></Link> : <Logo size="md" className="[[data-large-text=xl]_&>span]:[font-size:1rem]" />}
 
           <button
             type="button"
@@ -457,7 +458,7 @@ export default function LobbyClient({
             aria-controls="lobby-chat"
             className="ml-auto inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-gold/50 px-3 py-2 text-sm font-semibold text-cream hover:border-gold hover:text-gold"
           >
-            <ChatIcon /> Chat
+            <ChatIcon /> <span className="[[data-large-text]_&]:sr-only">Chat</span>
           </button>
 
           {/* Ícono de perfil con menucito (perfil / cerrar sesión) */}
@@ -974,13 +975,13 @@ function BottomTab({
           </span>
         )}
       </span>
-      <span className="text-[10px] font-semibold">{label}</span>
+      <span className="max-w-full truncate px-0.5 text-[10px] font-semibold">{label}</span>
     </span>
   )
   return href ? (
-    <Link href={href} className="flex-1" aria-label={badge > 0 ? `${label}, ${badge} ${badge === 1 ? 'pendiente' : 'pendientes'}` : undefined}>{inner}</Link>
+    <Link href={href} className="min-w-0 flex-1" aria-label={badge > 0 ? `${label}, ${badge} ${badge === 1 ? 'pendiente' : 'pendientes'}` : undefined}>{inner}</Link>
   ) : (
-    <button onClick={onClick} className="flex-1" aria-label={label}>{inner}</button>
+    <button onClick={onClick} className="min-w-0 flex-1" aria-label={label}>{inner}</button>
   )
 }
 

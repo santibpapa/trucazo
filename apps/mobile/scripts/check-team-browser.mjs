@@ -49,6 +49,7 @@ async function client(id) {
   })
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message))
   await page.goto(origin);await page.getByLabel('Email o usuario').fill(id+'@fixture.invalid');await page.getByLabel('Contraseña',{exact:true}).fill('fixture');await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click()
+  await page.getByRole('link',{name:/^Multijugador/}).click() // Desde23 el ingreso abre el menú principal.
   await page.getByRole('heading',{name:'Mesas disponibles'}).waitFor()
   return {context,page}
 }

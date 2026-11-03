@@ -35,6 +35,7 @@ async function rest(url, body, owner, headers = {}) {
     if (name === 'admin_player') return person
 
     calls.push({ owner, name })
+    if (name === 'app_compatibility') return { compatible: true, versionCode: 19, minimumCode: 17, updateUrl: null, contract: 'trucazo-online-v1', serverNow: Date.now(), activeGameId: null, activeTeamId: null }
     if (name === 'active_medal_for') return 'ninguno'
     if (['get_active_medals','tournament_notifications_list'].includes(name)) return []
     if (name === 'team_lobby') return {tables:[],mine:[]}
@@ -101,6 +102,7 @@ async function web(id) {
   const page = await context.newPage(); page.on('pageerror', e => errors.push(e.message))
   page.on('dialog', dialog => dialog.accept())
   await page.goto(origin); await page.getByLabel('Email o usuario').fill(id + '@fixture.invalid'); await page.getByLabel('Contraseña', { exact: true }).fill('fixture'); await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click()
+  await page.getByRole('link', { name: /^Multijugador/ }).click() // Desde23 el ingreso abre el menú principal.
   await page.getByRole('heading', { name: 'Mesas disponibles' }).waitFor()
   return page
 }

@@ -259,4 +259,8 @@ function App() {
   </LoginScreen>
 }
 
+// Android agranda el texto del WebView según la letra del sistema; las pantallas compartidas se compactan con esta marca.
+const textScale = parseFloat(getComputedStyle(document.documentElement).fontSize) / 16
+if (textScale >= 1.3) document.documentElement.dataset.largeText = textScale >= 1.8 ? 'xl' : 'l'
+
 createRoot(document.getElementById('root')!).render(<><App /><CommunityRulesPrompt /></>)

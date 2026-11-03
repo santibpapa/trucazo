@@ -54,7 +54,7 @@ async function web(id) {
   })
   const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message))
   await page.goto(origin); await page.getByLabel('Email o usuario').fill(id + '@fixture.invalid'); await page.getByLabel('Contraseña', { exact: true }).fill('fixture')
-  await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click(); await page.getByRole('heading', { name: 'Mesas disponibles' }).waitFor()
+  await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click(); await page.getByRole('link', { name: /^Multijugador/ }).click(); await page.getByRole('heading', { name: 'Mesas disponibles' }).waitFor()
   return page
 }
 try {

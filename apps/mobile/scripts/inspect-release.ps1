@@ -61,9 +61,12 @@ foreach ($taskArchivePath in @($taskApk, $taskAab)) {
             if ($taskEntry.FullName -match '/public/build-info.json$') {
                 $taskBuildInfo = $taskText | ConvertFrom-Json
                 if (-not $taskBuildInfo.release -or $taskBuildInfo.apiOrigin -ne 'https://www.trucazo.com.ar') { throw 'Recursos sin marca release o API incorrecta.' }
+                # 23 a 28 salieron sin chat de mesa porque la opción no estaba en .env.local.
+                if (-not ($taskBuildInfo.features.pairs -and $taskBuildInfo.features.tournaments -and $taskBuildInfo.features.matchChat)) { throw 'Candidato sin parejas, torneos o chat de mesa.' }
                 $taskAppEntry = $taskZip.GetEntry(($taskEntry.FullName -replace 'build-info.json$', 'app.js'))
                 $taskAppStream = $taskAppEntry.Open()
-                try { $taskBundleHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($taskAppStream)).ToLower() } finally { $taskAppStream.Dispose() }
+                # Compatible con Windows PowerShell 5.1: esta PC no tiene PowerShell 7.
+                try { $taskBundleHash = -join ([Security.Cryptography.SHA256]::Create().ComputeHash($taskAppStream) | ForEach-Object { $_.ToString('x2') }) } finally { $taskAppStream.Dispose() }
                 if ($taskBundleHash -ne $taskBuildInfo.bundleSha256) { throw 'Programa distinto del inventario de construcción.' }
             }
             if ($taskEntry.FullName -match '\.so$') {
