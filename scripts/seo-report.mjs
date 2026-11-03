@@ -25,7 +25,10 @@ const VENTANA = 28
 
 // Búsquedas de marca: gente que ya conoce Trucazo y lo busca por nombre.
 // Se incluyen los errores de tipeo frecuentes que aparecieron en los datos.
-const MARCA = /trucazo|trucaso|trulcoz|trucloz|trucolz|trucozolano|troncazo|trucaz/i
+// "trucoz" cubre trucozando, trucozado, trucozano y trucozolano: en septiembre
+// "trucozando" sola fueron 36 de los 54 clics contados como gente nueva, y al
+// desaparecer en octubre el informe mostró una caída que no existía.
+const MARCA = /trucazo|trucaso|trulcoz|trucloz|trucolz|trucoz|trucanzo|truconazo|trucocho|troncazo|trucaz/i
 
 // ---------------------------------------------------------------
 // Autenticación
