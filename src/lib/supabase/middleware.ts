@@ -70,7 +70,13 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // getClaims comprueba la firma de la sesión acá mismo, con la llave pública
+  // del proyecto (se guarda 10 minutos). getUser le preguntaba al servidor de
+  // Auth en cada página y en cada API: una ida y vuelta más antes de que la
+  // página pudiera empezar, que en el 1% más lento pasaba de 1,9 segundos.
+  // La página y la base siguen validando la sesión como siempre.
+  const { data } = await supabase.auth.getClaims()
+  const user = data?.claims ?? null
 
   if (isAndroidEntry && (!user || user.is_anonymous)) {
     const url = request.nextUrl.clone()
