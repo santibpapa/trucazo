@@ -592,6 +592,7 @@ Informe: [issue #153](https://github.com/santibpapa/trucazo/issues/153), del 02/
 
 **Arreglo del robot**
 
+- `.github/workflows/seo.yml`: el aviso de falla decía "esta quincena"; ahora dice "este mes".
 - `scripts/seo-report.mjs`: la lista de marca ahora incluye `trucoz` (que cubre trucozando, trucozado, trucozano y trucozolano), `trucanzo`, `truconazo` y `trucocho`. Se probó contra las búsquedas de los dos últimos informes: todas las variantes del nombre cuentan como marca y ninguna búsqueda genérica cambió de grupo. Rige desde el primer informe que corra con el cambio ya en `master`.
 - El informe del 01/12 recalcula también el período anterior con la lista nueva, así que su comparación es pareja. El del 01/11 queda como se publicó.
 
