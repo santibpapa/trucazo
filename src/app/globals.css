@@ -13,6 +13,11 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* Con letra grande del sistema, una palabra larga no debe salirse de la pantalla. */
+  h1, h2, h3 {
+    overflow-wrap: break-word;
+  }
+
   body {
     color: var(--foreground);
     background-color: var(--background);

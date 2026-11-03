@@ -154,7 +154,7 @@ export default function TiendaClient({
   return (
     <main className="min-h-screen w-full max-w-4xl mx-auto flex flex-col gap-6 px-4 sm:px-6 py-5 pb-16">
       {/* Encabezado: volver + título + saldo */}
-      <header className="flex items-center justify-between gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/lobby"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-gold transition-colors"

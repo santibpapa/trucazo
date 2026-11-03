@@ -23,6 +23,7 @@ try {
     assert.equal(result.revision, revision); assert.equal(result.sha256, sha256); assert.equal(result.pending, 0)
     results.push({ username, ...result })
   }
-  await writeFile('android/generated/android-08-preserved.json', JSON.stringify(results, null, 2))
+  // Cada control escribe su propio archivo; el de 08 queda como evidencia histórica.
+  await writeFile(process.argv[2] || 'android/generated/android-preserved-latest.json', JSON.stringify(results, null, 2))
   console.log(JSON.stringify(results))
 } finally { c.close() }

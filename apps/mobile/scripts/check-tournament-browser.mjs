@@ -65,6 +65,7 @@ async function web(id) {
   const page = await context.newPage(); page.on('pageerror', e => errors.push(e.message))
   page.on('dialog', dialog => dialog.accept())
   await page.goto(origin); await page.getByLabel('Email o usuario').fill(id + '@fixture.invalid'); await page.getByLabel('Contraseña', { exact: true }).fill('fixture'); await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click()
+  await page.getByRole('link', { name: /^Multijugador/ }).click() // Desde23 el ingreso abre el menú principal.
   await page.getByRole('heading', { name: 'Mesas disponibles' }).waitFor()
   return page
 }
@@ -77,6 +78,12 @@ async function has(page, value) { return (await text(page)).includes(value) }
 async function click(page, name) {
   if (page !== c) return page.getByRole('button', { name, exact: true }).click()
   await wait(() => c.evaluate(`(()=>{const b=Array.from(document.querySelectorAll('button')).find(b=>(b.getAttribute('aria-label')||b.textContent.trim())===${JSON.stringify(name)}&&!b.disabled);if(!b)return false;b.click();return true})()`))
+}
+// Desde el 30/10 anotarse o aceptar pareja pide leer el aviso de check-in; Confirmar se habilita a los 5 segundos.
+async function confirmCheckIn(page) {
+  if (page === c) await wait(() => c.evaluate(`(()=>{const e=Array.from(document.querySelectorAll('label')).find(l=>l.textContent.includes('Entiendo'))?.querySelector('input');if(!e)return false;if(!e.checked)e.click();return true})()`))
+  else await page.getByRole('checkbox', { name: /^Entiendo/ }).check()
+  await click(page, 'Confirmar inscripción')
 }
 async function shot(page, name) {
   const file = 'android/generated/' + evidencePrefix + '-' + (native ? 'native-' : '') + name + '.png'
@@ -153,12 +160,12 @@ try {
     const t = await seedTournament(mode), count = mode === '1v1' ? 4 : 8
     await go(A, '/torneos'); await wait(() => has(A, t.name)); await shot(A, mode + '-hub')
     await go(A, '/torneos/' + t.id); await wait(() => has(A, 'Anotarme'))
-    if (mode === '1v1') { await click(A, 'Anotarme'); await wait(() => has(A, 'Ya estás inscripto')) }
+    if (mode === '1v1') { await click(A, 'Anotarme'); await confirmCheckIn(A); await wait(() => has(A, 'Ya estás inscripto')) }
     await go(B, '/torneos/' + t.id); await wait(() => has(B, 'Anotarme'))
-    await click(B, mode === '2v2' ? 'Anotarme solo' : 'Anotarme'); await wait(() => has(B, 'Ya estás inscripto'))
+    await click(B, mode === '2v2' ? 'Anotarme solo' : 'Anotarme'); await confirmCheckIn(B); await wait(() => has(B, 'Ya estás inscripto'))
     if (mode === '2v2') {
       await B.getByLabel('Invitar compañero por nombre de usuario').fill('androidqa3'); await B.getByRole('button', { name: 'Enviar invitación', exact: true }).click()
-      await wait(() => has(B, 'Invitación enviada')); await refresh(A); await wait(() => has(A, 'Aceptar invitación')); await click(A, 'Aceptar invitación'); await wait(() => has(A, 'Equipo:'))
+      await wait(() => has(B, 'Invitación enviada')); await refresh(A); await wait(() => has(A, 'Aceptar invitación')); await click(A, 'Aceptar invitación'); await confirmCheckIn(A); await wait(() => has(A, 'Equipo:'))
     }
     for (const id of people.slice(2, count)) await f.rpc('tournament_register_solo', { p_request_id: crypto.randomUUID(), p_tournament_id: t.id }, id)
     const waitlisted = await f.rpc('tournament_register_solo', { p_request_id: crypto.randomUUID(), p_tournament_id: t.id }, qa[1]); assert.ok(waitlisted)

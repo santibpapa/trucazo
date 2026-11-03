@@ -7,6 +7,9 @@ import { releaseDevice } from './release-device.mjs'
 const phase = process.argv[2], serial = process.argv[3]
 assert.ok(['before', 'after'].includes(phase) && serial, 'Usar before/after y serial del emulador')
 const adb = args => execFileSync(process.env.ADB, ['-s', serial, ...args], { encoding: 'utf8' })
+// Algunos teléfonos (Redmi) rechazan `adb input`: con ANDROID_NO_INPUT=1 se navega dentro de la app y Atrás se confirma a mano.
+const noInput = process.env.ANDROID_NO_INPUT === '1'
+const back = async () => { if (noInput) await c.evaluate("location.hash='#/inicio'"); else adb(['shell', 'input', 'keyevent', '4']) }
 const evidence = process.env.ANDROID_SESSION_EVIDENCE_DIR || 'android/generated'
 await mkdir(evidence, { recursive: true })
 const file = `${evidence}/android-main-menu-${serial}`
@@ -56,7 +59,7 @@ try {
     assert.ok(await click('← Volver a Ajustes')); await wait('!!document.querySelector("input[role=switch]")')
     assert.ok(await click('Mi cuenta')); await wait(`!!document.querySelector('a[href="#/ajustes"]')&&!!document.querySelector('h1')`)
     assert.ok(await click('← Ajustes')); await wait('!!document.querySelector("input[role=switch]")')
-    adb(['shell', 'input', 'keyevent', '4']); await wait('location.hash==="#/inicio"')
+    await back(); await wait('location.hash==="#/inicio"')
     assert.ok(await click('Multijugador')); await wait('document.body.innerText.includes("Mesas disponibles")')
     assert.ok(await click('Volver al menú principal')); await wait('location.hash==="#/inicio"')
     // El enlace se abre por el mecanismo real de Android; el token ficticio no une ninguna mesa.
@@ -71,7 +74,7 @@ try {
     assert.ok(await click('Modo Campaña')); await wait('!!document.querySelector("#campaign,#prepare")')
     assert.deepEqual(await snapshot(), before, 'Abrir campaña sin red conserva el guardado')
     // Los tutoriales existentes se cierran con Atrás antes de abandonar el mapa.
-    for (let i = 0; i < 4 && await c.evaluate('location.hash!=="#/inicio"'); i++) adb(['shell', 'input', 'keyevent', '4'])
+    for (let i = 0; i < 4 && await c.evaluate('location.hash!=="#/inicio"'); i++) await back()
     await wait('location.hash==="#/inicio"')
     assert.ok(await click('Salir'))
     await new Promise(resolve => setTimeout(resolve, 500))
@@ -84,7 +87,7 @@ try {
     c = await releaseDevice({ serial, port: serial.endsWith('5554') ? 9237 : 9238 })
     await wait(menuVisible)
     assert.deepEqual(await snapshot(), before, 'Reabrir en frío conserva la cuenta y los guardados')
-    const result = { serial, updatePreservesCampaigns: true, layout, settingsSound: true, backReturnsToMenu: true,
+    const result = { serial, updatePreservesCampaigns: true, layout, settingsSound: true, backReturnsToMenu: noInput ? 'confirmar a mano' : true,
       multiplayer: true, invitationDirect: true, offlineCampaign: true, exitMinimizes: true, exitPreservesSession: true, coldStartMenu: true }
     await writeFile(file + '-after.json', JSON.stringify(result, null, 2)); console.log(JSON.stringify(result))
   }

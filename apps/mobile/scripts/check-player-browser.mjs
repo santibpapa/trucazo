@@ -45,6 +45,7 @@ await context.route('**/*',async route=>{
   try {
     if(url.pathname.startsWith('/rest/v1/rpc/')) {
       const name=url.pathname.split('/').at(-1)
+      if(name==='app_compatibility')return respond({compatible:true,versionCode:19,minimumCode:17,updateUrl:null,contract:'trucazo-online-v1',serverNow:Date.now(),activeGameId:null,activeTeamId:null})
       if(name==='team_lobby')return respond({tables:[],mine:[]})
       if(['friends_list','community_groups','pending_friend_requests','get_my_game_invites','tournament_notifications_list'].includes(name))return respond([])
       if(['ensure_lobby_tables','touch_online','get_community'].includes(name))return respond(null)
@@ -71,7 +72,7 @@ page.on('pageerror',error=>errors.push(error.message))
 const go=async route=>{await page.evaluate(route=>location.hash='#'+route,route)}
 async function login(email) {
   await page.getByLabel('Email o usuario').fill(email);await page.getByLabel('Contraseña').fill('fixture-password')
-  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click();await page.getByText(email[0]==='a'?'Cuenta A':'Cuenta B',{exact:true}).filter({visible:true}).first().waitFor()
+  await page.getByRole('button',{name:'Iniciar sesión',exact:true}).click();await page.getByRole('link',{name:/^Multijugador/}).click();await page.getByText(email[0]==='a'?'Cuenta A':'Cuenta B',{exact:true}).filter({visible:true}).first().waitFor()
 }
 try {
   await page.goto(origin);await login('a@fixture.test')

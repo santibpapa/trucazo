@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
 import Logo from '../../../src/components/ui/Logo'
@@ -21,12 +21,28 @@ function MenuArrow() {
 
 export default function MainMenu() {
   const [notice, setNotice] = useState('')
+  const menuRef = useRef<HTMLElement>(null)
+  // Con letra grande del sistema o poco alto, compactar por escalones hasta que entre sin deslizar.
+  useLayoutEffect(() => {
+    const menu = menuRef.current
+    if (!menu) return
+    const root = document.documentElement
+    function fit() {
+      let level = 0
+      menu!.dataset.compact = '0'
+      while (level < 3 && root.scrollHeight > root.clientHeight) menu!.dataset.compact = String(++level)
+    }
+    fit()
+    void document.fonts.ready.then(fit)
+    addEventListener('resize', fit)
+    return () => removeEventListener('resize', fit)
+  }, [notice])
   async function exit() {
     if (!Capacitor.isNativePlatform()) { setNotice('Podés cerrar esta pestaña. Tu sesión queda abierta.'); return }
     try { await App.minimizeApp() }
     catch { setNotice('No pudimos salir. Reintentá o usá el botón de inicio del teléfono.') }
   }
-  return <main className={styles.menu}>
+  return <main ref={menuRef} className={styles.menu}>
     <Image src="/mesa/salon.webp" alt="" aria-hidden="true" priority className={styles.backdrop} />
     <div className={styles.content}>
       <header className={styles.brand}>

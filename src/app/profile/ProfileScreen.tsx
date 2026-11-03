@@ -19,7 +19,7 @@ export default function ProfileScreen({ profile, history, earnedMedals, isGuest 
   return (
     <main className="flex flex-col min-h-screen p-4 sm:p-6 gap-5 max-w-2xl mx-auto w-full">
       {/* Header */}
-      <header className="flex items-center justify-between gap-3 pt-1">
+      <header className="flex flex-wrap items-center justify-between gap-3 pt-1">
         <Logo size="md" />
         {backLink ?? <Link href="/lobby" className={buttonClass('ghost', 'sm')}>← Lobby</Link>}
       </header>
