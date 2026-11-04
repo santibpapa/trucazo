@@ -4,6 +4,7 @@
 
 ## Estado actual
 
+- **Cuotas de Supabase, 04/11:** salida de datos 4,49 de 5 GB con ~0,4 GB/día y período del 21 al 21: este ciclo se excede igual. Preparada `20261104160000_cuotas_realtime_limpieza.sql` (Realtime de `games` sin fila anterior; limpieza diaria de historial de cron y decisiones de bots). **Aplicada por el dueño en el SQL Editor el 04/11 ~16:03 UTC** y verificada. El dueño decidió seguir en el plan gratuito; recortes de pedidos de la mesa (mano, respaldo y chat) en la misma rama, sin SQL ni versión nueva obligatoria de la app. Ver [diagnóstico](#cuotas-2026-11-04).
 - **Lentitud y plan gratuito de Supabase, 03/11:** diagnóstico con datos de producción, arreglos de entrada y reducción de pedidos de la mesa (≈75 % menos en una mesa quieta) para seguir en el plan gratuito. Sin SQL ni versión nueva de la app. Publicado y comprobado en producción el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157)). Pendiente del dueño: cerrar el emulador Android que quedó abierto contra producción y revisar el congelamiento del 02/11. Ver [diagnóstico](#lentitud-2026-11-03).
 - **Producción web = `master` otra vez, 30/10:** del 27 al 30/10 Vercel publicó desde la rama Android (`575bedc`, después `8e90f9d`). El [PR #147](https://github.com/santibpapa/trucazo/pull/147) integra esa rama a `master`. Nunca volver a publicar producción desde otra rama: ver [AGENTS.md](../AGENTS.md).
 - **Controles discretos publicados,27/10:** web en `8e90f9d`, tres puntos en chats/mesas, opciones utilizables dentro de la ventana del chat y serviciosAndroid conservados. [Registro de publicación](#controles-discretos-2026-10-27).
@@ -104,6 +105,39 @@ Si alguna gráfica toca el techo en ese rango, la base chica se quedó sin recur
 **Para el dueño, al despertar:** cerrar el emulador Android de la PC (o la app Trucazo dentro de él) cuando no se esté probando.
 
 **Publicado y comprobado — 03/11/2026, 03:10 UTC:** [PR #157](https://github.com/santibpapa/trucazo/pull/157) integrado a `master` (`dde92c0`) con todo el CI en verde, incluida la prueba nueva. Producción: `/`, `/login` y guías 200; `/lobby`, `/admin` y `/game/…` sin sesión o con cookie inválida → `/login`; `/api/android/historia` sin sesión 401. Recorrido real con un invitado nuevo y un duelo de Historia contra Tobías (no se usó la única mesa pública, que era de una persona): lobby en 3,1 s y mesa en 1,3 s medidos desde Estados Unidos; 20 s de espera en el propio turno = 4 lecturas de partida, **0 de mano** y 2 latidos; cinco cartas jugadas con la mano correcta en cada paso y en dos repartos nuevos; cero errores de página. Registros de Supabase posteriores a la publicación: cero 5xx y cero 401/403. El emulador seguía activo (~460 pedidos cada 5 minutos). No se aplicó SQL.
+
+<a id="cuotas-2026-11-04"></a>
+
+## Salida de datos y peso de la base — 04/11/2026
+
+**Captura del dueño (período del 21/10 al 21/11):** egress 4,49 de 5 GB (4,10 el 03/11), log ingestion 2,69 de 1 GB, base 265 de 500 MB (253 el 03/11), 264 usuarios activos.
+
+**Medido en producción (sólo lectura, 24 h):**
+
+- Pedidos HTTP: ~90.700 (eran ~206.000 antes del [PR #157](https://github.com/santibpapa/trucazo/pull/157)); el emulador `androidqa3` ya no figura. Encabezan `game_hands` 15.600, `games` 12.200, `bot_step` 9.900, `touch_presence` 9.600, `play_card` 5.400. Las respuestas son chicas: no explican 0,4 GB/día.
+- Registros: 72 % pedidos HTTP, 23 % Postgres, casi todo «cron job N starting/completed» (`native_push` cada 15 s y cinco tareas por minuto, ~28.000 líneas/día).
+- `games` estaba en **REPLICA IDENTITY FULL** (configurado fuera del repo): cada `UPDATE` viaja por Realtime con la fila nueva, la anterior completa y la lista de 34 columnas, a cada jugador. Muestra: 21 `UPDATE` en 36 s a las 10:52 de Argentina. Es la causa más probable del egress; estimación, no medición directa. Los clientes sólo usan `payload.new`.
+- Base: `cron.job_run_details` 84 MB (467.000 filas desde junio, nunca se limpió) y `bot_decisions` 73 MB (30 días, ~10.000 filas/día). Explican casi todo el crecimiento diario.
+
+**Preparado:** [`20261104160000_cuotas_realtime_limpieza.sql`](../supabase/migrations/20261104160000_cuotas_realtime_limpieza.sql): `games` a REPLICA IDENTITY DEFAULT (TOAST de `games` vacío, comprobado), limpieza diaria de cron (2 días) y de `bot_decisions` (7 días) y primera limpieza. No toca reglas del juego ni necesita versión nueva de la app.
+
+**Aplicado — 04/11/2026, ~16:03 UTC:** dos intentos desde la herramienta de Supabase vencieron sin confirmación; el dueño la corrió a mano en el SQL Editor (misma SQL, con los dos borrados directos). Resultado: `games` en `d` (DEFAULT), historial de cron 27.906 filas (eran ~467.000), `bot_decisions` 62.956 (eran ~174.000). Comprobado después: las dos tareas `trucazo-cron-history-cleanup` (04:50 UTC) y `trucazo-bot-decisions-cleanup` (04:55 UTC) activas; cero errores en pedidos y Postgres. Realtime registró un único `query_canceled` en `list_changes` a las 16:03:44, el instante del `ALTER TABLE`, y siguió sano. No había partidas en juego al verificar: falta ver una partida real con el cambio. El espacio borrado se reutiliza, por lo que el tamaño del panel deja de crecer pero no baja enseguida (no se corrió `VACUUM FULL`). **Pendiente:** comparar el egress diario en el panel durante los próximos días contra ~0,4 GB/día.
+
+**Decisión del dueño, 04/11:** no pasar a Pro ni pagar nada hasta que Trucazo genere ingresos. Se asume el exceso de egress de este ciclo. Según la [política de uso justo](https://supabase.com/docs/guides/platform/billing-faq#fair-use-policy), en el plan gratuito llega un aviso y un período de gracia; si se sigue excedido puede haber restricciones (proyecto pausado o 402 en todos los pedidos) hasta que la cuota se renueve el 21. Ese período de gracia se usa una sola vez: si se vuelve a exceder en los ciclos siguientes, la restricción es inmediata. Por eso el objetivo es que el ciclo que empieza el 21/11 entre en 5 GB (≈0,16 GB/día).
+
+**Medido después del cambio:** ~1 `UPDATE` de `games` por acción de juego (1.329 contra 1.353 acciones entre 13:53 y 16:05 UTC); juntar actualizaciones no ahorraría nada. ~25.000 acciones/día ≈ 40.000 mensajes de Realtime/día (las partidas contra bots tienen un solo oyente), por debajo de la cuota de 2 millones/mes.
+
+**Recortes de pedidos aplicados en código, 04/11 (aprobados por el dueño):**
+
+1. `GameClient.tsx`: la mano se relee sólo al repartir (clave `mano:reparto`); la carta propia jugada ya la quita `myCards` contra `played_cards`.
+2. `GameClient.tsx`: respaldo de la partida cada ~15 s con Realtime conectado (era ~5 s); sin Realtime sigue en 2,5 s y con la pantalla oculta no pregunta.
+3. `useMatchChat.ts`: respaldo del chat de mesa cada 60 s (era 15 s); sólo corre con Realtime listo, y al volver a la pantalla relee igual.
+
+Costo aceptado: si un aviso de Realtime se pierde, la jugada puede tardar hasta ~15 s y un mensaje de chat hasta 60 s. Ahorro esperado ~22.000 pedidos/día (estimado con las cifras del 04/11). Comprobado: `check-game-polling-browser.mjs` con un caso nuevo (jugar una carta propia no relee la mano; falla con el código anterior), 30 s quieto = 2 lecturas de partida y 0 de mano; chat (unitaria y navegador en 1v1/2vs2 y tres tamaños), recuperación de envido (13), presencia (4); tipos sin errores nuevos (los 31 previos son dependencias de `apps/mobile` y el manifiesto generado de Historia, ausentes en este entorno); ESLint con las seis advertencias previas. La web lo recibe al integrar a `master`; la app, en la próxima versión, y las versiones instaladas siguen funcionando igual que hoy. **Pendiente:** medir pedidos y egress un día después de publicar.
+
+**Desglose del panel (Usage → Egress, captura del dueño 04/11 14:28):** 4,53 GB usados del 21/10 al 21/11. 03/11, primer día con el [PR #157](https://github.com/santibpapa/trucazo/pull/157): ~295 MB = PostgREST 171 MB (58 %), Realtime 118 MB (40 %), Auth 6 MB (2 %). Los días anteriores fueron más altos (02/11 cerca de 445 MB, con el emulador encendido). Tamaños medidos: partida en JSON ~1,6 KB (es lo que devuelven `bot_step`, `play_card` y las demás acciones, y lo que trae cada lectura de `games`), lista del lobby ~0,8 KB, perfil ~0,4 KB; a eso se suman ~0,7 KB de cabeceras por pedido. Proyección con los cambios de hoy (estimada, sin medir): Realtime ~70 MB y PostgREST ~130 MB, ≈ 0,2 GB/día. Para entrar en 5 GB por ciclo hacen falta ≤ 0,16 GB/día: probablemente falte el aviso de partida reducido.
+
+**Otras propuestas:** cada pedido HTTP cuesta ~1 KB de cabeceras aunque la respuesta sea chica, así que bajar pedidos también baja egress. Juntar las tareas cron por minuto en una (registros). Más grande: mandar por Realtime sólo los campos que usa la mesa (requiere versión nueva de la app). Pedido al dueño: captura de Usage → Egress para ver qué servicio consume más.
 
 <a id="node-seguridad-2026-10-21"></a>
 

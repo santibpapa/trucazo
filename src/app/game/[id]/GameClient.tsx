@@ -68,11 +68,12 @@ function ResultObjectives({ gameId, isGuest }: { gameId: string; isGuest: boolea
 
 const EMOTE_COOLDOWN_MS = 3000
 
-// Resume lo único que cambia mis cartas: la mano en juego, el reparto y cuántas
-// jugué. Sin `played_cards` legible devuelve null y se relee siempre.
-function handKeyOf(g: Game, userId: string): string | null {
+// Resume lo único que trae cartas nuevas: la mano en juego y el reparto. La
+// carta que juego no hace falta releerla: `myCards` ya la saca contra
+// `played_cards`. Sin `played_cards` legible devuelve null y se relee siempre.
+function handKeyOf(g: Game): string | null {
   if (!Array.isArray(g.played_cards)) return null
-  return `${g.hand_number}:${g.awaiting_deal}:${g.played_cards.filter(pc => pc.player_id === userId).length}`
+  return `${g.hand_number}:${g.awaiting_deal}`
 }
 
 export default function GameClient({ game: initialGame, serverNow, currentUserId, isGuest = false, myHand: initialMyHand, campaignRivalSlug, salonSlug = 'clasico', myAvatarUrl, opponentAvatarUrl, myFrame, opponentFrame, myMedal, opponentMedal, myAccessory, opponentAccessory, opponentIsBot = false, tournamentId = null }: Props) {
@@ -102,7 +103,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   const lastActionRef = useRef(0)
   // Mis cartas sólo cambian al repartir o cuando se juega una mía. Esta clave
   // resume eso; si no cambió, no hace falta volver a pedir la mano.
-  const handKeyRef = useRef<string | null>(handKeyOf(initialGame, currentUserId))
+  const handKeyRef = useRef<string | null>(handKeyOf(initialGame))
   // El respaldo por polling se espacia mientras Realtime está conectado.
   const realtimeOkRef = useRef(false)
   const lastSyncRef = useRef(0)
@@ -338,7 +339,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
 
   // Respaldo por polling, por si el realtime no entrega los cambios.
   // Se saltea si hubo una acción local hace muy poco (para no revertir lo optimista).
-  // Con Realtime conectado alcanza cada ~5 s; sin él, cada 2,5 s. Con la
+  // Con Realtime conectado alcanza cada ~15 s; sin él, cada 2,5 s. Con la
   // pantalla oculta no se pide nada: al volver, la recuperación relee todo.
   useEffect(() => {
     if (game.status === 'finished') return
@@ -346,7 +347,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     const interval = setInterval(async () => {
       if (document.visibilityState === 'hidden') return
       if (Date.now() - lastActionRef.current < 2000) return
-      if (realtimeOkRef.current && Date.now() - lastSyncRef.current < 4500) return
+      if (realtimeOkRef.current && Date.now() - lastSyncRef.current < 14500) return
       await refreshGame()
     }, 2500)
 
@@ -496,7 +497,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
         .abortSignal(AbortSignal.timeout(8000))
       if (rpcFailed('advance_hand RPC:', error) || !data) return false
       applyServerGame(data as Game)
-      await refetchMyHand(handKeyOf(data as Game, currentUserId))
+      await refetchMyHand(handKeyOf(data as Game))
       return true
     } catch (error) {
       rpcFailed('advance_hand RPC:', error instanceof Error ? error : { message: 'No se pudo repartir. Reintentando…' })
@@ -692,7 +693,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   }
 
   async function syncMyHand(next: Game) {
-    const key = handKeyOf(next, currentUserId)
+    const key = handKeyOf(next)
     if (key !== null && key === handKeyRef.current) return
     await refetchMyHand(key)
   }
@@ -748,7 +749,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       return
     }
     if (data) applyServerGame(data as Game)
-    await refetchMyHand(data ? handKeyOf(data as Game, currentUserId) : undefined)
+    await refetchMyHand(data ? handKeyOf(data as Game) : undefined)
     setLoading(false)
   }
 

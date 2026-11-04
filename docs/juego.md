@@ -209,7 +209,7 @@ de espera se rediseñó después, a su pedido.
 | Bots | Las cinco composiciones; decisión con cartas propias e información pública, ahorro de cartas cuando gana el compañero, prioridad humana al responder. Desde el 14/09/2026 se sientan con nombre de jugador, hablan en la mesa y escuchan a su compañero: [Comportamiento y conversación de los bots](#parejas-bots). |
 | Presentación | Componentes y estética del 1vs1; pilas frente a cada jugador, tamaños estables, cantos con autor y resultado por equipo. La sala de espera se rediseñó aparte: la mesa se ve desde arriba, con un lugar por lado y el compañero enfrente. |
 | Chat rápido | Los emotes del 1vs1 más once frases de mesa de a cuatro, en `src/lib/emotes.ts`. Son públicas: las lee toda la mesa. No hay señas ni canal privado entre compañeros. Viajan por el servidor (`team_say`), que solo acepta las frases de esa lista y no toca el turno ni la versión de la mesa. |
-| Sincronización | Realtime de estado público, consulta de respaldo cada 2,5 s, presencia cada 8 s y recuperación de asiento al recargar con la misma sesión. |
+| Sincronización | Realtime de estado público, consulta de respaldo cada ~15 s con Realtime conectado (2,5 s sin él, nada con la pantalla oculta), mano releída sólo al repartir, presencia cada 8 s y recuperación de asiento al recargar con la misma sesión. |
 | Compatibilidad | Incluye la corrección del resultado 1vs1 de master, PR #58 (`d7094d0`). No cambia la mesa ni el resultado del 2vs2 aprobado. |
 
 No agrega estadísticas, rankings, misiones, recompensas, señas privadas, flujos
