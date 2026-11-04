@@ -17,6 +17,7 @@
 - Novedades: sistema de campañas, tandas y bajas documentado. No hay autorización nueva para enviar mensajes.
 - Ciclo de retorno: código documentado como implementado; el registro de publicación original debe contrastarse con evidencia posterior antes de aplicar SQL o publicar.
 - **SEO, 03/11:** revisado el [informe del 01/11](https://github.com/santibpapa/trucazo/issues/153). La caída de "gente nueva" era un error de conteo, no de tráfico, y se corrigió el robot. Ocho páginas seguían sin indexar por un rastreo de agosto anterior a las canónicas; el dueño pidió la indexación de todas el 03/11. Ver [revisión](#seo-2026-11-03).
+- **Contenido nuevo por el rechazo de AdSense, 04/11:** guía nueva `/como-ganar-al-truco`, ampliación de `/truco-contra-computadora` y `/modo-historia-truco` al día (15 provincias). Detalle, pruebas y próximos pasos en [Juego → Rechazo de AdSense](juego.md#adsense-rechazo-poco-valor).
 
 ## Próximo paso y cómo retomar
 

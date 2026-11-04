@@ -57,6 +57,8 @@ const learningLinks = [
   { href: '/orden-cartas-truco', label: 'Orden de las cartas', text: 'Consultá qué carta mata a cuál con una tabla clara.' },
   { href: '/calculadora-envido', label: 'Calculadora de envido', text: 'Elegí tus tres cartas y calculá el tanto al instante.' },
   { href: '/pardas-truco-reglas', label: 'Pardas', text: 'Resolvé quién gana cuando una o más bazas empatan.' },
+  { href: '/envido-real-envido-falta-envido', label: 'Envido y sus cantos', text: 'Cuánto vale cada canto del envido, aceptado o rechazado.' },
+  { href: '/como-ganar-al-truco', label: 'Cómo ganar al truco', text: 'Con cuánto querer, qué carta tirar y cuándo mentir.' },
 ]
 
 export default function Home() {

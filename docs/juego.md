@@ -2462,8 +2462,8 @@ presentación: no requiere SQL ni altera el ingreso, los cobros o los asientos.
 
 **En corto (30/10/2026):** el código está hecho y publicado, pero **apagado**. Los
 jugadores no ven vidas ni las pierden. No hay que reprogramarlo: sólo prenderlo cuando
-haya anuncios con premio. El dueño confirmó que AdSense sigue «preparando el sitio».
-Aun aprobado, AdSense no alcanza: falta una cuenta de Google Ad Manager con un bloque
+haya anuncios con premio. **Actualización 04/11/2026:** AdSense rechazó el sitio por
+«contenido de poco valor» (ver [Rechazo de AdSense](#adsense-rechazo-poco-valor)). Aun aprobado, AdSense no alcanza: falta una cuenta de Google Ad Manager con un bloque
 rewarded real (ver «Para retomar más adelante», al final de esta sección).
 
 **Estado vigente — 19/10/2026:** la implementación del
@@ -2790,3 +2790,87 @@ Se actualiza la fecha de ambas páginas en el mapa del sitio.
 Sólo cambia texto: no requiere SQL, no activa vidas ni anuncios y no cambia la
 variable de Vercel. Sigue pendiente el aviso de consentimiento (CMP) para
 visitantes de Europa, Reino Unido y Suiza antes de servir anuncios.
+
+
+<a id="adsense-rechazo-poco-valor"></a>
+
+### Rechazo de AdSense por «contenido de poco valor» — 04/11/2026
+
+**Estado:** el dueño informó que AdSense rechazó `trucazo.com.ar` y el 04/11 envió
+capturas del panel (la fecha del aviso no se ve en ellas). El sitio no está
+aprobado y no hay anuncios activos. Las vidas siguen apagadas.
+
+**Texto del aviso, tal como figura en el panel:** «Contenido de bajo valor. […] un
+sitio debe ofrecer un valor único y sustancial, establecer una presencia constante
+en la Web y mostrar un nivel de interés de los usuarios que respalde un socio
+publicitario comercial». Pide, antes de volver a enviarlo: información,
+herramientas o servicios auténticos y de alta calidad; una selección constante de
+contenido y mantenimiento estructural; e interés genuino de los usuarios. Al pie
+están la casilla «Confirmo que corregí los problemas» y el botón **Solicitar
+revisión**. No tildarla ni volver a pedir la revisión hasta publicar las mejoras.
+
+**Qué ve Google (medido el 04/11 en producción, con el texto principal de cada
+página):** la portada tiene unas 270 palabras. De las 12 guías y páginas de
+entrada públicas, sólo «Cómo se juega» (~1.170) y «Truco en parejas» (~1.150) pasan las
+mil palabras. Seis páginas del tipo «jugar truco…» (sin registrarse, con amigos,
+contra la computadora, dos jugadores, Modo Historia, acerca de) tienen entre 230
+y 420 palabras y repiten la misma idea con otras palabras. Lo valioso del sitio,
+el lobby y la partida, requiere sesión y no tiene texto para el rastreador
+(`/login` es `noindex`). Es la causa típica de este rechazo en sitios de juegos.
+No es un diagnóstico de Google: el aviso no detalla qué páginas evaluó.
+
+**Propuesta, no aplicada:**
+1. Sumar contenido propio y útil, no relleno: estrategia (cuándo cantar envido o
+   truco, cómo jugar la primera mano), glosario del truco, preguntas frecuentes,
+   manos de ejemplo explicadas, historia y variantes regionales.
+2. **Ampliar, no unir,** las páginas «jugar truco…» cortas, y no sumar más
+   páginas delgadas. Cada una apunta a una búsqueda distinta y algunas ya traen
+   gente: entradas desde buscadores del 05/10 al 03/11 (personas): portada 900,
+   `/truco-contra-computadora` 158, `/envido-real-envido-falta-envido` 43,
+   `/orden-cartas-truco` 38, `/como-se-juega-al-truco` 32,
+   `/jugar-truco-con-amigos` 32, `/jugar-truco-sin-registrarse` 17,
+   `/truco-en-parejas` 15. Unirlas arriesga ese tráfico; si alguna se une en el
+   futuro, la dirección vieja debe redirigir a la nueva.
+3. Mostrar anuncios sólo en páginas con contenido, nunca en lobby ni partida
+   (política de Google sobre pantallas sin contenido del editor).
+4. Con el contenido publicado e indexado, volver a pedir la revisión en AdSense →
+   Sitios → `trucazo.com.ar`.
+
+**Contexto de tráfico (análisis propio, 05/10 al 03/11):** 92 visitantes y 706
+páginas vistas por día en promedio; última semana 117 y 1.023. Más del 95% de
+Argentina. Estimación con AdSense aprobado y anuncios fuera de la partida: USD 5
+a 25 por mes. Se revisaron otras redes: Ezoic, Raptive y Mediavine no admiten el
+tamaño o el país del público actual; Adsterra y Monetag aceptan pero se
+desaconsejan por formatos invasivos que pueden afectar el posicionamiento.
+
+**Primer avance — 04/11/2026 (rama `claude/adsense-rechazo-poco-valor`, sin
+publicar todavía):**
+- Nueva guía `/como-ganar-al-truco` (unas 2.000 palabras): cómo medir la mano,
+  tabla de probabilidades del envido calculada sobre las 9.880 manos posibles
+  contra todas las del rival, la cuenta del «quiero», primera baza, truco,
+  mentiras, tanteador, parejas (simulación de 600.000 repartos), errores comunes
+  y preguntas frecuentes. Se suma a `PUBLIC_ROUTES` (sitemap, llms.txt y markdown
+  para agentes), a la portada, al pie de las guías y a «Cómo se juega».
+- `/truco-contra-computadora` pasa de ~300 a ~1.040 palabras, en la misma
+  dirección: cómo decide la computadora, los cinco estilos de la Ruta del
+  Noroeste, cómo los rivales difíciles leen el estilo del jugador, consejos y
+  preguntas frecuentes. Cada afirmación se contrastó con las funciones vigentes
+  en producción (`bot_step`, `_northwest_bot_step`, `_northwest_plan`,
+  `_bot_step_pre_noroeste`, `irse_al_mazo`), sin publicar umbrales exactos.
+- La portada suma también el enlace a «Envido, real envido y falta envido» para
+  que la grilla de guías quede pareja (seis tarjetas).
+- Verificado: `npm run build`, `npm run check:agentes`, ESLint sin errores
+  nuevos y vista a 360 px y 1280 px sin desborde horizontal.
+- No requiere SQL ni versión nueva de la app.
+- `/modo-historia-truco` decía 5 provincias; se corrige con los datos de
+  producción del 04/11 (`campaign_provinces` y `campaign_rivals`): 15 provincias,
+  66 rivales, tabla de puntos para entrar y monedas por victoria, requisitos de
+  Don Salvador, el Mudo (La Pampa) e Irene, la Antártica (noroeste). Si se suma
+  una provincia o cambian puntos o premios, actualizar esa tabla. Vista a 360 px
+  sin desborde.
+
+**Siguiente:** publicar (merge a `master`), esperar a que Google las rastree y
+seguir con una guía por semana. Candidatas: glosario del truco, manos de ejemplo
+explicadas, historia y variantes regionales. Recién con
+varias semanas de contenido nuevo, tildar «Confirmo que corregí los problemas» y
+**Solicitar revisión** en AdSense.

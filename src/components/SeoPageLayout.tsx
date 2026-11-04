@@ -116,6 +116,9 @@ export default function SeoPageLayout({
           <Link href="/calculadora-envido" className="hover:text-gold transition-colors">
             Calculadora de envido
           </Link>
+          <Link href="/como-ganar-al-truco" className="hover:text-gold transition-colors">
+            Cómo ganar al truco
+          </Link>
           <Link href="/acerca-de-trucazo" className="hover:text-gold transition-colors">
             Acerca de
           </Link>
