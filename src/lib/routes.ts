@@ -87,6 +87,15 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     frequency: 'monthly',
   },
   {
+    path: '/como-ganar-al-truco',
+    updated: '2026-11-04',
+    label: 'Cómo ganar al truco',
+    blurb: 'estrategia: con cuánto querer el envido, cuándo cantar truco y cómo mentir.',
+    group: 'guia',
+    priority: 0.8,
+    frequency: 'monthly',
+  },
+  {
     path: '/truco-dos-jugadores',
     updated: '2026-09-14',
     label: 'Truco para dos jugadores',
@@ -124,7 +133,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/truco-contra-computadora',
-    updated: '2026-09-15',
+    updated: '2026-11-04',
     label: 'Contra la computadora',
     blurb: 'partidas contra rivales controlados por la máquina.',
     group: 'jugar',

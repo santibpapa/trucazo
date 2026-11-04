@@ -2794,3 +2794,30 @@ Argentina. Estimación con AdSense aprobado y anuncios fuera de la partida: USD 
 a 25 por mes. Se revisaron otras redes: Ezoic, Raptive y Mediavine no admiten el
 tamaño o el país del público actual; Adsterra y Monetag aceptan pero se
 desaconsejan por formatos invasivos que pueden afectar el posicionamiento.
+
+**Primer avance — 04/11/2026 (rama `claude/adsense-rechazo-poco-valor`, sin
+publicar todavía):**
+- Nueva guía `/como-ganar-al-truco` (unas 2.000 palabras): cómo medir la mano,
+  tabla de probabilidades del envido calculada sobre las 9.880 manos posibles
+  contra todas las del rival, la cuenta del «quiero», primera baza, truco,
+  mentiras, tanteador, parejas (simulación de 600.000 repartos), errores comunes
+  y preguntas frecuentes. Se suma a `PUBLIC_ROUTES` (sitemap, llms.txt y markdown
+  para agentes), a la portada, al pie de las guías y a «Cómo se juega».
+- `/truco-contra-computadora` pasa de ~300 a ~1.040 palabras, en la misma
+  dirección: cómo decide la computadora, los cinco estilos de la Ruta del
+  Noroeste, cómo los rivales difíciles leen el estilo del jugador, consejos y
+  preguntas frecuentes. Cada afirmación se contrastó con las funciones vigentes
+  en producción (`bot_step`, `_northwest_bot_step`, `_northwest_plan`,
+  `_bot_step_pre_noroeste`, `irse_al_mazo`), sin publicar umbrales exactos.
+- La portada suma también el enlace a «Envido, real envido y falta envido» para
+  que la grilla de guías quede pareja (seis tarjetas).
+- Verificado: `npm run build`, `npm run check:agentes`, ESLint sin errores
+  nuevos y vista a 360 px y 1280 px sin desborde horizontal.
+- No requiere SQL ni versión nueva de la app.
+
+**Siguiente:** publicar (merge a `master`), esperar a que Google las rastree y
+seguir con una guía por semana. Candidatas: glosario del truco, manos de ejemplo
+explicadas, historia y variantes regionales. Además, `/modo-historia-truco` está
+desactualizada: nombra 5 provincias y hoy son 15 con 66 rivales. Recién con
+varias semanas de contenido nuevo, tildar «Confirmo que corregí los problemas» y
+**Solicitar revisión** en AdSense.

@@ -17,6 +17,7 @@
 - Novedades: sistema de campañas, tandas y bajas documentado. No hay autorización nueva para enviar mensajes.
 - Ciclo de retorno: código documentado como implementado; el registro de publicación original debe contrastarse con evidencia posterior antes de aplicar SQL o publicar.
 - SEO y páginas públicas: registro hasta el 24/08/2026. No se volvió a consultar Search Console ni a medir resultados durante esta reorganización.
+- **Contenido nuevo por el rechazo de AdSense, 04/11:** guía nueva `/como-ganar-al-truco` y ampliación de `/truco-contra-computadora` (rama `claude/adsense-rechazo-poco-valor`). Detalle, pruebas y próximos pasos en [Juego → Rechazo de AdSense](juego.md#adsense-rechazo-poco-valor).
 
 ## Próximo paso y cómo retomar
 

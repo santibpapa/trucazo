@@ -274,6 +274,13 @@ export default function ComoSeJuegaPage() {
           valor de la falta envido— antes de repartir. Las reglas de esta página valen para
           las dos modalidades del juego: mano a mano y en parejas.
         </p>
+        <p>
+          Cuando ya conozcas las reglas, seguí con la{' '}
+          <Link href="/como-ganar-al-truco" className="text-gold underline underline-offset-2">
+            guía de estrategia
+          </Link>
+          : con cuánto querer el envido, cuándo cantar truco y cómo mentir.
+        </p>
       </Section>
     </SeoPageLayout>
   )
