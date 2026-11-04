@@ -2071,7 +2071,7 @@ humanas, 144 con bot y 65 con persona.
 (`ensure_lobby_tables` mantiene 2 en espera). Por eso solían estar los 3 ocupados
 (2 esperando en su mesa y 1 jugando) y la mesa nueva de una persona no recibía bot.
 
-**Cambio preparado:** `supabase/migrations/20261104120000_lobby_bots_cuidamesas.sql`
+**Cambio aplicado en producción el 04/11** (el dueño corrió las dos migraciones en el SQL Editor; **no volver a ejecutarlas como pendiente**): `supabase/migrations/20261104120000_lobby_bots_cuidamesas.sql`
 agrega `lobby_bots.opens_tables` y dos cuentas (`b0710000-…-0004` y `…-0005`,
 `lobbyN@trucazo.bot`) que nunca abren mesa. `_free_lobby_bot(p_para_abrir)`
 prefiere a esos dos al sentarse; `ensure_lobby_tables` sólo usa los 3 de siempre.
@@ -2102,7 +2102,7 @@ en mesas a 15 y registra `situation = 'lobby'` en `bot_decisions`. `bot_step` la
 usa en partidas sin campaña contra un bot de lobby; Historia y torneos no
 cambian. Prueba local: 20 partidas completas (10 a 15 y 10 a 30), todas
 terminadas, 1.022 decisiones del cerebro nuevo, ninguna del viejo y 0 errores;
-la prueba SQL lo controla en CI.
+la prueba SQL lo controla en CI. **Comprobación en producción:** 5 bots en `lobby_bots` (3 abren mesas, `agustinlp` y `rodri` no), `_free_lobby_bot` y `_lobby_bot_act` sin permiso para clientes, `bot_step` sigue disponible para jugadores. En partidas reales del lobby, la última decisión del cerebro viejo fue a las 08:22:18 UTC y desde las 08:22:23 todas son `lobby`, sin errores.
 
 <a id="nombres-bots-lobby"></a>
 
