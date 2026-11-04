@@ -1,16 +1,18 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Alert, Avatar, Button, buttonClass, cn, Input, Panel } from '@/components/ui'
 import CheckInNotice, { type RegisterChoice } from '@/components/tournaments/CheckInNotice'
 import Competition from '@/components/tournaments/Competition'
 import {
+  CalendarIcon,
   CapacityBar,
   CheckIcon,
   ChevronIcon,
   ClockIcon,
+  PartnerSuggestions,
   PlaceMedal,
   StepTrack,
   TrophyIcon,
@@ -25,6 +27,7 @@ import {
   TOURNAMENT_FORMAT_LABEL,
   TOURNAMENT_MODE_LABEL,
   TOURNAMENT_PHASE_LABEL,
+  tournamentCalendarUrl,
   tournamentCheckInOpensAt,
   tournamentCheckInState,
   tournamentDateTile,
@@ -34,12 +37,15 @@ import {
   tournamentApi,
   type TournamentDetailData,
   type TournamentEntrySnapshot,
+  type TournamentLiveScore,
   type TournamentMember,
+  type TournamentRecentPartner,
 } from '@/lib/tournaments'
 
 type BusyAction = 'register' | 'invite' | 'accept' | 'reject' | 'withdraw' | 'checkin' | null
 type Tab = 'resumen' | 'llave' | 'jugadores'
 type Match = TournamentDetailData['matches'][number]
+type LiveScores = Record<string, { score_a: number; score_b: number }>
 
 export default function TournamentDetail({
   initialDetail,
@@ -69,17 +75,36 @@ export default function TournamentDetail({
   // Inscripción esperando que la persona lea y acepte el aviso del check-in.
   const [notice, setNotice] = useState<'register' | 'accept' | null>(null)
   const [tab, setTab] = useState<Tab>(initialDetail.matches.length ? 'llave' : 'resumen')
+  const [liveScores, setLiveScores] = useState<LiveScores>({})
+  const [partners, setPartners] = useState<TournamentRecentPartner[] | null>(null)
+  // El marcador en vivo sólo se pide mientras el torneo se está jugando.
+  const running = useRef(initialDetail.tournament.status === 'running')
+  running.current = detail.tournament.status === 'running'
+
+  const loadLiveScores = useCallback(async () => {
+    if (isGuest) return
+    const result = await api.liveScores(initialDetail.tournament.id)
+    // Sin la migración de la etapa 2 la llamada falla: la llave sigue sin puntos en vivo.
+    if (result.error || !Array.isArray(result.data)) return
+    setLiveScores(Object.fromEntries((result.data as TournamentLiveScore[])
+      .map(item => [item.match_id, { score_a: item.score_a, score_b: item.score_b }])))
+  }, [api, initialDetail.tournament.id, isGuest])
 
   const refresh = useCallback(async (quiet = true) => {
     if (document.visibilityState === 'hidden') return
     const [detailResult, entryResult] = await Promise.all([
       api.detail(initialDetail.tournament.id),
       api.myEntry(initialDetail.tournament.id),
+      running.current ? loadLiveScores() : Promise.resolve(),
     ])
     if (detailResult.data) setDetail(detailResult.data as TournamentDetailData)
     if (!entryResult.error) setEntry((entryResult.data as TournamentEntrySnapshot | null) ?? null)
     if (!quiet && detailResult.error) setError('No pudimos actualizar el torneo. Reintentá.')
-  }, [api, initialDetail.tournament.id])
+  }, [api, initialDetail.tournament.id, loadLiveScores])
+
+  useEffect(() => {
+    if (running.current) void loadLiveScores()
+  }, [loadLiveScores])
 
   useEffect(() => {
     const polling = window.setInterval(() => void refresh(), 8_000)
@@ -114,6 +139,16 @@ export default function TournamentDetail({
     const ticker = window.setInterval(() => setNow(Date.now()), 1_000)
     return () => window.clearInterval(ticker)
   }, [needsSeconds])
+
+  // Compañeros recientes para parejas: se piden una vez, cuando hay que elegir con quién jugar.
+  const wantsPartners = !isGuest && tournament.mode === '2v2' && registrationOpen
+    && (notice === 'register' || (entry?.entry.kind === 'solo' && myMember?.status === 'accepted'))
+  useEffect(() => {
+    if (!wantsPartners || partners !== null) return
+    void api.recentPartners().then(result => {
+      setPartners(!result.error && Array.isArray(result.data) ? result.data as TournamentRecentPartner[] : [])
+    })
+  }, [api, partners, wantsPartners])
 
   const runMutation = useCallback(async (
     action: Exclude<BusyAction, null>,
@@ -333,6 +368,8 @@ export default function TournamentDetail({
           callMatch={callMatch}
           myEntryId={myEntryId}
           partnerName={partnerName}
+          recentPartners={partners ?? []}
+          liveScores={liveScores}
           busy={busy}
           enteringMatchId={enteringMatchId}
           waitingMatchId={waitingMatchId}
@@ -376,7 +413,7 @@ export default function TournamentDetail({
 
         {tab === 'llave' && (
           detail.matches.length ? (
-            <Competition detail={detail} canSpectate={!isGuest} myEntryId={myEntryId} />
+            <Competition detail={detail} canSpectate={!isGuest} myEntryId={myEntryId} liveScores={liveScores} />
           ) : (
             <Panel className="p-6 text-center">
               <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gold-soft text-gold"><TrophyIcon size={24} /></span>
@@ -418,6 +455,7 @@ export default function TournamentDetail({
         checkInOpen={checkInState === 'open'}
         partnerName={partnerName}
         onPartnerNameChange={setPartnerName}
+        recentPartners={partners ?? []}
         busy={busy !== null}
         onClose={() => setNotice(null)}
         onConfirm={(choice: RegisterChoice) => {
@@ -448,6 +486,8 @@ function StatusPanel({
   callMatch,
   myEntryId,
   partnerName,
+  recentPartners,
+  liveScores,
   busy,
   enteringMatchId,
   waitingMatchId,
@@ -472,6 +512,8 @@ function StatusPanel({
   callMatch: Match | undefined
   myEntryId: string | null
   partnerName: string
+  recentPartners: TournamentRecentPartner[]
+  liveScores: LiveScores
   busy: BusyAction
   enteringMatchId: string | null
   waitingMatchId: string | null
@@ -509,6 +551,7 @@ function StatusPanel({
         match={callMatch}
         myEntryId={myEntryId}
         now={now}
+        live={liveScores[callMatch.id]}
         entering={enteringMatchId === callMatch.id}
         waiting={waitingMatchId === callMatch.id}
         disabled={!!enteringMatchId}
@@ -624,7 +667,8 @@ function StatusPanel({
         <StepTrack steps={steps} className="mt-5" />
 
         {mode === '2v2' && entry.entry.kind === 'solo' && !pendingPartner && registrationOpen && (
-          <div className="mt-5 border-t border-line pt-4">
+          <div className="mt-5 space-y-3 border-t border-line pt-4">
+            <PartnerSuggestions partners={recentPartners} selectedName={partnerName} onPick={onPartnerNameChange} />
             <Input
               label="Invitar compañero por nombre de usuario"
               name="partner"
@@ -634,10 +678,21 @@ function StatusPanel({
               autoComplete="off"
               placeholder="Escribilo tal cual"
             />
-            <Button className="mt-2" variant="secondary" onClick={onInvite} disabled={busy !== null || !partnerName.trim()}>
+            <Button variant="secondary" onClick={onInvite} disabled={busy !== null || !partnerName.trim()}>
               {busy === 'invite' ? 'Enviando…' : 'Enviar invitación'}
             </Button>
           </div>
+        )}
+
+        {checkInState === 'not_open' && !waitlisted && (
+          <a
+            href={tournamentCalendarUrl(tournament)}
+            target="_blank"
+            rel="noreferrer"
+            className={cn(buttonClass('ghost', 'md', true), 'mt-5')}
+          >
+            <CalendarIcon />Agregar a mi calendario
+          </a>
         )}
 
         {checkInState === 'not_open' && (
@@ -749,6 +804,7 @@ function MatchCall({
   match,
   myEntryId,
   now,
+  live,
   entering,
   waiting,
   disabled,
@@ -758,6 +814,7 @@ function MatchCall({
   match: Match
   myEntryId: string
   now: number
+  live?: { score_a: number; score_b: number }
   entering: boolean
   waiting: boolean
   disabled: boolean
@@ -797,6 +854,14 @@ function MatchCall({
           <b className="max-w-full truncate text-[15px] text-cream">{rivalName}</b>
         </div>
       </div>
+
+      {playing && live && (
+        <p className="mt-4 text-sm text-cream/90">
+          Van <b className="mx-1 font-display text-[26px] font-extrabold text-gold tabular">
+            {match.side_a_entry_id === myEntryId ? live.score_a : live.score_b} a {match.side_a_entry_id === myEntryId ? live.score_b : live.score_a}
+          </b>
+        </p>
+      )}
 
       {!playing && left !== null && (
         <div className="mt-5 space-y-2">

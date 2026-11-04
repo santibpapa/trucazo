@@ -52,7 +52,8 @@ declare
     'tournament_admin_disqualify', 'tournament_enter_match',
     'tournament_ready_match', 'tournament_notifications_list',
     'tournament_notification_read', 'tournament_spectator_snapshot',
-    'tournament_admin_monitor', 'tournament_admin_retry_email'
+    'tournament_admin_monitor', 'tournament_admin_retry_email',
+    'tournament_live_scores', 'tournament_recent_partners'
   ];
   v_bad text[];
   v_owner record;

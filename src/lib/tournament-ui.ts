@@ -165,6 +165,24 @@ export function formatCountdown(milliseconds: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
+const compactUtc = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+
+/**
+ * Enlace para agendar en Google Calendar la ventana de «Estoy listo»: desde
+ * que abre la confirmación hasta la hora de inicio.
+ */
+export function tournamentCalendarUrl(tournament: Pick<Tournament, 'id' | 'name' | 'starts_at'>): string {
+  const opensAt = tournamentCheckInOpensAt(tournament.starts_at)
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `${tournament.name} · Trucazo`,
+    dates: `${compactUtc(opensAt)}/${compactUtc(tournament.starts_at)}`,
+    details: `Entrá a Trucazo y tocá «Estoy listo» entre las ${formatTournamentTime(opensAt)} y las ${formatTournamentTime(tournament.starts_at)} (hora de Argentina). Si no, podés perder tu lugar.\nhttps://www.trucazo.com.ar/torneos/${tournament.id}`,
+    ctz: ARGENTINA_TZ,
+  })
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
 export function isoToArgentinaInput(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''

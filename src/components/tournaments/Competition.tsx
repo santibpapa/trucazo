@@ -24,14 +24,27 @@ const SHORT_LABEL: Record<(typeof KNOCKOUT_PHASES)[number], string> = {
  * de eliminación con líneas entre cruces. En el teléfono se ve de a dos rondas.
  */
 export default function Competition({
-  detail,
+  detail: source,
   myEntryId = null,
   canSpectate = true,
+  liveScores,
 }: {
   detail: TournamentDetailData
   myEntryId?: string | null
   canSpectate?: boolean
+  /** Puntos de los cruces en juego, por id de cruce (etapa 2). */
+  liveScores?: Record<string, { score_a: number; score_b: number }>
 }) {
+  // Mientras se juega, el cruce todavía no tiene resultado: se muestran los puntos de la mesa.
+  const detail = liveScores
+    ? {
+        ...source,
+        matches: source.matches.map(match => {
+          const live = match.status === 'playing' ? liveScores[match.id] : undefined
+          return live ? { ...match, score_a: live.score_a, score_b: live.score_b } : match
+        }),
+      }
+    : source
   const people = new Map<string, Person>(detail.competition_entries.map(item => [item.entry_id, item]))
   const rounds = KNOCKOUT_PHASES
     .map(phase => ({
@@ -314,7 +327,7 @@ function myPath(
         ? { label, detail: absence ? 'Por ausencia' : `Ganaste${score}`, state: 'done' }
         : { label, detail: absence ? 'Ausente' : `Perdiste${score}`, state: 'todo' }
     }
-    if (match.status === 'playing') return { label, detail: 'En juego', state: 'now' }
+    if (match.status === 'playing') return { label, detail: score ? `Vas${score}` : 'En juego', state: 'now' }
     if (match.status === 'ready') return { label, detail: 'Entrá ya', state: 'now' }
     return { label, detail: 'Próxima', state: 'todo' }
   })

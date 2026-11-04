@@ -157,6 +157,21 @@ export interface TournamentDetailData {
   }>
 }
 
+/** Puntos de un cruce que se está jugando (lado A y lado B). */
+export interface TournamentLiveScore {
+  match_id: string
+  score_a: number
+  score_b: number
+}
+
+/** Alguien con quien jugaste hace poco, para invitarlo en parejas. */
+export interface TournamentRecentPartner {
+  id: string
+  username: string
+  avatar_url: string | null
+  played_at: string
+}
+
 export interface TournamentDraftInput {
   name: string
   description: string
@@ -203,6 +218,12 @@ export function tournamentApi(client: SupabaseClient) {
     myEntry: (tournamentId: string) => client.rpc('tournament_my_entry', {
       p_tournament_id: tournamentId,
     }),
+    // Etapa 2 (20261104150000): si la migración todavía no se aplicó, devuelven
+    // error y las pantallas siguen sin marcador en vivo ni sugerencias.
+    liveScores: (tournamentId: string) => client.rpc('tournament_live_scores', {
+      p_tournament_id: tournamentId,
+    }),
+    recentPartners: () => client.rpc('tournament_recent_partners'),
     adminCreate: (requestId: string, input: TournamentDraftInput, publish = false) =>
       client.rpc('tournament_admin_create', {
         ...draftRpcArgs(requestId, input),

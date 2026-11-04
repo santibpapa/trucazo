@@ -1,5 +1,6 @@
-import { cn } from '@/components/ui'
+import { Avatar, cn } from '@/components/ui'
 import type { TournamentDateTile } from '@/lib/tournament-ui'
+import type { TournamentRecentPartner } from '@/lib/tournaments'
 
 /** Piezas visuales compartidas por la central y el detalle de torneos. Sólo presentación. */
 
@@ -145,5 +146,55 @@ export function PlaceMedal({ place, size = 34 }: { place: 1 | 2 | 3; size?: numb
     >
       {place}
     </span>
+  )
+}
+
+/** «Jugaste hace poco con»: un toque elige al compañero sin escribir su nombre. */
+export function PartnerSuggestions({
+  partners,
+  selectedName,
+  onPick,
+}: {
+  partners: TournamentRecentPartner[]
+  selectedName: string
+  onPick: (username: string) => void
+}) {
+  if (!partners.length) return null
+  const selected = selectedName.trim().toLocaleLowerCase('es-AR')
+  return (
+    <div>
+      <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Jugaste hace poco con</p>
+      <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1">
+        {partners.map(partner => {
+          const on = partner.username.toLocaleLowerCase('es-AR') === selected
+          return (
+            <button
+              key={partner.id}
+              type="button"
+              aria-pressed={on}
+              onClick={() => onPick(partner.username)}
+              className={cn(
+                'flex min-h-11 shrink-0 items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
+                on ? 'border-gold bg-gold-soft text-cream' : 'border-line bg-surface2 text-cream/90 hover:border-gold-700',
+              )}
+            >
+              <Avatar url={partner.avatar_url} name={partner.username} size={32} />
+              <span className="max-w-[9rem] truncate">{partner.username}</span>
+              {on && <CheckIcon size={14} className="text-gold" />}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+export function CalendarIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="4.5" width="18" height="17" rx="3" />
+      <path d="M8 2.5v4M16 2.5v4M3 10h18M12 13.5v5M9.5 16h5" />
+    </svg>
   )
 }

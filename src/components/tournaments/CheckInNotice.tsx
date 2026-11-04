@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { Button, cn, Input, Modal } from '@/components/ui'
-import { DateTile } from '@/components/tournaments/TournamentParts'
+import { DateTile, PartnerSuggestions } from '@/components/tournaments/TournamentParts'
 import {
   formatTournamentTime,
   tournamentCheckInOpensAt,
   tournamentDateTile,
 } from '@/lib/tournament-ui'
-import type { TournamentMode } from '@/lib/tournaments'
+import type { TournamentMode, TournamentRecentPartner } from '@/lib/tournaments'
 
 const WAIT_SECONDS = 5
 
@@ -28,6 +28,7 @@ export default function CheckInNotice({
   checkInOpen,
   partnerName,
   onPartnerNameChange,
+  recentPartners = [],
   busy,
   onConfirm,
   onClose,
@@ -41,6 +42,8 @@ export default function CheckInNotice({
   checkInOpen: boolean
   partnerName: string
   onPartnerNameChange: (value: string) => void
+  /** Personas con las que jugó hace poco (etapa 2); vacío si no hay o no cargó. */
+  recentPartners?: TournamentRecentPartner[]
   busy: boolean
   onConfirm: (choice: RegisterChoice) => void
   onClose: () => void
@@ -121,7 +124,8 @@ export default function CheckInNotice({
             />
           </div>
           {inviting ? (
-            <div>
+            <div className="space-y-3">
+              <PartnerSuggestions partners={recentPartners} selectedName={partnerName} onPick={onPartnerNameChange} />
               <Input
                 label="Nombre de usuario de tu compañero"
                 name="partner"
@@ -131,7 +135,7 @@ export default function CheckInNotice({
                 autoComplete="off"
                 placeholder="Escribilo tal cual"
               />
-              <p className="mt-2 text-[13px] leading-snug text-muted">
+              <p className="text-[13px] leading-snug text-muted">
                 Tu lugar queda guardado desde ya. Si no acepta a tiempo, te toca alguien al azar.
               </p>
             </div>
