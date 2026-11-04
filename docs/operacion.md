@@ -4,6 +4,7 @@
 
 ## Estado actual
 
+- **Cuotas de Supabase, 04/11:** salida de datos 4,49 de 5 GB con ~0,4 GB/día y período del 21 al 21: este ciclo se excede igual. Preparada `20261104160000_cuotas_realtime_limpieza.sql` (Realtime de `games` sin fila anterior; limpieza diaria de historial de cron y decisiones de bots). Autorizada por el dueño; **todavía sin aplicar** (la confirmación de Supabase venció). Ver [diagnóstico](#cuotas-2026-11-04).
 - **Lentitud y plan gratuito de Supabase, 03/11:** diagnóstico con datos de producción, arreglos de entrada y reducción de pedidos de la mesa (≈75 % menos en una mesa quieta) para seguir en el plan gratuito. Sin SQL ni versión nueva de la app. Publicado y comprobado en producción el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157)). Pendiente del dueño: cerrar el emulador Android que quedó abierto contra producción y revisar el congelamiento del 02/11. Ver [diagnóstico](#lentitud-2026-11-03).
 - **Producción web = `master` otra vez, 30/10:** del 27 al 30/10 Vercel publicó desde la rama Android (`575bedc`, después `8e90f9d`). El [PR #147](https://github.com/santibpapa/trucazo/pull/147) integra esa rama a `master`. Nunca volver a publicar producción desde otra rama: ver [AGENTS.md](../AGENTS.md).
 - **Controles discretos publicados,27/10:** web en `8e90f9d`, tres puntos en chats/mesas, opciones utilizables dentro de la ventana del chat y serviciosAndroid conservados. [Registro de publicación](#controles-discretos-2026-10-27).
@@ -104,6 +105,25 @@ Si alguna gráfica toca el techo en ese rango, la base chica se quedó sin recur
 **Para el dueño, al despertar:** cerrar el emulador Android de la PC (o la app Trucazo dentro de él) cuando no se esté probando.
 
 **Publicado y comprobado — 03/11/2026, 03:10 UTC:** [PR #157](https://github.com/santibpapa/trucazo/pull/157) integrado a `master` (`dde92c0`) con todo el CI en verde, incluida la prueba nueva. Producción: `/`, `/login` y guías 200; `/lobby`, `/admin` y `/game/…` sin sesión o con cookie inválida → `/login`; `/api/android/historia` sin sesión 401. Recorrido real con un invitado nuevo y un duelo de Historia contra Tobías (no se usó la única mesa pública, que era de una persona): lobby en 3,1 s y mesa en 1,3 s medidos desde Estados Unidos; 20 s de espera en el propio turno = 4 lecturas de partida, **0 de mano** y 2 latidos; cinco cartas jugadas con la mano correcta en cada paso y en dos repartos nuevos; cero errores de página. Registros de Supabase posteriores a la publicación: cero 5xx y cero 401/403. El emulador seguía activo (~460 pedidos cada 5 minutos). No se aplicó SQL.
+
+<a id="cuotas-2026-11-04"></a>
+
+## Salida de datos y peso de la base — 04/11/2026
+
+**Captura del dueño (período del 21/10 al 21/11):** egress 4,49 de 5 GB (4,10 el 03/11), log ingestion 2,69 de 1 GB, base 265 de 500 MB (253 el 03/11), 264 usuarios activos.
+
+**Medido en producción (sólo lectura, 24 h):**
+
+- Pedidos HTTP: ~90.700 (eran ~206.000 antes del [PR #157](https://github.com/santibpapa/trucazo/pull/157)); el emulador `androidqa3` ya no figura. Encabezan `game_hands` 15.600, `games` 12.200, `bot_step` 9.900, `touch_presence` 9.600, `play_card` 5.400. Las respuestas son chicas: no explican 0,4 GB/día.
+- Registros: 72 % pedidos HTTP, 23 % Postgres, casi todo «cron job N starting/completed» (`native_push` cada 15 s y cinco tareas por minuto, ~28.000 líneas/día).
+- `games` estaba en **REPLICA IDENTITY FULL** (configurado fuera del repo): cada `UPDATE` viaja por Realtime con la fila nueva, la anterior completa y la lista de 34 columnas, a cada jugador. Muestra: 21 `UPDATE` en 36 s a las 10:52 de Argentina. Es la causa más probable del egress; estimación, no medición directa. Los clientes sólo usan `payload.new`.
+- Base: `cron.job_run_details` 84 MB (467.000 filas desde junio, nunca se limpió) y `bot_decisions` 73 MB (30 días, ~10.000 filas/día). Explican casi todo el crecimiento diario.
+
+**Preparado:** [`20261104160000_cuotas_realtime_limpieza.sql`](../supabase/migrations/20261104160000_cuotas_realtime_limpieza.sql): `games` a REPLICA IDENTITY DEFAULT (TOAST de `games` vacío, comprobado), limpieza diaria de cron (2 días) y de `bot_decisions` (7 días) y primera limpieza. No toca reglas del juego ni necesita versión nueva de la app.
+
+**Estado:** el dueño autorizó aplicarla; el primer intento quedó sin efecto porque la confirmación de Supabase no se respondió a tiempo. **Sin aplicar.**
+
+**Pendiente / propuestas:** aun con el ahorro, este ciclo excede la cuota de egress (≈17 días restantes); decisión del dueño entre Pro temporal o asumir el riesgo de restricción. Siguientes reducciones: juntar las tareas cron por minuto en una, no releer la mano al tirar una carta propia (el cliente ya la filtra con `played_cards`), y mandar por Realtime sólo los campos que usa la mesa (requiere versión nueva de la app).
 
 <a id="node-seguridad-2026-10-21"></a>
 
