@@ -9,7 +9,7 @@ import { chromium } from 'playwright'
 
 // Cuenta los pedidos de la mesa 1v1 con un Supabase simulado y un reloj
 // controlado: cada pedido de la mesa es un registro que cobra Supabase.
-// La mano sólo se relee cuando cambia; el respaldo se espacia con Realtime
+// La mano sólo se relee al repartir; el respaldo se espacia con Realtime
 // conectado, vuelve a 2,5 s sin él y se detiene con la pantalla oculta.
 const root = process.cwd(), folder = await mkdtemp(path.join(tmpdir(), 'trucazo-polling-'))
 const fixtureFile = path.join(folder, 'responses.json')
@@ -76,6 +76,11 @@ try {
   const report = {}
   report.connected30s = await delta(() => page.clock.runFor(30_000))
   report.rivalMove = await delta(async () => { await next({ truco_state: { ...fixture.before.truco_state } }); await page.clock.runFor(100) })
+  const myCard = fixture.hand.find(card => !fixture.before.played_cards.some(pc => pc.player_id === fixture.user && pc.card.suit === card.suit && pc.card.value === card.value))
+  report.ownCard = await delta(async () => {
+    await next({ played_cards: [...fixture.before.played_cards, { player_id: fixture.user, card: myCard, round: fixture.before.round_number }] })
+    await page.clock.runFor(100)
+  })
   const newHand = [{ value: 1, suit: 'basto' }, { value: 2, suit: 'basto' }, { value: 3, suit: 'basto' }]
   report.newDeal = await delta(async () => {
     await page.evaluate(hand => { window.__hand = hand }, newHand)
@@ -89,9 +94,10 @@ try {
   })
   console.log(JSON.stringify(report, null, 2))
   if (!baseline) {
-    assert.ok(report.connected30s.games >= 5 && report.connected30s.games <= 7, 'Con Realtime conectado el respaldo pregunta cada ~5 s')
+    assert.ok(report.connected30s.games >= 1 && report.connected30s.games <= 3, 'Con Realtime conectado el respaldo pregunta cada ~15 s')
     assert.equal(report.connected30s.game_hands, 0, 'Sin cambios de mano no se relee la mano')
     assert.equal(report.rivalMove.game_hands, 0, 'Una jugada del rival no cambia mis cartas')
+    assert.equal(report.ownCard.game_hands, 0, 'Jugar una carta propia no relee la mano')
     assert.equal(report.newDeal.game_hands, 1, 'Un reparto nuevo relee la mano una vez')
     assert.ok(report.disconnected10s.games >= 3, 'Sin Realtime el respaldo vuelve a 2,5 s')
     assert.deepEqual(report.hidden20s, { games: 0, game_hands: 0 }, 'Con la pantalla oculta no se pregunta nada')

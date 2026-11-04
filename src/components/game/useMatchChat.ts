@@ -115,7 +115,8 @@ export function useMatchChat(mode: 'game' | 'team', matchId: string, open: boole
     document.addEventListener('visibilitychange', recover)
     window.addEventListener('focus', recover)
     window.addEventListener('community:safety-changed', recover)
-    const poll = setInterval(recover, 15000)
+    // Sólo pregunta con Realtime listo: es el respaldo por si se pierde un aviso.
+    const poll = setInterval(recover, 60000)
     return () => {
       alive = false
       clearReadyTimer()

@@ -127,7 +127,15 @@ Si alguna gráfica toca el techo en ese rango, la base chica se quedó sin recur
 
 **Medido después del cambio:** ~1 `UPDATE` de `games` por acción de juego (1.329 contra 1.353 acciones entre 13:53 y 16:05 UTC); juntar actualizaciones no ahorraría nada. ~25.000 acciones/día ≈ 40.000 mensajes de Realtime/día (las partidas contra bots tienen un solo oyente), por debajo de la cuota de 2 millones/mes.
 
-**Propuestas:** cada pedido HTTP cuesta ~1 KB de cabeceras aunque la respuesta sea chica, así que bajar pedidos también baja egress: no releer la mano al tirar una carta propia (el cliente ya la filtra con `played_cards`, ~10.000/día); chat de mesa cada 60 s en vez de 15 s con Realtime conectado (~4.000/día hoy); respaldo de la partida cada 15 s en vez de 5 s con Realtime conectado (~12.000/día hoy). Juntar las tareas cron por minuto en una (registros). Más grande: mandar por Realtime sólo los campos que usa la mesa (requiere versión nueva de la app). Pedido al dueño: captura de Usage → Egress para ver qué servicio consume más.
+**Recortes de pedidos aplicados en código, 04/11 (aprobados por el dueño):**
+
+1. `GameClient.tsx`: la mano se relee sólo al repartir (clave `mano:reparto`); la carta propia jugada ya la quita `myCards` contra `played_cards`.
+2. `GameClient.tsx`: respaldo de la partida cada ~15 s con Realtime conectado (era ~5 s); sin Realtime sigue en 2,5 s y con la pantalla oculta no pregunta.
+3. `useMatchChat.ts`: respaldo del chat de mesa cada 60 s (era 15 s); sólo corre con Realtime listo, y al volver a la pantalla relee igual.
+
+Costo aceptado: si un aviso de Realtime se pierde, la jugada puede tardar hasta ~15 s y un mensaje de chat hasta 60 s. Ahorro esperado ~22.000 pedidos/día (estimado con las cifras del 04/11). Comprobado: `check-game-polling-browser.mjs` con un caso nuevo (jugar una carta propia no relee la mano; falla con el código anterior), 30 s quieto = 2 lecturas de partida y 0 de mano; chat (unitaria y navegador en 1v1/2vs2 y tres tamaños), recuperación de envido (13), presencia (4); tipos sin errores nuevos (los 31 previos son dependencias de `apps/mobile` y el manifiesto generado de Historia, ausentes en este entorno); ESLint con las seis advertencias previas. La web lo recibe al integrar a `master`; la app, en la próxima versión, y las versiones instaladas siguen funcionando igual que hoy. **Pendiente:** medir pedidos y egress un día después de publicar.
+
+**Otras propuestas:** cada pedido HTTP cuesta ~1 KB de cabeceras aunque la respuesta sea chica, así que bajar pedidos también baja egress. Juntar las tareas cron por minuto en una (registros). Más grande: mandar por Realtime sólo los campos que usa la mesa (requiere versión nueva de la app). Pedido al dueño: captura de Usage → Egress para ver qué servicio consume más.
 
 <a id="node-seguridad-2026-10-21"></a>
 
