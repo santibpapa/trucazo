@@ -130,8 +130,8 @@ export default function ContraComputadoraPage() {
       <Section title="Cinco estilos de rival">
         <p>
           En la Ruta del Noroeste del Modo Historia (La Rioja, Catamarca, Tucumán, Salta
-          y Jujuy), cada rival juega con uno de estos estilos. Conocerlo te dice qué
-          esperar de sus cantos:
+          y Jujuy), cada rival juega con uno de estos estilos, y los bots del lobby
+          también. Conocerlo te dice qué esperar de sus cantos:
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           {estilos.map(({ nombre, texto }) => (
