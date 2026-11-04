@@ -218,6 +218,9 @@ jobs:
       - name: Anuncios de torneos, reprogramación y cupo diario
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournament_announcement_delivery.sql
 
+      - name: Marcador en vivo de la llave y compañeros recientes
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tournaments_live_partners.sql
+
       - name: Pardas, ganador de la primera y cierre de campaña
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/tercera_parda.sql
 

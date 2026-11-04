@@ -1,5 +1,6 @@
 import type {
   Tournament,
+  TournamentDetailData,
   TournamentDraftInput,
   TournamentFormat,
   TournamentMode,
@@ -36,6 +37,16 @@ export const TOURNAMENT_STATUS_LABEL: Record<TournamentStatus, string> = {
   running: 'En juego',
   completed: 'Finalizado',
   cancelled: 'Cancelado',
+}
+
+export const TOURNAMENT_PHASE_LABEL: Record<TournamentDetailData['matches'][number]['phase'], string> = {
+  group: 'Grupos',
+  round_of_32: 'Dieciseisavos',
+  round_of_16: 'Octavos',
+  quarterfinal: 'Cuartos',
+  semifinal: 'Semifinal',
+  third_place: 'Tercer puesto',
+  final: 'Final',
 }
 
 const ARGENTINA_TZ = 'America/Argentina/Buenos_Aires'
@@ -77,6 +88,99 @@ export function formatTournamentTime(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso
   return argentinaTime.format(date).replace(/\u202f|\u00a0/g, ' ')
+}
+
+const argentinaTileParts = new Intl.DateTimeFormat('es-AR', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+  timeZone: ARGENTINA_TZ,
+})
+
+const argentinaDayKey = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  timeZone: ARGENTINA_TZ,
+})
+
+export interface TournamentDateTile {
+  /** "SÁB" */
+  weekday: string
+  /** "8" */
+  day: string
+  /** "nov" */
+  month: string
+  /** "18:00" */
+  time: string
+  /** "Hoy" o "Mañana" cuando corresponde, en hora argentina. */
+  relative: 'Hoy' | 'Mañana' | null
+}
+
+/** Partes de la fecha para el calendarito de las tarjetas, siempre en hora argentina. */
+export function tournamentDateTile(iso: string, now = Date.now()): TournamentDateTile {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return { weekday: '', day: '', month: '', time: iso, relative: null }
+  const parts = Object.fromEntries(
+    argentinaTileParts.formatToParts(date).map(part => [part.type, part.value]),
+  )
+  const clean = (value: string | undefined) => (value ?? '').replace(/\./g, '').trim()
+  const key = argentinaDayKey.format(date)
+  const relative = key === argentinaDayKey.format(new Date(now))
+    ? 'Hoy'
+    : key === argentinaDayKey.format(new Date(now + 24 * 60 * 60 * 1000)) ? 'Mañana' : null
+  return {
+    weekday: clean(parts.weekday).toLocaleUpperCase('es-AR'),
+    day: clean(parts.day),
+    month: clean(parts.month),
+    time: formatTournamentTime(iso),
+    relative,
+  }
+}
+
+/** Hora en que abre la confirmación de presencia: 30 minutos antes del inicio. */
+export function tournamentCheckInOpensAt(startsAt: string): string {
+  const start = new Date(startsAt).getTime()
+  if (!Number.isFinite(start)) return startsAt
+  return new Date(start - 30 * 60 * 1000).toISOString()
+}
+
+/** Texto corto de cuánto falta: "Faltan 12 min", "Faltan 3 días". */
+export function tournamentTimeUntil(iso: string, now: number): string {
+  const difference = new Date(iso).getTime() - now
+  if (difference <= 0) return 'Horario de inicio alcanzado'
+  const minutes = Math.ceil(difference / 60_000)
+  if (minutes < 60) return `Faltan ${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `Faltan ${hours} h ${minutes % 60} min`
+  const days = Math.floor(hours / 24)
+  return `Faltan ${days} ${days === 1 ? 'día' : 'días'}`
+}
+
+/** Reloj "m:ss" para cuentas regresivas cortas. Nunca baja de 0:00. */
+export function formatCountdown(milliseconds: number): string {
+  const total = Math.max(0, Math.ceil(milliseconds / 1000))
+  const minutes = Math.floor(total / 60)
+  const seconds = total % 60
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
+const compactUtc = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+
+/**
+ * Enlace para agendar en Google Calendar la ventana de «Estoy listo»: desde
+ * que abre la confirmación hasta la hora de inicio.
+ */
+export function tournamentCalendarUrl(tournament: Pick<Tournament, 'id' | 'name' | 'starts_at'>): string {
+  const opensAt = tournamentCheckInOpensAt(tournament.starts_at)
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `${tournament.name} · Trucazo`,
+    dates: `${compactUtc(opensAt)}/${compactUtc(tournament.starts_at)}`,
+    details: `Entrá a Trucazo y tocá «Estoy listo» entre las ${formatTournamentTime(opensAt)} y las ${formatTournamentTime(tournament.starts_at)} (hora de Argentina). Si no, podés perder tu lugar.\nhttps://www.trucazo.com.ar/torneos/${tournament.id}`,
+    ctz: ARGENTINA_TZ,
+  })
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
 }
 
 export function isoToArgentinaInput(iso: string): string {

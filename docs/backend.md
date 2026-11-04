@@ -343,6 +343,11 @@ grupos, pases directos, ausencias, pausa y reanudación, resultado repetido,
 apuesta cero, revancha prohibida y bloqueo de mesas normales incluso al comenzar
 una 2v2 ya armada. También cubre reemplazos tardíos con check-in, descalificación
 después de grupos, dos descalificados en semifinales e historial de nombres.
+`tournaments_live_partners.sql` comprueba las dos funciones de lectura de la
+etapa 2 de torneos (04/11/2026): marcador en vivo de la llave (lado A = jugador 1
+o equipo 0; nada para invitados, borradores ni torneos inexistentes) y
+compañeros recientes (orden por la partida más nueva; fuera bots, invitados,
+cuentas de prueba, bloqueos y partidas de hace más de 60 días).
 
 La prueba ranking_emails.sql comprueba que un cambio de podio avise a todos los
 puestos afectados, que cada jugador tenga un máximo de un correo cada 24 horas
@@ -372,6 +377,7 @@ psql -f supabase/tests/ciclo_retorno.sql
 psql -f supabase/tests/tournaments.sql
 psql -f supabase/tests/tournaments_competition.sql
 psql -f supabase/tests/tournaments_delete.sql
+psql -f supabase/tests/tournaments_live_partners.sql
 psql -f supabase/tests/match_chat.sql
 supabase/tests/match_chat_concurrency.sh
 supabase/tests/tournaments_concurrency.sh

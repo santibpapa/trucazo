@@ -5,7 +5,7 @@ process.chdir(fileURLToPath(new URL('../../..', import.meta.url)))
 async function main() {
   const f = await tournamentFixture(), passed: string[] = []
   try {
-    for (const name of ['tournaments', 'tournaments_competition', 'tournaments_teams', 'tournaments_final', 'tournaments_delete']) {
+    for (const name of ['tournaments', 'tournaments_competition', 'tournaments_teams', 'tournaments_final', 'tournaments_delete', 'tournaments_live_partners']) {
       try { await f.db.exec((await readFile('supabase/tests/' + name + '.sql', 'utf8')).replace(/^\\.*$/gm, '')) }
       catch (error) { throw new Error(name + ': ' + (error as Error).message) }
       passed.push(name); console.log('OK', name)

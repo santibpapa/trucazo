@@ -26,6 +26,7 @@ export default async function TournamentsPage() {
     <TournamentsHub
       initialData={data as TournamentListData}
       isGuest={user.is_anonymous === true}
+      initialNow={Date.now()}
     />
   )
 }
