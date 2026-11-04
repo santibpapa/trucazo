@@ -25,6 +25,7 @@ Para integrar estas modalidades en la app, seguir el [estado y plan vigentes de 
 - [Entrega vigente de parejas](#parejas-entrega), [comportamiento de los bots](#parejas-bots) y [auditoría histórica](#parejas-auditoria).
 - [Contrato, arquitectura y entregas de torneos](#contrato-torneos).
 - [Chat en partidas](#chat-partidas).
+- [Bots que se sientan en mesas de la gente](#bots-lobby-cuidamesas).
 - Para SQL, seguridad y pruebas: [Backend](backend.md). Para mesa, cartas y pantallas: [Diseño](diseno.md).
 
 Actualizar aquí cambios y pruebas de reglas/modalidades. Las rutas de código parten de la raíz del repositorio. Los registros fechados conservan sus límites originales; un pendiente resuelto por una entrega posterior no vuelve a abrirse.
@@ -2055,6 +2056,43 @@ evitar heredar la configuración de la carpeta local del dueño.
 de Vercel. La aplicación efectiva fue confirmada por el dueño; no se registra
 una comprobación independiente posterior del despliegue ni una partida manual
 entre dos dispositivos. No queda implementación ni activación pendiente.
+
+<a id="bots-lobby-cuidamesas"></a>
+
+## Bots que se sientan en mesas de la gente — 04/11/2026
+
+**Cómo funciona:** en una mesa pública 1v1 sin rival, la pantalla de espera
+(`src/app/game/[id]/WaitingRoom.tsx`) llama a `bot_join_table` a los 8–18 s y
+reintenta cada 15 s. Las privadas no reciben bots; el 2vs2 se completa a mano.
+Consulta en producción del 04/11 (sólo lectura): en 7 días, 209 mesas públicas
+humanas, 144 con bot y 65 con persona.
+
+**Problema:** sólo había 3 bots de lobby y también abren sus mesas
+(`ensure_lobby_tables` mantiene 2 en espera). Por eso solían estar los 3 ocupados
+(2 esperando en su mesa y 1 jugando) y la mesa nueva de una persona no recibía bot.
+
+**Cambio preparado:** `supabase/migrations/20261104120000_lobby_bots_cuidamesas.sql`
+agrega `lobby_bots.opens_tables` y dos cuentas (`b0710000-…-0004` y `…-0005`,
+`lobbyN@trucazo.bot`) que nunca abren mesa. `_free_lobby_bot(p_para_abrir)`
+prefiere a esos dos al sentarse; `ensure_lobby_tables` sólo usa los 3 de siempre.
+`bot_join_table`, la pantalla y el cerebro no cambian. No necesita versión nueva
+de la app. Prueba: `supabase/tests/lobby_bots_cuidamesas.sql` (también en CI),
+partida completa local contra un bot nuevo sin errores de decisión, y
+seguridad/parejas/invitaciones/Noroeste en base reconstruida.
+
+`force_profile_defaults` fija 1000 monedas y 0 partidas a toda cuenta nueva, aun
+desde una migración: por eso los bots nuevos arrancan sin historial (sólo se
+respeta la antigüedad). Lo mismo dejó en 0 el historial que
+`20261030223000_tournament_bot_fill.sql` intentó darles a los bots de torneo;
+no se corrigió aquí.
+
+**Dificultad comparada:** `bot_step` deriva a los bots de lobby (también a los
+dos nuevos) al cerebro anterior al Noroeste (`_bot_step_pre_noroeste`, nivel 10:
+reglas fijas por carta y umbrales de tanto). El cerebro más fuerte
+(`_northwest_plan`) lo usan sólo los 20 rivales del Noroeste y los bots de
+torneo; el banco de pruebas del CI exige que le gane a ese mismo nivel 10 más
+del 55% de 400 partidas ([detalle](#noroeste-verificacion-y-limites)). Pasar el lobby al cerebro
+nuevo queda como propuesta, pendiente de decisión del dueño.
 
 <a id="nombres-bots-lobby"></a>
 
