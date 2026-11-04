@@ -74,7 +74,7 @@ jobs:
           ENLACE_AL_ERROR: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           cat > fallo.md <<'FIN'
-          El robot que arma el informe de SEO falló, así que esta quincena no hay informe.
+          El robot que arma el informe de SEO falló, así que este mes no hay informe.
 
           **El error exacto está acá:** ENLACE
 

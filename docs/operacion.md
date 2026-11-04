@@ -16,8 +16,8 @@
 - Eliminación de cuenta integrada mediante PR #101. Pendientes registrados: regresión Android y comprobación del soporte; no rehacer la entrega ni repetir migraciones.
 - Novedades: sistema de campañas, tandas y bajas documentado. No hay autorización nueva para enviar mensajes.
 - Ciclo de retorno: código documentado como implementado; el registro de publicación original debe contrastarse con evidencia posterior antes de aplicar SQL o publicar.
-- SEO y páginas públicas: registro hasta el 24/08/2026. No se volvió a consultar Search Console ni a medir resultados durante esta reorganización.
-- **Contenido nuevo por el rechazo de AdSense, 04/11:** guía nueva `/como-ganar-al-truco` y ampliación de `/truco-contra-computadora` (rama `claude/adsense-rechazo-poco-valor`). Detalle, pruebas y próximos pasos en [Juego → Rechazo de AdSense](juego.md#adsense-rechazo-poco-valor).
+- **SEO, 03/11:** revisado el [informe del 01/11](https://github.com/santibpapa/trucazo/issues/153). La caída de "gente nueva" era un error de conteo, no de tráfico, y se corrigió el robot. Ocho páginas seguían sin indexar por un rastreo de agosto anterior a las canónicas; el dueño pidió la indexación de todas el 03/11. Ver [revisión](#seo-2026-11-03).
+- **Contenido nuevo por el rechazo de AdSense, 04/11:** guía nueva `/como-ganar-al-truco`, ampliación de `/truco-contra-computadora` y `/modo-historia-truco` al día (15 provincias). Detalle, pruebas y próximos pasos en [Juego → Rechazo de AdSense](juego.md#adsense-rechazo-poco-valor).
 
 ## Próximo paso y cómo retomar
 
@@ -33,7 +33,7 @@ Para completar la aceptación de las partidas, leer primero [la verificación po
 - [Eliminación de cuenta, reintentos y soporte](#eliminacion-cuenta).
 - [Correos de novedades](#correos-novedades); avisos propios de torneos en [su contrato](juego.md#contrato-torneos).
 - [Publicación del ciclo de retorno](#ciclo-despliegue).
-- [SEO y páginas públicas](#seguimiento-seo).
+- [SEO y páginas públicas](#seguimiento-seo); última revisión: [informe del 01/11](#seo-2026-11-03).
 - Para las recetas SQL y pruebas, leer [Backend](backend.md); para publicar la app, [Android](android.md).
 
 Actualizar aquí incidentes, soporte, pasos de panel, publicación y evidencia operativa. Las rutas de código/SQL parten de la raíz del repositorio. Registrar por separado lo preparado y lo aplicado; conservar fechas y no convertir notas históricas en autorización para actuar sobre cuentas o contactar personas.
@@ -568,7 +568,34 @@ distintas y no repite una misión exacta en dos días consecutivos.
 
 ## SEO y páginas públicas
 
-Se reúnen las implementaciones y las tareas externas registradas hasta el 24/08/2026. Las versiones Markdown públicas que produce el build son archivos generados desde las páginas del sitio; no son notas manuales del proyecto.
+Se reúnen las implementaciones y las tareas externas registradas hasta el 24/08/2026, y la revisión del informe del 01/11/2026. Las versiones Markdown públicas que produce el build son archivos generados desde las páginas del sitio; no son notas manuales del proyecto.
+
+<a id="seo-2026-11-03"></a>
+
+### Revisión del informe del 01/11/2026 (03/11)
+
+Informe: [issue #153](https://github.com/santibpapa/trucazo/issues/153), del 02/10 al 29/10, comparado con el [del 01/10](https://github.com/santibpapa/trucazo/issues/100).
+
+**Lectura de los números**
+
+- El informe marcaba en rojo la "gente nueva": 25 clics contra 56. Era un error de conteo. Variantes del nombre como "trucozando", "trucozado", "trucanzo" o "truconazo" no estaban en la lista de marca y se contaban como gente nueva. En septiembre fueron 48 de esos 54 clics (36 de "trucozando"). Las búsquedas genéricas reales pasaron de unas 6 a unas 20, con "jugar al truco contra la computadora gratis", "truco contra bot" y "truco vs bot".
+- "trucozando" bajó de 1.533 impresiones a 175. No se pudo confirmar qué designa esa palabra.
+- Las búsquedas por nombre pasaron de 196 a 351 clics. `/truco-contra-computadora` pasó de no aparecer a 46 clics.
+- Las páginas con muchas impresiones y casi sin clics son candidatas a mejorar título y descripción: `/como-se-juega-al-truco` (1.436 impresiones y 1 clic), `/acerca-de-trucazo` (1.334 y 6) y `/jugar-truco-sin-registrarse` (522 y 2). No se cambiaron.
+- "ancho de basto" y "cuantas cartas tiene un mazo de truco" aparecen en la posición 9 o 10. La página que las responde, `/orden-cartas-truco`, no estaba indexada.
+
+**Páginas sin indexar**
+
+- La inspección de `/orden-cartas-truco` en Search Console dio "Duplicada: el usuario no ha indicado ninguna versión canónica", con último rastreo el 16/08/2026. Google eligió como canónica `https://www.747live.bet/`, un sitio de apuestas. Ese sitio no copia contenido de Trucazo y su `/orden-cartas-truco` devuelve 404, consultado el 03/11. Fue un agrupamiento erróneo de Google sobre un rastreo anterior a la incorporación de las canónicas. No hay indicios de hackeo.
+- Comprobado el 03/11 en producción: las 17 páginas del sitemap responden 200, con canónica propia e `index, follow`.
+- El 03/11 el dueño solicitó la indexación de las ocho páginas que no aparecían: `/orden-cartas-truco`, `/calculadora-envido`, `/envido-real-envido-falta-envido`, `/pardas-truco-reglas`, `/modo-historia-truco`, `/contacto`, `/privacidad` y `/eliminar-cuenta`.
+- **Próximo control:** en el informe del 01/12, confirmar que esas páginas dejan de figurar como no mostradas. Si `/orden-cartas-truco` sigue con 747live.bet como canónica, volver a inspeccionarla antes de cambiar código.
+
+**Arreglo del robot**
+
+- `.github/workflows/seo.yml`: el aviso de falla decía "esta quincena"; ahora dice "este mes".
+- `scripts/seo-report.mjs`: la lista de marca ahora incluye `trucoz` (que cubre trucozando, trucozado, trucozano y trucozolano), `trucanzo`, `truconazo` y `trucocho`. Se probó contra las búsquedas de los dos últimos informes: todas las variantes del nombre cuentan como marca y ninguna búsqueda genérica cambió de grupo. Rige desde el primer informe que corra con el cambio ya en `master`.
+- El informe del 01/12 recalcula también el período anterior con la lista nueva, así que su comparación es pareja. El del 01/11 queda como se publicó.
 
 <a id="seguimiento-seo"></a>
 
@@ -627,9 +654,10 @@ Preparación para agentes de IA:
 
 Medición automática:
 
-- `scripts/seo-report.mjs` + `.github/workflows/seo.yml`: cada 1 y 15 baja los
-  datos de Search Console, los compara con las cuatro semanas anteriores, revisa
-  el sitio en vivo y publica todo como issue del repositorio.
+- `scripts/seo-report.mjs` + `.github/workflows/seo.yml`: el día 1 de cada mes
+  (antes también el 15) baja los datos de Search Console, los compara con las
+  cuatro semanas anteriores, revisa el sitio en vivo y publica todo como issue
+  del repositorio.
 
 <a id="seguimiento-seo-acciones-externas-pendientes"></a>
 
@@ -641,10 +669,12 @@ Estas tareas requieren acceso a producción o datos que no están en el reposito
    **Resuelto de otra forma:** el dominio está verificado por registro TXT en el
    DNS, que cubre todo el dominio y sus subdominios. Esa variable de entorno ya
    no hace falta; el código la sigue soportando por si algún día se usa.
-2. Enviar `https://www.trucazo.com.ar/sitemap.xml` en Search Console.
+2. ~~Enviar `https://www.trucazo.com.ar/sitemap.xml` en Search Console.~~
+   **Resuelto:** enviado el 15/08/2026. El 03/11 figuraba "Correcto", con última
+   lectura el 01/11 y 17 páginas descubiertas.
 3. ~~Registrar línea base de 28 días: consultas de marca/no marca, impresiones,
    clics, CTR, posición y páginas indexadas.~~ **Automatizado**: lo hace el
-   informe quincenal, que además separa marca de no marca en cada corrida.
+   informe mensual, que además separa marca de no marca en cada corrida.
 4. Inspeccionar home, guía, orden de cartas y calculadora después del despliegue.
 5. Revisar Core Web Vitals de campo cuando exista muestra suficiente.
 6. Fijar metas porcentuales recién después de contar con esa línea base.
@@ -658,7 +688,7 @@ Estas tareas requieren acceso a producción o datos que no están en el reposito
 #### Seguimiento editorial
 
 - Revisar Search Console a los 28, 60 y 90 días (ahora llega solo: el informe
-  quincenal lo publica como issue).
+  mensual lo publica como issue).
 - Priorizar ampliaciones desde consultas reales, no desde listas masivas.
 - Actualizar `lastModified` sólo cuando cambie materialmente una página.
 - Mantener reglas, funcionalidades, autoría y fechas verificables.
