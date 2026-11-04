@@ -2748,9 +2748,18 @@ visitantes de Europa, Reino Unido y Suiza antes de servir anuncios.
 
 ### Rechazo de AdSense por «contenido de poco valor» — 04/11/2026
 
-**Estado:** el dueño informó que AdSense rechazó `trucazo.com.ar` por contenido de
-poco valor. No se registró la fecha exacta del aviso ni su texto completo. El
-sitio no está aprobado y no hay anuncios activos. Las vidas siguen apagadas.
+**Estado:** el dueño informó que AdSense rechazó `trucazo.com.ar` y el 04/11 envió
+capturas del panel (la fecha del aviso no se ve en ellas). El sitio no está
+aprobado y no hay anuncios activos. Las vidas siguen apagadas.
+
+**Texto del aviso, tal como figura en el panel:** «Contenido de bajo valor. […] un
+sitio debe ofrecer un valor único y sustancial, establecer una presencia constante
+en la Web y mostrar un nivel de interés de los usuarios que respalde un socio
+publicitario comercial». Pide, antes de volver a enviarlo: información,
+herramientas o servicios auténticos y de alta calidad; una selección constante de
+contenido y mantenimiento estructural; e interés genuino de los usuarios. Al pie
+están la casilla «Confirmo que corregí los problemas» y el botón **Solicitar
+revisión**. No tildarla ni volver a pedir la revisión hasta publicar las mejoras.
 
 **Qué ve Google (medido el 04/11 en producción, con el texto principal de cada
 página):** la portada tiene unas 270 palabras. De las 12 guías y páginas de
@@ -2766,8 +2775,14 @@ No es un diagnóstico de Google: el aviso no detalla qué páginas evaluó.
 1. Sumar contenido propio y útil, no relleno: estrategia (cuándo cantar envido o
    truco, cómo jugar la primera mano), glosario del truco, preguntas frecuentes,
    manos de ejemplo explicadas, historia y variantes regionales.
-2. Ampliar o unir las páginas «jugar truco…» cortas en vez de sumar más páginas
-   delgadas.
+2. **Ampliar, no unir,** las páginas «jugar truco…» cortas, y no sumar más
+   páginas delgadas. Cada una apunta a una búsqueda distinta y algunas ya traen
+   gente: entradas desde buscadores del 05/10 al 03/11 (personas): portada 900,
+   `/truco-contra-computadora` 158, `/envido-real-envido-falta-envido` 43,
+   `/orden-cartas-truco` 38, `/como-se-juega-al-truco` 32,
+   `/jugar-truco-con-amigos` 32, `/jugar-truco-sin-registrarse` 17,
+   `/truco-en-parejas` 15. Unirlas arriesga ese tráfico; si alguna se une en el
+   futuro, la dirección vieja debe redirigir a la nueva.
 3. Mostrar anuncios sólo en páginas con contenido, nunca en lobby ni partida
    (política de Google sobre pantallas sin contenido del editor).
 4. Con el contenido publicado e indexado, volver a pedir la revisión en AdSense →
