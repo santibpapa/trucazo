@@ -2814,10 +2814,15 @@ publicar todavía):**
 - Verificado: `npm run build`, `npm run check:agentes`, ESLint sin errores
   nuevos y vista a 360 px y 1280 px sin desborde horizontal.
 - No requiere SQL ni versión nueva de la app.
+- `/modo-historia-truco` decía 5 provincias; se corrige con los datos de
+  producción del 04/11 (`campaign_provinces` y `campaign_rivals`): 15 provincias,
+  66 rivales, tabla de puntos para entrar y monedas por victoria, requisitos de
+  Don Salvador, el Mudo (La Pampa) e Irene, la Antártica (noroeste). Si se suma
+  una provincia o cambian puntos o premios, actualizar esa tabla. Vista a 360 px
+  sin desborde.
 
 **Siguiente:** publicar (merge a `master`), esperar a que Google las rastree y
 seguir con una guía por semana. Candidatas: glosario del truco, manos de ejemplo
-explicadas, historia y variantes regionales. Además, `/modo-historia-truco` está
-desactualizada: nombra 5 provincias y hoy son 15 con 66 rivales. Recién con
+explicadas, historia y variantes regionales. Recién con
 varias semanas de contenido nuevo, tildar «Confirmo que corregí los problemas» y
 **Solicitar revisión** en AdSense.

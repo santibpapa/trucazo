@@ -142,7 +142,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   },
   {
     path: '/modo-historia-truco',
-    updated: '2026-08-15',
+    updated: '2026-11-04',
     label: 'Modo Historia',
     blurb: 'campaña por provincias con dificultad creciente.',
     group: 'jugar',
