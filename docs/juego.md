@@ -1002,7 +1002,7 @@ El último estado documentado indica cinco etapas finalizadas y lanzamiento en p
   - «Agregar a mi calendario»: enlace a Google Calendar con la ventana de «Estoy listo», visible al estar anotado y antes de que abra la confirmación. No usa el servidor.
   - Si la web sale antes de aplicar la migración, las dos llamadas fallan en silencio y las pantallas quedan como en la etapa 1 (probado). Las apps instaladas no las llaman.
   - **Pruebas:** `supabase/tests/tournaments_live_partners.sql` (en CI y en `check-tournament-rules.ts`), pasó en la base reconstruida desde cero con PostgreSQL 16 y en PGlite; la prueba de permisos suma las dos funciones a la lista permitida y sigue pasando, igual que las demás de torneos. Capturas con datos inventados de llave con puntos, hoja de parejas con sugerencias y botón de calendario.
-  - **Pendiente del dueño:** ejecutar la migración en el SQL Editor de Supabase cuando se publique la rama. No hay que volver a correrla después.
+  - **Aplicado el 04/11/2026:** el dueño fusionó el [PR #162](https://github.com/santibpapa/trucazo/pull/162) y ejecutó la migración en el SQL Editor. Comprobado ese día con una consulta de sólo lectura: las dos funciones existen como `security definer`, con ejecución para `authenticated` y sin acceso para `anon`. **No volver a ejecutarla.**
 
 <a id="contrato-torneos"></a>
 
