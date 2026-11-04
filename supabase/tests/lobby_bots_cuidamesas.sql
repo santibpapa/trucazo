@@ -65,4 +65,32 @@ begin
 
   raise notice 'OK: bots del lobby que cuidan las mesas de la gente';
 end $$;
+
+-- Los bots del lobby deciden con el cerebro del Noroeste.
+do $$
+declare u uuid := pg_temp.person(); t uuid; g public.games; i int;
+begin
+  perform pg_temp.check((select bool_and(strategy_profile in ('calculador','paciente','agresivo','marcador','farolera')) from public.lobby_bots), 'cada bot tiene estilo del Noroeste');
+  perform pg_temp.check(not has_function_privilege('authenticated', 'public._lobby_bot_act(uuid,uuid)', 'execute'), 'la decisión del bot es interna');
+  delete from public.tables where creator_id in (select bot_id from public.lobby_bots)
+                               or opponent_id in (select bot_id from public.lobby_bots);
+  perform set_config('request.jwt.claim.sub', u::text, true);
+  set local role authenticated;
+  select id into t from public.create_table('Mesa de prueba', 20, false, null, 15, 30);
+  perform public.bot_join_table(t);
+  g := public.start_game(t);
+  for i in 1..6 loop
+    if g.current_turn = u and coalesce(g.envido_state->>'status', 'none') = 'none'
+       and coalesce(g.truco_state->>'status', 'none') = 'none' then
+      perform public.play_card(t, (select cards->0 from public.game_hands where game_id = t and player_id = u));
+    else
+      perform public.bot_step(t);
+    end if;
+    select * into g from public.games where id = t;
+  end loop;
+  reset role;
+  perform pg_temp.check(exists (select 1 from public.bot_decisions where game_id = t and situation = 'lobby' and ok), 'el bot decidió con el cerebro nuevo');
+  perform pg_temp.check(not exists (select 1 from public.bot_decisions where game_id = t and (situation <> 'lobby' or not ok)), 'sin decisiones del cerebro viejo ni errores');
+  raise notice 'OK: bots del lobby con el cerebro del Noroeste';
+end $$;
 rollback;

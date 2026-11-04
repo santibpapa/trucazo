@@ -2086,13 +2086,23 @@ respeta la antigüedad). Lo mismo dejó en 0 el historial que
 `20261030223000_tournament_bot_fill.sql` intentó darles a los bots de torneo;
 no se corrigió aquí.
 
-**Dificultad comparada:** `bot_step` deriva a los bots de lobby (también a los
-dos nuevos) al cerebro anterior al Noroeste (`_bot_step_pre_noroeste`, nivel 10:
+**Dificultad comparada:** hasta este cambio, `bot_step` derivaba a los bots de
+lobby al cerebro anterior al Noroeste (`_bot_step_pre_noroeste`, nivel 10:
 reglas fijas por carta y umbrales de tanto). El cerebro más fuerte
-(`_northwest_plan`) lo usan sólo los 20 rivales del Noroeste y los bots de
+(`_northwest_plan`) lo usaban sólo los 20 rivales del Noroeste y los bots de
 torneo; el banco de pruebas del CI exige que le gane a ese mismo nivel 10 más
-del 55% de 400 partidas ([detalle](#noroeste-verificacion-y-limites)). Pasar el lobby al cerebro
-nuevo queda como propuesta, pendiente de decisión del dueño.
+del 55% de 400 partidas ([detalle](#noroeste-verificacion-y-limites)).
+
+**Cerebro del Noroeste para los 5 bots (pedido del dueño, mismo día):**
+`supabase/migrations/20261104130000_lobby_bots_cerebro_noroeste.sql` agrega
+`lobby_bots.strategy_profile` (se sortea de nuevo con cada cambio de nombre en
+`_rename_lobby_bot`) y `_lobby_bot_act`, la misma decisión que
+`tournament_internal.bot_act`: sólo lee la mano del bot, escala el marcador a 30
+en mesas a 15 y registra `situation = 'lobby'` en `bot_decisions`. `bot_step` la
+usa en partidas sin campaña contra un bot de lobby; Historia y torneos no
+cambian. Prueba local: 20 partidas completas (10 a 15 y 10 a 30), todas
+terminadas, 1.022 decisiones del cerebro nuevo, ninguna del viejo y 0 errores;
+la prueba SQL lo controla en CI.
 
 <a id="nombres-bots-lobby"></a>
 
