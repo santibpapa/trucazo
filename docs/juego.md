@@ -2414,8 +2414,8 @@ presentación: no requiere SQL ni altera el ingreso, los cobros o los asientos.
 
 **En corto (30/10/2026):** el código está hecho y publicado, pero **apagado**. Los
 jugadores no ven vidas ni las pierden. No hay que reprogramarlo: sólo prenderlo cuando
-haya anuncios con premio. El dueño confirmó que AdSense sigue «preparando el sitio».
-Aun aprobado, AdSense no alcanza: falta una cuenta de Google Ad Manager con un bloque
+haya anuncios con premio. **Actualización 04/11/2026:** AdSense rechazó el sitio por
+«contenido de poco valor» (ver [Rechazo de AdSense](#adsense-rechazo-poco-valor)). Aun aprobado, AdSense no alcanza: falta una cuenta de Google Ad Manager con un bloque
 rewarded real (ver «Para retomar más adelante», al final de esta sección).
 
 **Estado vigente — 19/10/2026:** la implementación del
@@ -2742,3 +2742,40 @@ Se actualiza la fecha de ambas páginas en el mapa del sitio.
 Sólo cambia texto: no requiere SQL, no activa vidas ni anuncios y no cambia la
 variable de Vercel. Sigue pendiente el aviso de consentimiento (CMP) para
 visitantes de Europa, Reino Unido y Suiza antes de servir anuncios.
+
+
+<a id="adsense-rechazo-poco-valor"></a>
+
+### Rechazo de AdSense por «contenido de poco valor» — 04/11/2026
+
+**Estado:** el dueño informó que AdSense rechazó `trucazo.com.ar` por contenido de
+poco valor. No se registró la fecha exacta del aviso ni su texto completo. El
+sitio no está aprobado y no hay anuncios activos. Las vidas siguen apagadas.
+
+**Qué ve Google (medido el 04/11 en producción, con el texto principal de cada
+página):** la portada tiene unas 270 palabras. De las 12 guías y páginas de
+entrada públicas, sólo «Cómo se juega» (~1.170) y «Truco en parejas» (~1.150) pasan las
+mil palabras. Seis páginas del tipo «jugar truco…» (sin registrarse, con amigos,
+contra la computadora, dos jugadores, Modo Historia, acerca de) tienen entre 230
+y 420 palabras y repiten la misma idea con otras palabras. Lo valioso del sitio,
+el lobby y la partida, requiere sesión y no tiene texto para el rastreador
+(`/login` es `noindex`). Es la causa típica de este rechazo en sitios de juegos.
+No es un diagnóstico de Google: el aviso no detalla qué páginas evaluó.
+
+**Propuesta, no aplicada:**
+1. Sumar contenido propio y útil, no relleno: estrategia (cuándo cantar envido o
+   truco, cómo jugar la primera mano), glosario del truco, preguntas frecuentes,
+   manos de ejemplo explicadas, historia y variantes regionales.
+2. Ampliar o unir las páginas «jugar truco…» cortas en vez de sumar más páginas
+   delgadas.
+3. Mostrar anuncios sólo en páginas con contenido, nunca en lobby ni partida
+   (política de Google sobre pantallas sin contenido del editor).
+4. Con el contenido publicado e indexado, volver a pedir la revisión en AdSense →
+   Sitios → `trucazo.com.ar`.
+
+**Contexto de tráfico (análisis propio, 05/10 al 03/11):** 92 visitantes y 706
+páginas vistas por día en promedio; última semana 117 y 1.023. Más del 95% de
+Argentina. Estimación con AdSense aprobado y anuncios fuera de la partida: USD 5
+a 25 por mes. Se revisaron otras redes: Ezoic, Raptive y Mediavine no admiten el
+tamaño o el país del público actual; Adsterra y Monetag aceptan pero se
+desaconsejan por formatos invasivos que pueden afectar el posicionamiento.
