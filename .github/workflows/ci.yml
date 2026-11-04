@@ -276,6 +276,9 @@ jobs:
       - name: Invitaciones públicas y privadas, permisos y cobro único
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/table_invites.sql
 
+      - name: Bots del lobby que se sientan en mesas de la gente
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/lobby_bots_cuidamesas.sql
+
       - name: Concurrencia real entre participantes 2vs2
         run: supabase/tests/team_concurrency.sh
 
