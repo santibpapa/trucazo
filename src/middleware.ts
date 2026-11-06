@@ -81,8 +81,29 @@ export async function middleware(request: NextRequest) {
   return await updateSession(request)
 }
 
+// Dónde corre el middleware. Cada pasada gasta CPU de Vercel, que en el plan
+// gratis es poca (4 h por mes): en noviembre de 2026 se llegó al 90% del cupo,
+// casi todo en pedidos que no necesitan sesión. Por eso queda afuera:
+// - cualquier archivo con extensión (manifest, sw.js, sonidos, fuentes, imágenes,
+//   llms.txt, assetlinks.json, los .md para agentes, y los .php/.env de los bots);
+// - lo interno de Next y Vercel, las imágenes para compartir, robots y sitemap;
+// - los prefetch del navegador: Next pide por adelantado las páginas de los links.
+//   Las privadas igual revisan la sesión por su cuenta y redirigen al login.
+// Siempre corre en /api (control de versión de la app Android) y en /, /login y
+// /register, que mandan al lobby a quien ya entró aunque la página venga de un
+// prefetch.
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    {
+      source: '/((?!_next/|_vercel/|_md/|og(?:/|$)|opengraph-image|robots\\.txt|sitemap\\.xml|\\.well-known/|.*\\.\\w+$).*)',
+      missing: [
+        { type: 'header', key: 'next-router-prefetch' },
+        { type: 'header', key: 'purpose', value: 'prefetch' },
+      ],
+    },
+    '/api/:path*',
+    '/',
+    '/login',
+    '/register',
   ],
 }
