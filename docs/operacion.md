@@ -713,10 +713,19 @@ Estas tareas requieren acceso a producción o datos que no están en el reposito
 4. Inspeccionar home, guía, orden de cartas y calculadora después del despliegue.
 5. Revisar Core Web Vitals de campo cuando exista muestra suficiente.
 6. Fijar metas porcentuales recién después de contar con esa línea base.
-7. Agregar las redes sociales del juego al `sameAs` del schema `Organization`
-   (hoy sólo apunta al GitHub personal del autor). Requiere que existan esas
-   cuentas. Es la señal más débil hoy para que Google distinga la marca
-   "Trucazo" de la palabra común y de la app homónima en Google Play.
+7. Agregar las redes sociales del juego al `sameAs` del schema `Organization`.
+   **En curso:** ya incluye el Instagram `@trucazo_arg` además del GitHub del
+   autor. Sumar cada red nueva cuando exista. Es la señal que ayuda a Google a
+   distinguir la marca "Trucazo" de la palabra común y de la app homónima en
+   Google Play.
+8. **Enlaces desde otros sitios (06/11/2026).** Bing Webmaster Tools marca
+   "Your site lacks inbound links from high-quality domains" (severidad
+   moderada). No se arregla con código: son enlaces que otros sitios ponen
+   hacia Trucazo. Se consiguen de a poco, de lugares reales: la ficha de Google
+   Play, la biografía de Instagram, perfiles de la marca, directorios de juegos,
+   comunidades y notas sobre truco. Nunca comprar enlaces ni usar granjas de
+   enlaces, porque Google y Bing penalizan eso. Bing hoy no es una fuente de
+   tráfico relevante; no hace falta tocar el sitio por este aviso.
 
 <a id="seguimiento-seo-seguimiento-editorial"></a>
 
