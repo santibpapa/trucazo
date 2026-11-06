@@ -9,6 +9,7 @@
 - **El backend no se despliega automáticamente.** Cada cambio aplicado se conserva; para corregir una función se crea una migración nueva y el dueño la ejecuta en el SQL Editor con instrucciones concretas.
 - La reconstrucción completa utiliza la foto de esquema y todas las migraciones en orden. Reconstrucción y pruebas SQL se ejecutan en una base aislada.
 - ANDROID-17 en curso: control de compatibilidad por sesión en esquema privado `app_compatibility`, con comprobación previa de PostgREST. Dos migraciones nuevas ejecutadas manualmente por el dueño; acceso interno corregido y login por usuario verificado. Mínima17 sin retiro activo. Estado, alcance y pruebas en [Android17](android.md#android-etapa-17); no repetir las migraciones.
+- **Middleware angostado el 06/11/2026** para no agotar el cupo gratis de CPU de Vercel: ya no corre en archivos con extensión, imágenes para compartir ni prefetch. Detalle, pruebas y reglas para pantallas nuevas en [Consumo de CPU de Vercel](#cpu-vercel).
 - El cron 1v1 comprobado el 13/10 ejecuta sweep_stale_games(10) cada cinco minutos. Los ejemplos antiguos de cron/banderas de abajo son referencias históricas, no prueba de la configuración actual.
 - Las correcciones de ranking y presencia del PR #120 están incorporadas. SQL de ranking aplicado y recepción de presencia comprobados en producción el 13/10; la evidencia y aceptación pendiente de partidas reales están en [Operación](operacion.md#correccion-cierres-presencia). Las migraciones de exportación/sincronización de Historia ya fueron aplicadas el 11/10; su evidencia está en [Android](android.md#historia-sincronizacion).
 
@@ -181,6 +182,60 @@ scripts/               herramientas sueltas (reconstruir la base, simulaciones)
   Editor de Supabase. Nunca se edita una migración ya aplicada; se agrega una nueva.
 
 </details>
+
+<a id="cpu-vercel"></a>
+
+### Consumo de CPU de Vercel y el middleware
+
+**Incidente del 06/11/2026.** Vercel avisó que se había usado el 90% de las 4 h
+mensuales gratis de "Fluid Active CPU" (3 h 36 min en 30 días). El 63% era el
+middleware (`src/middleware.ts`, el portero que corre antes de cada página) y el
+37% las funciones Node (`/api/analytics`, `/game/[id]`, `/lobby`, `/historia`).
+El gasto subía parejo, de ~5 a ~9 min por día, sin picos ni ataques. En 12 h el
+middleware corrió ~3.900 veces sobre 14.000 pedidos; `/manifest.webmanifest`
+(409) y las páginas 404 (479) eran de los más frecuentes y no necesitan sesión.
+
+**Ajuste (PR del 06/11/2026).** El `matcher` del middleware deja afuera:
+
+- cualquier dirección que termine en extensión (`.webmanifest`, `.js`, `.wav`,
+  `.woff2`, `.json`, `.txt`, `.md`, `.css`, `.html`, imágenes, y los `.php`/`.env`
+  que piden los bots y terminaban en 404);
+- `_next/`, `_vercel/`, `_md/`, `/og`, `/opengraph-image`, `/robots.txt`,
+  `/sitemap.xml` y `/.well-known/`;
+- los prefetch del router (cabeceras `next-router-prefetch` o `purpose: prefetch`),
+  como en el ejemplo oficial de Next y Supabase.
+
+Siempre corre, aunque sea prefetch, en `/api/*` (control de versión de la app
+Android, `checkApiCompatibility`) y en `/`, `/login` y `/register`, que mandan al
+lobby a quien ya entró: `SeoPageLayout` enlaza a `/` y, sin esto, un prefetch
+guardado le mostraría la portada con botones de ingreso a alguien con sesión.
+
+Se revisaron las rutas con punto en el nombre: `/llms.txt` es estática y
+`/.well-known/assetlinks.json` no lee sesión; ninguna necesita el middleware. Los
+códigos de invitación y los ids de partida son UUID, sin puntos.
+
+**Reglas para lo que venga:**
+
+- Una pantalla privada nueva, además de sumarse a `privatePaths`, tiene que
+  comprobar la sesión ella misma y redirigir a `/login` (como `/lobby`): en un
+  prefetch el middleware no corre.
+- Una página o servicio que necesite sesión no puede tener un punto en la última
+  parte de la dirección, o el middleware no la ve.
+
+**Pruebas (build local, `next start`):** `npm run build` sin errores. `/lobby`,
+`/historia` y `/game/x` sin sesión → 307 a `/login`; `/android` → `/login?android=1`;
+`/?code=…` → `/auth/callback`; `/` y `/pardas-truco-reglas` con
+`Accept: text/markdown` → markdown; `Accept: application/pdf` → 406;
+`/manifest.webmanifest`, `/sw.js`, `/llms.txt`, `/.well-known/assetlinks.json`,
+`/robots.txt`, `/sitemap.xml`, `/og` y `/opengraph-image` → 200. POST a
+`/api/android/preferences` con Bearer: los registros de Supabase muestran la
+llamada a `rpc/app_compatibility` hecha por "Next.js Middleware" en ese mismo
+segundo. Además se comprobó la lista compilada de `.next/server/middleware-manifest.json`
+contra 30 direcciones, con y sin prefetch.
+
+**Pendiente de medir:** después del merge, revisar en Vercel (Usage → Fluid Active
+CPU) que el gasto diario baje. Si no alcanza, quedan dos opciones a decidir por el
+dueño: pasar el middleware a `runtime: 'nodejs'` o el plan Pro (US$20 por mes).
 
 <a id="reconstruir-base"></a>
 
