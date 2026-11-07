@@ -17,10 +17,11 @@ export async function communityFixture(supplied?: Awaited<ReturnType<typeof onli
     alter table group_members add foreign key(group_id) references groups(id) on delete cascade;
     alter table group_invites add foreign key(group_id) references groups(id) on delete cascade;
     alter table group_invites add unique(group_id,to_id);
-    create unique index friendships_pair on friendships(least(requester_id,addressee_id),greatest(requester_id,addressee_id));`)
+    create unique index friendships_pair on friendships(least(requester_id,addressee_id),greatest(requester_id,addressee_id));
+    create table chat_banned_words(pattern text primary key);`)
   const names = ['get_community', 'touch_online', 'send_friend_request', 'respond_friend_request', 'remove_friend',
     'create_group', 'invite_to_group', 'respond_group_invite', 'leave_group', 'kick_group_member', 'delete_group',
-    'send_chat_message', 'delete_chat_message', 'clear_chat', 'publish_news', 'delete_news', 'submit_feedback']
+    '_chat_normalize', '_chat_censor', 'send_chat_message', 'delete_chat_message', 'clear_chat', 'publish_news', 'delete_news', 'submit_feedback']
   const definitions = await currentFunctions()
   for (const name of names) await db.exec(definitions.get(name)!)
   const policies = await readFile('supabase/schema/policies.sql', 'utf8')

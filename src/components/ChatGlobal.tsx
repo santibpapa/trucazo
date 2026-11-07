@@ -45,7 +45,7 @@ export default function ChatGlobal({
         .from('chat_messages')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(50)
+        .limit(100)
       if (!alive) return
       setMessages(((data as ChatMessage[]) ?? []).reverse())
       scrollToBottom(true)
