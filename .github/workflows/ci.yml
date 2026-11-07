@@ -239,6 +239,9 @@ jobs:
       - name: Chat de partida, permisos y límites
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/match_chat.sql
 
+      - name: Chat global, filtro de groserías y tope de 500
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/chat_global.sql
+
       - name: Envíos simultáneos del mismo jugador
         run: supabase/tests/match_chat_concurrency.sh
 

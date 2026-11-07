@@ -235,6 +235,7 @@ revoke all on public.tournaments,
 from anon, authenticated;
 revoke all on sequence public.tournament_entries_sequence_no_seq from anon, authenticated;
 revoke all on public.ranking_email_campaign, public.ranking_top3_state, public.ranking_email_jobs from anon, authenticated;
+revoke all on public.chat_banned_words from public, anon, authenticated;
 SQL
 
 if [ "${TRUCAZO_PREVIEW_STACK:-0}" = 1 ]; then

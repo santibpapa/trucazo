@@ -10,6 +10,7 @@
 - La reconstrucción completa utiliza la foto de esquema y todas las migraciones en orden. Reconstrucción y pruebas SQL se ejecutan en una base aislada.
 - ANDROID-17 en curso: control de compatibilidad por sesión en esquema privado `app_compatibility`, con comprobación previa de PostgREST. Dos migraciones nuevas ejecutadas manualmente por el dueño; acceso interno corregido y login por usuario verificado. Mínima17 sin retiro activo. Estado, alcance y pruebas en [Android17](android.md#android-etapa-17); no repetir las migraciones.
 - **Middleware angostado el 06/11/2026** para no agotar el cupo gratis de CPU de Vercel: ya no corre en archivos con extensión, imágenes para compartir ni prefetch. Detalle, pruebas y reglas para pantallas nuevas en [Consumo de CPU de Vercel](#cpu-vercel).
+- **Chat global, 07/11/2026:** deja de borrarse al azar; quedan los últimos 500 y se tapan las groserías fuertes. Migración aplicada el 07/11: [detalle](#chat-global-2026-11-07).
 - El cron 1v1 comprobado el 13/10 ejecuta sweep_stale_games(10) cada cinco minutos. Los ejemplos antiguos de cron/banderas de abajo son referencias históricas, no prueba de la configuración actual.
 - Las correcciones de ranking y presencia del PR #120 están incorporadas. SQL de ranking aplicado y recepción de presencia comprobados en producción el 13/10; la evidencia y aceptación pendiente de partidas reales están en [Operación](operacion.md#correccion-cierres-presencia). Las migraciones de exportación/sincronización de Historia ya fueron aplicadas el 11/10; su evidencia está en [Android](android.md#historia-sincronizacion).
 
@@ -236,6 +237,46 @@ contra 30 direcciones, con y sin prefetch.
 **Pendiente de medir:** después del merge, revisar en Vercel (Usage → Fluid Active
 CPU) que el gasto diario baje. Si no alcanza, quedan dos opciones a decidir por el
 dueño: pasar el middleware a `runtime: 'nodejs'` o el plan Pro (US$20 por mes).
+
+<a id="chat-global-2026-11-07"></a>
+
+### Chat global: últimos 500 mensajes y filtro de groserías
+
+**Problema del 07/11/2026.** El chat del lobby quedó con un solo mensaje. No fue un
+error: desde julio, cada mensaje nuevo tenía 1 chance en 20 de borrar todos los de
+más de 3 días (`send_chat_message`). Con poco movimiento, el chat se vaciaba de
+golpe y al azar. Comprobado en producción (sólo lectura): un único mensaje, del 05/11.
+
+**Decisiones del dueño:** guardar siempre los últimos 500; mostrar 100 (antes 50);
+tapar con asteriscos sólo lo fuerte (insultos pesados, discriminatorios, sexuales y
+amenazas). Las puteadas de todos los días ("boludo", "la puta madre", "qué orto")
+pasan. Sólo el chat global; el chat de mesa queda igual. Los mensajes viejos no se
+corrigen.
+
+**Preparado:** [`20261107120000_chat_global_500_filtro.sql`](../supabase/migrations/20261107120000_chat_global_500_filtro.sql).
+`send_chat_message` ya no borra nada; la tarea `trucazo-chat-keep-500` (04:45 UTC)
+deja los 500 más nuevos. La lista vive en `chat_banned_words` (cerrada al
+navegador). Compara sin mayúsculas ni tildes y con números en lugar de letras
+("p0rong4"); cada entrada es una palabra entera, así "disputo" no se tapa. Para
+sumar una: `insert into public.chat_banned_words(pattern) values ('palabra');`.
+Prueba: `supabase/tests/chat_global.sql` (en el CI). No necesita versión nueva de la
+app: las versiones instaladas siguen mostrando 50, con el mismo filtro.
+
+**Aplicado — 07/11/2026:** el dueño corrió la migración en el SQL Editor.
+Comprobado después en producción: 43 entradas en la lista, tarea
+`trucazo-chat-keep-500` activa (04:45 UTC), `send_chat_message` sin borrado,
+"sos un TROLO, dale boludo" → "sos un \*\*\*\*\*, dale boludo", lista y filtro
+cerrados al navegador. Los 100 mensajes en pantalla llegan con el merge a `master`.
+
+**Ajuste — 07/11/2026:** a pedido del dueño, "concha" y "chota" dejan de taparse
+(se usan de onda); "conchudo/a" sigue tapado. [`20261107180000_chat_filtro_sin_concha_chota.sql`](../supabase/migrations/20261107180000_chat_filtro_sin_concha_chota.sql),
+aplicada desde la herramienta de Supabase y comprobada: 42 entradas, "la concha de
+la lora, esta carta es una chota" pasa entera, "sos un conchudo" se tapa.
+
+**Ajuste — 07/11/2026:** a pedido del dueño se tapa "la concha de tu madre" (también
+sin "la"). [`20261107190000_chat_filtro_concha_de_tu_madre.sql`](../supabase/migrations/20261107190000_chat_filtro_concha_de_tu_madre.sql),
+aplicada desde la herramienta de Supabase y comprobada: 43 entradas; "la concha de
+la lora" sigue pasando.
 
 <a id="reconstruir-base"></a>
 
