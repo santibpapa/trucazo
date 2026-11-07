@@ -10,7 +10,7 @@
 - La reconstrucción completa utiliza la foto de esquema y todas las migraciones en orden. Reconstrucción y pruebas SQL se ejecutan en una base aislada.
 - ANDROID-17 en curso: control de compatibilidad por sesión en esquema privado `app_compatibility`, con comprobación previa de PostgREST. Dos migraciones nuevas ejecutadas manualmente por el dueño; acceso interno corregido y login por usuario verificado. Mínima17 sin retiro activo. Estado, alcance y pruebas en [Android17](android.md#android-etapa-17); no repetir las migraciones.
 - **Middleware angostado el 06/11/2026** para no agotar el cupo gratis de CPU de Vercel: ya no corre en archivos con extensión, imágenes para compartir ni prefetch. Detalle, pruebas y reglas para pantallas nuevas en [Consumo de CPU de Vercel](#cpu-vercel).
-- **Chat global, 07/11/2026:** deja de borrarse al azar; quedan los últimos 500 y se tapan las groserías fuertes. Migración preparada, falta aplicarla: [detalle](#chat-global-2026-11-07).
+- **Chat global, 07/11/2026:** deja de borrarse al azar; quedan los últimos 500 y se tapan las groserías fuertes. Migración aplicada el 07/11: [detalle](#chat-global-2026-11-07).
 - El cron 1v1 comprobado el 13/10 ejecuta sweep_stale_games(10) cada cinco minutos. Los ejemplos antiguos de cron/banderas de abajo son referencias históricas, no prueba de la configuración actual.
 - Las correcciones de ranking y presencia del PR #120 están incorporadas. SQL de ranking aplicado y recepción de presencia comprobados en producción el 13/10; la evidencia y aceptación pendiente de partidas reales están en [Operación](operacion.md#correccion-cierres-presencia). Las migraciones de exportación/sincronización de Historia ya fueron aplicadas el 11/10; su evidencia está en [Android](android.md#historia-sincronizacion).
 
@@ -262,8 +262,11 @@ sumar una: `insert into public.chat_banned_words(pattern) values ('palabra');`.
 Prueba: `supabase/tests/chat_global.sql` (en el CI). No necesita versión nueva de la
 app: las versiones instaladas siguen mostrando 50, con el mismo filtro.
 
-**Pendiente:** que el dueño corra la migración en el SQL Editor y comprobar en
-`cron.job` la tarea `trucazo-chat-keep-500`.
+**Aplicado — 07/11/2026:** el dueño corrió la migración en el SQL Editor.
+Comprobado después en producción: 43 entradas en la lista, tarea
+`trucazo-chat-keep-500` activa (04:45 UTC), `send_chat_message` sin borrado,
+"sos un TROLO, dale boludo" → "sos un \*\*\*\*\*, dale boludo", lista y filtro
+cerrados al navegador. Los 100 mensajes en pantalla llegan con el merge a `master`.
 
 <a id="reconstruir-base"></a>
 
