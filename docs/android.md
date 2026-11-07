@@ -21,6 +21,7 @@ Esta sección es una foto: se **reescribe entera** cuando algo cambia. Lo viejo 
 - **Etapas:** ANDROID-01 a 17 cerradas (27/10/2026). ANDROID-18 a medias desde el 02/11 ([avance de 18](#android-18-avance-2026-11-02)). 19 y 20 sin empezar.
 - **Último candidato firmado:** **0.17.11 / código 29**, paquete `ar.com.trucazo.app`, firma de subida `D0:B0:84…:28:30`, Android 10 en adelante (API 29, objetivo API 36). Tiene parejas, torneos y chat de mesa. Los archivos están en la PC del dueño (`android/artifacts/ANDROID-18/`), fuera de Git. Se armó con el código del 02/11: al retomar hay que armar uno nuevo desde `master`.
 - **Nada publicado en Google Play.** La confirmación de email y los avisos push para jugadores siguen apagados (`dispatch_enabled=false`).
+- **Despachador de push en pausa:** la tarea `trucazo-native-push`, que corría cada 15 segundos aunque no enviara nada, se desactiva (no se borra) con `20261107220000_pausar_push_android.sql`, preparada el 07/11. **Falta que el dueño la aplique** en el SQL Editor. **Al retomar Android, reactivarla** con el comando que figura en ese archivo.
 - **Código:** las fuentes de la app están en `master` desde el [PR #147](https://github.com/santibpapa/trucazo/pull/147) (30/10). El workflow «Android Capacitor» comprueba cada PR que toca `src/`.
 - **Servidor:** aunque la app esté en pausa, todo cambio de Supabase o de los servicios web tiene que seguir sirviendo a la versión mínima admitida (`app_compatibility.policy.minimum_code`, hoy 17). Ver [Cómo llegan los cambios](#como-llegan-los-cambios).
 - **Equipos de prueba:** no hay teléfono físico desde el 03/11 (el Redmi era prestado). Quedan los emuladores `Trucazo_Android_11` y `Trucazo_Android_16` de la PC del dueño, los dos con Google Play.
@@ -34,13 +35,14 @@ Esta sección es una foto: se **reescribe entera** cuando algo cambia. Lo viejo 
 **Al retomar** (sólo cuando el dueño lo pida):
 
 1. Leer este documento entero: es corto a propósito.
-2. Revisar si cambiaron los requisitos de Google Play ([requisitos](#android-requisitos-google)) y la versión mínima de Android que pide Play.
-3. Armar un candidato nuevo desde `master` y pasarle la inspección de siempre ([datos permanentes](#android-datos-permanentes)). El 0.17.11/29 quedó viejo frente a las pantallas actuales.
-4. Que el dueño cree y verifique la cuenta de Play Console. Después seguir el paso «Siguiente» del [avance de 18](#android-18-avance-2026-11-02).
+2. Reactivar el despachador de push (comando en `supabase/migrations/20261107220000_pausar_push_android.sql`).
+3. Revisar si cambiaron los requisitos de Google Play ([requisitos](#android-requisitos-google)) y la versión mínima de Android que pide Play.
+4. Armar un candidato nuevo desde `master` y pasarle la inspección de siempre ([datos permanentes](#android-datos-permanentes)). El 0.17.11/29 quedó viejo frente a las pantallas actuales.
+5. Que el dueño cree y verifique la cuenta de Play Console. Después seguir el paso «Siguiente» del [avance de 18](#android-18-avance-2026-11-02).
 
 Texto listo para pegar en una sesión nueva:
 
-> Retomamos ANDROID-18 (Play Console, ficha y canal interno) después de la pausa. Las etapas 01 a 17 están cerradas. Leé AGENTS.md, README.md y docs/android.md entero. Primero comprobá servidor, los cinco guardados originales y las tres cuentas QA, y armá un candidato nuevo desde master (el último es 0.17.11/código 29). Después coordiná conmigo el alta de Play Console. No publiques en producción de Play; la confirmación de email y los push para jugadores siguen apagados.
+> Retomamos ANDROID-18 (Play Console, ficha y canal interno) después de la pausa. Las etapas 01 a 17 están cerradas. Leé AGENTS.md, README.md y docs/android.md entero. Primero reactivá el despachador de push (comando en supabase/migrations/20261107220000_pausar_push_android.sql), comprobá servidor, los cinco guardados originales y las tres cuentas QA, y armá un candidato nuevo desde master (el último es 0.17.11/código 29). Después coordiná conmigo el alta de Play Console. No publiques en producción de Play; la confirmación de email y los push para jugadores siguen apagados.
 
 <a id="android-reglas-sesion"></a>
 
