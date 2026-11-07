@@ -25,6 +25,8 @@ from (values
   ('que orto tenés', 'que orto tenés'),
   ('la concha de la lora, una chota', 'la concha de la lora, una chota'),
   ('sos un conchudo', 'sos un ********'),
+  ('La Concha de tu madre!', '*********************!'),
+  ('concha de tu madre', '******************'),
   ('me disputo el computo', 'me disputo el computo'),
   ('quiero vale cuatro', 'quiero vale cuatro'),
   ('🧉 truco!', '🧉 truco!')

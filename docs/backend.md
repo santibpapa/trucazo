@@ -273,6 +273,11 @@ cerrados al navegador. Los 100 mensajes en pantalla llegan con el merge a `maste
 aplicada desde la herramienta de Supabase y comprobada: 42 entradas, "la concha de
 la lora, esta carta es una chota" pasa entera, "sos un conchudo" se tapa.
 
+**Ajuste — 07/11/2026:** a pedido del dueño se tapa "la concha de tu madre" (también
+sin "la"). [`20261107190000_chat_filtro_concha_de_tu_madre.sql`](../supabase/migrations/20261107190000_chat_filtro_concha_de_tu_madre.sql),
+aplicada desde la herramienta de Supabase y comprobada: 43 entradas; "la concha de
+la lora" sigue pasando.
+
 <a id="reconstruir-base"></a>
 
 ### Reconstruir la base de prueba
