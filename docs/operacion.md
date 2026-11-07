@@ -1,28 +1,26 @@
 # Operación — soporte, cuentas, correos, publicación e incidentes
 
-[Volver al README](../README.md) · Documento principal de operación. Organización actualizada el **13/10/2026**. Las comprobaciones y entregas conservan sus fechas; la reorganización documental no modificó producción.
+[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **07/11/2026**.
 
 ## Estado actual
 
-- **Cuotas de Supabase, 04/11:** salida de datos 4,49 de 5 GB con ~0,4 GB/día y período del 21 al 21: este ciclo se excede igual. Preparada `20261104160000_cuotas_realtime_limpieza.sql` (Realtime de `games` sin fila anterior; limpieza diaria de historial de cron y decisiones de bots). **Aplicada por el dueño en el SQL Editor el 04/11 ~16:03 UTC** y verificada. El dueño decidió seguir en el plan gratuito; recortes de pedidos de la mesa (mano, respaldo y chat) en la misma rama, sin SQL ni versión nueva obligatoria de la app. Ver [diagnóstico](#cuotas-2026-11-04).
-- **Lentitud y plan gratuito de Supabase, 03/11:** diagnóstico con datos de producción, arreglos de entrada y reducción de pedidos de la mesa (≈75 % menos en una mesa quieta) para seguir en el plan gratuito. Sin SQL ni versión nueva de la app. Publicado y comprobado en producción el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157)). Pendiente del dueño: cerrar el emulador Android que quedó abierto contra producción y revisar el congelamiento del 02/11. Ver [diagnóstico](#lentitud-2026-11-03).
-- **Producción web = `master` otra vez, 30/10:** del 27 al 30/10 Vercel publicó desde la rama Android (`575bedc`, después `8e90f9d`). El [PR #147](https://github.com/santibpapa/trucazo/pull/147) integra esa rama a `master`. Nunca volver a publicar producción desde otra rama: ver [AGENTS.md](../AGENTS.md).
-- **Controles discretos publicados,27/10:** web en `8e90f9d`, tres puntos en chats/mesas, opciones utilizables dentro de la ventana del chat y serviciosAndroid conservados. [Registro de publicación](#controles-discretos-2026-10-27).
+Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
 
-- **Aviso de seguridad de Node, 21/10:** repo actualizado mediante PR #141, pruebas aprobadas con Node 24.22.1 y publicación final correcta. **El servidor público sigue ejecutando 24.21.0**, comprobado a las 11:57 de Argentina; el parche nativo queda pendiente de Vercel. Ver [evidencia y siguiente paso](#node-seguridad-2026-10-21).
-- **Dependabot, tanda cerrada el 19/10:** los cinco PR #121 → #107 → #65 → #135 → #63 incorporados con pruebas nuevas aprobadas. Revisión final de `master` y publicación aprobadas; cero PR abiertos al cierre. Ver [evaluación y registro de incorporación](#dependabot-2026-10-19).
-- **Correcciones de reseñas del 14/10:** PR #127 incorporado, con recuperación de reparto/turno y declaración de envido, más lectura privada de capturas. Consultar [la entrega posterior](#correcciones-resenas-2026-10-14) antes de interpretar los pendientes del incidente original.
-- **Incidente del 13/10:** correcciones incorporadas mediante PR #120; SQL de ranking aplicado y recepción de presencia comprobados en producción. No se encontraron nuevos errores de ese borrado en las casi tres horas posteriores a la incorporación del PR. Queda la aceptación de partidas reales; ver [actualización posterior](#correccion-cierres-presencia). La [investigación inicial](#incidente-resenas-2026-10-13) se conserva como historial.
-- **Consumo de registros de Supabase, 13/10:** revisión terminada. Las solicitudes de la web dominan el volumen en las dos ventanas consultadas; reducir consultas repetidas es el principal camino de optimización. La revisión no modificó producción. Ver [evidencia y traspaso](#log-ingestion-2026-10-13).
-- Eliminación de cuenta integrada mediante PR #101. Pendientes registrados: regresión Android y comprobación del soporte; no rehacer la entrega ni repetir migraciones.
-- Novedades: sistema de campañas, tandas y bajas documentado. No hay autorización nueva para enviar mensajes.
-- Ciclo de retorno: código documentado como implementado; el registro de publicación original debe contrastarse con evidencia posterior antes de aplicar SQL o publicar.
-- **SEO, 03/11:** revisado el [informe del 01/11](https://github.com/santibpapa/trucazo/issues/153). La caída de "gente nueva" era un error de conteo, no de tráfico, y se corrigió el robot. Ocho páginas seguían sin indexar por un rastreo de agosto anterior a las canónicas; el dueño pidió la indexación de todas el 03/11. Ver [revisión](#seo-2026-11-03).
-- **Contenido nuevo por el rechazo de AdSense, 04/11:** guía nueva `/como-ganar-al-truco`, ampliación de `/truco-contra-computadora` y `/modo-historia-truco` al día (15 provincias). Detalle, pruebas y próximos pasos en [Juego → Rechazo de AdSense](juego.md#adsense-rechazo-poco-valor).
+- **Producción web = `master`.** Del 27 al 30/10 Vercel publicó desde la rama Android; el [PR #147](https://github.com/santibpapa/trucazo/pull/147) lo corrigió. No repetirlo.
+- **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual ([cuotas](#cuotas-2026-11-04)). Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
+- **AdSense rechazado** por «contenido de poco valor» (04/11). Guías nuevas publicadas para volver a pedir la revisión; detalle en [Juego](juego.md#adsense-rechazo-poco-valor).
+- **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)).
+- **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)).
+- **Ranking y presencia (PR #120, 13/10):** SQL aplicado y presencia comprobada. Falta aceptarlo con partidas reales ([verificación](#correccion-cierres-presencia)).
+- **Node en Vercel:** el repo pide 24.22.1 (PR #141), pero el 21/10 el servidor público seguía en 24.21.0. Sin volver a comprobar desde entonces ([detalle](#node-seguridad-2026-10-21)).
+- **Eliminación de cuenta** integrada (PR #101). **Correos de novedades:** sin autorización nueva para enviar.
+- **Ciclo de retorno:** sus funciones SQL están en producción (comprobado el 07/11). Registro en [Publicación del ciclo de retorno](#ciclo-despliegue).
+
+**Pendientes del dueño:** cerrar el emulador Android que quedó abierto contra producción y revisar el congelamiento de la base del 02/11 ([diagnóstico](#lentitud-2026-11-03)).
 
 ## Próximo paso y cómo retomar
 
-Para completar la aceptación de las partidas, leer primero [la verificación posterior al PR #120](#correccion-cierres-presencia): SQL de ranking y recepción de presencia ya comprobados; falta verificar una victoria que cambie el podio y una partida activa de más de 15 minutos. No repetir la migración ni tratar los errores previos como una falla vigente. La investigación no autoriza compensaciones ni cambios retroactivos de resultados. El punto de continuidad de la app está en el [estado actual de Android](android.md#android-estado-actual).
+Completar la aceptación de ranking y presencia: falta una victoria que cambie el podio y una partida activa de más de 15 minutos ([verificación posterior al PR #120](#correccion-cierres-presencia)). No repetir la migración, no tratar los errores previos como falla vigente y no compensar resultados viejos sin pedido del dueño.
 
 ## Guía de lectura
 

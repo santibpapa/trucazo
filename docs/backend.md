@@ -1,22 +1,23 @@
 # Backend — configuración, base de datos, seguridad y pruebas
 
-[Volver al README](../README.md) · Documento principal del backend. Organización actualizada el **13/10/2026**. Esta tarea no ejecutó SQL, consultó producción ni desplegó servicios.
+[Volver al README](../README.md) · Documento principal del backend. Estado revisado el **07/11/2026**.
 
 ## Estado actual
 
-- Next.js 15.5.28, React, TypeScript y Tailwind; Node24.22.1 o posterior de la rama24. Supabase aporta cuentas, Postgres y Realtime. La lógica online y las monedas oficiales viven en funciones SQL del servidor. La [sincronización local del21/10](android.md#android-sync-github-2026-10-21) conserva las fuentes SQL de ambas líneas de trabajo; no aplicó migraciones a producción.
-- Las cartas de cada jugador viven en tablas privadas de manos, fuera de Realtime. El cliente muestra el estado y llama las funciones autorizadas.
-- **El backend no se despliega automáticamente.** Cada cambio aplicado se conserva; para corregir una función se crea una migración nueva y el dueño la ejecuta en el SQL Editor con instrucciones concretas.
-- La reconstrucción completa utiliza la foto de esquema y todas las migraciones en orden. Reconstrucción y pruebas SQL se ejecutan en una base aislada.
-- ANDROID-17 en curso: control de compatibilidad por sesión en esquema privado `app_compatibility`, con comprobación previa de PostgREST. Dos migraciones nuevas ejecutadas manualmente por el dueño; acceso interno corregido y login por usuario verificado. Mínima17 sin retiro activo. Estado, alcance y pruebas en [Android17](android.md#android-etapa-17); no repetir las migraciones.
-- **Middleware angostado el 06/11/2026** para no agotar el cupo gratis de CPU de Vercel: ya no corre en archivos con extensión, imágenes para compartir ni prefetch. Detalle, pruebas y reglas para pantallas nuevas en [Consumo de CPU de Vercel](#cpu-vercel).
-- **Chat global, 07/11/2026:** deja de borrarse al azar; quedan los últimos 500 y se tapan las groserías fuertes. Migración aplicada el 07/11: [detalle](#chat-global-2026-11-07).
-- El cron 1v1 comprobado el 13/10 ejecuta sweep_stale_games(10) cada cinco minutos. Los ejemplos antiguos de cron/banderas de abajo son referencias históricas, no prueba de la configuración actual.
-- Las correcciones de ranking y presencia del PR #120 están incorporadas. SQL de ranking aplicado y recepción de presencia comprobados en producción el 13/10; la evidencia y aceptación pendiente de partidas reales están en [Operación](operacion.md#correccion-cierres-presencia). Las migraciones de exportación/sincronización de Historia ya fueron aplicadas el 11/10; su evidencia está en [Android](android.md#historia-sincronizacion).
+Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa al historial de abajo.
+
+- **Stack:** Next.js 15.5.28, React, TypeScript y Tailwind; Node 24.22.1 o posterior de la rama 24. Supabase aporta cuentas, Postgres y Realtime. La lógica online y las monedas oficiales viven en funciones SQL del servidor; las cartas de cada jugador, en tablas privadas fuera de Realtime.
+- **El backend no se despliega solo.** Para corregir una función se crea una migración nueva y el dueño la ejecuta en el SQL Editor con instrucciones concretas. La reconstrucción y las pruebas SQL usan una base aislada ([receta](#reconstruir-base)).
+- **Compatibilidad con la app:** `app_compatibility.policy` con versión mínima **17** y sin reemplazo publicado (leído en producción el 07/11). La app está en pausa, pero las reglas de [Cómo llegan los cambios](android.md#como-llegan-los-cambios) siguen valiendo.
+- **Tareas programadas (leídas en producción el 07/11):** limpieza de partidas 1v1 cada 5 min (`sweep_stale_games(10)`), mesas y parejas cada 5 min, torneos, correos y limpiezas diarias. El despachador de push (`trucazo-native-push`, cada 15 segundos) está desactivado mientras Android está en pausa: [migración del 07/11](../supabase/migrations/20261107220000_pausar_push_android.sql), aplicada por el dueño ese día y verificada en producción.
+- **Middleware angostado el 06/11** para no agotar el cupo gratis de CPU de Vercel ([detalle](#cpu-vercel)).
+- **Chat global, 07/11:** ya no se borra al azar; quedan los últimos 500 (tarea diaria `trucazo-chat-keep-500`, activa en producción el 07/11) y se tapan las groserías fuertes de `chat_banned_words`. Migraciones aplicadas el 07/11 ([detalle](#chat-global-2026-11-07)).
+- **Cuotas de Supabase:** limpieza de Realtime e historial aplicada por el dueño el 04/11 ([detalle en Operación](operacion.md#cuotas-2026-11-04)).
+- **Ranking y presencia (PR #120):** SQL aplicado y presencia comprobada el 13/10. Falta aceptarlo con partidas reales ([Operación](operacion.md#correccion-cierres-presencia)).
 
 ## Próximo paso y cómo retomar
 
-Para el incidente de producción, seguir el [traspaso actualizado](operacion.md#correccion-cierres-presencia): completar la aceptación de partidas reales; no repetir la migración ya aplicada. Para la integración Android, conservar las reglas SQL existentes y adaptar únicamente el acceso autorizado de la app según [su plan vigente](android.md#android-estado-actual).
+No hay trabajo de backend pendiente propio. Lo que queda abierto es la aceptación de ranking y presencia con partidas reales, en [Operación](operacion.md#correccion-cierres-presencia). Antes de aplicar SQL, comprobar qué está aplicado de verdad: el [historial de migraciones](../supabase/migrations/) y una consulta de sólo lectura a producción dicen más que una nota vieja.
 
 ## Guía de lectura
 

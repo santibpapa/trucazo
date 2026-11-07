@@ -1,18 +1,21 @@
 # Diseño — sistema visual, mesa y recursos
 
-[Volver al README](../README.md) · Documento principal del diseño. Organización actualizada el **13/10/2026**; se conservan las decisiones y pruebas existentes.
+[Volver al README](../README.md) · Documento principal del diseño. Estado revisado el **07/11/2026**.
 
 ## Estado actual
 
-- Tema oscuro vino y oro; la app Android conserva componentes, pantallas, tipografía, sonidos y recursos de la web.
-- La partida debe entrar completa en una sola pantalla, incluyendo los cantos con más opciones. Adaptar al alto disponible sin cortar controles ni agregar desplazamiento.
-- El arte de los salones y las convenciones de componentes se conservan abajo. La copia técnica [.design-sync/conventions.md](../.design-sync/conventions.md) existe porque la lee el generador; su fuente es [este documento](#convenciones-diseno).
-- Criterios de velocidad medidos: sin animate-fade-up en el contenido inicial; animaciones infinitas sólo de opacidad/transform; imágenes a 3× de su mayor uso; cartas visibles con priority; consultas de servidor en paralelo.
-- **Convivencia, decisión del dueño del27/10/2026:** conservar denuncias y bloqueos con controles discretos de tres puntos, sin repetir «Opciones de…» o «Denunciar mesa» como texto visible. Mantener nombre accesible, descripción al pasar el puntero y foco de teclado visible; en tarjetas de parejas, ubicar el control junto al nombre/cupo, sin fila extra. Publicado y verificado en la web; registro y estado real en [Operación](operacion.md).
+Foto al **07/11/2026**. Se reescribe entera cuando algo cambia.
+
+- Tema oscuro vino y oro. La app Android usa los mismos componentes, pantallas, tipografía, sonidos y recursos que la web.
+- La partida entra completa en una sola pantalla, incluidos los cantos con más opciones. Se adapta al alto disponible sin cortar controles ni agregar desplazamiento.
+- Criterios de velocidad medidos en producción: están en [AGENTS.md](../AGENTS.md).
+- **Convivencia, decisión del dueño del 27/10:** denuncias y bloqueos con controles discretos de tres puntos, sin texto visible del tipo «Denunciar mesa». Nombre accesible, descripción al pasar el puntero y foco de teclado visible. Publicado en la web.
+- **Letra grande en la app:** la app marca `data-large-text` cuando el teléfono tiene la letra agrandada; lobby, perfil y tienda se adaptan con esa marca ([Android](android.md#android-datos-permanentes)).
+- La copia técnica [.design-sync/conventions.md](../.design-sync/conventions.md) existe porque la lee el generador; su fuente es [este documento](#convenciones-diseno).
 
 ## Próximo paso y cómo retomar
 
-Al adaptar el juego a Android, seguir [su etapa vigente](android.md#android-estado-actual), reutilizar la presentación existente y comprobar que cartas, cantos y controles entren completos. Leer las convenciones antes de modificar componentes. Si cambian, actualizar también su copia técnica para que el generador siga el mismo criterio.
+Leer las [convenciones](#convenciones-diseno) antes de tocar componentes. Si cambian, actualizar también su copia técnica. Comprobar siempre que cartas, cantos y controles entren completos en la pantalla más chica.
 
 ## Guía de lectura
 
@@ -34,7 +37,7 @@ Se conservan la estética, las comprobaciones de una sola pantalla, el arte y su
 
 ### Salones, cartas y adaptación de la mesa
 
-Licencia de las cartas: baraja GNU de Germarquezm/Basquetteur, CC BY-SA3.0; adaptación por carta y WebP con atribución en [public/cartas/LICENCIA.txt](../public/cartas/LICENCIA.txt). La revisión y aceptación de los demás recursos de Android se registra en [ANDROID-15](android.md#android-etapa-15); no modifica las convenciones visuales.
+Licencia de las cartas: baraja GNU de Germarquezm/Basquetteur, CC BY-SA3.0; adaptación por carta y WebP con atribución en [public/cartas/LICENCIA.txt](../public/cartas/LICENCIA.txt). La revisión y aceptación de los demás recursos de Android se registra en [ANDROID-15](https://github.com/santibpapa/trucazo/blob/31721f5f2161a35921bb4529c006fc195cf0aab4/docs/android.md#android-etapa-15); no modifica las convenciones visuales.
 
 Procedencia de personajes, avatares, fondos e ícono: el dueño confirmó el16/10/2026 que son propios/generados con IA. Se conserva esa declaración de origen y el arte existente. Los tres WAV neutros están registrados como generados internamente en su incorporación (`0f83ef6`, `src/lib/sounds.ts`). Las cartas y Geist mantienen sus licencias de terceros; esta anotación no modifica las convenciones visuales.
 
@@ -311,7 +314,7 @@ de casino, acento dorado usado con criterio. Todo se diseña sobre fondo oscuro.
 
 La app Android debe conservar el mismo diseño y experiencia visual que la web, por decisión del dueño del 11/10/2026. Reutilizar las pantallas, componentes, estilos y recursos reales; no mantener una interfaz alternativa para Historia offline. Descarga, guardado y premios pendientes usan el mismo sistema visual.
 
-**Menú principal Android, 27/10/2026:** entrada propia de la app con Modo Campaña, Multijugador, Ajustes y Salir, cada opción con una descripción breve. Campaña y Multijugador tienen mayor jerarquía; las cuatro opciones entran completas en vertical y horizontal. Reutiliza el salón, la marca y la paleta vino y oro, sin animación de entrada. El nombre visible de Historia en Android es Modo Campaña; conserva mapa, mesa y guardado compartidos. Ajustes reúne sonido, notificaciones y cuenta. Salir minimiza la app conservando sesión y progreso. Estado y pruebas en [Android](android.md#android-menu-principal). **Letra grande, 02/11/2026:** si la letra del sistema es grande o falta alto, el menú se compacta por escalones hasta entrar sin deslizar: encabezado más chico, Ajustes y Salir lado a lado y, al final, sólo los títulos. Con letra normal se ve igual que el aprobado; nunca ignora el tamaño de letra del teléfono. Aprobado por el dueño en su teléfono.
+**Menú principal Android, 27/10/2026:** entrada propia de la app con Modo Campaña, Multijugador, Ajustes y Salir, cada opción con una descripción breve. Campaña y Multijugador tienen mayor jerarquía; las cuatro opciones entran completas en vertical y horizontal. Reutiliza el salón, la marca y la paleta vino y oro, sin animación de entrada. El nombre visible de Historia en Android es Modo Campaña; conserva mapa, mesa y guardado compartidos. Ajustes reúne sonido, notificaciones y cuenta. Salir minimiza la app conservando sesión y progreso. Estado y pruebas en [Android](https://github.com/santibpapa/trucazo/blob/31721f5f2161a35921bb4529c006fc195cf0aab4/docs/android.md#android-menu-principal). **Letra grande, 02/11/2026:** si la letra del sistema es grande o falta alto, el menú se compacta por escalones hasta entrar sin deslizar: encabezado más chico, Ajustes y Salir lado a lado y, al final, sólo los títulos. Con letra normal se ve igual que el aprobado; nunca ignora el tamaño de letra del teléfono. Aprobado por el dueño en su teléfono.
 
 **Pulido del menú, 27/10/2026:** por pedido del dueño se retira el indicador de conexión del inicio. Los botones usan doble marco dorado, relieve y fondos vino con luz suave; Campaña lleva el retrato existente y Multijugador las cartas del mazo. Ajustes y Salir conservan menor jerarquía, con medallones para sus íconos. Todas las imágenes visibles cargan desde el inicio, sin animación de entrada ni efectos continuos. Hay respuesta al tocar, foco visible y respeto por la preferencia de reducir movimiento.
 

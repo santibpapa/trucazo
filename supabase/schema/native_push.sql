@@ -250,4 +250,6 @@ revoke all on function public.native_push_jobs(),public.native_push_claim(uuid,u
 grant execute on function public.native_push_jobs(),public.native_push_claim(uuid,uuid),
   public.native_push_complete(uuid,uuid,text,integer) to service_role;
 select cron.schedule('trucazo-native-push','15 seconds','select native_push.dispatch()');
+-- Pausada (inactiva, no borrada) desde el 07/11/2026 mientras Android está en pausa:
+-- ver supabase/migrations/20261107220000_pausar_push_android.sql.
 commit;
