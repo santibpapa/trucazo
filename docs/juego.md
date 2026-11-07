@@ -1,23 +1,22 @@
 # Juego — Historia, mano a mano, parejas, bots y torneos
 
-[Volver al README](../README.md) · Documento principal de reglas y modalidades. Organización actualizada el **13/10/2026**; los estados siguientes proceden de las entregas registradas, sin una nueva comprobación de producción.
+[Volver al README](../README.md) · Documento principal de reglas y modalidades. Estado revisado el **07/11/2026**.
 
 ## Estado actual
 
+Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
+
 - Truco argentino a 15 o 30 puntos, sin flor y con monedas ficticias. Las reglas online y los premios oficiales los decide el servidor; las manos rivales nunca se envían al cliente.
-- Historia: catálogo de **15 provincias y 66 rivales**. La app instalada y su funcionamiento sin internet se siguen en [Android](android.md).
-- Parejas: lanzamiento registrado el **14/09/2026**. La entrega final prevalece sobre la auditoría anterior.
-- Torneos: cinco etapas finalizadas y lanzamiento registrado el **27/09/2026**, contrato actualizado al **07/10/2026**. Los estados de PR anteriores son historial.
-- Chat escrito en mesas normales y torneos; Historia tiene frases rápidas. Los bots no escriben en el chat libre.
-- Correcciones de ranking/presencia y recuperación de partidas incorporadas; queda la comprobación manual de los flujos reales descrita en [Operación](operacion.md#correcciones-resenas-2026-10-14). No son implementaciones pendientes.
-- GitHub integrado localmente hasta `38002ae` el 21/10, conservando Android: [invitaciones por enlace](#invitacion-por-enlace), [Chat y Amigos](#accesos-chat-amigos), [globos de chat](#globos-chat-escrito), [rendimiento](#rendimiento-del-lobby-y-la-mesa) y [vidas de Historia](#vidas-de-historia). Las vidas siguen sujetas a la configuración del servidor, sin activarlas en esta sincronización. Evidencia local en [Android](android.md#android-sync-github-2026-10-21).
-- **Envido, 23/10: cerrado por el dueño.** [PR #143](https://github.com/santibpapa/trucazo/pull/143) integrado y SQL ejecutado, según su confirmación. Evidencia y cierre en [Mostrar el tanto al cerrar](#envido-reveal-cierres-2026-10-23).
+- **Historia:** 15 provincias y 66 rivales. **Vidas de Historia programadas y apagadas** desde el 19/10: los jugadores no ven nada ni pierden vidas ([reglas y cómo activarlas](#vidas-de-historia)).
+- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (capturas del 04/11). El dueño espera la aprobación de **Google Ad Manager**, que es lo que necesitan los anuncios con premio. Diagnóstico y avances en [Rechazo de AdSense](#adsense-rechazo-poco-valor).
+- **Parejas** lanzadas el 14/09/2026 y **torneos** el 27/09/2026 (contrato al 07/10/2026).
+- **Chat escrito** en mesas normales y torneos; Historia tiene frases rápidas. Los bots no escriben en el chat libre.
+- **Bots en mesas de la gente** desde el 04/11 ([detalle](#bots-lobby-cuidamesas)).
+- **Envido:** incidente del 23/10 cerrado por el dueño; [PR #143](https://github.com/santibpapa/trucazo/pull/143) integrado y SQL ejecutado según su confirmación ([cierre](#envido-reveal-cierres-2026-10-23)). No repetir la migración.
 
 ## Próximo paso y cómo retomar
 
-El incidente del envido del 23/10 está cerrado: el dueño confirmó la integración del PR y la ejecución del SQL. No repetir la migración como un pendiente de este registro.
-
-Para integrar estas modalidades en la app, seguir el [estado y plan vigentes de Android](android.md#android-estado-actual). Si se trabaja sobre una modalidad existente, leer su entrega final y comprobar el código/SQL correspondiente antes de modificar reglas o repetir migraciones. Para los incidentes, seguir el [estado posterior a las correcciones](operacion.md#correcciones-resenas-2026-10-14).
+El trabajo abierto de esta área es el contenido para volver a pedir la revisión de AdSense: seguir los pasos de [Rechazo de AdSense](#adsense-rechazo-poco-valor). Antes de tocar una modalidad existente, leer su entrega final y comprobar el código y el SQL actuales antes de cambiar reglas o repetir migraciones. La aceptación pendiente de ranking y presencia está en [Operación](operacion.md#correccion-cierres-presencia).
 
 ## Guía de lectura
 
@@ -264,7 +263,7 @@ de prueba, y se corren en este orden:
    catálogo de frases, chat rápido por servidor y pedidos del compañero. No cambia
    reglas, turnos, puntajes ni pagos.
 
-**Verificación posterior, 15/10/2026 — ANDROID-09:** el Supabase real ya entrega bots con nombres distintos, acepta `team_say` y devuelve la respuesta del compañero a «¿Qué hago?» junto con sus frases durante la partida. Comprobado en el APK con las QA existentes; el pendiente histórico de esa cuarta migración queda descartado. **No volver a aplicarla.** Reglas y modalidades no cambiaron; [matriz y aceptación Android](android.md#android-09-parejas).
+**Verificación posterior, 15/10/2026 — ANDROID-09:** el Supabase real ya entrega bots con nombres distintos, acepta `team_say` y devuelve la respuesta del compañero a «¿Qué hago?» junto con sus frases durante la partida. Comprobado en el APK con las QA existentes; el pendiente histórico de esa cuarta migración queda descartado. **No volver a aplicarla.** Reglas y modalidades no cambiaron; [matriz y aceptación Android](https://github.com/santibpapa/trucazo/blob/31721f5f2161a35921bb4529c006fc195cf0aab4/docs/android.md#android-09-parejas).
 
 La primera exige que la extensión `pg_cron` esté habilitada (Supabase → Database →
 Extensions): programa el barrido con `cron.schedule` y sin la extensión falla entera.
@@ -983,7 +982,7 @@ Las pruebas de entrega deberán incluir:
 
 El último estado documentado indica cinco etapas finalizadas y lanzamiento en producción el 27/09/2026, con actualización al 07/10/2026. Las restricciones y pendientes escritos dentro de cada etapa corresponden a esa fecha; no reemplazan el estado final.
 
-**15/10/2026 — adaptación Android:** central, inscripción, competencia, administración por rol y espectador compartidos con la app. La vista pública se ajustó al alto disponible y el detalle explica la pausa de rondas vigente, sin cambiar reglas ni SQL. Entornos, pruebas y límites en [ANDROID-10](android.md#android-10-torneos); no se publicaron estos cambios ni se activaron torneos de ensayo en producción.
+**15/10/2026 — adaptación Android:** central, inscripción, competencia, administración por rol y espectador compartidos con la app. La vista pública se ajustó al alto disponible y el detalle explica la pausa de rondas vigente, sin cambiar reglas ni SQL. Entornos, pruebas y límites en [ANDROID-10](https://github.com/santibpapa/trucazo/blob/31721f5f2161a35921bb4529c006fc195cf0aab4/docs/android.md#android-10-torneos); no se publicaron estos cambios ni se activaron torneos de ensayo en producción.
 
 **30/10/2026 — relleno con bots (sólo 1v1):** pedido del dueño para el primer torneo (16 lugares, 11 inscriptos, inicio 20:00). `20261030223000_tournament_bot_fill.sql` crea 16 cuentas bot (`b0720000-…`, `torneoN@trucazo.bot`) con nombre, historial y antigüedad de jugador común, sin correos, y juegan con el cerebro del Noroeste (`_northwest_plan`, marcador llevado a escala de 30). Sólo actúa en los torneos de `tournament_internal.bot_fill`: la migración marca los 1v1 publicados del 30/10. El trabajo `trucazo-tournament-bots-minute` (`tournament_internal.bot_tick`) completa a la hora de inicio el cupo que no cubren los confirmados ni la espera e inicia el torneo; el bot entra al cruce apenas se abre; los cruces bot contra bot se juegan en el servidor, una mano por minuto; si la persona abandona, el bot sigue y le corre el reloj. Los bots compiten de verdad y pueden subir al podio. Para otros torneos se usa la casilla **Completar con bots** del panel (`20261030233000_tournament_bot_fill_admin.sql`: `tournament_admin_bot_fill` y `tournament_admin_set_bot_fill`, sólo administradores). Aparece al crear o editar un borrador 1v1 y en el detalle de un 1v1 publicado que todavía no arrancó; se puede desactivar siempre. **Arreglo del mismo día:** `20261030223000` dejó `bot_step` con un alias ambiguo que cortaba a los bots de Historia y del lobby; lo corrige `20261030234500_fix_bot_step_ambiguo.sql` (lo detectó `ruta_noroeste.sql` en CI). **Incidente de la COPA TRUCA (20:00):** ningún inscripto había hecho check-in; `start_one` los reemplazó y el relleno puso 16 bots. `20261030235500_copa_truca_devolver_inscriptos.sql` (ya aplicada) borró esa largada, devolvió a los 11 con check-in de la administración, completó con 5 bots, volvió a sortear y dio 15 minutos para entrar a la primera ronda, sin cambiar el estado del torneo para no reenviar el anuncio. **Regla vigente desde `20261030235800_bot_fill_respeta_inscriptos.sql`:** en los torneos marcados, los inscriptos conservan su lugar aunque no hagan check-in (si no entran a su cruce, pierden por ausencia) y los bots sólo ocupan lugares que nadie tomó. Además, al anotarse (o aceptar una invitación) aparece un aviso que explica el check-in con su horario; la persona tilda «Entiendo…» y puede confirmar recién a los 5 segundos (`src/components/tournaments/CheckInNotice.tsx`). Probado en base local reconstruida: 10 confirmados + 1 sin check-in → 6 bots, arranque automático, torneo completo con podio y 0 errores de decisión; `bot_step` contra bot de torneo desde la pantalla de una persona.
 

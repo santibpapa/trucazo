@@ -1,23 +1,26 @@
 # Trucazo
 
-Truco argentino online a **15 o 30 puntos, sin flor y con monedas ficticias**. Incluye mano a mano, parejas, Historia y torneos. La web usa Next.js 15, React, TypeScript, Tailwind y Supabase; la app Android en desarrollo usa Capacitor y comparte las cuentas y el juego online.
+Truco argentino online a **15 o 30 puntos, sin flor y con monedas ficticias**. Incluye mano a mano, parejas, Historia y torneos. La web usa Next.js 15, React, TypeScript, Tailwind y Supabase; la app Android (en pausa) usa Capacitor y comparte las cuentas y el juego online.
 
 [Abrir Trucazo](https://www.trucazo.com.ar)
 
 <a id="estado-actual"></a>
 
-## En qué estamos — 02/11/2026
+## En qué estamos — 07/11/2026
 
-- **Web:** [www.trucazo.com.ar](https://www.trucazo.com.ar), con Next.js 15. **Lo publicado es siempre `master`:** Vercel publica solo cada merge. Del 27 al 30/10 la web salió de la rama Android; desde la integración del 30/10, `master` volvió a ser igual a producción.
-- **App Android** (`apps/mobile`, Capacitor): etapas ANDROID-01 a 17 cerradas, más el menú principal (Modo Campaña, Multijugador, Ajustes y Salir). Último candidato firmado: **0.17.11 / código 29** (menú y pantallas adaptados a la letra grande del teléfono y chat de mesa restituido; probado en el Redmi y en emuladores). **Nada publicado en Play.** Confirmación de email y notificaciones públicas, apagadas. **ANDROID-18 en curso desde el 02/11** (Play Console, ficha y canal interno): falta que el dueño cree la cuenta de Play Console. [Estado y último traspaso](docs/android.md#android-estado-actual).
-- **Un servidor para la web y la app:** todo cambio en Supabase o en los servicios web tiene que seguir funcionando para las apps ya instaladas. [Guía práctica de cómo llegan los cambios](docs/android.md#como-llegan-los-cambios).
-- **Vidas de Historia:** programadas pero **apagadas** desde el 19/10. Los jugadores no ven nada ni pierden vidas. AdSense **rechazó el sitio por «contenido de poco valor»** (capturas del 04/11; [diagnóstico y cómo volver a pedir la revisión](docs/juego.md#adsense-rechazo-poco-valor)). Aun aprobado, AdSense solo no alcanza: los anuncios con premio necesitan una cuenta de Google Ad Manager con un bloque configurado. [Reglas y cómo activarlas](docs/juego.md#vidas-de-historia).
-- **Reseñas de jugadores:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118).
+Una línea por tema. Cada sesión reemplaza **sólo la línea de su tema**, con fecha; el detalle va en el documento del tema.
+
+- **Web:** [www.trucazo.com.ar](https://www.trucazo.com.ar). Lo publicado es siempre `master`: Vercel publica solo cada merge. — 07/11
+- **Juego:** Historia (15 provincias, 66 rivales), 1v1, parejas y torneos funcionando. Vidas de Historia programadas y apagadas. [Juego](docs/juego.md#estado-actual) — 07/11
+- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (04/11). Se espera la aprobación de Google Ad Manager para los anuncios con premio. [Diagnóstico](docs/juego.md#adsense-rechazo-poco-valor) — 07/11
+- **App Android:** **en pausa** hasta que Google Ad Manager apruebe la cuenta y Trucazo genere ingresos. Etapas 1 a 17 cerradas, 18 empezada, nada publicado en Play. [Android](docs/android.md#android-estado-actual) — 07/11
+- **Servidor:** un solo servidor para la web y la app: todo cambio en Supabase o en los servicios web tiene que seguir funcionando para las apps ya instaladas. [Cómo llegan los cambios](docs/android.md#como-llegan-los-cambios) — 07/11
+- **Operación:** plan gratuito de Supabase y Vercel, con recortes de consumo del 03 al 06/11. Reseñas revisadas por un agente lunes, miércoles y viernes ([tablero #118](https://github.com/santibpapa/trucazo/issues/118)). [Operación](docs/operacion.md) — 07/11
 
 **Pendientes del dueño, fuera del código:**
 
-1. Crear la cuenta de Google Play Console (pago único de US$ 25). En cuentas personales nuevas, Google exige 12 personas probando la app durante 14 días seguidos antes de publicar: conviene ir juntándolas.
-2. Guardar una copia de la firma de la app fuera de la PC (pendrive o nube privada): la carpeta `C:\Users\santy\Desktop\proyectos\trucazo-entorno\android-signing`. Hoy sus dos copias están en la misma computadora, y sin la firma no se pueden publicar actualizaciones de la misma app.
+1. Guardar una copia de la firma de la app fuera de la PC (pendrive o nube privada): la carpeta `C:\Users\santy\Desktop\proyectos\trucazo-entorno\android-signing`. Hoy sus dos copias están en la misma computadora, y sin la firma no se pueden publicar actualizaciones de la misma app.
+2. Cerrar el emulador Android que quedó abierto contra producción ([detalle](docs/operacion.md#lentitud-2026-11-03)).
 
 <a id="indice"></a>
 
@@ -25,7 +28,7 @@ Truco argentino online a **15 o 30 puntos, sin flor y con monedas ficticias**. I
 
 | Si vas a trabajar en… | Leé primero | Consultá además cuando corresponda |
 | --- | --- | --- |
-| App Android, etapas, Historia sin internet o Google Play | [Android](docs/android.md) | Juego, Backend y Diseño si la etapa los afecta. |
+| App Android (en pausa), etapas, Historia sin internet o Google Play | [Android](docs/android.md) | Juego, Backend y Diseño si la etapa los afecta. |
 | Historia, 1v1, parejas, bots, torneos o chat de mesa | [Juego](docs/juego.md) | Backend para reglas SQL; Diseño para la presentación. |
 | Base de datos, seguridad, configuración o pruebas SQL | [Backend](docs/backend.md) | El contrato y la evidencia del tema afectado. |
 | Pantallas, mesa, cartas, recursos o velocidad visual | [Diseño](docs/diseno.md) | Android para la aceptación instalada. |
@@ -68,21 +71,21 @@ Comprobaciones habituales: `npm run lint`, `npx tsc --noEmit` y `npm run build`.
 - El servidor decide las reglas online, puntajes y monedas. Las manos son privadas y quedan fuera de Realtime.
 - Una función SQL aplicada se corrige mediante una migración nueva. El dueño aplica el backend manualmente; no hay despliegue automático de SQL.
 - Web y Android comparten el diseño. La partida debe entrar completa en una pantalla, con todos sus controles.
-- Para modificar código, respetar las instrucciones de [AGENTS.md](AGENTS.md). [CLAUDE.md](CLAUDE.md) las importa tal cual para Claude y sólo agrega lo de The Agentcy: editar siempre AGENTS.md.
+- Para modificar código, respetar las instrucciones de [AGENTS.md](AGENTS.md). [CLAUDE.md](CLAUDE.md) las importa tal cual para Claude: editar siempre AGENTS.md.
 - Producción web = `master`, y todo cambio de servidor debe servirle también a la app instalada: ver [Cómo llegan los cambios](docs/android.md#como-llegan-los-cambios).
 
 <a id="mantener-documentacion"></a>
 
 ## Mantener la documentación
 
-Cada tema tiene **un documento principal**. Actualizar allí estado, decisiones, pruebas, pendientes y traspasos; en este README mantener sólo la orientación y la próxima tarea general. No crear un archivo por sesión o entrega ni copiar capítulos entre documentos. Los accesos antiguos enlazan al documento correspondiente y no guardan otra versión.
+Estos documentos son la memoria del proyecto: lo que una sesión nueva sabe al empezar. Sirven si son cortos, ciertos y fáciles de encontrar.
 
-Durante ANDROID-01 a ANDROID-20, cada sesión completa exclusivamente su etapa; el agente no cierra ni pasa sus pendientes a otra sesión por iniciativa propia. Los pasos personales se coordinan en el mismo chat y se continúa. Recién al terminar la etapa se entrega el texto para iniciar la siguiente, con estado, último traspaso de `docs/android.md` y primer paso concreto. Sólo el dueño puede pedir interrumpir antes. Las demás tareas y el mantenimiento posterior terminan con su resumen normal, salvo pedido explícito del dueño.
+- **Un documento principal por tema.** Ahí van estado, decisiones, pruebas, pendientes y traspasos. No crear un archivo por sesión o entrega ni copiar capítulos entre documentos: enlazar.
+- **«Estado actual» es una foto, no un diario.** Se reescribe entera cuando algo cambia, con la fecha de la revisión. Lo que deja de ser cierto pasa a un capítulo fechado o se borra.
+- **En este README, cada tema tiene una sola línea** en «En qué estamos». Cada sesión cambia sólo la de su tema.
+- **Anotar lo que no se ve en el código:** reglas, trampas, decisiones del dueño y cómo se comprobó cada cosa. La evidencia larga (hashes, tiempos, registros) va en la descripción del PR; el documento la enlaza.
+- **Separar lo comprobado de lo supuesto.** Decir dónde y cuándo se comprobó (navegador, emulador, producción…). Una nota vieja no vale más que una consulta de sólo lectura a la realidad.
+- **Escribir en castellano claro**, con espacios entre palabras y números. Nada de abreviar para ahorrar lugar.
+- **Ordenado semanal:** una tarea programada revisa cada semana que los «Estado actual» coincidan con lo que realmente está en `master` y en producción, y propone las correcciones en un PR.
 
-Separar lo vigente, las propuestas y el historial fechado. Si cambian las convenciones de [Diseño](docs/diseno.md#convenciones-diseno), actualizar también [.design-sync/conventions.md](.design-sync/conventions.md), que lee el generador.
-
-Las instrucciones automáticas y las herramientas permanecen en sus ubicaciones. Las herramientas personales de `.claude/skills/` no son documentación del juego; `public/_md/` se genera desde las páginas públicas. El espejo `sources/` es de solo lectura; respaldos del pendrive y primera clonación son registros históricos.
-
-**Organización actualizada el 13/10/2026:** los capítulos completos se distribuyeron por tema, conservando decisiones, pruebas, ejemplos y fechas. Esta entrega no ejecutó SQL, modificó el juego ni desplegó servicios.
-
-Verificación documental: capítulos completos trasladados, 313 anclas de capítulos y 31 ejemplos de código conservados; enlaces locales comprobados. El código y los cambios previos del proyecto quedaron intactos.
+Si cambian las convenciones de [Diseño](docs/diseno.md#convenciones-diseno), actualizar también [.design-sync/conventions.md](.design-sync/conventions.md), que lee el generador. `public/_md/` se genera desde las páginas públicas. El historial completo de cualquier documento está en Git: un capítulo que se saca de un documento se enlaza a su versión anterior en GitHub.

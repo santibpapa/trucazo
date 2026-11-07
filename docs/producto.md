@@ -1,16 +1,18 @@
 # Producto — misiones y propuestas futuras
 
-[Volver al README](../README.md) · Documento principal de planes de producto. Organización actualizada el **13/10/2026**. Mover una propuesta aquí no autoriza ni inicia su implementación.
+[Volver al README](../README.md) · Documento principal de planes de producto. Estado revisado el **07/11/2026**. Mover una propuesta acá no autoriza ni inicia su implementación.
 
 ## Estado actual
 
-- El **ciclo de retorno** está documentado como implementado en el repositorio. Su registro original conserva pasos de publicación pendientes; comprobar la evidencia posterior antes de repetirlos. El procedimiento está en [Operación](operacion.md#ciclo-despliegue).
-- **Temporadas competitivas, cierre de partida, rivalidades/desafíos y grupos** son especificaciones pendientes según sus registros. No se consideran funciones entregadas por figurar en este archivo.
-- La entrega Android en curso tiene su alcance propio en [Android](android.md#android-etapas-finales). Estas propuestas no amplían automáticamente sus etapas.
+Foto al **07/11/2026**. Se reescribe entera cuando algo cambia.
+
+- **Ciclo de retorno (misiones y desafíos):** implementado; sus funciones SQL están en producción (comprobado el 07/11). Registro de publicación en [Operación](operacion.md#ciclo-despliegue).
+- **Temporadas competitivas, cierre de partida, rivalidades/desafíos y grupos:** especificaciones, sin implementar. Figurar acá no las convierte en funciones entregadas.
+- Estas propuestas no amplían el plan de [Android](android.md#android-etapas-finales), hoy en pausa.
 
 ## Próximo paso y cómo retomar
 
-Si el dueño pide ejecutar uno de estos planes, leer su alcance, comprobar qué existe realmente y registrar aquí decisiones y aceptación. Para publicar el ciclo de retorno, partir del [registro operativo](operacion.md#ciclo-despliegue) y verificar primero si sus pasos ya fueron completados.
+Ninguno en curso. Si el dueño pide ejecutar uno de estos planes, leer su alcance, comprobar qué existe realmente y registrar acá decisiones y aceptación.
 
 ## Guía de lectura
 
@@ -53,7 +55,7 @@ IMPLEMENTACIÓN
 - Catálogo: 22 misiones activas sin repetición exacta en días consecutivos
 - Pantalla de detalle: /objetivos
 - Acceso flotante en el lobby y resumen al cerrar cada partida válida
-- Instrucciones de publicación: docs/ciclo-de-retorno-despliegue.md
+- Instrucciones de publicación: docs/operacion.md#ciclo-despliegue
 
 PROPÓSITO DE ESTE ARCHIVO
 Este archivo debe poder entregarse completo en una sesión futura para implementar
