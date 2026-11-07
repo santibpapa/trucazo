@@ -1,6 +1,6 @@
 # Juego — Historia, mano a mano, parejas, bots y torneos
 
-[Volver al README](../README.md) · Documento principal de reglas y modalidades. Estado revisado el **07/11/2026**.
+[Volver al README](../README.md) · Documento principal de reglas y modalidades. Estado revisado el **07/11/2026**. Ese día se achicó a la mitad: quedan reglas, decisiones y trampas; las pruebas, auditorías y registros de entrega están en el [historial completo hasta el 07/11/2026](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md), con un aviso en cada lugar de donde salieron.
 
 ## Estado actual
 
@@ -21,13 +21,14 @@ El trabajo abierto de esta área es el contenido para volver a pedir la revisió
 ## Guía de lectura
 
 - [Historia y ruta del Noroeste](#historia).
-- [Entrega vigente de parejas](#parejas-entrega), [comportamiento de los bots](#parejas-bots) y [auditoría histórica](#parejas-auditoria).
-- [Contrato, arquitectura y entregas de torneos](#contrato-torneos).
+- [Entrega vigente de parejas](#parejas-entrega), [comportamiento de los bots](#parejas-bots) y [tabla de reglas](#parejas-auditoria).
+- [Decisiones y arquitectura de torneos](#contrato-torneos).
 - [Chat en partidas](#chat-partidas).
 - [Bots que se sientan en mesas de la gente](#bots-lobby-cuidamesas).
+- [Vidas de Historia](#vidas-de-historia) y [rechazo de AdSense](#adsense-rechazo-poco-valor).
 - Para SQL, seguridad y pruebas: [Backend](backend.md). Para mesa, cartas y pantallas: [Diseño](diseno.md).
 
-Actualizar aquí cambios y pruebas de reglas/modalidades. Las rutas de código parten de la raíz del repositorio. Los registros fechados conservan sus límites originales; un pendiente resuelto por una entrega posterior no vuelve a abrirse.
+Actualizar acá las reglas y decisiones de cada modalidad. La evidencia larga de cada entrega (pruebas, capturas, cifras) va en la descripción del PR y se enlaza. Las rutas de código parten de la raíz del repositorio. Un pendiente resuelto por una entrega posterior no vuelve a abrirse.
 
 <a id="envido-reveal-cierres-2026-10-23"></a>
 
@@ -151,21 +152,9 @@ Los retratos se generaron individualmente con la herramienta integrada de imáge
 
 Se retiran las cifras 60,84%/60,24% del simulador anterior: reimplementaba parcialmente las reglas y, entre otras diferencias, sumaba mal envido + real. El benchmark nuevo usa el motor SQL sin esas divergencias. Compara estrategias con reputación inicial neutra, sin red ni rivales humanos; sus resultados **no predicen** la tasa frente a personas ni prueban un orden de dificultad entre los veinte personajes. Cada partida revierte sus efectos en un bloque aislado y todo termina en `ROLLBACK`; esto evita acumular miles de cambios de perfil y eventos diferidos de email durante la prueba. Conviene observar partidas reales tras publicar. La revisión de mapas y retratos en pantallas queda a cargo del dueño.
 
-<a id="noroeste-publicacion-manual-despues-de-revisar-el-pr"></a>
-
-#### Publicación manual después de revisar el PR
-
-1. Hacer merge del PR cuando la aplicación y la base de datos aparezcan aprobadas en GitHub.
-2. Abrir el proyecto **Trucazo** en Supabase → **SQL Editor** → **New query**.
-3. Copiar **todo** el contenido de `supabase/migrations/20260923120000_campana_ruta_noroeste.sql` desde GitHub, pegarlo en esa consulta y pulsar **Run**. Esperar el resultado correcto. Crea provincias, rivales y cuentas bot sin tocar a los jugadores.
-4. Abrir otra consulta nueva. Copiar **todo** el contenido de `supabase/migrations/20260923121000_campana_noroeste_estrategia.sql`, pegarlo y pulsar **Run**. Instala la estrategia y conserva la función del bot que esté vigente en ese momento.
-5. Abrir otra consulta nueva. Copiar **todo** el contenido de `supabase/migrations/20260923160014_campana_noroeste_tactica_verificada.sql`, pegarlo y pulsar **Run**. Corrige la evaluación de manos y refuerza las decisiones del Noroeste.
-6. Abrir `/historia`: comprobar La Rioja y el ranking. Si no se hicieron aún las migraciones anteriores de otros PR, aplicarlas primero en su orden original antes de estas tres. Si las primeras dos ya se ejecutaron, sólo falta la tercera.
-
-No ejecutar `scripts/rebuild-db.sh`, los tests ni el benchmark en Supabase: trabajan sobre una base **de prueba**. Las tres migraciones anteriores son las únicas consultas de esta expansión que el dueño debe correr.
+*Pasado al [historial](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md) el 07/11/2026: [«Publicación manual después de revisar el PR»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#noroeste-publicacion-manual-despues-de-revisar-el-pr).*
 
 </details>
-
 
 <a id="parejas"></a>
 
@@ -244,48 +233,7 @@ premios adicionales por ese cambio de saldo.
   participantes humanos. Esperas, partidas en curso y cancelaciones no cuentan.
   Solo se corrige la clasificación; no se crean campañas ni se envían emails.
 
-<a id="parejas-entrega-migraciones-y-activacion"></a>
-
-#### Migraciones y activación
-
-**Nota histórica de preparación, anterior a la verificación del 15/10/2026:** las tres primeras ya están aplicadas en producción. **La cuarta está pendiente: hay
-que correrla a mano** para que los bots tomen nombre, hablen y escuchen. Quedan las
-cuatro listadas por si hay que reconstruir una base desde cero o montar un entorno
-de prueba, y se corren en este orden:
-
-1. `supabase/migrations/20260909211038_team_2vs2.sql`: tablas, motor, permisos,
-   publicación de `team_tables` en Realtime y cron `sweep_team_tables`.
-2. `supabase/migrations/20260913191141_team_2vs2_maintenance.sql`: espera según
-   presencia, limpieza de solicitudes, índices, RLS y actividad de emails.
-3. `supabase/migrations/20260914100000_team_2vs2_abandono.sql`: ausencia total en
-   partida: el equipo ausente pierde por abandono; con ausentes de ambos lados se anula.
-4. `supabase/migrations/20260914170000_team_2vs2_bots_hablan.sql`: bots con nombre,
-   catálogo de frases, chat rápido por servidor y pedidos del compañero. No cambia
-   reglas, turnos, puntajes ni pagos.
-
-**Verificación posterior, 15/10/2026 — ANDROID-09:** el Supabase real ya entrega bots con nombres distintos, acepta `team_say` y devuelve la respuesta del compañero a «¿Qué hago?» junto con sus frases durante la partida. Comprobado en el APK con las QA existentes; el pendiente histórico de esa cuarta migración queda descartado. **No volver a aplicarla.** Reglas y modalidades no cambiaron; [matriz y aceptación Android](https://github.com/santibpapa/trucazo/blob/31721f5f2161a35921bb4529c006fc195cf0aab4/docs/android.md#android-09-parejas).
-
-La primera exige que la extensión `pg_cron` esté habilitada (Supabase → Database →
-Extensions): programa el barrido con `cron.schedule` y sin la extensión falla entera.
-Cada archivo es transaccional y no se repite: si ya fue aplicado, se omite.
-
-Para montar otra base con las migraciones de master:
-
-1. Abrirla en Supabase → **SQL Editor** y correr los cuatro archivos, uno por consulta.
-2. Comprobar las cuatro tablas `team_*`, la tabla privada `team_internal.requests`,
-   sus permisos y RLS. En Realtime debe aparecer solo `team_tables`, nunca las
-   manos ni las solicitudes. Debe existir un único cron `sweep_team_tables` cada 5 min.
-   Se verifican con `select tablename from pg_publication_tables where pubname='supabase_realtime'`
-   y `select jobname, schedule from cron.job`.
-3. Configurar URL y clave pública de esa base y `NEXT_PUBLIC_ENABLE_2VS2=true`, y
-   volver a compilar. La variable se hornea en el build: sin recompilar no toma efecto.
-
-Sin la variable, o con `false`, se mantienen las opciones 1vs1 y las rutas de
-parejas vuelven al lobby. Sirve como interruptor de emergencia: ponerla en `false`
-y volver a desplegar apaga la modalidad sin tocar la base ni revertir código.
-La foto de estructura y funciones 2vs2 es `supabase/schema/team_2vs2.json`; no
-contiene datos. Para reconstruir de cero, seguir [Reconstruir la base de prueba](backend.md#reconstruir-base):
-la base histórica más todas las migraciones siguen siendo la receta ejecutable.
+*Pasado al [historial](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md) el 07/11/2026: [«Migraciones y activación»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#parejas-entrega-migraciones-y-activacion).*
 
 <a id="parejas-entrega-preview-gratuita-y-como-probar"></a>
 
@@ -313,32 +261,7 @@ El enlace dura 90 minutos desde que se habilita. Para renovarlo: en esa ejecuci�
 **Re-run jobs → Re-run all jobs**. Se genera otra dirección y se reinicia la base.
 Un enlace vencido no se recupera recargando Safari.
 
-<a id="parejas-entrega-verificacion-y-limites"></a>
-
-#### Verificación y límites
-
-- Local: reconstrucción desde cero con las cuatro migraciones; pruebas SQL del motor,
-  bots, privacidad, permisos, pagos, presencia y retención; actividad de emails,
-  tipos TypeScript y comprobación de RPC.
-- CI: PostgreSQL 16, reconstrucción y suites de seguridad, regresión 1vs1,
-  actividad de emails y 2vs2. `team_concurrency.sh` usa conexiones independientes
-  para disputar asiento, reparto, respuesta, cierre/pago, limpieza/reintento y
-  presencia/barrido. PGlite local no acredita concurrencia entre conexiones.
-- Preview: Supabase local real, cinco composiciones con sesiones Auth independientes,
-  partidas hasta victoria por puntos, privacidad, recuperación de sesión y eventos
-  WebSocket. El resultado concreto de la ejecución vigente queda en el PR.
-- Composiciones cubiertas: cuatro personas, tres más bot, dos compañeras más bots,
-  dos rivales más bots y una persona más tres bots; objetivos 15/30 y relojes 15/30.
-- Charla de los bots: nombres sin repetir, permisos y RLS del catálogo, validación y
-  límite del chat, que hablar no mueva turno ni versión, respuesta honesta según la
-  mano, caducidad del pedido al terminar la mano, "Calladito" y el efecto medido de
-  cada pedido sobre la decisión. En `team_games.sql` y `check-team-presentation.ts`.
-- La apariencia la aprobó el dueño, incluido el rediseño de la sala de espera.
-- La sesión manual con cuatro personas la hizo el dueño antes de lanzar.
-
-Todo lo que figuraba como pendiente quedó resuelto: la ausencia total contra bots
-tiene regla propia (migración `20260914100000`, probada en `team_games.sql`), la
-prueba con cuatro personas se hizo, y el dueño autorizó migraciones y lanzamiento.
+*Pasado al [historial](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md) el 07/11/2026: [«Verificación y límites»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#parejas-entrega-verificacion-y-limites).*
 
 </details>
 
@@ -595,57 +518,7 @@ de envido sigue el orden de mesa desde la mano y los botones dependen del tanto.
 Q1–Q3 también quedaron confirmadas: igualdad es “son buenas”, mazo solo en el
 turno propio y liquidación del envido según Q3. Se inició la implementación.
 
-<a id="parejas-auditoria-diagnostico"></a>
-
-#### Diagnóstico
-
-El 2vs2 requiere un motor de equipos. El modelo actual no representa una cantidad
-variable de jugadores: contiene creador/rival en `tables`, dos identidades y dos
-puntajes en `games`, y funciones que obtienen al rival con un `case`. Agregar
-`player3_id` y `player4_id` dejaría incorrectos los turnos, cantos, permisos,
-barridos y pagos que continúan operando sobre los primeros dos jugadores.
-
-La arquitectura existente ofrece piezas útiles: autoridad en Postgres, manos
-privadas separadas, bloqueo de filas para las acciones, helpers del mazo y envido,
-componentes de cartas y salones, Realtime con consulta periódica de respaldo y
-una reconstrucción de base para CI.
-
-Se propone un estado de equipos separado, integrado en el lobby existente,
-reutilizando presentación y helpers que no dependan de dos identidades. Evita
-que una partida por equipos se interprete como una victoria individual en los
-sistemas existentes. Esto no implica otra aplicación ni otro diseño.
-
-<a id="parejas-auditoria-mapa-del-codigo-auditado"></a>
-
-##### Mapa del código auditado
-
-Los archivos siguientes son las últimas definiciones encontradas en el historial
-del repositorio para las funciones mencionadas. `supabase/schema` es una foto
-intermedia: se revisaron también las migraciones, en el orden usado por
-`scripts/rebuild-db.sh`.
-
-| Área | Implementación vigente en el repositorio | Dependencia de dos jugadores / reutilización |
-|---|---|---|
-| Modelos | `src/lib/types.ts`, `supabase/schema/tables.sql` | `Table`, `Game`, `EnvidoState` y resultados están ligados a p1/p2. Crear tipos propios para equipos. |
-| Crear mesa | `supabase/migrations/20260626_turn_timer.sql`: `create_table` | Apuesta mínima 10; objetivo 15/30; reloj 15/30 s; cobra al creador inmediatamente. |
-| Ingreso público/privado | `supabase/migrations/20260815_seguridad_1_mesas_privadas.sql` | Un único `opponent_id`; ingreso cobra y pasa a `playing`. La vía pública no admite privadas. |
-| Espera y lobby | `src/app/lobby/LobbyClient.tsx`, `src/app/game/[id]/WaitingRoom.tsx`, `src/lib/lobby-tables.ts` | Espera un rival; agrega bot automáticamente a públicas luego de 8–18 s y reintenta cada 15 s. No trasladar ese llenado automático al 2vs2. |
-| Comienzo y reparto | `supabase/migrations/20260815_seguridad_3_start_game.sql`, `20260620_ocultar_cartas.sql` | Autoriza antes de devolver datos, bloquea mesa, reparte 3+3. Reutilizar el mazo de 40 cartas, no `_deal_hands` sin adaptar. |
-| Privacidad | `supabase/schema/policies.sql`, `20260620_ocultar_cartas.sql` | La RLS de `game_hands` permite leer la mano propia. Manos fuera de Realtime. El mismo principio sirve para cuatro participantes. |
-| Cartas y bazas | `supabase/migrations/20260701_fix_fin_partida_por_cartas.sql`: `play_card` | Valida turno y carta desde la mano privada; resuelve al contar exactamente dos cartas. Los rangos enviados por cliente no sustituyen la carta almacenada. |
-| Envido | `20260706_campana_4_estilo_reputacion.sql`, `20260707_envido_reveal_mazo_declarando.sql`, `20260622_target_score.sql` | Canto y respuesta entre dos; diálogo mano/pie; calcula tantos en servidor. Se pueden reutilizar cálculo individual y valores de cadenas. |
-| Truco | `supabase/migrations/20260709_envido_va_primero.sql` | Guarda un cantante, asigna un rival y reconstruye el turno entre dos. El envido pendiente tiene prioridad. |
-| Nueva mano | `supabase/migrations/20260706_campana_4_estilo_reputacion.sql`: `advance_hand` | Alterna mano entre p1/p2, limpia la ronda y reparte dos manos. |
-| Mazo | `20260707_envido_reveal_ganador_al_mazo.sql`, `20260707_envido_reveal_mazo_declarando.sql` | Siempre cierra la mano para ambos. El dueño confirmó que en parejas también cierra la mano completa y gana el otro equipo. |
-| Bots | `supabase/migrations/20260815_bots_lobby.sql`: `bot_step` | Encuentra un bot y un humano; solo consulta la mano del bot y jugadas públicas para elegir cartas. No representa compañero ni dos rivales. |
-| Asignación de bots | `20260815_bots_lobby.sql`, `20260815_seguridad_5_lobby_carrera.sql` | Hay tres bots globales de lobby, asignados con bloqueo. No garantiza tres bots disponibles para cada mesa 2vs2. |
-| Presencia y abandono | `20260702_comunidad_1_amigos.sql`, `20260620_forfeit_claim_server.sql`, `20260707_envido_reveal_mazo_declarando.sql` | Presencia por jugador; abandono concede victoria al rival; tercer mazo automático termina la partida. |
-| Limpieza | `supabase/migrations/20260815_seguridad_6_privilegios_por_defecto.sql` | Inactividad de ambos: 10 min por defecto; mesas esperando: 15 min desde creación. Reembolsos pensados para dos o para el creador. |
-| Cierre | `supabase/migrations/20260705_campana_provincias_1_backend.sql`: `finish_game` | Bloqueo e idempotencia; paga todo el pozo a uno, actualiza dos perfiles y escribe dos filas de historial. |
-| Misiones y medallas | `20260904150348_ciclo_retorno.sql`, `20260709_medallas.sql` | Triggers sobre `games`, `profiles` e historial. No llamar al cierre 1vs1 desde 2vs2. |
-| Interfaz | `src/app/game/[id]/GameClient.tsx`, `page.tsx` | Acceso limitado a creador/rival; turnos, anuncios y resultado se expresan como yo/rival. Crear cliente de equipos separado. |
-| Arte y animaciones | `src/components/game/SalonScene.tsx`, `salon.module.css`, `PlayingCard.tsx`, `CardBack.tsx`, `CardMotion.tsx` | Arte y cartas reutilizables; animaciones usan destinos `me/opponent` y necesitan destinos por asiento. |
-| Recuperación | `src/app/lobby/page.tsx`, `GameClient.tsx` | Retomar depende de `games`; Realtime más consulta cada 2,5 s; presencia cada 8 s. Agregar recorrido de recuperación por participante 2vs2. |
+*Pasado al [historial](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md) el 07/11/2026: [«Diagnóstico»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#parejas-auditoria-diagnostico).*
 
 <a id="parejas-auditoria-tabla-de-reglas"></a>
 
@@ -808,173 +681,9 @@ automática por bots.
    cobra el rechazo más la mano, incluso si quien se retira lo había cantado.
    Sin canto no hay puntos extra de envido.
 
-<a id="parejas-auditoria-propuesta-de-implementacion"></a>
-
-#### Propuesta de implementación
-
-<a id="parejas-auditoria-persistencia-y-api"></a>
-
-##### Persistencia y API
-
-Usar tablas de equipos propias (`team_tables`, `team_seats`, `team_games`,
-`team_hands`, `team_presence` y registro privado de solicitudes), con nombres
-definitivos a fijar al implementar. El lobby presenta ambas modalidades y la
-ruta de partida selecciona el cliente adecuado. No crear partidas 1vs1 ficticias
-para representar equipos ni duplicar el cierre individual para cada ganador.
-
-- Identidad del asiento/participante independiente del usuario; persona con
-  `user_id`, bot con identidad local a esa mesa. No crear cuentas de login para
-  bots ni cambiar sus JWT para ejecutar decisiones.
-- Unicidad `(mesa, asiento)` y `(mesa, usuario)` cuando hay usuario; asiento en
-  0–3; equipo derivado de su paridad; no aceptar equipo arbitrario del cliente.
-- Un lock de mesa serializa cambio de asiento, ingreso, bots, salida e inicio.
-  Revalidar cuatro ocupantes y permisos dentro de ese lock.
-- Estado con turno de cartas separado del equipo que debe responder, autor del
-  canto, turno de declaración, motivo del cierre, resultados, marcador, mano y versión.
-- Mutaciones reciben identificador de solicitud y versión esperada; el servidor
-  autoriza primero y guarda el efecto de cada solicitud. Una respuesta vieja no
-  puede aceptar el canto siguiente ni jugar la misma carta en otra mano.
-- Bloquear partida antes de decidir y ejecutar bots. Un único paso por versión,
-  sin decidir con una copia vieja y aplicar contra una mano posterior.
-- RPC de lectura devuelve estado público y mano propia de la misma versión en
-  una instantánea coherente. RLS solo permite leer cartas propias. Ningún payload
-  público incluye mano del compañero, tantos sin declarar ni análisis privado
-  del bot.
-- Nuevas funciones públicas con autorización de participante y grants explícitos;
-  helpers internos sin ejecución para `PUBLIC`, `anon` ni `authenticated`.
-- Realtime solo para mesa/estado público; volver a consultar al suscribirse y al
-  reconectar. Ignorar versiones menores, respuestas tardías y temporizadores
-  cancelados. Polling de respaldo e invalidación al terminar/salir.
-
-Separar las tablas evita que los sweeps del 1vs1, los tres bots globales y sus
-triggers interpreten el 2vs2 con reglas equivocadas. Se debe agregar su propio
-mantenimiento y recuperación; “separado” no significa dejar esos recorridos sin
-resolver. La configuración real de Realtime y del cron requiere verificarse en
-la base de preview antes de entregar.
-
-<a id="parejas-auditoria-bots"></a>
-
-##### Bots
-
-Reutilizar los helpers de fuerza y envido que aceptan una mano. La entrada de la
-decisión debe contener exclusivamente la mano propia, cartas ya públicas,
-marcador, cantos y orden. El bot ahorra una carta fuerte si su equipo
-ya asegura la baza; si todavía falta un rival, evalúa que puede superar al
-compañero sin conocer sus cartas. Distinguir asegurar una baza de estar ganándola
-momentáneamente.
-
-Probar invariancia de información: manteniendo mano propia y estado público,
-intercambiar cartas ocultas de los demás no puede cambiar la decisión con la
-misma semilla aleatoria. No reutilizar la lectura de reputación de campaña ni
-agregar nuevas actualizaciones de fama.
-
-<a id="parejas-auditoria-interfaz-y-compatibilidad-visual"></a>
-
-##### Interfaz y compatibilidad visual
-
-Compartir `SalonBackground`, `SalonTable`, `PlayingCard`, `CardBack`, arte y tokens
-de controles; usar `TeamGameClient` y estilos de distribución específicos.
-El componente 1vs1 y su presentación mantienen su recorrido.
-
-Rotación visual relativa al asiento local: propio abajo, +2 arriba, +1/+3 en
-lados consistentes con el orden acordado. Identificar cartas y cantos por asiento,
-no solo por color. El marcador dice “Nosotros”/“Ellos” e identifica integrantes.
-Mostrar la baza actual y permitir consultar las anteriores dentro del área
-disponible sin convertir la partida en una página desplazable.
-
-La CSS vigente tiene reglas antiguas de mínimos altos, pero al final las
-sobrescribe con `overflow: hidden`, `100dvh`, `min-height: 0` y tamaños relativos al
-área de mesa. Mantener esa geometría adaptativa: reservar marcador y controles,
-reducir retratos/dorsos antes de sacrificar cartas legibles. Comprobar teclado,
-safe areas, cantos con todas sus respuestas y pantalla final.
-
-El PR #56 seguía abierto y cambia `GameClient.tsx`, `SalonPreview.tsx` y
-`salon.module.css`. Refrescar su estado antes de modificar esos archivos; el
-diagnóstico no significa que exista aún una prueba de compatibilidad del 2vs2.
-
-<a id="parejas-auditoria-sistemas-existentes-afectados"></a>
-
-##### Sistemas existentes afectados
-
-| Sistema | Tratamiento necesario dentro del alcance |
-|---|---|
-| Historial/estadísticas/ranking/misiones/fama | No llamar `finish_game`, `_record_objective_game` ni registrar victorias individuales ficticias. Pruebas de ausencia de efectos después de cierre y reintentos. |
-| Medallas | Revisar triggers de `games`, historial y especialmente `profiles.coins` porque D4 mantiene apuestas. No disparar premios nuevos accidentalmente. |
-| Monedas | Aporte y reparto confirmados en D4; contabilidad idempotente y reembolsos explícitos. |
-| Recuperación desde lobby | Buscar participación real 2vs2 para los cuatro asientos, no solo creador. |
-| Bots del lobby y barridos 1vs1 | Mantenerlos funcionando; los bots y la limpieza de equipos no consumen sus puestos ni reutilizan sus reembolsos. |
-| Emails de reactivación | `email_recipient_activity` solo mira `games`/`game_history`. Registrar actividad real 2vs2 en esa lectura al integrar, sin campañas ni envíos nuevos, para no llamar “nunca jugó” a quien sí jugó. |
-| Comunidad / panel admin | Sus consultas asumen dos jugadores. No inventar resultados individuales para alimentarlos; documentar las vistas que todavía no incluyen 2vs2. La detección de partida activa debe impedir flujos incompatibles. |
-| Invitaciones y revancha | Mantener los flujos 1vs1; no enganchar automáticamente una mesa 2vs2 en sus RPC actuales. |
-
-<a id="parejas-auditoria-prs-migraciones-y-preview"></a>
-
-##### PRs, migraciones y preview
-
-1. Este PR: auditoría, decisiones D1–D5 actualizadas, aclaraciones Q1–Q3 y registro del objetivo.
-2. Mesas/asientos: backend con permisos y pruebas; UI de elección e integración
-   en lobby. No exponer inicio sin el motor funcional.
-3. Motor/bots: transacciones, reglas acordadas y pruebas SQL/concurrencia.
-4. Partida visual/sincronización: cliente, reconexión, mantenimiento y regresión.
-5. Cierre de entrega: pruebas de navegador, capturas, instrucciones y limitaciones.
-
-Se pueden agrupar los PRs 2–4 si facilita tener una preview completa, conservando
-commits por etapa. Ninguna etapa parcial se debe lanzar para completar las demás
-en producción.
-
-Todas las migraciones serán nuevas y posteriores a las existentes. La guía final
-debe decir qué archivo copiar al SQL Editor, en qué orden, qué comprobar y qué
-hacer si falta configurar Realtime o el cron. Crear y probar primero una base de
-preview aislada. No conectar una preview a producción para ejecutar pruebas de
-abandono, bots, monedas o permisos.
-
-<a id="parejas-auditoria-verificacion-realizada-y-pendiente"></a>
-
-#### Verificación realizada y pendiente
-
-Realizado en esta auditoría:
-
-- Lectura de modelos, migraciones efectivas, RLS, flujo de juego, lobby, bots,
-  cierres, integraciones y estilos actuales; revisión del alcance del PR #56.
-- `node scripts/check-rpc-allowlist.mjs`: correcto, 61 RPC cliente y 4 solo de
-  servidor.
-- `scripts/sim.ts`: pasó comparación de rangos, 50.000 manos de envido y 20.000
-  partidas a 30. **Es una reproducción TypeScript del SQL**, no ejecuta las
-  funciones Postgres ni valida concurrencia, RLS, red o UI. No demuestra que las
-  reglas observadas sean las reglas deseadas para 2vs2.
-- Consulta del changelog y documentación de Supabase sobre RLS y Postgres Changes;
-  la propuesta no requiere modificar el schema interno `realtime`.
-
-Actualización de implementación: se agregó la migración
-`20260909211038_team_2vs2.sql`, con motor, mesas, bots, presencia y barrido.
-La suite `supabase/tests/team_games.sql` pasó contra PGlite tras reconstruir la
-base y aplicar el historial. Cubre ambas metas, ambos relojes y las cinco
-composiciones, privacidad, mazo, declaraciones y pagos. La carrera entre conexiones
-independientes se incorpora a CI en `team_concurrency.sh`; falta su ejecución en
-PostgreSQL nativo y la verificación de navegador/preview. El objetivo sigue abierto.
-
-Las pruebas de entrega deberán incluir:
-
-- Las cinco combinaciones de personas/bots indicadas en el objetivo, con partidas
-  completas a 15 y 30 y ambos relojes.
-- Las combinaciones de bazas, incluidas las dos primeras pardas, empate entre
-  compañeros, tercera parda y mazo antes/después de tirar que cierra la mano para todos.
-- Todas las cadenas de envido y truco; tanto por persona, prioridad de mano,
-  respuesta compartida, truco suspendido y objetivo alcanzado durante envido.
-- Reintentos, simultaneidad con conexiones independientes y solicitudes de una
-  versión/mano anterior; una sola concesión de puntos/cobro/cierre.
-- Permisos positivos y negativos como usuarios reales: terceros, compañeros,
-  bots, dueño y acciones recibidas luego del mazo. Comprobar ocultamiento de manos por consulta
-  directa, RPC y Realtime; no basta un error por falta general de permisos.
-- Recargar cada asiento, reconectar, cerrar pestañas, vencimientos, cancelar antes
-  del inicio y ausencia total. Bots pendientes no actúan luego del cierre.
-- Celulares 320×568, 360×640, 390×844, 430×932 y escritorio; verificar controles
-  visibles y ausencia de solapamientos y desplazamiento en partida y resultado.
-- Regresión del 1vs1, invitaciones existentes, lobby al volver de tienda y cierre
-  sin avances o recompensas indebidos.
+*Pasado al [historial](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md) el 07/11/2026: [«Propuesta de implementación»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#parejas-auditoria-propuesta-de-implementacion), [«Verificación realizada y pendiente»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#parejas-auditoria-verificacion-realizada-y-pendiente).*
 
 </details>
-
 
 <a id="torneos"></a>
 
@@ -1024,46 +733,7 @@ Procedencia anterior: `torneos.md`. El contenido se mantiene en este documento t
 > Repositorio base: `santibpapa/trucazo`<br>
 > Commit base al redactar este documento: `4d5857359b4b33612c0633421beff4aa5d1ddf81`
 
-<a id="contrato-torneos-1-como-usar-este-documento"></a>
-
-#### 1. Cómo usar este documento
-
-Para futuras modificaciones de torneos, leer este archivo y `AGENTS.md`. Las instrucciones de etapas siguientes y los pasos de lanzamiento se conservan como historial: **las cinco etapas ya terminaron; no volver a ejecutar sus migraciones**. Toda corrección de la base requiere una migración nueva.
-
-Reglas que se siguieron durante la implementación:
-
-1. Empezar desde el `master` más reciente, con el PR anterior fusionado.
-2. Verificar las precondiciones de la etapa antes de programar. Si falta una migración aplicada o el PR anterior no está fusionado, la etapa todavía no empieza.
-3. Implementar solamente el alcance de la etapa actual. No adelantar trabajo de una etapa posterior salvo una dependencia técnica mínima y documentada.
-4. Toda modificación de base de datos se hace en una migración nueva. Nunca se edita una migración ya aplicada.
-5. La base de datos y sus RPC son la autoridad para cupos, permisos, sorteos, resultados, premios y transiciones de estado. La interfaz nunca es la única barrera.
-6. Antes de terminar, ejecutar las pruebas de la etapa, completar el registro de traspaso al final de este archivo y dejar instrucciones exactas para aplicar SQL manualmente cuando corresponda.
-7. Una etapa termina únicamente cuando cumple toda su definición de terminado. Abrir un PR no equivale a terminarla.
-
-<a id="contrato-torneos-2-estado-del-programa"></a>
-
-#### 2. Estado del programa
-
-<a id="contrato-torneos-eliminacion-de-torneos-anteriores-2026-10-07"></a>
-
-##### Eliminación de torneos anteriores (2026-10-07)
-
-- En `/admin/torneos`, cada tarjeta de **Anteriores** muestra **Eliminar torneo**. También aparece dentro del detalle administrativo si está finalizado o cancelado.
-- Pide confirmación, quita el torneo de ambas listas (administradores y jugadores) y deja de ofrecer su detalle. No permite borrar borradores, publicados ni torneos en curso; el servidor valida administrador y estado bajo bloqueo de fila.
-- Es un borrado lógico (`tournaments.deleted_at`): conserva participantes, resultados, premios, monedas, insignias y auditoría. Cancela correos sin enviar y retira avisos del torneo para no dejar enlaces al detalle eliminado. Los reintentos no repiten la auditoría.
-- SQL nuevo a aplicar manualmente al fusionar: `supabase/migrations/20261008022514_tournaments_delete_old.sql`. No requiere cambiar flags ni configurar un cron.
-- Pruebas: `supabase/tests/tournaments_delete.sql`, incluidas en CI. Entrega pendiente de fusionar y aplicar SQL en producción.
-
-| Entrega | Estado | Rama | PR | Migraciones | Observaciones |
-| --- | --- | --- | --- | --- | --- |
-| Documento base | Completo | `codex/plan-sistema-torneos` | [#74](https://github.com/santibpapa/trucazo/pull/74) | Ninguna | Especificación y división en cinco etapas |
-| PR 1 — Base de datos y contrato | Completo | `codex/tournaments-base-contract` | [#75](https://github.com/santibpapa/trucazo/pull/75) | `20260921082456_tournaments_base_contract.sql` | Fusionado, SQL aplicado y verificado |
-| PR 2 — Administración e inscripciones | Completo | `codex/tournaments-admin-registration` | [#78](https://github.com/santibpapa/trucazo/pull/78) | `20260922071129_tournaments_public_projection.sql` | Fusionado, SQL aplicado y recorridos validados |
-| PR 3 — Competencia 1v1 | Completo | `codex/tournaments-1v1-competition` | [#84](https://github.com/santibpapa/trucazo/pull/84) | `20260924172158_tournaments_1v1_competition.sql` | Fusionado, SQL aplicado y cron de torneos verificado; recorridos manuales confirmados por el dueño antes del lanzamiento |
-| PR 4 — Competencia 2v2 | Completo | `codex/tournaments-2v2-competition` | [#89](https://github.com/santibpapa/trucazo/pull/89) | `20260925103000_tournaments_2v2_competition.sql` | Fusionado, SQL aplicado y CI verde; recorridos manuales confirmados por el dueño antes del lanzamiento |
-| PR 5 — Comunicaciones, espectadores y lanzamiento | Completo | `codex/tournaments-pr5` | [#91](https://github.com/santibpapa/trucazo/pull/91) | `20260927001608_tournaments_communications_awards.sql` | Fusionado y SQL aplicado; cron de emails #9 activo, despacho y flag encendidos. Ajustes de lobby [#92](https://github.com/santibpapa/trucazo/pull/92) y [#93](https://github.com/santibpapa/trucazo/pull/93) fusionados y desplegados |
-
-El cierre y el alcance de las comprobaciones figuran en la última entrada del registro de traspaso (§12). Las entradas anteriores reflejan el estado en su fecha, aunque mencionen tareas que ya se resolvieron.
+*Pasado al [historial](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md) el 07/11/2026: [«1. Cómo usar este documento»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#contrato-torneos-1-como-usar-este-documento), [«2. Estado del programa»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#contrato-torneos-2-estado-del-programa).*
 
 <a id="contrato-torneos-3-objetivo-del-producto"></a>
 
@@ -1313,422 +983,7 @@ La autoridad de administrador se verifica en el servidor con `profiles.is_admin`
 - Conservar baja de suscripción, deduplicación, trazabilidad y procesamiento por lotes.
 - Agregar tipos/trabajos propios de torneo; no forzar estos eventos dentro del cron diario configurado en `vercel.json`.
 
-<a id="contrato-torneos-7-modelo-de-datos-objetivo"></a>
-
-#### 7. Modelo de datos objetivo
-
-Los nombres pueden ajustarse durante PR 1 si existe una razón técnica, pero el contrato funcional no cambia.
-
-| Tabla | Responsabilidad y campos mínimos |
-| --- | --- |
-| `tournaments` | Configuración, `mode`, `format`, cupo en jugadores, puntaje, premios por jugador, `starts_at`, estado, `published_at`, `paused_at`, `roster_frozen_at`, `schedule_version`, cancelación y auditoría de admin |
-| `tournament_entries` | Unidad competitiva: una persona en 1v1 o un equipo en 2v2; estado activo/espera/eliminado/descalificado/retirado, prioridad, semilla aleatoria y procedencia de reemplazo |
-| `tournament_entry_members` | Miembros de cada unidad, invitación, aceptación, reemplazo, `tournament_id` denormalizado para unicidad segura y auditoría |
-| `tournament_checkins` | Check-in por inscripción/equipo, quién lo confirmó y cuándo |
-| `tournament_groups` | Grupos, orden/sorteo persistido y estado |
-| `tournament_group_members` | Inscripciones asignadas a cada grupo y estadísticas calculables/auditables |
-| `tournament_matches` | Fase, grupo/ronda, lados A/B, estado, `ready_at`, plazo de entrada, resultado, puntos, ganador/perdedor, motivo de cierre y vínculo a partida 1v1 o 2v2 |
-| `tournament_match_presence` | Entrada de cada participante al cruce, útil para el plazo de cinco minutos y ausencias |
-| `tournament_awards` | Puesto, usuario, monedas, insignia y fecha de acreditación, con unicidad idempotente |
-| `tournament_notifications` | Avisos dentro del juego, payload, creación y lectura |
-| `tournament_email_jobs` | Tipo, destinatario o audiencia, `due_at`, versión de agenda, estado, intentos y clave de deduplicación |
-
-Estados recomendados del torneo: `draft`, `published`, `running`, `completed`, `cancelled`. La pausa se representa con `paused_at` para no perder la fase real. La ventana de check-in se deriva de `starts_at - 30 minutos` y `starts_at`; no necesita un estado exclusivo frágil.
-
-Estados recomendados del cruce: `pending`, `ready`, `playing`, `finished`, `forfeit`, `cancelled`.
-
-<a id="contrato-torneos-71-integridad-y-concurrencia"></a>
-
-##### 7.1 Integridad y concurrencia
-
-- Restricciones `CHECK` para modalidad, formato, cupo, puntaje, premios no negativos y combinaciones válidas.
-- Índice único parcial para impedir dos membresías activas del mismo usuario en un torneo.
-- Índices en todas las claves foráneas y columnas usadas por cron, estado, fecha, torneo y usuario.
-- Bloqueo de fila o advisory lock al ocupar el último cupo, aceptar una invitación, promocionar desde espera, congelar el plantel, finalizar un cruce y acreditar premios.
-- Claves únicas para sorteo generado, resultado aplicado, evento de misión, premio, notificación y email. Reintentar nunca duplica efectos.
-- El sorteo y la conformación de la llave se persisten; no se recalculan en cada lectura.
-- Las bajas, reemplazos y acciones administrativas guardan autor, momento y motivo.
-
-<a id="contrato-torneos-72-seguridad"></a>
-
-##### 7.2 Seguridad
-
-- Todas las tablas públicas tienen RLS activado.
-- El cliente solo lee proyecciones permitidas y muta mediante RPC autorizados; no tiene escritura directa a tablas de torneo.
-- Las colas de email, acreditaciones y datos internos no son legibles por clientes.
-- Helpers sensibles viven en un esquema como `tournament_internal`, sin `USAGE` para `anon` ni `authenticated`.
-- Una función `SECURITY DEFINER` se usa solo cuando es necesaria, con `search_path = ''`, nombres calificados, controles explícitos y grants mínimos.
-- Cada RPC nueva se incorpora a `scripts/check-rpc-allowlist.mjs` con su permiso deliberado.
-- Las RPC de participación verifican usuario autenticado **y no anónimo**. Las RPC administrativas verifican `profiles.is_admin` dentro de la transacción.
-- Realtime solo publica estado de torneo, cruces y notificaciones seguras. Nunca publica manos, cartas rivales, destinatarios de email ni tablas internas.
-
-<a id="contrato-torneos-73-rpc-y-procesos-esperados"></a>
-
-##### 7.3 RPC y procesos esperados
-
-El contrato debe cubrir, aunque los nombres finales puedan variar:
-
-- lectura de lista, detalle, mi inscripción, grupos, llave y posiciones;
-- inscripción individual, invitación, aceptación/rechazo, retiro y check-in;
-- entrada a un cruce listo;
-- creación/edición/publicación/reprogramación/cancelación por admin;
-- inicio con cupo incompleto, pausa, reanudación, descalificación y reemplazo;
-- congelamiento del plantel, parejas aleatorias, sorteo de grupos/llave y creación de partidas;
-- aplicación idempotente de resultados, tabla de posiciones y progresión de rondas;
-- vencimientos de check-in y entrada, promociones desde espera, premios y comunicaciones.
-
-Un proceso interno como `tournament_internal.advance_due()` puede ejecutarse cada minuto y también de manera oportunista al abrir el detalle o realizar una acción. Debe ser seguro ante ejecuciones simultáneas y repetidas.
-
-<a id="contrato-torneos-8-experiencia-de-usuario-objetivo"></a>
-
-#### 8. Experiencia de usuario objetivo
-
-Rutas principales:
-
-| Ruta | Uso |
-| --- | --- |
-| `/torneos` | Próximos, activos y anteriores |
-| `/torneos/[id]` | Detalle, inscripción, check-in, participantes, grupos/llave y partidas |
-| `/torneos/[id]/partidas/[matchId]` | Entrada de participante o vista segura de espectador registrado |
-| `/admin/torneos` | Listado y operación administrativa |
-| `/admin/torneos/nuevo` | Alta y publicación |
-| `/admin/torneos/[id]` | Edición, monitoreo y acciones de torneo |
-
-El acceso del lobby debe comunicar estados útiles: próximo torneo, check-in abierto, cruce listo o torneo activo. El detalle debe explicar claramente por qué una acción está deshabilitada, por ejemplo invitación pendiente, lista de espera, falta de check-in o combinación estructural insuficiente para iniciar.
-
-Para espectadores se usa una RPC o vista específica con puntaje, turno, jugadores/equipos, cartas jugadas y eventos públicos. Nunca se amplían las políticas de `game_hands` o `team_hands` para exponer manos ocultas. Una ruta segura es suscribirse a cambios del `tournament_match` y volver a pedir el snapshot público.
-
-<a id="contrato-torneos-9-plan-de-cinco-prsesiones"></a>
-
-#### 9. Plan de cinco PR/sesiones
-
-<a id="contrato-torneos-pr-1-base-de-datos-seguridad-y-contrato"></a>
-
-#### PR 1 — Base de datos, seguridad y contrato
-
-<a id="contrato-torneos-empieza-cuando"></a>
-
-##### Empieza cuando
-
-- Este documento está fusionado en `master`.
-- El árbol de trabajo parte limpio del último `master`.
-- No existen objetos de torneo aplicados fuera de migraciones versionadas o, si existiera un experimento previo, fue inventariado antes de continuar.
-- La funcionalidad sigue apagada y no hay usuarios dependiendo de ella.
-
-<a id="contrato-torneos-alcance-exacto"></a>
-
-##### Alcance exacto
-
-1. Crear las migraciones del modelo principal, índices, restricciones, RLS, esquema interno y auditoría.
-2. Definir el ciclo de estados y los contratos TypeScript compartidos.
-3. Implementar las RPC de lectura básica y las mutaciones de administración, inscripción, invitación, retiro y check-in necesarias para fijar el contrato, aunque todavía no creen partidas.
-4. Resolver de forma transaccional el último cupo, lista de espera, aceptación de pareja y check-in.
-5. Incorporar el feature flag `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` sin mostrar todavía la experiencia pública.
-6. Agregar pruebas SQL de permisos, restricciones e idempotencia/concurrencia y actualizar la allowlist de RPC.
-7. Actualizar los scripts de reconstrucción/snapshot que el repositorio utilice, sin editar migraciones históricas.
-
-<a id="contrato-torneos-fuera-de-esta-pr"></a>
-
-##### Fuera de esta PR
-
-- Pantallas completas.
-- Creación de partidas 1v1 o 2v2.
-- Sorteos y progresión competitiva.
-- Emails reales, espectadores y premios.
-
-<a id="contrato-torneos-termina-cuando"></a>
-
-##### Termina cuando
-
-- Una reconstrucción completa de la base aplica todas las migraciones sin errores.
-- Las pruebas demuestran que un usuario común no ejecuta acciones de admin y un usuario anónimo no se inscribe.
-- Dos solicitudes simultáneas al último lugar no sobrecargan el cupo ni duplican membresías.
-- Aceptar una invitación o hacer check-in dos veces produce un único efecto.
-- Las combinaciones inválidas de modalidad/formato/cupo fallan también en la base.
-- `npm run check:rpc-allowlist`, las pruebas SQL agregadas y las verificaciones existentes pasan.
-- No cambió el comportamiento de partidas, emails ni misiones existentes.
-- El PR contiene instrucciones exactas para aplicar la migración y este documento tiene su traspaso actualizado.
-
-<a id="contrato-torneos-entrega-a-la-sesion-siguiente"></a>
-
-##### Entrega a la sesión siguiente
-
-- Fusionar el PR y aplicar su SQL en los entornos indicados.
-- Mantener el feature flag apagado.
-- Registrar nombres finales de tablas/RPC si difieren de los propuestos.
-
-<a id="contrato-torneos-pr-2-administracion-central-inscripcion-y-check-in"></a>
-
-#### PR 2 — Administración, central, inscripción y check-in
-
-<a id="contrato-torneos-empieza-cuando-1"></a>
-
-##### Empieza cuando
-
-- PR 1 está fusionado.
-- Sus migraciones están aplicadas y verificadas en el entorno de desarrollo/prueba correspondiente.
-- Las RPC de inscripción y administración tienen pruebas verdes.
-- El feature flag continúa apagado para el público general.
-
-<a id="contrato-torneos-alcance-exacto-1"></a>
-
-##### Alcance exacto
-
-1. Crear `/admin/torneos`, alta, edición, borrador, publicación, reprogramación y cancelación.
-2. Validar modalidad, formato, cupo, fecha, puntaje y monedas tanto en formulario como en servidor.
-3. Agregar el acceso de Torneos al menú `/admin`.
-4. Crear `/torneos` y `/torneos/[id]` con próximos, activos, anteriores y detalle.
-5. Implementar inscripción 1v1, inscripción 2v2 individual, invitación de compañero, aceptación/rechazo, retiro y lista de espera.
-6. Implementar check-in, estados y reemplazos previos al inicio que ya estén definidos en PR 1.
-7. Agregar el acceso/emoji de torneos al lobby para móvil y escritorio detrás del feature flag.
-8. Actualizar los datos visibles de forma segura con Realtime o refetch controlado.
-9. Cubrir accesibilidad, estados vacíos, carga, errores y confirmaciones destructivas.
-
-<a id="contrato-torneos-fuera-de-esta-pr-1"></a>
-
-##### Fuera de esta PR
-
-- No se crean ni disputan partidas de torneo.
-- No se sortea la llave definitiva.
-- No se envían emails reales.
-- No se entregan premios ni se habilitan espectadores.
-
-<a id="contrato-torneos-termina-cuando-1"></a>
-
-##### Termina cuando
-
-- Un admin puede crear, editar, publicar, reprogramar y cancelar un torneo válido.
-- Un usuario registrado puede anotarse solo o con invitación, retirarse a tiempo, pasar a espera y hacer check-in.
-- Un invitado/anónimo ve la información permitida pero no logra inscribirse usando UI ni RPC.
-- Los cambios de cupo, espera y check-in se reflejan correctamente en dos clientes simultáneos.
-- Las combinaciones inválidas están bloqueadas y los mensajes explican el motivo.
-- La experiencia funciona en móvil y escritorio y no desplaza controles esenciales del lobby.
-- `npm run lint`, `npm run build`, las pruebas SQL y las verificaciones existentes pasan.
-- El PR incluye evidencia manual de los recorridos y el registro de traspaso está actualizado.
-
-<a id="contrato-torneos-entrega-a-la-sesion-siguiente-1"></a>
-
-##### Entrega a la sesión siguiente
-
-- Fusionar y aplicar cualquier migración nueva.
-- Mantener públicamente apagado el feature flag; puede activarse solo en preview para validar interfaz.
-- Dejar documentados IDs/datos de prueba reutilizables, sin secretos.
-
-<a id="contrato-torneos-pr-3-torneos-1v1-y-formatos-competitivos"></a>
-
-#### PR 3 — Torneos 1v1 y formatos competitivos
-
-<a id="contrato-torneos-empieza-cuando-2"></a>
-
-##### Empieza cuando
-
-- PR 2 está fusionado y sus migraciones aplicadas.
-- Alta, publicación, inscripción, espera y check-in funcionan de punta a punta.
-- No hay errores conocidos que puedan corromper cupos o membresías.
-- La modalidad 2v2 permanece explícitamente no disponible para jugar.
-
-<a id="contrato-torneos-alcance-exacto-2"></a>
-
-##### Alcance exacto
-
-1. Congelar el plantel, promover espera, realizar el sorteo aleatorio persistido y generar eliminación directa o grupos.
-2. Crear mesas/partidas 1v1 de torneo con apuesta cero mediante una ruta interna autorizada.
-3. Implementar cruce `ready`, botón de entrada, presencia, plazo de cinco minutos y victoria por ausencia.
-4. Aplicar resultados una sola vez y abrir la ronda siguiente solo al terminar la actual.
-5. Implementar grupos de cuatro, todos contra todos, tabla, desempates y clasificación de los dos primeros.
-6. Implementar semifinales, final y tercer puesto obligatorio, además de `bye` válidos.
-7. Implementar inicio/cancelación con cupo incompleto, pausa/reanudación, descalificación y reemplazo dentro de los límites definidos.
-8. Bloquear partidas normales cuando el usuario tenga un cruce listo, tanto en UI como en RPC.
-9. Contabilizar estadísticas y misiones exactamente una vez por partida 1v1.
-10. Ocultar revancha y volver al torneo desde el resultado.
-11. Mostrar grupos, llave, partidas y progresión en usuario y admin.
-
-<a id="contrato-torneos-fuera-de-esta-pr-2"></a>
-
-##### Fuera de esta PR
-
-- Integración jugable 2v2.
-- Emails, premios definitivos y espectador público registrado.
-
-<a id="contrato-torneos-termina-cuando-2"></a>
-
-##### Termina cuando
-
-- Se completa de punta a punta un torneo 1v1 de cuatro jugadores por eliminación directa.
-- Se completa de punta a punta uno de ocho jugadores con dos grupos y eliminación.
-- Pausa, recarga, reconexión, `bye`, ausencia y repetición de callbacks no duplican resultados.
-- Ninguna partida descuenta o paga una apuesta normal.
-- Estadísticas y misiones avanzan exactamente una vez.
-- La final, el tercer puesto y el estado `completed` quedan correctos.
-- Un usuario con cruce listo no logra iniciar una partida normal por ningún cliente.
-- Las partidas 1v1 normales conservan su comportamiento anterior.
-- Lint, build, pruebas SQL, pruebas de concurrencia y verificaciones existentes pasan.
-- El traspaso enumera partidas de prueba y cualquier decisión técnica tomada.
-
-El PR 3 se cierra como entrega de código y SQL por decisión del dueño el 2026-09-25. Los recorridos manuales completos de cuatro jugadores por eliminación y ocho con grupos no se informaron como realizados; la condición prevista para empezar PR 4 quedó diferida y se arrastra como requisito del lanzamiento de PR 5, no como prueba ya superada.
-
-<a id="contrato-torneos-entrega-a-la-sesion-siguiente-2"></a>
-
-##### Entrega a la sesión siguiente
-
-- Fusionar y aplicar SQL.
-- Dejar 1v1 estable en preview y 2v2 marcado como no disponible.
-- Entregar helpers idempotentes de resultado/objetivos listos para reutilizar.
-
-<a id="contrato-torneos-pr-4-integracion-completa-2v2"></a>
-
-#### PR 4 — Integración completa 2v2
-
-<a id="contrato-torneos-empieza-cuando-3"></a>
-
-##### Empieza cuando
-
-- PR 3 está fusionado y aplicado.
-- Los dos recorridos 1v1 de aceptación siguen pasando.
-- Existe un único mecanismo idempotente para aplicar resultados y avanzar torneos.
-- La relación entre `tournament_match` y partida 1v1 está estable y sirve de patrón.
-
-<a id="contrato-torneos-alcance-exacto-3"></a>
-
-##### Alcance exacto
-
-1. Permitir creación interna de mesas 2v2 con apuesta cero sin abrir esa posibilidad a partidas normales.
-2. Congelar parejas confirmadas, emparejar jugadores solos al azar y mover el solo impar al primer lugar compatible de espera.
-3. Hacer que el check-in de cualquier integrante confirme el equipo.
-4. Exigir entrada de los cuatro jugadores al cruce y reemplazar al único ausente con el primer solo en espera antes del vencimiento.
-5. Asignar asientos/equipos automáticamente; una partida de torneo no permite elegir bots ni rearmar asientos manualmente.
-6. Vincular el resultado 2v2 al cruce y progresar grupos/llave con la misma garantía idempotente.
-7. Actualizar estadísticas y misiones exactamente una vez por cada humano participante.
-8. Implementar las capacidades válidas 2v2, eliminación, grupos, desempates, final y tercer puesto.
-9. Volver al detalle del torneo al finalizar y mantener oculta la revancha.
-10. Extender vistas de usuario/admin y pruebas para parejas, solos y reemplazos.
-
-<a id="contrato-torneos-fuera-de-esta-pr-3"></a>
-
-##### Fuera de esta PR
-
-- Campaña de emails, experiencia final de espectadores y acreditación pública de premios.
-
-<a id="contrato-torneos-termina-cuando-3"></a>
-
-##### Termina cuando
-
-- Se completa un torneo 2v2 de ocho jugadores por eliminación directa.
-- Se completa uno de dieciséis jugadores con dos grupos y eliminación.
-- Se prueban invitación aceptada, sorteo de solos, solo impar y reemplazo de un integrante ausente.
-- Los cuatro humanos reciben estadísticas/misiones una vez y no se mueven monedas por apuesta.
-- Reintentos simultáneos no duplican asiento, reemplazo, resultado ni progreso.
-- No se filtran manos o cartas ocultas.
-- Las partidas 2v2 normales mantienen sus reglas y apuestas actuales.
-- Todos los checks de PR 3 más las pruebas 2v2 nuevas pasan.
-- El traspaso deja ambos modos jugables y documenta la migración aplicada.
-
-<a id="contrato-torneos-entrega-a-la-sesion-siguiente-3"></a>
-
-##### Entrega a la sesión siguiente
-
-- Fusionar y aplicar SQL.
-- Mantener el lanzamiento general apagado hasta terminar comunicaciones, espectadores, premios y revisión final.
-
-<a id="contrato-torneos-pr-5-comunicaciones-espectadores-premios-y-lanzamiento"></a>
-
-#### PR 5 — Comunicaciones, espectadores, premios y lanzamiento
-
-<a id="contrato-torneos-orden-concreto-de-puesta-en-marcha"></a>
-
-##### Orden concreto de puesta en marcha
-
-**Secuencia histórica, completada el 2026-09-27.** Se conserva para entender el despliegue y la reversión; no volver a ejecutar la migración ni los comandos de activación como parte de esta implementación.
-
-1. Revisar y fusionar el PR 5. `NEXT_PUBLIC_ENABLE_TOURNAMENTS` permanece en `false` en producción.
-2. En el SQL Editor del proyecto Supabase de Trucazo, ejecutar **solo** `supabase/migrations/20260927001608_tournaments_communications_awards.sql`. No repetir las migraciones anteriores. El trabajo `trucazo-tournament-emails-minute` se instala cada minuto, pero su interruptor privado comienza en `false`: todavía no envía nada.
-3. En preview con flag encendido, completar y registrar los cuatro recorridos pendientes: 1v1 directa 4, 1v1 grupos 8, 2v2 directa 8 jugadores y 2v2 grupos 16 jugadores. Verificar final, tercer puesto, check-in, reemplazos, partidas normales y pruebas con dos clientes; revisar permisos de espectador registrado e invitado, correos en cola, monedas por jugador, insignias y cancelación/reprogramación. Los tests de CI comprueban el contrato SQL, pero no sustituyen estos recorridos.
-4. Revisar que no queden torneos de prueba publicados ni correos de prueba pendientes en la cola. Publicar el primer torneo real solo cuando corresponda. Habilitar el despacho desde el SQL Editor con `update tournament_internal.email_settings set enabled = true where singleton;`. Comprobar el cron y un correo de prueba real, preferencias y baja.
-5. Cambiar `NEXT_PUBLIC_ENABLE_TOURNAMENTS` a `true` para producción en Vercel y hacer un nuevo despliegue. Comprobar lobby, central, partida de espectador, panel de admin y avisos desde el dominio público. Vigilar trabajos `failed`, correos duplicados, plazos y premios en el primer torneo.
-
-**Reversión:** poner `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false`, redesplegar y correr `update tournament_internal.email_settings set enabled = false where singleton;` en el SQL Editor. El cron queda sin despacho; no borrar partidas, correos históricos ni premios ya acreditados. Toda corrección posterior de la base requiere una migración nueva.
-
-<a id="contrato-torneos-empieza-cuando-4"></a>
-
-##### Empieza cuando
-
-- PR 4 está fusionado y aplicado.
-- Los recorridos manuales mínimos de 1v1 y 2v2 deben estar confirmados antes del lanzamiento. Si todavía no se registraron, PR 5 puede empezar su implementación, pero debe mantenerlos como pendientes explícitos: ni CI ni SQL sustituyen esa aceptación.
-- La funcionalidad continúa apagada para el lanzamiento general.
-- No existen errores abiertos de integridad, permisos, cupos, resultados o monedas.
-
-Al iniciar PR 5, partir del último `master` que incluye el merge de PR 4 (`8cdb5149d0bc612f9595176d2619428523467c3c`). No volver a ejecutar las migraciones de PR 1–4; cualquier corrección del SQL ya aplicado necesita una migración nueva y posterior. Confirmar que el flag sigue apagado antes de cambiar comunicaciones, premios o espectadores. La aceptación manual pendiente de PR 3 y PR 4 es condición para activar el flag y dar por terminado PR 5, no motivo para inventar resultados ni para repetir etapas anteriores.
-
-<a id="contrato-torneos-alcance-exacto-4"></a>
-
-##### Alcance exacto
-
-1. Agregar `tournaments_enabled` a preferencias y API de email.
-2. Crear plantillas, trabajos, tipos de entrega y endpoints para anuncio, confirmación, recordatorio de 24 horas, check-in, partida, reprogramación y cancelación.
-3. Programar despacho por minuto con el patrón seguro de Supabase y versionar trabajos ante reprogramación.
-4. Implementar avisos dentro del juego y estado leído/no leído.
-5. Crear la vista de espectador registrado con snapshot seguro y actualización en vivo, sin acceso a manos ocultas.
-6. Acreditar monedas por jugador e insignias oro/plata/bronce a los tres puestos de forma idempotente.
-7. Mostrar insignias en perfil y posiciones/premios en el historial del torneo.
-8. Completar el monitoreo administrativo de trabajos, partidas y fallos accionables.
-9. Agregar eventos analíticos útiles sin datos sensibles, si encajan con el sistema existente.
-10. Actualizar textos de privacidad/términos si corresponde por emails y visibilidad de partidas.
-11. Realizar pulido final responsive, accesibilidad, rendimiento, estados de error y observabilidad.
-12. Activar el feature flag solo después de migraciones, smoke test y checklist de lanzamiento.
-
-<a id="contrato-torneos-termina-cuando-4"></a>
-
-##### Termina cuando
-
-- Se recorre de punta a punta cada modalidad y formato permitido.
-- Cada email sale una sola vez, respeta la preferencia/baja y no usa una agenda vieja después de reprogramar.
-- Cancelar genera email y aviso dentro del juego sin dejar partidas nuevas activables.
-- Un espectador registrado ve solo información pública; un anónimo o usuario no autorizado no accede y nadie puede leer manos ocultas.
-- Los tres puestos reciben una única insignia y las monedas correctas por jugador, incluso si el proceso se reintenta.
-- La página de preferencias permite desactivar emails de torneos.
-- `npm run lint`, `npm run build`, `npm run check:rpc-allowlist`, `npm run check:emails` y las verificaciones relevantes pasan.
-- La prueba de regresión de partidas normales 1v1/2v2, misiones, perfiles y emails existentes pasa.
-- El despliegue se hizo en orden: código compatible → SQL → procesos programados/configuración → smoke test → flag.
-- Existe un plan de reversión que apaga el flag y detiene trabajos nuevos sin borrar datos ni premios ya otorgados.
-- El registro de traspaso deja el sistema en estado `Completo` y anota la fecha de activación.
-
-<a id="contrato-torneos-entrega-final"></a>
-
-##### Entrega final
-
-- Feature flag habilitado en producción solamente después del smoke test.
-- Monitorear errores, cola de emails, expiraciones y duplicados durante el primer torneo real.
-- Cualquier mejora no incluida en la versión inicial se abre como trabajo separado.
-
-<a id="contrato-torneos-10-matriz-global-de-aceptacion"></a>
-
-#### 10. Matriz global de aceptación
-
-| Área | Casos mínimos |
-| --- | --- |
-| Autorización | Admin real, usuario registrado, invitado anónimo, no participante, espectador registrado |
-| Cupos | Último lugar concurrente, paso a espera, retiro antes del check-in, inscripción tardía y cierre a la hora |
-| 2v2 | Invitación, rechazo, aceptación concurrente, dos solos, solo impar, equipo en espera y reemplazo de un ausente |
-| Check-in | Límite T-30, cualquiera del equipo, promoción automática y cierre a T |
-| Formatos | 1v1 directa 4; 1v1 grupos 8; 2v2 directa 8 jugadores; 2v2 grupos 16 jugadores |
-| Grupos | Todos contra todos, empate de dos, empate múltiple, diferencia de puntos y sorteo final persistido |
-| Eliminación | `bye`, ronda bloqueada hasta completar, semifinales, final y tercer puesto |
-| Presencia | Los dos lados entran, un lado ausente, un integrante 2v2 ausente, ambos lados incompletos |
-| Estados | Pausa, reanudación, cancelación, reprogramación, descalificación, reemplazo y recarga/reconexión |
-| Idempotencia | Resultado repetido, cron repetido, premio repetido, email repetido y doble clic del usuario |
-| Economía | Apuesta cero, sin débito al crear, monedas de premio por jugador y sin doble acreditación |
-| Estadísticas/misiones | Una vez por humano en 1v1 y 2v2; partida normal no afectada |
-| Privacidad | RLS, RPC directas, Realtime, espectador sin manos y datos de email privados |
-| Comunicación | Preferencia, baja, 24 horas, check-in, partida, reprogramación, cancelación y agenda obsoleta |
-| Interfaz | Móvil, escritorio, teclado, foco, estados vacíos, errores, carga y dos clientes simultáneos |
-| Regresión | Crear/jugar/finalizar partidas normales 1v1 y 2v2, misiones, medallas y emails existentes |
-
-Archivos de prueba esperados a lo largo de las etapas:
-
-- `supabase/tests/tournaments.sql` para RLS, restricciones, estados e idempotencia;
-- un script de concurrencia para último cupo, invitaciones, promociones, resultados y premios;
-- verificaciones de UI/recorridos documentadas por PR;
-- extensión de los checks existentes cuando se agreguen RPC, emails, analítica o contratos.
+*Pasado al [historial](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md) el 07/11/2026: [«7. Modelo de datos objetivo»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#contrato-torneos-7-modelo-de-datos-objetivo), [«8. Experiencia de usuario objetivo»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#contrato-torneos-8-experiencia-de-usuario-objetivo), [«9. Plan de cinco PR/sesiones»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#contrato-torneos-9-plan-de-cinco-prsesiones), [«PR 1 — Base de datos, seguridad y contrato»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#contrato-torneos-pr-1-base-de-datos-seguridad-y-contrato), [«PR 2 — Administración, central, inscripción y check-in»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#contrato-torneos-pr-2-administracion-central-inscripcion-y-check-in), [«PR 3 — Torneos 1v1 y formatos competitivos»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#contrato-torneos-pr-3-torneos-1v1-y-formatos-competitivos), [«PR 4 — Integración completa 2v2»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#contrato-torneos-pr-4-integracion-completa-2v2), [«PR 5 — Comunicaciones, espectadores, premios y lanzamiento»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#contrato-torneos-pr-5-comunicaciones-espectadores-premios-y-lanzamiento), [«10. Matriz global de aceptación»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#contrato-torneos-10-matriz-global-de-aceptacion).*
 
 <a id="contrato-torneos-11-secuencia-de-lanzamiento-y-reversion"></a>
 
@@ -1749,172 +1004,9 @@ Reversión operativa de lanzamiento:
 3. No borrar torneos, resultados, entregas ni premios ya emitidos.
 4. Corregir mediante una migración nueva y reanudar después de verificar.
 
-<a id="contrato-torneos-12-registro-de-traspaso-entre-sesiones"></a>
-
-#### 12. Registro de traspaso entre sesiones
-
-Cada sesión agrega una entrada. No se borra el historial previo. Las entradas anteriores son fotografías fechadas; consultar la última entrada para el estado actual.
-
-<a id="contrato-torneos-plantilla"></a>
-
-##### Plantilla
-
-```md
-### YYYY-MM-DD — PR N — Título
-
-- Estado: En curso | Bloqueado | Completo
-- Rama:
-- PR:
-- Commit final:
-- Migraciones nuevas:
-- SQL aplicado en:
-- Feature flag:
-- Pruebas automáticas ejecutadas:
-- Recorridos manuales ejecutados:
-- Decisiones técnicas tomadas:
-- Problemas pendientes o riesgos:
-- Para que empiece PR N+1 falta:
-```
-
-<a id="contrato-torneos-2026-09-20-documento-base"></a>
-
-##### 2026-09-20 — Documento base
-
-- Estado: Completo
-- Rama: `codex/plan-sistema-torneos`
-- PR: [#74 — docs: planificar implementación progresiva de torneos](https://github.com/santibpapa/trucazo/pull/74)
-- Commit de publicación inicial: `469c13646b44867dfd8d1b6b0c4fef4b4edbe5d5`
-- Migraciones nuevas: ninguna
-- SQL aplicado en: no corresponde
-- Feature flag: todavía no existe; PR 1 lo agrega apagado
-- Pruebas automáticas ejecutadas: validación de Markdown y `git diff --check`
-- Recorridos manuales ejecutados: revisión de requisitos contra la arquitectura actual
-- Decisiones técnicas tomadas: división en cinco entregas, restricciones de combinaciones para garantizar tercer puesto, apuesta cero, autoridad del servidor e idempotencia transversal
-- Problemas pendientes o riesgos: el motor 2v2 todavía no actualiza estadísticas/misiones y necesita adaptación segura en PR 4; los eventos por minuto no pueden depender del cron diario actual
-- Para que empiece PR 1 falta: fusionar el PR de documentación y partir del último `master`
-
-<a id="contrato-torneos-2026-09-21-pr-1-base-de-datos-seguridad-y-contrato"></a>
-
-##### 2026-09-21 — PR 1 — Base de datos, seguridad y contrato
-
-- Estado: Completo
-- Rama: `codex/tournaments-base-contract`
-- PR: [#75 — feat: establecer base segura para torneos](https://github.com/santibpapa/trucazo/pull/75)
-- Commit final de implementación y pruebas: `e6e0bcfe2a9bb99d02003e2a691b676fd38af3ea`
-- Merge en `master`: `5508b9f7a1dfb7ac4dcb95a667a3fa740c71f7cb`
-- Migraciones nuevas: `supabase/migrations/20260921082456_tournaments_base_contract.sql`
-- SQL aplicado en: proyecto Supabase conectado, después del merge del PR #75; verificación posterior completa con tablas, RPC, firma exacta de invitaciones, prioridad de espera, permisos y RLS en estado correcto
-- Feature flag: variable pública `NEXT_PUBLIC_ENABLE_TOURNAMENTS` creada con valor `false`; debe permanecer así hasta la habilitación pública prevista para PR 5
-- Pruebas automáticas ejecutadas: reconstrucción completa desde cero; todas las pruebas SQL existentes; seguridad, privilegios, restricciones e idempotencia de torneos; concurrencia real por el último cupo y por retiro frente a inscripción nueva; prioridad de espera; respuesta a una invitación exacta; reinvitación con historial; invalidación de check-in al reprogramar; TypeScript; ESLint; allowlist de RPC; verificaciones de regresión; build de producción. Todo pasó en [GitHub Actions](https://github.com/santibpapa/trucazo/actions/runs/35606239349)
-- Recorridos manuales ejecutados: revisión del contrato de lectura, administración, inscripción, invitación, retiro y check-in; no hay recorrido de interfaz porque la UI queda fuera de PR 1 y apagada
-- Decisiones técnicas tomadas: tablas públicas sin acceso directo del cliente; estado interno, auditoría e idempotencia en esquema privado; mutaciones mediante RPC `security definer` con `search_path` vacío; bloqueo de la fila del torneo para serializar cupos, promociones, parejas y check-in; toda respuesta identifica la invitación exacta; los reintentos de invitación conservan historial; reprogramar invalida confirmaciones de presencia; contratos TypeScript compartidos y autoridad final del servidor
-- Problemas pendientes o riesgos: todavía no existen UI, sorteos, partidas, progresión, emails, espectadores ni entrega de premios; es el alcance previsto de las PR siguientes y nada se expone mientras el flag siga apagado
-- Para que empiece PR 2 falta: nada; PR #75 está fusionado, la migración fue aplicada y verificada, las pruebas están verdes y el feature flag permanece apagado. La próxima sesión debe partir del último `master`.
-
-<a id="contrato-torneos-2026-09-22-pr-2-administracion-central-inscripcion-y-check-in"></a>
-
-##### 2026-09-22 — PR 2 — Administración, central, inscripción y check-in
-
-- Estado: Completo
-- Rama: `codex/tournaments-admin-registration`
-- PR: [#78 — feat: implementar administración e inscripciones de torneos](https://github.com/santibpapa/trucazo/pull/78)
-- Commit de implementación: `526da902d8460ee3f1f7aee0bb04b63642eda68e`
-- Commit final: `ac62606b413bd5d21241471f65438bc4a3c09bbc`
-- Commit de merge: `84411b73c8ecdb2aa76927851f655cf8571554e1`
-- Migraciones nuevas: `20260922071129_tournaments_public_projection.sql`
-- SQL aplicado en: proyecto Supabase conectado después del merge; se verificaron el trigger de fecha futura, el ocultamiento de borradores no publicados y los permisos privados de la función interna
-- Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción; se habilitó únicamente en preview para validar la etapa
-- Pruebas automáticas ejecutadas: TypeScript, ESLint, build de producción con el flag encendido, allowlist de RPC, formularios/horario argentino/combinaciones de torneos, regresión de lobby, presentación 2v2, emails, analítica, simulación del motor de Truco, reconstrucción completa y pruebas SQL. Todo pasó en [GitHub Actions](https://github.com/santibpapa/trucazo/actions/runs/35734663708)
-- Correcciones de revisión: la invitación compara el usuario exacto sin interpretar `_` ni `%` como comodines; los reintentos de creación conservan el identificador original mientras los datos no cambien; los borradores permiten cancelar desde el mismo formulario y el enlace de regreso vuelve al listado
-- Recorridos manuales ejecutados: el dueño validó en preview alta, edición, cancelación y publicación; central y detalle; inscripción 1v1/2v2; invitación y aceptación; retiro, espera y check-in; acceso de invitado sin inscripción y actualización entre sesiones
-- Decisiones técnicas tomadas: primer render con Server Components; mutaciones solo por las RPC seguras del PR 1; refresco controlado cada 8 segundos en detalles y 15 segundos en listados para no abrir lectura directa ni publicar tablas privadas en Realtime; horario de formularios fijado a Argentina; los borradores cancelados dejan de filtrarse a jugadores y el servidor rechaza fechas nuevas en el pasado
-- Problemas pendientes o riesgos: no se crean partidas, sorteos, emails ni premios porque pertenecen a etapas posteriores; no quedan bloqueos propios del PR 2
-- Para que empiece PR 3 falta: nada; el PR 2 está fusionado, su SQL está aplicado y los recorridos fueron validados. La próxima sesión debe partir del último `master` y mantener el flag apagado en producción
-
-<a id="contrato-torneos-2026-09-24-pr-3-competencia-1v1"></a>
-
-##### 2026-09-24 — PR 3 — Competencia 1v1
-
-- Estado: Completo como entrega de código y SQL por decisión del dueño el 2026-09-25; aceptación manual en preview diferida antes de PR 4
-- Rama: `codex/tournaments-1v1-competition`
-- PR: [#84 — feat: implementar competencia 1v1 de torneos](https://github.com/santibpapa/trucazo/pull/84)
-- Commit final: `6649caa866dde4a4324c87a52100c30f9e3b36d4`; merge en `master`: `4afae7afa0e36a16ed64d80ca46a72b0a06acc80`
-- Migraciones nuevas: `supabase/migrations/20260924172158_tournaments_1v1_competition.sql`
-- SQL aplicado en: proyecto Supabase conectado, manualmente después del merge; el SQL Editor devolvió `schedule 8`. Lectura posterior de `cron.job` confirmó el trabajo `trucazo-tournament-1v1-minute`, activo cada minuto con `select tournament_internal.advance_due()`; sus tres ejecuciones recientes terminaron correctamente
-- Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción; no encender hasta PR 5
-- Pruebas automáticas ejecutadas: reconstrucción de PostgreSQL y `supabase/tests/tournaments_competition.sql` para eliminación directa de cuatro, grupos de ocho y doce, pases, ausencia, revancha prohibida, apuestas cero, estadísticas y misiones sin duplicados, pausa, reapertura, reemplazo tardío sin check-in, descalificación después de grupos, doble descalificación en semifinales, mesa 2v2 preexistente e identidad histórica; además TypeScript, ESLint, controles de RPC, regresiones y build con el flag encendido. Todo pasó en [GitHub Actions](https://github.com/santibpapa/trucazo/actions/runs/36069141146)
-- Recorridos manuales ejecutados: revisión del flujo de administrador, participante, mesa y pantalla de resultado contra el contrato; los torneos completos de cuatro jugadores por eliminación y ocho con grupos en preview siguen pendientes, no se presumen validados por el SQL ni por la CI
-- Decisiones técnicas tomadas: cada sorteo y desempate se persiste en PostgreSQL; el cron por minuto abre el torneo lleno y resuelve plazos; los dos ingresos crean una sola mesa privada sin apuesta; una partida anulada conserva su historial y cada reapertura crea otra; el cierre existente contabiliza estadísticas y misiones en la misma transacción que avanza el torneo; las funciones privadas mantienen permisos cerrados. La revisión de #84 agregó confirmación automática al reemplazo manual después del cierre, grupos incompletos válidos con pases en la llave, bloqueo al iniciar un 2v2 ya armado y nombre histórico guardado al cerrar cada cruce. Si ambos perdedores de semifinales fueron descalificados, el tercer puesto queda vacante y la final puede cerrar sin inventar un ganador ni acreditar bronce
-- Problemas pendientes o riesgos: completar y registrar los dos recorridos 1v1 en preview antes de iniciar PR 4; los premios, emails, espectadores y competencia 2v2 corresponden a etapas posteriores
-- Para que empiece PR 4 falta: validar en preview un torneo 1v1 de cuatro por eliminación y otro de ocho con grupos, incluida final, tercer puesto y estado completado; mantener el flag apagado en producción. El merge, el SQL y los controles automáticos ya están confirmados
-
-<a id="contrato-torneos-2026-09-25-pr-4-competencia-2v2"></a>
-
-##### 2026-09-25 — PR 4 — Competencia 2v2
-
-- Estado: Completo como entrega de código y SQL tras confirmación del dueño el 2026-09-25; aceptación manual en preview diferida antes del lanzamiento de PR 5.
-- Rama: `codex/tournaments-2v2-competition`.
-- PR: [#89 — feat: competencia 2v2 de torneos](https://github.com/santibpapa/trucazo/pull/89).
-- Commit final de PR 4: `77b5fc8032d9bb042ac7c84541356362eb578da9`; merge en `master`: `8cdb5149d0bc612f9595176d2619428523467c3c`.
-- Migraciones nuevas: `supabase/migrations/20260925103000_tournaments_2v2_competition.sql`; no repetirla en el mismo proyecto.
-- SQL aplicado en: proyecto Supabase conectado, manualmente después del merge según confirmación del dueño; no se informó resultado del SQL Editor ni se realizó una lectura posterior independiente de la base.
-- Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción hasta PR 5.
-- Pruebas automáticas: TypeScript, lint, contrato de RPC, build con flag encendido, reconstrucción PostgreSQL, regresiones 1v1/2v2, permisos y `supabase/tests/tournaments_teams.sql`. La última ejecución de [GitHub Actions](https://github.com/santibpapa/trucazo/actions/runs/36193479947) terminó correctamente, incluidos el cierre con «Tres rivales» y la prioridad de una pareja completa en espera.
-- Recorridos manuales: no se informaron como realizados ni los torneos 2v2 de ocho jugadores por eliminación y dieciséis con grupos ni los reemplazos en preview. Los dos recorridos 1v1 de PR 3 tampoco constan como validados; verificar ambos modos antes del lanzamiento.
-- Decisiones técnicas: emparejamiento aleatorio persistido al completar el cupo o iniciar; cada equipo ocupa una inscripción competitiva; cruce y mesa 2v2 comparten resultado idempotente; cuatro asientos fijados en el servidor; las misiones 2v2 usan eventos propios y los premios permanecen para PR 5.
-- Revisión posterior: el desafío semanal de rivales humanos debía ordenar UUID en vez de aplicar `min(uuid)`, que impedía cerrar la partida; al iniciar con un equipo ausente y esperar primero un solo y después una pareja, la promoción debía elegir la pareja completa. Ambos escenarios se incorporaron a `supabase/tests/tournaments_teams.sql`.
-- Problemas pendientes o riesgos: confirmar el resultado de la aplicación del SQL mediante una comprobación segura si hiciera falta; completar y registrar las matrices manuales 1v1/2v2, incluidos grupos, final, tercer puesto y reemplazos; no habilitar el flag mientras falten esas verificaciones.
-- Para que empiece PR 5 falta: nada de código ni SQL de PR 4. Partir del último `master` y mantener el flag apagado; las pruebas manuales pendientes son obligatorias antes de declarar PR 5 terminado o activar el lanzamiento general.
-
-<a id="contrato-torneos-2026-09-26-pr-5-comunicaciones-espectadores-y-premios"></a>
-
-##### 2026-09-26 — PR 5 — Comunicaciones, espectadores y premios
-
-- Estado a esa fecha: En curso. Entrega de código preparada; lanzamiento general pendiente. El cierre posterior está registrado en la entrada siguiente.
-- Rama: `codex/tournaments-pr5`.
-- PR: [#91 — feat: completar comunicaciones, espectadores y premios de torneos](https://github.com/santibpapa/trucazo/pull/91).
-- Migración nueva: `supabase/migrations/20260927001608_tournaments_communications_awards.sql` (hora UTC del archivo).
-- SQL aplicado en: todavía no; no ejecutar antes de fusionar el PR.
-- Feature flag: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=false` en producción. La migración instala la cola de emails con su interruptor privado en `false`.
-- Pruebas automáticas: TypeScript, lint, build con flag encendido, contrato de RPC, comprobaciones de emails y torneos. La migración y sus escenarios de premios, agenda, cancelación y espectador se agregaron a CI para su ejecución en PostgreSQL aislado. Su resultado debe verificarse en el PR.
-- Recorridos manuales: siguen sin registrarse los cuatro recorridos 1v1/2v2 pendientes de PR 3 y PR 4; también faltan las pruebas visuales y de envío en preview de PR 5.
-- Decisiones técnicas: la base acredita monedas e insignias en la misma transacción que pasa el torneo a `completed`; cada premio tiene una clave única. Los correos tienen cola durable, versión de agenda, límite de reintentos y validación de destinatario al enviar. La vista de espectador es una proyección explícita sin manos; el cron de emails se instala con un interruptor cerrado.
-- Problemas pendientes o riesgos: no consta aceptación manual de los modos y formatos; no se ha aplicado esta migración ni activado correo o flag. No declarar PR 5 completo hasta verificar esos puntos y el primer despliegue real.
-- Para cerrar PR 5 falta: PR fusionado, migración aplicada una sola vez, pruebas manuales y smoke test, habilitar el despacho de correo y luego el flag, registrar fecha de lanzamiento y monitorear el primer torneo real.
-
-<a id="contrato-torneos-2026-09-27-cierre-de-pr-5-y-lanzamiento-de-torneos"></a>
-
-##### 2026-09-27 — Cierre de PR 5 y lanzamiento de torneos
-
-- Estado: **Completo**. El dueño confirmó las pruebas manuales y dio por cerrada toda la implementación. Las cinco entregas están fusionadas y aplicadas; torneos quedó habilitado en producción el 2026-09-27 (hora de Argentina).
-- Código: [#91 — comunicaciones, espectadores y premios](https://github.com/santibpapa/trucazo/pull/91), [#92 — logo de torneos en el lobby](https://github.com/santibpapa/trucazo/pull/92) y [#93 — ajuste del tamaño del logo](https://github.com/santibpapa/trucazo/pull/93) fusionados. El despliegue de producción verificado contiene el merge de #93 (`a31f17d1fe3e85c1a943d719693ce27a567e8ccb`).
-- SQL: `supabase/migrations/20260927001608_tournaments_communications_awards.sql` ejecutada manualmente por el dueño después de fusionar #91; el cron `trucazo-tournament-emails-minute` quedó instalado como trabajo **#9** y activo cada minuto. No volver a ejecutar este SQL.
-- Activación: `NEXT_PUBLIC_ENABLE_TOURNAMENTS=true` en producción; la ruta pública `/torneos` existe y responde con redirección de acceso para visitantes sin sesión. El interruptor privado `tournament_internal.email_settings.enabled` está en `true`. En la comprobación posterior el cron estaba activo y no había trabajos de email fallidos; tampoco había torneos activos ni correos pendientes.
-- Pruebas: CI de #91 y #92 finalizó correctamente. El dueño informó que probó los recorridos manuales antes de la activación y confirmó el cierre; no se conservó aquí un acta detallada por combinación ni una evidencia independiente del primer correo real entregado.
-- Seguimiento operativo: observar la cola y la entrega real de emails, expiraciones, avisos y premios en el primer torneo real. Esto es monitoreo posterior al lanzamiento, no una etapa de implementación abierta. El procedimiento de reversión permanece en §9.
-
-<a id="contrato-torneos-2026-09-29-correccion-de-anuncios-al-reprogramar"></a>
-
-##### 2026-09-29 — Corrección de anuncios al reprogramar
-
-- Incidente: al reprogramar el primer torneo después de publicarlo se cancelaron 142 anuncios pendientes. Trece direcciones de prueba ya se habían descartado y siete anuncios ya estaban enviados.
-- Migración: `supabase/migrations/20260929205313_tournament_announcement_delivery.sql`, aplicada directamente al proyecto Supabase conectado con autorización del dueño el 2026-09-29. **No volver a ejecutarla después del merge.**
-- Recuperación: 141 destinatarios elegibles volvieron a la cola con la agenda actual; la dirección de prueba restante quedó descartada. Se conservaron los siete anuncios enviados.
-- Comportamiento: una reprogramación conserva los anuncios pendientes y su clave de entrega; invalida el intento anterior y espera dos minutos si ya estaba en curso. Los recordatorios mantienen la cancelación por agenda. Alcanzar el cupo diario espera al siguiente día UTC sin consumir intentos.
-- Validación local: reconstrucción PostgreSQL, pruebas de anuncios/reprogramación/cupo diario, torneos PR5, contrato de torneos y permisos de funciones. El cron de producción quedó activo y la cola recuperada se verificó después de aplicar el SQL.
-
-<a id="contrato-torneos-2026-09-29-ritmo-de-envio-de-torneos"></a>
-
-##### 2026-09-29 — Ritmo de envío de torneos
-
-- Incidente: el despacho de veinte pedidos simultáneos superaba el límite por segundo de Resend. Los destinatarios rechazados aparecían como fallidos en administración.
-- Migración: `supabase/migrations/20260929210343_tournament_email_rate_limit.sql`, aplicada directamente al proyecto conectado con autorización del dueño. **No volver a ejecutarla después del merge.**
-- Corrección: máximo cinco solicitudes por minuto con un control persistente que evita otra tanda en el mismo período. Se mantiene la prioridad de partidas y check-in. Un rechazo `Too many requests` vuelve a pendientes para el próximo minuto sin consumir el máximo de intentos; los demás fallos conservan su tratamiento.
-- Recuperación: los rechazos temporales aún válidos volvieron a pendientes, manteniendo sus claves de entrega. Se verificó una tanda de cinco aceptada por el proveedor; en ese momento había 83 anuncios enviados y 65 pendientes, sin fallos por exceso de pedidos.
-- Validación local: pedidos HTTP simulados en una transacción, límite de cinco, repetición del despacho dentro del mismo minuto, reapertura del período, prioridad de partidas, reintento temporal, cupo diario, torneos PR5 y permisos de funciones.
+*Pasado al [historial](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md) el 07/11/2026: [«12. Registro de traspaso entre sesiones»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#contrato-torneos-12-registro-de-traspaso-entre-sesiones), «YYYY-MM-DD — PR N — Título».*
 
 </details>
-
 
 <a id="chat-partidas"></a>
 
@@ -1949,15 +1041,7 @@ La migración inicial es `supabase/migrations/20260928023421_match_live_chat.sql
 
 Los últimos 100 mensajes se recuperan al conectar, al reconectar y al volver a la pestaña. Realtime envía solo INSERT de la tabla; la consulta y los eventos se combinan por ID. No hay demoras artificiales ni dependencia del reloj del dispositivo para mostrar mensajes. Una tarea horaria borra mensajes de más de 72 horas. No hay archivo histórico. HTML y URLs se muestran como texto plano.
 
-<a id="chat-partidas-verificacion"></a>
-
-#### Verificación
-
-- Ejecutados localmente: `npx tsc --noEmit`, `npm run lint`, `npm run check:rpc-allowlist`, `npm run check:match-chat`, `npm run build` y `bash -n` del script concurrente. El lint muestra advertencias antiguas de hooks en GameClient y LobbyClient. La recuperación espera la confirmación del receptor de Postgres Changes, además del alta del canal; los rechazos del servidor conservan su explicación en el formulario.
-- `supabase/tests/match_chat.sql` y `supabase/tests/match_chat_concurrency.sh` corren dentro del trabajo de PostgreSQL del CI, después de `scripts/rebuild-db.sh`. Verificar el resultado del PR antes de mergear.
-- Falta probar entrega real con dos sesiones Supabase en preview y la revisión visual en iPhone/Safari o PWA: teclado y botón Enviar visibles, texto legible, aviso para invitado y cartas en su lugar. La base local de CI prueba SQL/RLS; no prueba WebSocket.
-
-**Comprobación posterior, 15/10/2026 — ANDROID-09:** envío y recepción escritos en ambos sentidos entre APK Android 11 y web Next local, usando QA3 y QA1 contra Supabase real, aprobados en mesa privada 2vs2 con un bot. Las frases rápidas y la contestación del compañero bot también se comprobaron en el APK. Esto resuelve la falta de evidencia de recepción real para ese entorno; no acredita iPhone/Safari, teléfono físico ni Play. No se enviaron mensajes a terceros ni se aplicaron migraciones.
+*Pasado al [historial](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md) el 07/11/2026: [«Verificación»](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md#chat-partidas-verificacion).*
 
 <a id="chat-partidas-activacion"></a>
 
@@ -1970,9 +1054,6 @@ Los últimos 100 mensajes se recuperan al conectar, al reconectar y al volver a 
 Para ocultar el panel: poner el flag en `false` y redeploy. Las frases rápidas siguen funcionando. Si hace falta cerrar también el envío en la base, ejecutar `revoke execute on function public.send_match_chat_message(text,uuid,text,uuid) from authenticated;`. Para volver a habilitarlo tras revisar el problema: `grant execute on function public.send_match_chat_message(text,uuid,text,uuid) to authenticated;`.
 
 </details>
-
-
-
 
 <a id="accesos-chat-amigos"></a>
 
@@ -2261,51 +1342,7 @@ totales del ensayo posterior incluyen la lista pública y el seguimiento propio;
 no son dos consultas cada segundo. En régimen estable, el respaldo propio baja
 de 60 a 6 consultas por minuto, más los avisos/reconexiones que realmente ocurran.
 
-### Consultas, fuentes y scripts revisados
-
-Se leyó `pg_stat_statements` de producción sin reiniciar estadísticas ni cambiar
-datos. Acumula desde el 19/06/2026: no es una ventana reciente ni una comparación
-antes/después del parche. Promedios agregados observados: `game_hands` 0,10 ms,
-operaciones relacionadas con `tables` 1,49 ms, `team_lobby` 3,01 ms, `get_community`
-16,66 ms, `bot_step` 22,91 ms y `get_my_objectives` 51,45 ms. Son tiempos de SQL,
-sin transporte ni render. Por volumen, se priorizó eliminar pedidos repetidos y
-la cadena mesa → partida; no se inventaron índices a partir de estos promedios.
-
-Los avatares de creadores/amigos ya usan `.in(...)` y las medallas se solicitan
-por lote: no se encontró un pedido HTTP por cada fila en esos recorridos.
-Se mantiene el aislamiento de `game_hands`. No se cambian funciones del juego,
-reglas, puntajes, monedas ni permisos. Las fuentes ya son locales
-(`GeistVF.woff2`, 55.744 bytes, `display: swap`) y el mazo ya usa WebP (925.628
-bytes en total). Se conservan las métricas de Vercel; no se añade otro SDK.
-
-### Verificación y reproducción
-
-- `npm run check:performance:browser`: contadores del lobby a 390/1440 px,
-  ampliación del panel social, renders con/sin cambio de salón, precarga y
-  aparición correcta de la pantalla final diferida. Playwright usa Chromium;
-  `PERF_BROWSER_CHANNEL=chrome` permite usar Chrome instalado. `--baseline` al
-  ejecutar el script informa los contadores sin exigir las optimizaciones.
-- `npm run check:performance:bundle`, después del build: imprime los bytes y
-  gzip iniciales para las cuatro rutas de la tabla.
-- `node --import tsx scripts/check-started-table.ts`: nueve casos con SDK HTTP
-  real y transporte/reloj controlados: lectura conjunta, evento inmediato,
-  finalización anterior, partida aún sin crear, error, avisos simultáneos,
-  pedido sin respuesta, visibilidad/red y salida. Se incorpora al CI junto al
-  ensayo de navegador.
-- Tipos, ESLint, build y generación de markdown aprobados. ESLint mantiene las
-  seis advertencias previas del 1v1; desaparece la del seguimiento del lobby.
-  Aprobaron también mesas del lobby, presencia, recuperación de reparto/tiempo,
-  declaración de envido, chat, invitaciones, allowlist y contenido para agentes.
-- El servidor de producción de Next en la copia aislada respondió el WebP de
-  carta y el del salón con `public, max-age=86400,
-  stale-while-revalidate=604800`; antes la carta respondía `public, max-age=0`.
-  Se comprobó que `sw.js` conserva `no-cache`.
-
-**Límites:** el ensayo de componentes no certifica SSR, Realtime por red real,
-LCP, INP ni una mejora porcentual de tiempo de carga en producción. Los avisos y
-fallos se prueban controladamente; los números de SQL son observaciones previas,
-no un aumento de velocidad de la base. Próxima comprobación al integrar: comparar
-las métricas de Vercel con tráfico real y entrar a una mesa desde dos dispositivos.
+*Pasado al [historial](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md) el 07/11/2026: «Consultas, fuentes y scripts revisados», «Verificación y reproducción».*
 
 <a id="invitacion-por-enlace"></a>
 
@@ -2357,101 +1394,7 @@ navegador; desde otro dispositivo se puede volver a abrir la invitación origina
 El modo Android del repositorio mantiene su política previa de cuentas reales.
 La disponibilidad 2v2 sigue dependiendo de `NEXT_PUBLIC_ENABLE_2VS2=true`.
 
-### Aplicación en producción
-
-**Ya aplicado en Trucazo; no volver a ejecutarlo.** Estos pasos se conservan para
-otro entorno. El backend se aplica a mano, antes de integrar/publicar la interfaz:
-
-1. Abrir `supabase/migrations/20261016132353_table_link_invites.sql` en GitHub y
-   copiar el archivo completo.
-2. Abrir el proyecto de Trucazo en Supabase → **SQL Editor → New query**.
-3. Pegar el SQL y tocar **Run**. Guardar la confirmación del resultado.
-4. Integrar el PR y comprobar el despliegue de la web.
-5. Crear una mesa privada, compartir el enlace con otro navegador, entrar como
-   invitado y confirmar. Repetir con parejas eligiendo un asiento libre.
-
-No requiere variables nuevas, habilitar Realtime para las claves ni cambiar cron.
-La foto de este agregado está en `supabase/schema/table_invites.sql`; es sólo
-referencia y no se ejecuta además de la migración. La reconstrucción continúa
-usando todas las migraciones en orden, con las tablas 2v2 antes de este agregado.
-
-### Cobertura de pruebas
-
-Tipos, ESLint (sólo advertencias previas), compilación de Next y pruebas de destinos
-de invitación/Android aprobaron en una copia limpia de GitHub, aislada de la carpeta
-local del dueño. No se usaron datos ni credenciales de producción.
-
-`supabase/tests/table_invites.sql` cubre ambas modalidades y visibilidades,
-permisos, vista pública mínima, saldo insuficiente, invitado, cobro único,
-reingreso, elección de lugar, cupo lleno y cierre/borrado. El CI normal lo ejecuta
-sobre PostgreSQL descartable y revisa los permisos globales de las funciones.
-
-`table-invites.yml` levanta Auth, Postgres, Realtime y Next en un runner vacío.
-`check-table-invites-browser.mjs` comprueba compartir desde la espera, visita sin
-sesión, invitado con nombre, confirmación, saldo, reintento, asiento, email,
-registro y enlace cerrado. No automatiza el proveedor externo de Google.
-
-### Evidencia de cierre — 16/10/2026
-
-Código verificado: `742d4256949bf62a53737c7dd756f227d29e22ac`. La
-[prueba integrada](https://github.com/santibpapa/trucazo/actions/runs/38910753844)
-aprobó con Auth, Postgres, Realtime, Next y Chromium reales, sin datos ni claves
-de producción. Nueve recorridos aprobados: las cuatro combinaciones de modalidad
-y visibilidad, email, registro, último cupo concurrente 1v1, último cupo concurrente
-2v2 y enlaces cerrados/desconocidos. La misma ejecución reconstruyó la base y
-aprobó `table_invites.sql` antes de abrir el navegador.
-
-La [revisión general](https://github.com/santibpapa/trucazo/actions/runs/38910754149)
-también aprobó completa para ese código: aplicación, reconstrucción de la base,
-permisos y baterías de juego, seguridad, torneos, monedas y concurrencia. La
-[base sin conexión](https://github.com/santibpapa/trucazo/actions/runs/38910754613)
-aprobó sin cambios en sus reglas. El commit posterior a esta evidencia sólo
-actualiza este documento; conserva el mismo código y las mismas pruebas.
-
-En cada modalidad se comprobó que visitar/identificarse no descuenta monedas,
-confirmar cobra una sola apuesta y reintentar conserva el saldo. En parejas el
-asiento quedó vacío al ingresar y después se eligió el lugar 3. Dos personas
-disputando el último cupo produjeron un solo ingreso y un solo descuento.
-Volver al login con una cuenta ya iniciada conservó la invitación.
-
-Se inspeccionaron las tres capturas móviles: ambas invitaciones y el asiento
-elegido en parejas, sin desborde horizontal ni controles recortados. Las capturas
-de la última ejecución quedan en su artifact `invitaciones-movil` durante un día.
-Se usó `localhost` para la web de la copia: Next normaliza a ese nombre las
-redirecciones locales, y mezclarlo con `127.0.0.1` separaba las cookies del navegador.
-No se modificaron las redirecciones de producción para adaptar esa prueba.
-
-La revisión de React y los checks de tipos/ESLint no agregaron advertencias.
-Google conserva el callback autorizado y el destino validado; su proveedor
-externo no se automatizó. La confirmación de email entre dispositivos tampoco
-forma parte de la prueba automática.
-
-### Activación en producción — 16/10/2026
-
-El dueño informó que integró el PR y después ejecutó el SQL. Se comprobó el merge
-`98a27945950db441b519be4bee207d6ddab9c004`, del 16/10 a las 14:12 de Argentina.
-Vercel publicó ese commit con estado **READY**, región `gru1`, y los dominios
-`www.trucazo.com.ar` y `trucazo.com.ar` asociados. Despliegue:
-`dpl_6KqVsVg7xWiqBHLtosBRhZVwVA8a`.
-
-En Supabase se compararon los cuerpos de `get_table_invite`, `preview_table_invite`
-y `join_table_invite`: los tres coinciden exactamente con la migración probada.
-Se verificaron `security definer`, `search_path` vacío, ausencia de EXECUTE para
-PUBLIC y los permisos previstos: vista previa para anon/authenticated;
-generación e ingreso sólo para authenticated. `invite_internal.links` tiene RLS,
-sin acceso de esquema para jugadores/visitantes ni publicación en Realtime, con
-sus claves únicas, restricción de una sola mesa y relaciones de borrado en cascada.
-
-La página publicada se consultó con una clave inventada: respondió HTTP 200 con
-«Esta invitación ya no está disponible», sin error de carga, y conservó noindex y
-no-referrer. Estas comprobaciones fueron de sólo lectura. No demuestran por sí
-solas una invitación manual ni un ingreso con Google real en producción.
-
-**Próximo paso vigente:** aceptación manual. Crear una mesa, tocar **Invitar por
-enlace**, abrir el enlace desde otro navegador/dispositivo y confirmar **Unirme**.
-Repetir en parejas y elegir un lugar libre. Comprobar también el regreso desde
-Google si se usa ese acceso. El merge, la publicación, el SQL y las pruebas
-integradas ya están completados; no volver a indicarlos como pasos pendientes.
+*Pasado al [historial](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md) el 07/11/2026: «Aplicación en producción», «Cobertura de pruebas», «Evidencia de cierre — 16/10/2026», «Activación en producción — 16/10/2026».*
 
 ### Espera visible después del código — 16/10/2026
 
@@ -2547,128 +1490,7 @@ que los soporte. Referencias: [recompensas web](https://support.google.com/adman
 [ejemplo GPT](https://developers.google.com/publisher-tag/samples/display-rewarded-ad)
 y [reglas de recompensa](https://support.google.com/admanager/answer/7496282).
 
-### Activación original (historial del PR #130)
-
-1. Antes de publicar la interfaz, abrir en GitHub
-   `supabase/migrations/20261019002728_campaign_lives.sql` y copiarlo entero.
-   Supabase → proyecto Trucazo → SQL Editor → New query → pegar → Run.
-   La foto `supabase/schema/campaign_lives.sql` es referencia: no ejecutarla además.
-2. Integrar el PR cuando sus verificaciones estén aprobadas y comprobar el
-   despliegue. Con eso funcionan las vidas, la recarga y los amigos.
-3. Para monetizar, primero crear una cuenta en
-   [Google AdSense](https://adsense.google.com/start/) con el dominio
-   `trucazo.com.ar` y completar su alta. Google exige una cuenta válida de AdSense
-   para [registrarse en Ad Manager](https://support.google.com/admanager/answer/7084151?hl=es).
-   Después entrar a [Google Ad Manager](https://admanager.google.com/), crear/habilitar
-   la cuenta y configurar un bloque **Rewarded para web** con recompensa de una
-   vida. La aprobación y la disponibilidad de inventario dependen de Google;
-   este PR no crea una cuenta ni asegura ingresos. Revisar en la cuenta la
-   configuración de privacidad/consentimiento y, donde corresponda, la CMP
-   requerida por Google antes de servir anuncios. Si pide verificar el dominio
-   o publicar `ads.txt`, usar los datos reales de esa cuenta. El identificador
-   de editor recibido y la verificación elegida se registran al final. Mantener los anuncios automáticos
-   apagados: este flujo utiliza únicamente el bloque voluntario de recompensa.
-4. Copiar la ruta real del bloque (formato `/CODIGO_RED/BLOQUE`) en Vercel →
-   proyecto Trucazo → Settings → Environment Variables →
-   `NEXT_PUBLIC_CAMPAIGN_REWARDED_AD_UNIT`. Volver a desplegar para incorporarla.
-   El identificador no es una clave privada. No usar el bloque de demostración
-   de Google para monetizar.
-5. Recién con la cuenta y el bloque listos, en Supabase → SQL Editor → New query
-   copiar y ejecutar:
-
-   ```sql
-   update campaign_internal.ad_settings set enabled = true where singleton;
-   ```
-
-   Hasta entonces el anuncio queda oculto y ni siquiera se emiten tickets desde
-   una llamada directa. Para pausar anuncios usar la misma consulta con `false`;
-   esperar y ayudar continúan funcionando. Los tickets ya emitidos conservan su
-   plazo para no perder una recompensa legítima.
-6. Comprobar con dos cuentas: tres derrotas → cero; pedir/enviar ayuda; volver a
-   jugar; esperar una recarga. Con el proveedor aprobado, verificar inventario
-   real, cierre voluntario, recompensa y acreditación tras recuperar conexión.
-
-### Pruebas y continuidad
-
-Preparadas: `supabase/tests/campaign_lives.sql`, permisos globales y
-`scripts/check-campaign-rewarded-ad.mjs`. La suite SQL comprueba saldo inicial,
-triunfo, derrotas, rendición, cierre repetido, cero, reloj y sobrantes, máximo,
-pedidos y tickets ajenos, ayuda gratis, vencimientos, reintentos y carrera entre
-amigo/anuncio. El permiso publicitario empieza cerrado en cada reconstrucción.
-La prueba Noroeste cierra explícitamente su duelo de preparación porque ahora
-los duelos abiertos se retoman; mantiene sus comprobaciones de acceso y premios.
-
-`campaign-lives.yml` prepara Auth, Postgres, Realtime, Next y Chromium reales en
-CI. Prueba dos sesiones, derrotas por la RPC real, pedido/respuesta en Amigos,
-inicios y regalos simultáneos, recarga y capturas a 360×640. Sólo el SDK
-publicitario se simula: no genera impresiones pagas ni certifica una cuenta de
-Google. Los runners no tienen claves ni datos de producción.
-
-Tipos, ESLint (avisos previos), allowlist de RPC, prueba de callbacks publicitarios
-y compilación de Next aprobaron en la copia temporal.
-
-### Evidencia verificada — 18/10/2026
-
-Código: `dee936578a154df1fd1820fd19f0c6fe5607febb`. La
-[prueba integrada de vidas](https://github.com/santibpapa/trucazo/actions/runs/39182095968)
-aprobó: tres derrotas reales, bloqueo a cero, resultado/revancha, ayuda desde
-Amigos en otra sesión, conservación del saldo del remitente, inicio y regalo
-concurrentes, acreditación del anuncio con SDK simulado y recarga hasta tres.
-La ventana de vidas se monta fuera de los contenedores animados del resultado;
-la prueba comprueba que su fondo cubra exactamente el viewport de 360×640.
-
-Se abrieron y revisaron las tres capturas finales del artifact `vidas-historia-movil`
-(resultado sin vidas, pedido enviado y vidas completas). Se esperó el final de
-las nubes y las animaciones para no confundir un cuadro de transición con la
-interfaz final. Sin desborde horizontal ni controles cortados; el resultado sin
-la ventana también entra sin scroll. El artifact dura un día.
-
-La [prueba existente de invitaciones](https://github.com/santibpapa/trucazo/actions/runs/39182095988)
-aprobó sin cambios. La aplicación y la suite SQL de vidas/permisos aprobaron en
-la [revisión general](https://github.com/santibpapa/trucazo/actions/runs/39182095966);
-la revisión completa también terminó aprobada, incluidas reconstrucción, juego,
-seguridad, permisos, torneos, monedas y simulaciones Noroeste. El commit posterior
-a esta evidencia sólo actualiza documentación y conserva el mismo código probado.
-
-Al cerrar aquella entrega todavía faltaban la integración y la comprobación de
-SQL en producción. La integración posterior de #130 y el inicio del alta
-publicitaria se registran en el estado actual y en la actualización siguiente.
-La aprobación publicitaria, el consentimiento aplicable y una vista con inventario
-real siguen sin comprobarse. No se generan ingresos por las pruebas simuladas.
-
-
-### Compatibilidad con el PR #129 — 18/10/2026
-
-El dueño integró #129 en master (`8380cc93e6b2434fed9a03576089248c301bff3c`).
-Se actualiza #130 con ese master y se conserva tanto la sección «Espera visible
-después del código» como la de vidas. El único conflicto era la incorporación
-de ambas secciones al final de este documento; los archivos de código no se pisan.
-No se cambia la migración de vidas ni se aplica SQL o se publica #130 durante
-esta actualización. Las verificaciones automáticas vuelven a evaluar la combinación.
-
-
-### Alta de AdSense y verificación del sitio — 18/10/2026
-
-El dueño abrió el alta de `trucazo.com.ar` y mostró la pantalla «Su sitio necesita
-revisión». El identificador visible en su captura es `ca-pub-3485016002829591`.
-Se prepara únicamente la metaetiqueta `google-adsense-account` en los metadatos
-globales de `src/app/layout.tsx`, método admitido por Google para verificar la
-propiedad sin cargar el script de anuncios. Es un identificador público del
-editor. No se agregan anuncios automáticos, un bloque de recompensa ni SQL.
-
-Después de integrar este cambio y confirmar su publicación en la web:
-
-1. En la misma pantalla de AdSense elegir **Metaetiqueta**.
-2. Comprobar que muestra el mismo identificador de editor.
-3. Marcar la casilla de código/metaetiqueta colocada y tocar **Verificar**.
-4. Si Google confirma la propiedad, abrir **Solicitar revisión** y completar
-   las tareas obligatorias que indique la cuenta.
-
-Preparar la metaetiqueta no significa que ya esté publicada, que Google la haya
-verificado ni que el sitio esté aprobado para anuncios. La aprobación y el bloque
-rewarded siguen siendo pasos separados. Referencia oficial:
-[Conectar un sitio a AdSense](https://support.google.com/adsense/answer/7584263?hl=es-419).
-
+*Pasado al [historial](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md) el 07/11/2026: «Activación original (historial del PR #130)», «Pruebas y continuidad», «Evidencia verificada — 18/10/2026», «Compatibilidad con el PR #129 — 18/10/2026», «Alta de AdSense y verificación del sitio — 18/10/2026».*
 
 ### AdSense en revisión y archivo ads.txt — 18/10/2026
 
@@ -2692,7 +1514,6 @@ aprobación del sitio y la configuración del bloque rewarded.
 
 Referencias: [guía de ads.txt](https://support.google.com/adsense/answer/7532444?hl=es)
 y [estados de revisión](https://support.google.com/adsense/answer/12170222?hl=es).
-
 
 ### Pausa de vidas y barra de Historia — 19/10/2026
 
@@ -2789,24 +1610,7 @@ Las capturas finales del mapa y del resultado se descargaron y revisaron: no
 aparecen elementos ni mensajes de vidas durante la pausa. Las pruebas usan
 cuentas y bases descartables; no certifican aprobación publicitaria.
 
-
-### Textos de Privacidad y Términos para AdSense — 01/11/2026
-
-Revisión pedida por el dueño mientras AdSense sigue en revisión. Privacidad decía
-«No vendemos datos ni mostramos anuncios» y Términos «No hay anuncios, cobros ni
-suscripciones», en contradicción con la sección de anuncios opcionales y con el
-pedido de AdSense. Se cambian por textos que dicen que hoy no hay anuncios y que,
-si se habilitan, son opcionales. En «Anuncios opcionales y vidas de Historia» se
-suma el aviso que Google pide en la política de privacidad: proveedores externos,
-incluido Google, usan cookies según visitas anteriores, con enlaces para
-desactivar la publicidad personalizada
-([contenido obligatorio de AdSense](https://support.google.com/adsense/answer/1348695?hl=es)).
-Se actualiza la fecha de ambas páginas en el mapa del sitio.
-
-Sólo cambia texto: no requiere SQL, no activa vidas ni anuncios y no cambia la
-variable de Vercel. Sigue pendiente el aviso de consentimiento (CMP) para
-visitantes de Europa, Reino Unido y Suiza antes de servir anuncios.
-
+*Pasado al [historial](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md) el 07/11/2026: «Textos de Privacidad y Términos para AdSense — 01/11/2026».*
 
 <a id="adsense-rechazo-poco-valor"></a>
 
