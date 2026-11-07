@@ -268,6 +268,11 @@ Comprobado después en producción: 43 entradas en la lista, tarea
 "sos un TROLO, dale boludo" → "sos un \*\*\*\*\*, dale boludo", lista y filtro
 cerrados al navegador. Los 100 mensajes en pantalla llegan con el merge a `master`.
 
+**Ajuste — 07/11/2026:** a pedido del dueño, "concha" y "chota" dejan de taparse
+(se usan de onda); "conchudo/a" sigue tapado. [`20261107180000_chat_filtro_sin_concha_chota.sql`](../supabase/migrations/20261107180000_chat_filtro_sin_concha_chota.sql),
+aplicada desde la herramienta de Supabase y comprobada: 42 entradas, "la concha de
+la lora, esta carta es una chota" pasa entera, "sos un conchudo" se tapa.
+
 <a id="reconstruir-base"></a>
 
 ### Reconstruir la base de prueba

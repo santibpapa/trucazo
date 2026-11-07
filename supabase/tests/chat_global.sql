@@ -23,6 +23,8 @@ from (values
   ('Matate HDP', '****** ***'),
   ('dale boludo, la puta madre', 'dale boludo, la puta madre'),
   ('que orto tenés', 'que orto tenés'),
+  ('la concha de la lora, una chota', 'la concha de la lora, una chota'),
+  ('sos un conchudo', 'sos un ********'),
   ('me disputo el computo', 'me disputo el computo'),
   ('quiero vale cuatro', 'quiero vale cuatro'),
   ('🧉 truco!', '🧉 truco!')
