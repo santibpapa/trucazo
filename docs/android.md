@@ -7,7 +7,7 @@
 ## En pocas palabras (para el dueño) — 07/11/2026
 
 - **Qué es:** la app de Trucazo para celulares Android. Usa las mismas cuentas, partidas y monedas que la web, y el Modo Campaña también funciona sin internet.
-- **Dónde estamos:** **en pausa** por decisión del dueño. Se retoma cuando Google Ad Manager apruebe la cuenta y Trucazo empiece a generar ingresos.
+- **Dónde estamos:** **en pausa** por decisión del dueño. Se retoma cuando AdSense dé el okey (anuncios aprobados) y Trucazo empiece a generar ingresos.
 - **Qué quedó hecho:** la app está terminada y probada (etapas 1 a 17). La etapa 18 (cuenta de Play Console, ficha y canal de prueba interno) quedó empezada: falta crear la cuenta de Play Console.
 - **La firma de la app** tiene copia en un pendrive desde el 08/11. Sin esa firma no se pueden publicar actualizaciones de la misma app: no perder ninguna de sus copias.
 
@@ -17,7 +17,7 @@
 
 Esta sección es una foto: se **reescribe entera** cuando algo cambia. Lo viejo pasa al historial.
 
-- **En pausa desde el 07/11/2026**, hasta que Google Ad Manager apruebe la cuenta y Trucazo genere ingresos. No se trabaja en etapas Android mientras tanto.
+- **En pausa desde el 07/11/2026**, hasta que AdSense dé el okey (anuncios aprobados) y Trucazo genere ingresos. No se trabaja en etapas Android mientras tanto.
 - **Etapas:** ANDROID-01 a 17 cerradas (27/10/2026). ANDROID-18 a medias desde el 02/11 ([avance de 18](#android-18-avance-2026-11-02)). 19 y 20 sin empezar.
 - **Último candidato firmado:** **0.17.11 / código 29**, paquete `ar.com.trucazo.app`, firma de subida `D0:B0:84…:28:30`, Android 10 en adelante (API 29, objetivo API 36). Tiene parejas, torneos y chat de mesa. Los archivos están en la PC del dueño (`android/artifacts/ANDROID-18/`), fuera de Git. Se armó con el código del 02/11: al retomar hay que armar uno nuevo desde `master`.
 - **Nada publicado en Google Play.** La confirmación de email y los avisos push para jugadores siguen apagados (`dispatch_enabled=false`).

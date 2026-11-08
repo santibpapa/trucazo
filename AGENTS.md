@@ -81,7 +81,7 @@ Stack: Next.js 15 (App Router) + React + TypeScript + Tailwind + Supabase
 - **«Estado actual» es una foto:** se reescribe entera, con fecha, cuando algo cambia. Lo que deja de ser cierto pasa a un capítulo fechado o se borra; nunca dejar dos versiones que se contradigan. En el README, cada tema tiene una sola línea en «En qué estamos» y cada sesión cambia sólo la suya.
 - Anotar lo que no se ve en el código: reglas, trampas, decisiones del dueño y cómo se comprobó cada cosa (dónde y cuándo). La evidencia larga va en la descripción del PR. Antes de actuar sobre una nota vieja, comprobarla contra el código o con una consulta de sólo lectura.
 - Escribir en castellano claro, con espacios entre palabras y números; no abreviar para ahorrar lugar.
-- **Android está en pausa** desde el 07/11/2026, hasta que Google Ad Manager apruebe la cuenta y Trucazo genere ingresos. No trabajar etapas ANDROID-XX salvo pedido del dueño. Las reglas de esas sesiones están en [docs/android.md](docs/android.md#android-reglas-sesion).
+- **Android está en pausa** desde el 07/11/2026, hasta que AdSense dé el okey (anuncios aprobados) y Trucazo genere ingresos. No trabajar etapas ANDROID-XX salvo pedido del dueño. Las reglas de esas sesiones están en [docs/android.md](docs/android.md#android-reglas-sesion).
 - La fuente del sistema de diseño es `docs/diseno.md`; si cambia, actualizar su copia técnica `.design-sync/conventions.md`, que lee el generador.
 
 ## El dueño no programa

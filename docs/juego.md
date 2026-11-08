@@ -8,7 +8,7 @@ Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 
 - Truco argentino a 15 o 30 puntos, sin flor y con monedas ficticias. Las reglas online y los premios oficiales los decide el servidor; las manos rivales nunca se envían al cliente.
 - **Historia:** 15 provincias y 66 rivales. **Vidas de Historia programadas y apagadas** desde el 19/10: los jugadores no ven nada ni pierden vidas ([reglas y cómo activarlas](#vidas-de-historia)).
-- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (capturas del 04/11). El dueño espera la aprobación de **Google Ad Manager**, que es lo que necesitan los anuncios con premio. Diagnóstico y avances en [Rechazo de AdSense](#adsense-rechazo-poco-valor).
+- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (capturas del 04/11). Hay que esperar la respuesta de AdSense (dueño, 08/11). Para los anuncios con premio de las vidas hace falta además una cuenta de Google Ad Manager. Diagnóstico y avances en [Rechazo de AdSense](#adsense-rechazo-poco-valor).
 - **Parejas** lanzadas el 14/09/2026 y **torneos** el 27/09/2026 (contrato al 07/10/2026).
 - **Chat escrito** en mesas normales y torneos; Historia tiene frases rápidas. Los bots no escriben en el chat libre.
 - **Bots en mesas de la gente** desde el 04/11 ([detalle](#bots-lobby-cuidamesas)).
@@ -16,7 +16,7 @@ Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 
 ## Próximo paso y cómo retomar
 
-El trabajo abierto de esta área es el contenido para volver a pedir la revisión de AdSense: seguir los pasos de [Rechazo de AdSense](#adsense-rechazo-poco-valor). Antes de tocar una modalidad existente, leer su entrega final y comprobar el código y el SQL actuales antes de cambiar reglas o repetir migraciones. La aceptación pendiente de ranking y presencia está en [Operación](operacion.md#correccion-cierres-presencia).
+Con AdSense hay que esperar su respuesta; no hay trabajo abierto en esta área ([Rechazo de AdSense](#adsense-rechazo-poco-valor)). Antes de tocar una modalidad existente, leer su entrega final y comprobar el código y el SQL actuales antes de cambiar reglas o repetir migraciones.
 
 ## Guía de lectura
 

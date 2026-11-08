@@ -13,11 +13,11 @@ Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa al
 - **Middleware angostado el 06/11** para no agotar el cupo gratis de CPU de Vercel ([detalle](#cpu-vercel)).
 - **Chat global, 07/11:** ya no se borra al azar; quedan los últimos 500 (tarea diaria `trucazo-chat-keep-500`, activa en producción el 07/11) y se tapan las groserías fuertes de `chat_banned_words`. Migraciones aplicadas el 07/11 ([detalle](#chat-global-2026-11-07)).
 - **Cuotas de Supabase:** limpieza de Realtime e historial aplicada por el dueño el 04/11 ([detalle en Operación](operacion.md#cuotas-2026-11-04)).
-- **Ranking y presencia (PR #120):** SQL aplicado y presencia comprobada el 13/10. Falta aceptarlo con partidas reales ([Operación](operacion.md#correccion-cierres-presencia)).
+- **Ranking y presencia (PR #120):** cerrado; aceptación con partidas reales confirmada por el dueño el 08/11 ([Operación](operacion.md#correccion-cierres-presencia)).
 
 ## Próximo paso y cómo retomar
 
-No hay trabajo de backend pendiente propio. Lo que queda abierto es la aceptación de ranking y presencia con partidas reales, en [Operación](operacion.md#correccion-cierres-presencia). Antes de aplicar SQL, comprobar qué está aplicado de verdad: el [historial de migraciones](../supabase/migrations/) y una consulta de sólo lectura a producción dicen más que una nota vieja.
+No hay trabajo de backend pendiente. Antes de aplicar SQL, comprobar qué está aplicado de verdad: el [historial de migraciones](../supabase/migrations/) y una consulta de sólo lectura a producción dicen más que una nota vieja.
 
 ## Guía de lectura
 
