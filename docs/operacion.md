@@ -11,16 +11,16 @@ Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 - **AdSense rechazado** por «contenido de poco valor» (04/11). Guías nuevas publicadas para volver a pedir la revisión; detalle en [Juego](juego.md#adsense-rechazo-poco-valor).
 - **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)).
 - **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)).
-- **Ranking y presencia (PR #120, 13/10):** SQL aplicado y presencia comprobada. Falta aceptarlo con partidas reales ([verificación](#correccion-cierres-presencia)).
+- **Ranking y presencia (PR #120, 13/10):** cerrado. SQL aplicado, presencia comprobada y aceptación con partidas reales confirmada por el dueño el 08/11 ([detalle](#correccion-cierres-presencia)).
 - **Node en Vercel:** el repo pide 24.22.1 (PR #141), pero el 21/10 el servidor público seguía en 24.21.0. Sin volver a comprobar desde entonces ([detalle](#node-seguridad-2026-10-21)).
 - **Eliminación de cuenta** integrada (PR #101). **Correos de novedades:** sin autorización nueva para enviar.
 - **Ciclo de retorno:** sus funciones SQL están en producción (comprobado el 07/11). Registro en [Publicación del ciclo de retorno](#ciclo-despliegue).
 
-**Pendientes del dueño:** cerrar el emulador Android que quedó abierto contra producción y revisar el congelamiento de la base del 02/11 ([diagnóstico](#lentitud-2026-11-03)).
+**Congelamiento de la base del 02/11:** cerrado. El dueño confirmó el 08/11 que fue por el plan gratuito de Supabase, que usa una máquina chica y compartida ([diagnóstico](#lentitud-2026-11-03)). El emulador Android que hacía pedidos contra producción ya no aparece: las tres cuentas de prueba no tienen actividad desde el 03/11 (consulta de sólo lectura a `user_presence`, 08/11).
 
 ## Próximo paso y cómo retomar
 
-Completar la aceptación de ranking y presencia: falta una victoria que cambie el podio y una partida activa de más de 15 minutos ([verificación posterior al PR #120](#correccion-cierres-presencia)). No repetir la migración, no tratar los errores previos como falla vigente y no compensar resultados viejos sin pedido del dueño.
+Ninguno en curso al 08/11/2026. Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
 
 ## Guía de lectura
 
@@ -61,7 +61,9 @@ Actualizar aquí incidentes, soporte, pasos de panel, publicación y evidencia o
 
 **Comprobado:** tipos, ESLint de los archivos tocados y `npm run build` aprobados. Simulación del middleware con sesiones firmadas de prueba: con sesión entra; sin sesión o con firma falsa va a `/login`; cuenta en `/login` va a `/lobby`; invitado en `/login` pasa; invitado en `/android` va a `/login?android=1`. En los siete casos hubo un solo pedido de red (la llave pública) y ninguno a `/auth/v1/user`. **No medido todavía:** el tiempo real en producción; comparar Speed Insights de Vercel antes y después de publicar.
 
-### Pendiente del dueño: revisar el congelamiento del 02/11
+### Revisar el congelamiento del 02/11 (cerrado)
+
+**Cerrado — 08/11/2026:** el dueño confirmó que la causa fue el plan gratuito de Supabase. Los pasos de abajo quedan como referencia si vuelve a pasar.
 
 1. Entrar a [supabase.com/dashboard](https://supabase.com/dashboard) → el proyecto → **Reports** → **Database**.
 2. Elegir el rango del **2 de noviembre, 19:30 a 20:00 (hora argentina)** y mirar CPU, memoria y «Disk IO».
@@ -798,6 +800,8 @@ aprobada; primera revisión real terminada con `completed`, 23 revisadas y 0 pen
 <a id="correccion-cierres-presencia"></a>
 
 ## Corrección de cierres y presencia — 13/10/2026
+
+**Cerrado — 08/11/2026:** el dueño confirmó que el ranking y la presencia ya están comprobados con partidas reales. Los pendientes de aceptación que figuran abajo quedan resueltos.
 
 La investigación confirmó dos causas independientes. Una victoria que cambia el
 podio disparaba un `DELETE` sin filtro en `refresh_ranking_top3`: la protección

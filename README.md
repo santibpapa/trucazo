@@ -6,21 +6,18 @@ Truco argentino online a **15 o 30 puntos, sin flor y con monedas ficticias**. I
 
 <a id="estado-actual"></a>
 
-## En qué estamos — 07/11/2026
+## En qué estamos — 08/11/2026
 
 Una línea por tema. Cada sesión reemplaza **sólo la línea de su tema**, con fecha; el detalle va en el documento del tema.
 
 - **Web:** [www.trucazo.com.ar](https://www.trucazo.com.ar). Lo publicado es siempre `master`: Vercel publica solo cada merge. — 07/11
 - **Juego:** Historia (15 provincias, 66 rivales), 1v1, parejas y torneos funcionando. Vidas de Historia programadas y apagadas. [Juego](docs/juego.md#estado-actual) — 07/11
-- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (04/11). Se espera la aprobación de Google Ad Manager para los anuncios con premio. [Diagnóstico](docs/juego.md#adsense-rechazo-poco-valor) — 07/11
-- **App Android:** **en pausa** hasta que Google Ad Manager apruebe la cuenta y Trucazo genere ingresos. Etapas 1 a 17 cerradas, 18 empezada, nada publicado en Play. [Android](docs/android.md#android-estado-actual) — 07/11
+- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (04/11). Hay que esperar su respuesta; por ahora no hay nada que hacer. [Diagnóstico](docs/juego.md#adsense-rechazo-poco-valor) — 08/11
+- **App Android:** **en pausa** hasta que AdSense dé el okey (anuncios aprobados) y Trucazo genere ingresos. Etapas 1 a 17 cerradas, 18 empezada, nada publicado en Play. [Android](docs/android.md#android-estado-actual) — 08/11
 - **Servidor:** un solo servidor para la web y la app: todo cambio en Supabase o en los servicios web tiene que seguir funcionando para las apps ya instaladas. [Cómo llegan los cambios](docs/android.md#como-llegan-los-cambios) — 07/11
 - **Operación:** plan gratuito de Supabase y Vercel, con recortes de consumo del 03 al 06/11. Reseñas revisadas por un agente lunes, miércoles y viernes ([tablero #118](https://github.com/santibpapa/trucazo/issues/118)). [Operación](docs/operacion.md) — 07/11
 
-**Pendientes del dueño, fuera del código:**
-
-1. Guardar una copia de la firma de la app fuera de la PC (pendrive o nube privada): la carpeta `C:\Users\santy\Desktop\proyectos\trucazo-entorno\android-signing`. Hoy sus dos copias están en la misma computadora, y sin la firma no se pueden publicar actualizaciones de la misma app.
-2. Cerrar el emulador Android que quedó abierto contra producción ([detalle](docs/operacion.md#lentitud-2026-11-03)).
+**Pendientes del dueño, fuera del código:** ninguno al 08/11. La firma de la app ya tiene copia en un pendrive y el emulador de pruebas no se conecta a producción desde el 03/11.
 
 <a id="indice"></a>
 
