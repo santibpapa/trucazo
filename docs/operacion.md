@@ -14,14 +14,14 @@ Foto al **08/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 - **Ranking y presencia (PR #120, 13/10):** cerrado. SQL aplicado, presencia comprobada y aceptación con partidas reales confirmada por el dueño el 08/11 ([detalle](#correccion-cierres-presencia)).
 - **Node en Vercel:** el repo pide 24.22.1 (PR #141), pero el 21/10 el servidor público seguía en 24.21.0. Sin volver a comprobar desde entonces ([detalle](#node-seguridad-2026-10-21)).
 - **Eliminación de cuenta** integrada (PR #101). El buzón de soporte `hola@trucazo.com.ar` recibe correos ([comprobado el 08/11](#buzon-soporte)). **Correos de novedades:** sin autorización nueva para enviar.
-- **Cambio de nombre de usuario:** en el perfil (una sola vez, gratis). SQL aplicado en producción el 08/11; la web sale al unir su PR ([detalle](#cambio-nombre-usuario)). El 08/11 se renombró a mano `alcalayaalvaro` → `Almafuerte` por pedido a `hola@`.
+- **Cambio de nombre de usuario:** en el perfil (una sola vez, gratis), publicado el 08/11 ([PR #171](https://github.com/santibpapa/trucazo/pull/171), [detalle](#cambio-nombre-usuario)). El 08/11 se renombró a mano `alcalayaalvaro` → `Almafuerte` por pedido a `hola@`.
 - **Ciclo de retorno:** sus funciones SQL están en producción (comprobado el 07/11). Registro en [Publicación del ciclo de retorno](#ciclo-despliegue).
 
 **Congelamiento de la base del 02/11:** cerrado. El dueño confirmó el 08/11 que fue por el plan gratuito de Supabase, que usa una máquina chica y compartida ([diagnóstico](#lentitud-2026-11-03)). El emulador Android que hacía pedidos contra producción ya no aparece: las tres cuentas de prueba no tienen actividad desde el 03/11 (consulta de sólo lectura a `user_presence`, 08/11).
 
 ## Próximo paso y cómo retomar
 
-Al 08/11/2026: unir el PR del cambio de nombre de usuario; su SQL ya está aplicado ([detalle](#cambio-nombre-usuario)). Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
+Ninguno en curso al 08/11/2026. Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
 
 ## Guía de lectura
 
@@ -339,7 +339,7 @@ Estas tres lecturas representan juntas **60,44% del tamaño total estimado** de 
 
 **Pruebas (08/11, base local reconstruida con `scripts/rebuild-db.sh`):** `supabase/tests/cambio_nombre.sql` pasa (rechazos, cambio, copia en todas las tablas, segundo intento, nombre liberado, permisos). También pasan `seguridad_privilegios_funciones.sql` (con `change_username` agregada a la lista de funciones del cliente), `seguridad_pr1.sql`, `seguridad_pr2.sql` y `chat_global.sql`, además de `npm run check:rpc-allowlist`.
 
-**Publicación:** el dueño aplicó la migración en el SQL Editor el 08/11; comprobado con una consulta de sólo lectura (columna `username_changed_at` creada, `change_username` existe, la pueden usar jugadores con cuenta y no los anónimos). La web sale al unir el PR a `master`. No necesita versión nueva de la app para seguir funcionando; el botón llega a la app en el próximo APK.
+**Publicación:** el dueño aplicó la migración en el SQL Editor el 08/11; comprobado con una consulta de sólo lectura (columna `username_changed_at` creada, `change_username` existe, la pueden usar jugadores con cuenta y no los anónimos). PR #171 unido a `master` el 08/11. No necesita versión nueva de la app para seguir funcionando; el botón llega a la app en el próximo APK.
 
 La eliminación de cuenta está integrada en el código mediante PR #101. No volver a construirla ni repetir su migración como parte del plan Android. Sigue pendiente su regresión instalada y comprobar el soporte; este trabajo no elimina cuentas.
 
