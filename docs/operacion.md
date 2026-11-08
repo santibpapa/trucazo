@@ -16,7 +16,7 @@ Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 - **Eliminación de cuenta** integrada (PR #101). **Correos de novedades:** sin autorización nueva para enviar.
 - **Ciclo de retorno:** sus funciones SQL están en producción (comprobado el 07/11). Registro en [Publicación del ciclo de retorno](#ciclo-despliegue).
 
-**Pendiente del dueño, opcional:** mirar las gráficas del congelamiento de la base del 02/11 ([pasos](#lentitud-2026-11-03)). La explicación más probable ya es el plan gratuito de Supabase, que usa una máquina chica y compartida. El emulador Android que hacía pedidos contra producción ya no aparece: las tres cuentas de prueba no tienen actividad desde el 03/11 (consulta de sólo lectura a `user_presence`, 08/11).
+**Congelamiento de la base del 02/11:** cerrado. El dueño confirmó el 08/11 que fue por el plan gratuito de Supabase, que usa una máquina chica y compartida ([diagnóstico](#lentitud-2026-11-03)). El emulador Android que hacía pedidos contra producción ya no aparece: las tres cuentas de prueba no tienen actividad desde el 03/11 (consulta de sólo lectura a `user_presence`, 08/11).
 
 ## Próximo paso y cómo retomar
 
@@ -61,7 +61,9 @@ Actualizar aquí incidentes, soporte, pasos de panel, publicación y evidencia o
 
 **Comprobado:** tipos, ESLint de los archivos tocados y `npm run build` aprobados. Simulación del middleware con sesiones firmadas de prueba: con sesión entra; sin sesión o con firma falsa va a `/login`; cuenta en `/login` va a `/lobby`; invitado en `/login` pasa; invitado en `/android` va a `/login?android=1`. En los siete casos hubo un solo pedido de red (la llave pública) y ninguno a `/auth/v1/user`. **No medido todavía:** el tiempo real en producción; comparar Speed Insights de Vercel antes y después de publicar.
 
-### Pendiente del dueño: revisar el congelamiento del 02/11
+### Revisar el congelamiento del 02/11 (cerrado)
+
+**Cerrado — 08/11/2026:** el dueño confirmó que la causa fue el plan gratuito de Supabase. Los pasos de abajo quedan como referencia si vuelve a pasar.
 
 1. Entrar a [supabase.com/dashboard](https://supabase.com/dashboard) → el proyecto → **Reports** → **Database**.
 2. Elegir el rango del **2 de noviembre, 19:30 a 20:00 (hora argentina)** y mirar CPU, memoria y «Disk IO».
