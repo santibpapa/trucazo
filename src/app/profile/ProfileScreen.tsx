@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Panel, Logo, Coins, CoinIcon, buttonClass } from '@/components/ui'
 import AvatarUploader from '@/components/AvatarUploader'
 import MedalsShowcase from './MedalsShowcase'
+import UsernameEditor from './UsernameEditor'
 import type { loadProfile } from '@/lib/player-data'
 
 export default function ProfileScreen({ profile, history, earnedMedals, isGuest = false, accountLink, backLink }: Awaited<ReturnType<typeof loadProfile>> & { isGuest?: boolean; accountLink?: React.ReactNode; backLink?: React.ReactNode }) {
@@ -97,6 +98,7 @@ export default function ProfileScreen({ profile, history, earnedMedals, isGuest 
       {!isGuest && (
         <Panel className="p-5 flex flex-col gap-2">
           <h2 className="font-display font-bold text-cream">Tu cuenta</h2>
+          <UsernameEditor username={profile.username} changedAt={profile.username_changed_at} />
           <p className="text-sm text-muted">Podés eliminar tu cuenta y sus datos de forma permanente.</p>
           {accountLink ?? <Link href="/eliminar-cuenta" className="text-sm text-negative underline underline-offset-2 w-fit">Eliminar mi cuenta</Link>}
         </Panel>

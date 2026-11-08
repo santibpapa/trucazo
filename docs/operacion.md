@@ -1,10 +1,10 @@
 # Operación — soporte, cuentas, correos, publicación e incidentes
 
-[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **07/11/2026**.
+[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **08/11/2026**.
 
 ## Estado actual
 
-Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
+Foto al **08/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
 
 - **Producción web = `master`.** Del 27 al 30/10 Vercel publicó desde la rama Android; el [PR #147](https://github.com/santibpapa/trucazo/pull/147) lo corrigió. No repetirlo.
 - **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual ([cuotas](#cuotas-2026-11-04)). Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
@@ -13,14 +13,15 @@ Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 - **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)).
 - **Ranking y presencia (PR #120, 13/10):** cerrado. SQL aplicado, presencia comprobada y aceptación con partidas reales confirmada por el dueño el 08/11 ([detalle](#correccion-cierres-presencia)).
 - **Node en Vercel:** el repo pide 24.22.1 (PR #141), pero el 21/10 el servidor público seguía en 24.21.0. Sin volver a comprobar desde entonces ([detalle](#node-seguridad-2026-10-21)).
-- **Eliminación de cuenta** integrada (PR #101). **Correos de novedades:** sin autorización nueva para enviar.
+- **Eliminación de cuenta** integrada (PR #101). El buzón de soporte `hola@trucazo.com.ar` recibe correos ([comprobado el 08/11](#buzon-soporte)). **Correos de novedades:** sin autorización nueva para enviar.
+- **Cambio de nombre de usuario:** en el perfil (una sola vez, gratis). SQL aplicado en producción el 08/11; la web sale al unir su PR ([detalle](#cambio-nombre-usuario)). El 08/11 se renombró a mano `alcalayaalvaro` → `Almafuerte` por pedido a `hola@`.
 - **Ciclo de retorno:** sus funciones SQL están en producción (comprobado el 07/11). Registro en [Publicación del ciclo de retorno](#ciclo-despliegue).
 
 **Congelamiento de la base del 02/11:** cerrado. El dueño confirmó el 08/11 que fue por el plan gratuito de Supabase, que usa una máquina chica y compartida ([diagnóstico](#lentitud-2026-11-03)). El emulador Android que hacía pedidos contra producción ya no aparece: las tres cuentas de prueba no tienen actividad desde el 03/11 (consulta de sólo lectura a `user_presence`, 08/11).
 
 ## Próximo paso y cómo retomar
 
-Ninguno en curso al 08/11/2026. Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
+Al 08/11/2026: unir el PR del cambio de nombre de usuario; su SQL ya está aplicado ([detalle](#cambio-nombre-usuario)). Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
 
 ## Guía de lectura
 
@@ -320,6 +321,26 @@ Estas tres lecturas representan juntas **60,44% del tamaño total estimado** de 
 
 ## Cuentas y eliminación de datos
 
+<a id="cambio-nombre-usuario"></a>
+
+### Cambio de nombre de usuario — 08/11/2026
+
+**Origen:** un jugador pidió por correo a `hola@` cambiar `alcalayaalvaro` por `Almafuerte`. Se hizo a mano el 08/11 (perfil, 5 mesas, 5 partidas y 5 filas del historial de sus rivales); se comprobó que el inicio de sesión con el nombre nuevo devuelve su correo y que no quedó el nombre viejo en ninguna tabla. Su `username_changed_at` quedó vacío: todavía tiene su cambio propio.
+
+**Decisión del dueño (08/11):** cada jugador se puede cambiar el nombre **una sola vez**, **gratis**, y el nombre viejo **queda libre enseguida**. Para un segundo cambio escribe a `hola@`; soporte lo habilita dejando `username_changed_at` en null (o lo hace a mano como arriba).
+
+**Cómo funciona:** el perfil (web y app) muestra «Nombre de usuario» con el botón «Cambiar» en el recuadro «Tu cuenta». La regla vive en `public.change_username` (migración `20261108150000_cambio_nombre_usuario.sql`):
+- de 3 a 20 caracteres, sin espacios al principio ni al final;
+- rechaza nombres que el filtro del chat taparía (sólo detecta palabras sueltas: un insulto pegado a otra palabra pasa);
+- no distingue mayúsculas para saber si está ocupado;
+- se rechaza en medio de una partida 1v1, porque tocar esa fila de `games` reinicia el reloj del turno;
+- copia el nombre nuevo a chat, chat de partida, mesas (y su nombre automático «Mesa de …»), partidas, historial del rival, invitaciones, asientos 2vs2 y novedades. No toca `tournament_matches`, que guarda a propósito el nombre de cada cruce;
+- invitados, cuentas con restricción social o sin normas aceptadas no pueden.
+
+**Pruebas (08/11, base local reconstruida con `scripts/rebuild-db.sh`):** `supabase/tests/cambio_nombre.sql` pasa (rechazos, cambio, copia en todas las tablas, segundo intento, nombre liberado, permisos). También pasan `seguridad_privilegios_funciones.sql` (con `change_username` agregada a la lista de funciones del cliente), `seguridad_pr1.sql`, `seguridad_pr2.sql` y `chat_global.sql`, además de `npm run check:rpc-allowlist`.
+
+**Publicación:** el dueño aplicó la migración en el SQL Editor el 08/11; comprobado con una consulta de sólo lectura (columna `username_changed_at` creada, `change_username` existe, la pueden usar jugadores con cuenta y no los anónimos). La web sale al unir el PR a `master`. No necesita versión nueva de la app para seguir funcionando; el botón llega a la app en el próximo APK.
+
 La eliminación de cuenta está integrada en el código mediante PR #101. No volver a construirla ni repetir su migración como parte del plan Android. Sigue pendiente su regresión instalada y comprobar el soporte; este trabajo no elimina cuentas.
 
 <a id="eliminacion-cuenta"></a>
@@ -399,9 +420,18 @@ intentar. Una reserva temporal impide que dos ejecuciones la procesen a la vez.
 Los tokens anteriores no pueden recrear el perfil ni subir nuevos archivos.
 
 La página informa el estado inmediato y pide contactar a
-`hola@trucazo.com.ar` si pasan 48 horas o no se puede iniciar sesión. Verificá
-que ese buzón recibe mensajes antes de publicar. Para solicitudes por correo,
-comprobá la identidad; no pidas contraseñas.
+`hola@trucazo.com.ar` si pasan 48 horas o no se puede iniciar sesión. Para
+solicitudes por correo, comprobá la identidad; no pidas contraseñas.
+
+<a id="buzon-soporte"></a>
+**Buzón de soporte, comprobado el 08/11/2026.** `hola@trucazo.com.ar` es una
+dirección de iCloud+ con dominio propio, en la cuenta de Apple del dueño. El DNS
+está en DonWeb: MX `mx01` y `mx02.mail.icloud.com`, SPF `include:icloud.com`,
+DKIM `sig1._domainkey` hacia iCloud y verificación `apple-domain` (consultado en
+los resolvedores públicos de Google y Cloudflare). No hay registro DMARC; no
+hace falta para recibir. El dueño confirmó que los correos llegan y su captura
+de iCloud muestra la dirección activa. Si deja de recibir, revisar primero que
+iCloud+ siga pago y que la dirección siga en «Dominio de correo personalizado».
 
 Para revisar solicitudes pendientes, copiá esta consulta en SQL Editor:
 
