@@ -9,7 +9,7 @@
 - **Qué es:** la app de Trucazo para celulares Android. Usa las mismas cuentas, partidas y monedas que la web, y el Modo Campaña también funciona sin internet.
 - **Dónde estamos:** **en pausa** por decisión del dueño. Se retoma cuando Google Ad Manager apruebe la cuenta y Trucazo empiece a generar ingresos.
 - **Qué quedó hecho:** la app está terminada y probada (etapas 1 a 17). La etapa 18 (cuenta de Play Console, ficha y canal de prueba interno) quedó empezada: falta crear la cuenta de Play Console.
-- **Qué no hay que olvidar aunque esté en pausa:** guardar una copia de la firma de la app fuera de la computadora. Sin esa firma no se pueden publicar actualizaciones de la misma app.
+- **La firma de la app** tiene copia en un pendrive desde el 08/11. Sin esa firma no se pueden publicar actualizaciones de la misma app: no perder ninguna de sus copias.
 
 <a id="android-estado-actual"></a>
 
@@ -166,7 +166,7 @@ Cosas que no se ven mirando el código y que costó descubrir. Cada una dice de 
 
 **Identidad de la app** (confirmada por el dueño en ANDROID-16): paquete `ar.com.trucazo.app`, nombre **Trucazo**, ícono existente, mínimo **Android 10/API 29**, objetivo **API 36**. El paquete de pruebas `ar.com.trucazo.capacitor.dev` es otra instalación: pasar de uno al otro no migra datos.
 
-**Firma de subida** (creada en ANDROID-16): `C:\Users\santy\Desktop\proyectos\trucazo-entorno\android-signing`, con copia idéntica en `C:\Users\santy\Documents\Trucazo-respaldo-firma`. Contiene `trucazo-upload.jks`, `signing.properties` y `upload-certificate.pem`; las contraseñas no se escriben en ningún lado. SHA256 público `D0:B0:84:C2:71:3D:D3:79:01:84:D1:F2:D0:74:CB:E9:FA:C0:E9:D8:5A:FE:92:A3:02:B4:11:64:FA:07:28:30`; SHA1 `D1:A2:63:B2:20:72:B2:00:F0:3C:C7:F2:F7:BF:A0:59:85:3C:77:D2`. **Nunca regenerarla:** una firma nueva es otra app para Google. Las dos copias están en la misma PC; falta una copia externa. Es la firma de subida, no la que Play asignará en la etapa 18.
+**Firma de subida** (creada en ANDROID-16): `C:\Users\santy\Desktop\proyectos\trucazo-entorno\android-signing`, con copia idéntica en `C:\Users\santy\Documents\Trucazo-respaldo-firma`. Contiene `trucazo-upload.jks`, `signing.properties` y `upload-certificate.pem`; las contraseñas no se escriben en ningún lado. SHA256 público `D0:B0:84:C2:71:3D:D3:79:01:84:D1:F2:D0:74:CB:E9:FA:C0:E9:D8:5A:FE:92:A3:02:B4:11:64:FA:07:28:30`; SHA1 `D1:A2:63:B2:20:72:B2:00:F0:3C:C7:F2:F7:BF:A0:59:85:3C:77:D2`. **Nunca regenerarla:** una firma nueva es otra app para Google. Tercera copia en un pendrive del dueño desde el 08/11 (según el dueño). Es la firma de subida, no la que Play asignará en la etapa 18.
 
 **Armar e inspeccionar un candidato** (en PowerShell, desde la raíz del proyecto):
 

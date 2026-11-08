@@ -16,7 +16,7 @@ Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 - **Eliminación de cuenta** integrada (PR #101). **Correos de novedades:** sin autorización nueva para enviar.
 - **Ciclo de retorno:** sus funciones SQL están en producción (comprobado el 07/11). Registro en [Publicación del ciclo de retorno](#ciclo-despliegue).
 
-**Pendientes del dueño:** cerrar el emulador Android que quedó abierto contra producción y revisar el congelamiento de la base del 02/11 ([diagnóstico](#lentitud-2026-11-03)).
+**Pendiente del dueño, opcional:** mirar las gráficas del congelamiento de la base del 02/11 ([pasos](#lentitud-2026-11-03)). La explicación más probable ya es el plan gratuito de Supabase, que usa una máquina chica y compartida. El emulador Android que hacía pedidos contra producción ya no aparece: las tres cuentas de prueba no tienen actividad desde el 03/11 (consulta de sólo lectura a `user_presence`, 08/11).
 
 ## Próximo paso y cómo retomar
 

@@ -17,10 +17,7 @@ Una línea por tema. Cada sesión reemplaza **sólo la línea de su tema**, con 
 - **Servidor:** un solo servidor para la web y la app: todo cambio en Supabase o en los servicios web tiene que seguir funcionando para las apps ya instaladas. [Cómo llegan los cambios](docs/android.md#como-llegan-los-cambios) — 07/11
 - **Operación:** plan gratuito de Supabase y Vercel, con recortes de consumo del 03 al 06/11. Reseñas revisadas por un agente lunes, miércoles y viernes ([tablero #118](https://github.com/santibpapa/trucazo/issues/118)). [Operación](docs/operacion.md) — 07/11
 
-**Pendientes del dueño, fuera del código:**
-
-1. Guardar una copia de la firma de la app fuera de la PC (pendrive o nube privada): la carpeta `C:\Users\santy\Desktop\proyectos\trucazo-entorno\android-signing`. Hoy sus dos copias están en la misma computadora, y sin la firma no se pueden publicar actualizaciones de la misma app.
-2. Cerrar el emulador Android que quedó abierto contra producción ([detalle](docs/operacion.md#lentitud-2026-11-03)).
+**Pendientes del dueño, fuera del código:** ninguno urgente al 08/11. La firma de la app ya tiene copia en un pendrive y el emulador de pruebas no se conecta a producción desde el 03/11. Queda, opcional, mirar las gráficas del congelamiento de la base del 02/11 ([pasos](docs/operacion.md#lentitud-2026-11-03)).
 
 <a id="indice"></a>
 
