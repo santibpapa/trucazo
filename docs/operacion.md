@@ -14,13 +14,14 @@ Foto al **08/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 - **Ranking y presencia (PR #120, 13/10):** cerrado. SQL aplicado, presencia comprobada y aceptación con partidas reales confirmada por el dueño el 08/11 ([detalle](#correccion-cierres-presencia)).
 - **Node en Vercel:** el repo pide 24.22.1 (PR #141), pero el 21/10 el servidor público seguía en 24.21.0. Sin volver a comprobar desde entonces ([detalle](#node-seguridad-2026-10-21)).
 - **Eliminación de cuenta** integrada (PR #101). El buzón de soporte `hola@trucazo.com.ar` recibe correos ([comprobado el 08/11](#buzon-soporte)). **Correos de novedades:** sin autorización nueva para enviar.
+- **Cambio de nombre de usuario:** preparado en el perfil (una sola vez, gratis); falta aplicar su migración y publicar ([detalle](#cambio-nombre-usuario)). El 08/11 se renombró a mano `alcalayaalvaro` → `Almafuerte` por pedido a `hola@`.
 - **Ciclo de retorno:** sus funciones SQL están en producción (comprobado el 07/11). Registro en [Publicación del ciclo de retorno](#ciclo-despliegue).
 
 **Congelamiento de la base del 02/11:** cerrado. El dueño confirmó el 08/11 que fue por el plan gratuito de Supabase, que usa una máquina chica y compartida ([diagnóstico](#lentitud-2026-11-03)). El emulador Android que hacía pedidos contra producción ya no aparece: las tres cuentas de prueba no tienen actividad desde el 03/11 (consulta de sólo lectura a `user_presence`, 08/11).
 
 ## Próximo paso y cómo retomar
 
-Ninguno en curso al 08/11/2026. Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
+Al 08/11/2026: aplicar `supabase/migrations/20261108150000_cambio_nombre_usuario.sql` en el SQL Editor **antes** de publicar el cambio de nombre en `master` ([pasos](#cambio-nombre-usuario)). Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
 
 ## Guía de lectura
 
@@ -319,6 +320,26 @@ Estas tres lecturas representan juntas **60,44% del tamaño total estimado** de 
 <a id="cuentas"></a>
 
 ## Cuentas y eliminación de datos
+
+<a id="cambio-nombre-usuario"></a>
+
+### Cambio de nombre de usuario — 08/11/2026
+
+**Origen:** un jugador pidió por correo a `hola@` cambiar `alcalayaalvaro` por `Almafuerte`. Se hizo a mano el 08/11 (perfil, 5 mesas, 5 partidas y 5 filas del historial de sus rivales); se comprobó que el inicio de sesión con el nombre nuevo devuelve su correo y que no quedó el nombre viejo en ninguna tabla. Su `username_changed_at` quedó vacío: todavía tiene su cambio propio.
+
+**Decisión del dueño (08/11):** cada jugador se puede cambiar el nombre **una sola vez**, **gratis**, y el nombre viejo **queda libre enseguida**. Para un segundo cambio escribe a `hola@`; soporte lo habilita dejando `username_changed_at` en null (o lo hace a mano como arriba).
+
+**Cómo funciona:** el perfil (web y app) muestra «Nombre de usuario» con el botón «Cambiar» en el recuadro «Tu cuenta». La regla vive en `public.change_username` (migración `20261108150000_cambio_nombre_usuario.sql`):
+- de 3 a 20 caracteres, sin espacios al principio ni al final;
+- rechaza nombres que el filtro del chat taparía (sólo detecta palabras sueltas: un insulto pegado a otra palabra pasa);
+- no distingue mayúsculas para saber si está ocupado;
+- se rechaza en medio de una partida 1v1, porque tocar esa fila de `games` reinicia el reloj del turno;
+- copia el nombre nuevo a chat, chat de partida, mesas (y su nombre automático «Mesa de …»), partidas, historial del rival, invitaciones, asientos 2vs2 y novedades. No toca `tournament_matches`, que guarda a propósito el nombre de cada cruce;
+- invitados, cuentas con restricción social o sin normas aceptadas no pueden.
+
+**Pruebas (08/11, base local reconstruida con `scripts/rebuild-db.sh`):** `supabase/tests/cambio_nombre.sql` pasa (rechazos, cambio, copia en todas las tablas, segundo intento, nombre liberado, permisos). También pasan `seguridad_privilegios_funciones.sql` (con `change_username` agregada a la lista de funciones del cliente), `seguridad_pr1.sql`, `seguridad_pr2.sql` y `chat_global.sql`, además de `npm run check:rpc-allowlist`.
+
+**Para publicar:** (1) abrir Supabase → SQL Editor, pegar el contenido entero de la migración y tocar «Run»; (2) recién después, unir el PR a `master`. Si se publica la web antes del SQL, el botón «Cambiar» muestra un error y no rompe nada más. No necesita versión nueva de la app para seguir funcionando; el botón llega a la app en el próximo APK.
 
 La eliminación de cuenta está integrada en el código mediante PR #101. No volver a construirla ni repetir su migración como parte del plan Android. Sigue pendiente su regresión instalada y comprobar el soporte; este trabajo no elimina cuentas.
 

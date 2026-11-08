@@ -17,6 +17,8 @@ export interface Profile {
   active_accessory?: string
   // Foto de perfil (URL pública en storage, o la de Google). null si no tiene.
   avatar_url?: string | null
+  // Cuándo usó su único cambio de nombre; null si nunca lo cambió.
+  username_changed_at?: string | null
 }
 
 // Tienda: un salón del catálogo (fondo de la mesa de juego).
