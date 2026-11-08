@@ -1,10 +1,10 @@
 # Operación — soporte, cuentas, correos, publicación e incidentes
 
-[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **07/11/2026**.
+[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **08/11/2026**.
 
 ## Estado actual
 
-Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
+Foto al **08/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
 
 - **Producción web = `master`.** Del 27 al 30/10 Vercel publicó desde la rama Android; el [PR #147](https://github.com/santibpapa/trucazo/pull/147) lo corrigió. No repetirlo.
 - **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual ([cuotas](#cuotas-2026-11-04)). Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
@@ -13,7 +13,7 @@ Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 - **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)).
 - **Ranking y presencia (PR #120, 13/10):** cerrado. SQL aplicado, presencia comprobada y aceptación con partidas reales confirmada por el dueño el 08/11 ([detalle](#correccion-cierres-presencia)).
 - **Node en Vercel:** el repo pide 24.22.1 (PR #141), pero el 21/10 el servidor público seguía en 24.21.0. Sin volver a comprobar desde entonces ([detalle](#node-seguridad-2026-10-21)).
-- **Eliminación de cuenta** integrada (PR #101). **Correos de novedades:** sin autorización nueva para enviar.
+- **Eliminación de cuenta** integrada (PR #101). El buzón de soporte `hola@trucazo.com.ar` recibe correos ([comprobado el 08/11](#buzon-soporte)). **Correos de novedades:** sin autorización nueva para enviar.
 - **Ciclo de retorno:** sus funciones SQL están en producción (comprobado el 07/11). Registro en [Publicación del ciclo de retorno](#ciclo-despliegue).
 
 **Congelamiento de la base del 02/11:** cerrado. El dueño confirmó el 08/11 que fue por el plan gratuito de Supabase, que usa una máquina chica y compartida ([diagnóstico](#lentitud-2026-11-03)). El emulador Android que hacía pedidos contra producción ya no aparece: las tres cuentas de prueba no tienen actividad desde el 03/11 (consulta de sólo lectura a `user_presence`, 08/11).
@@ -399,9 +399,18 @@ intentar. Una reserva temporal impide que dos ejecuciones la procesen a la vez.
 Los tokens anteriores no pueden recrear el perfil ni subir nuevos archivos.
 
 La página informa el estado inmediato y pide contactar a
-`hola@trucazo.com.ar` si pasan 48 horas o no se puede iniciar sesión. Verificá
-que ese buzón recibe mensajes antes de publicar. Para solicitudes por correo,
-comprobá la identidad; no pidas contraseñas.
+`hola@trucazo.com.ar` si pasan 48 horas o no se puede iniciar sesión. Para
+solicitudes por correo, comprobá la identidad; no pidas contraseñas.
+
+<a id="buzon-soporte"></a>
+**Buzón de soporte, comprobado el 08/11/2026.** `hola@trucazo.com.ar` es una
+dirección de iCloud+ con dominio propio, en la cuenta de Apple del dueño. El DNS
+está en DonWeb: MX `mx01` y `mx02.mail.icloud.com`, SPF `include:icloud.com`,
+DKIM `sig1._domainkey` hacia iCloud y verificación `apple-domain` (consultado en
+los resolvedores públicos de Google y Cloudflare). No hay registro DMARC; no
+hace falta para recibir. El dueño confirmó que los correos llegan y su captura
+de iCloud muestra la dirección activa. Si deja de recibir, revisar primero que
+iCloud+ siga pago y que la dirección siga en «Dominio de correo personalizado».
 
 Para revisar solicitudes pendientes, copiá esta consulta en SQL Editor:
 
