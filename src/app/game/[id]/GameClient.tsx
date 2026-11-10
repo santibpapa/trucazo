@@ -96,6 +96,16 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
   // El timeout por jugada se dispara una sola vez por turno (clave = turn_started_at)
   const timeoutFiredRef = useRef<string | null>(null)
   const serverClockRef = useRef({ serverNow, startedAt: performance.now() })
+  // La sesión decide si venció con la hora del dispositivo. Con el reloj una
+  // hora adelantado se renueva en cada pedido, choca con el límite del servidor
+  // y la mesa se queda sin sesión (reseña del 10/11/2026). Avisamos para que la corrija.
+  const [clockNotice, setClockNotice] = useState('')
+  useEffect(() => {
+    const skew = Date.now() - serverNow
+    if (Math.abs(skew) > 10 * 60_000) {
+      setClockNotice(`La hora de tu dispositivo está ${skew > 0 ? 'adelantada' : 'atrasada'}. Activá la hora automática para que la partida no se trabe.`)
+    }
+  }, [serverNow])
   // Para detectar cuándo sube el contador de mazos por tiempo y mostrar el cartel
   const prevMazoRef = useRef<{ p1: number; p2: number } | null>(null)
   // Momento de la última acción local; el polling de respaldo se pausa un toque
@@ -1097,7 +1107,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       revealIsMine={revealIsMine}
       cardFlight={cardFlight}
       loading={loading}
-      actionError={actionError}
+      actionError={actionError || clockNotice}
       secondsLeft={secondsLeft}
       muted={muted}
       toggleMute={toggleMute}
@@ -1123,7 +1133,7 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       irseAlMazo={irseAlMazo}
       initialCardKeys={initialCardKeys.current}
       cardsDisabled={!isMyTurn || loading || !!myPlayedCard || hasPendingEnvido || hasPendingTruco || isDeclaring}
-      dismissError={() => setActionError('')}
+      dismissError={() => { setActionError(''); setClockNotice('') }}
       toggleEmotes={() => setEmoteTray(v => !v)}
       onLeave={forfeit}
       chatControl={process.env.NEXT_PUBLIC_ENABLE_MATCH_CHAT === 'true' && game.status === 'playing' && !isCampaign

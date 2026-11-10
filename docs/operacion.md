@@ -1,10 +1,10 @@
 # Operación — soporte, cuentas, correos, publicación e incidentes
 
-[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **08/11/2026**.
+[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **10/11/2026**.
 
 ## Estado actual
 
-Foto al **08/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
+Foto al **10/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
 
 - **Producción web = `master`.** Del 27 al 30/10 Vercel publicó desde la rama Android; el [PR #147](https://github.com/santibpapa/trucazo/pull/147) lo corrigió. No repetirlo.
 - **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual ([cuotas](#cuotas-2026-11-04)). Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
@@ -17,14 +17,17 @@ Foto al **08/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 - **Cambio de nombre de usuario:** en el perfil (una sola vez, gratis), publicado el 08/11 ([PR #171](https://github.com/santibpapa/trucazo/pull/171), [detalle](#cambio-nombre-usuario)). El 08/11 se renombró a mano `alcalayaalvaro` → `Almafuerte` por pedido a `hola@`.
 - **Ciclo de retorno:** sus funciones SQL están en producción (comprobado el 07/11). Registro en [Publicación del ciclo de retorno](#ciclo-despliegue).
 
+**Reseña del 10/11 «tengo que reiniciar la página»:** no es una falla del servidor. La computadora del jugador tiene la hora adelantada una hora o más y eso rompe la sesión cada pocos minutos. Desde la rama `claude/beautiful-ritchie-fqz2ct` la mesa avisa cuando la hora del dispositivo está corrida; falta publicarlo ([diagnóstico](#reloj-adelantado-2026-11-10)).
+
 **Congelamiento de la base del 02/11:** cerrado. El dueño confirmó el 08/11 que fue por el plan gratuito de Supabase, que usa una máquina chica y compartida ([diagnóstico](#lentitud-2026-11-03)). El emulador Android que hacía pedidos contra producción ya no aparece: las tres cuentas de prueba no tienen actividad desde el 03/11 (consulta de sólo lectura a `user_presence`, 08/11).
 
 ## Próximo paso y cómo retomar
 
-Ninguno en curso al 08/11/2026. Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
+Al 10/11/2026: revisar y publicar el aviso de hora corrida ([detalle](#reloj-adelantado-2026-11-10)); el correo de disculpas al jugador lo envía el dueño. Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
 
 ## Guía de lectura
 
+- [Reseña «tengo que reiniciar la página»: hora del dispositivo adelantada, 10/11](#reloj-adelantado-2026-11-10).
 - [Lentitud al entrar: diagnóstico y arreglos, 03/11](#lentitud-2026-11-03).
 - [Revisión del aviso de seguridad de Node, 21/10](#node-seguridad-2026-10-21).
 - [Revisión de PR de Dependabot y orden de incorporación, 19/10](#dependabot-2026-10-19).
@@ -37,6 +40,27 @@ Ninguno en curso al 08/11/2026. Ante un incidente nuevo, empezar con consultas d
 - Para las recetas SQL y pruebas, leer [Backend](backend.md); para publicar la app, [Android](android.md).
 
 Actualizar aquí incidentes, soporte, pasos de panel, publicación y evidencia operativa. Las rutas de código/SQL parten de la raíz del repositorio. Registrar por separado lo preparado y lo aplicado; conservar fechas y no convertir notas históricas en autorización para actuar sobre cuentas o contactar personas.
+
+<a id="reloj-adelantado-2026-11-10"></a>
+
+## Reseña «tengo que reiniciar la página»: hora del dispositivo adelantada — 10/11/2026
+
+**Reseña:** 10/11 11:58 (hora de Argentina), con «tuve un problema»: «cada cierto tiempo tengo que reiniciar la página porque se me buguea y no me deja jugar o no me aparecen las cartas». Cuenta creada ese día; cinco partidas contra bots del lobby, de 11:06 a 11:56, desde Firefox 159 en Windows.
+
+**Qué se vio (consultas de sólo lectura a `games`, `game_history`, `analytics_events` y los registros de Supabase):**
+
+- Todas las jugadas que llegaron con su sesión se respondieron bien (código 200). La base y las funciones no fallaron.
+- Desde ese navegador hubo **1.205 renovaciones de sesión** (`/auth/v1/token`) en una hora, de 20 a 46 por minuto; ninguna otra conexión pasó de 15 en todo el día. El pase de cada pedido había sido emitido en ese mismo segundo: se renovaba antes de casi cada pedido.
+- **17 renovaciones** fueron rechazadas por exceso (código 429). Justo después, la página siguió mandando las jugadas **sin sesión**: 405 `timeout_mazo`, 88 `touch_presence`, 9 `bot_step`, 4 `play_card` y otras, todas rechazadas (401 y 406). Para el jugador, la mesa se congela: el bot no juega, sus cartas no se recargan y nada responde, hasta que recarga la página. Hubo cortes de 40 segundos a más de 3 minutos, casi siempre justo después de una jugada.
+- Mientras tanto corría el reloj de 30 segundos. Por eso perdió dos partidas por tres «sin tiempo» (`4cddb645…` ganando 9 a 7 y `a05b6c4a…` 0 a 4, −50 monedas cada una) y ganó otras dos porque el bot «se quedó sin tiempo» (`12c8b55f…` y `f78b0a07…`, +50 cada una). Las cuatro las decidió la falla; el saldo neto es cero. La quinta (26 a 30) se perdió por puntos. No se tocaron partidas ni monedas.
+
+**Causa:** la librería de sesión de Supabase decide si el pase venció con la hora de la computadora. El pase dura una hora: si la computadora está adelantada una hora o más, cada pase nuevo parece vencido, se renueva en cada pedido y se supera el límite de renovaciones del servidor (los rechazos aparecieron con 20 a 46 por minuto). Cuando una renovación se rechaza, la librería espera 60 segundos antes de reintentar y, como el pase guardado también parece vencido, manda los pedidos como visitante anónimo. Que la hora esté adelantada sale de la regla de la librería (renueva cuando faltan menos de 90 segundos), no se midió la diferencia exacta. Lo más común es una zona horaria mal puesta en Windows.
+
+**Comprobación:** con `@supabase/auth-js` 2.118.0 (la versión instalada) y la hora adelantada 61 minutos, cinco `getSession()` hicieron cinco renovaciones, y tras un 429 devolvió sesión vacía. Con la hora bien: cero renovaciones y la sesión sigue tras el 429. Es un script de un solo uso que no quedó en el repositorio.
+
+**Qué cambia:** `src/app/game/[id]/GameClient.tsx` compara la hora del dispositivo con la del servidor al abrir la mesa (`serverNow`, que ya llegaba para el reloj de turno). Si la diferencia pasa los 10 minutos, muestra arriba de la mesa el aviso flotante de siempre: «La hora de tu dispositivo está adelantada/atrasada. Activá la hora automática para que la partida no se trabe.» Se cierra tocándolo. No cambia reglas, servidor ni base; la app Android pasa su propio `serverNow`, así que no necesita versión nueva. La solución de fondo para el jugador es poner la hora en automático; la librería no tiene una opción para tolerar relojes corridos.
+
+**Pendiente:** revisar y publicar la rama. El dueño envía el correo de disculpas al jugador.
 
 <a id="lentitud-2026-11-03"></a>
 
