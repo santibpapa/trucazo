@@ -23,7 +23,7 @@ Foto al **10/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 
 ## Próximo paso y cómo retomar
 
-Ninguno en curso al 10/11/2026. El correo de disculpas por la [reseña del reloj adelantado](#reloj-adelantado-2026-11-10) lo envía el dueño. Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
+Ninguno en curso al 10/11/2026. Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
 
 ## Guía de lectura
 
@@ -60,7 +60,7 @@ Actualizar aquí incidentes, soporte, pasos de panel, publicación y evidencia o
 
 **Qué cambia:** `src/app/game/[id]/GameClient.tsx` compara la hora del dispositivo con la del servidor al abrir la mesa (`serverNow`, que ya llegaba para el reloj de turno). Si la diferencia pasa los 10 minutos, muestra arriba de la mesa el aviso flotante de siempre: «La hora de tu dispositivo está adelantada/atrasada. Activá la hora automática para que la partida no se trabe.» Se cierra tocándolo. No cambia reglas, servidor ni base; la app Android pasa su propio `serverNow`, así que no necesita versión nueva. La solución de fondo para el jugador es poner la hora en automático; la librería no tiene una opción para tolerar relojes corridos.
 
-**Publicado:** [PR #178](https://github.com/santibpapa/trucazo/pull/178), incorporado a `master` el 10/11 con todas las comprobaciones automáticas en verde. Falta ver el aviso en una pantalla real con la hora corrida. El dueño envía el correo de disculpas al jugador.
+**Publicado:** [PR #178](https://github.com/santibpapa/trucazo/pull/178), incorporado a `master` el 10/11 con todas las comprobaciones automáticas en verde. Falta ver el aviso en una pantalla real con la hora corrida. El dueño le mandó al jugador el correo de disculpas con los pasos para poner la hora en automático (10/11).
 
 <a id="lentitud-2026-11-03"></a>
 
