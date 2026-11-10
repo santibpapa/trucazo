@@ -17,13 +17,13 @@ Foto al **10/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 - **Cambio de nombre de usuario:** en el perfil (una sola vez, gratis), publicado el 08/11 ([PR #171](https://github.com/santibpapa/trucazo/pull/171), [detalle](#cambio-nombre-usuario)). El 08/11 se renombró a mano `alcalayaalvaro` → `Almafuerte` por pedido a `hola@`.
 - **Ciclo de retorno:** sus funciones SQL están en producción (comprobado el 07/11). Registro en [Publicación del ciclo de retorno](#ciclo-despliegue).
 
-**Reseña del 10/11 «tengo que reiniciar la página»:** no es una falla del servidor. La computadora del jugador tiene la hora adelantada una hora o más y eso rompe la sesión cada pocos minutos. Desde la rama `claude/beautiful-ritchie-fqz2ct` la mesa avisa cuando la hora del dispositivo está corrida; falta publicarlo ([diagnóstico](#reloj-adelantado-2026-11-10)).
+**Reseña del 10/11 «tengo que reiniciar la página»:** no es una falla del servidor. La computadora del jugador tiene la hora adelantada una hora o más y eso rompe la sesión cada pocos minutos. Desde el [PR #178](https://github.com/santibpapa/trucazo/pull/178) (publicado el 10/11) la mesa avisa cuando la hora del dispositivo está corrida ([diagnóstico](#reloj-adelantado-2026-11-10)).
 
 **Congelamiento de la base del 02/11:** cerrado. El dueño confirmó el 08/11 que fue por el plan gratuito de Supabase, que usa una máquina chica y compartida ([diagnóstico](#lentitud-2026-11-03)). El emulador Android que hacía pedidos contra producción ya no aparece: las tres cuentas de prueba no tienen actividad desde el 03/11 (consulta de sólo lectura a `user_presence`, 08/11).
 
 ## Próximo paso y cómo retomar
 
-Al 10/11/2026: revisar y publicar el aviso de hora corrida ([detalle](#reloj-adelantado-2026-11-10)); el correo de disculpas al jugador lo envía el dueño. Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
+Ninguno en curso al 10/11/2026. El correo de disculpas por la [reseña del reloj adelantado](#reloj-adelantado-2026-11-10) lo envía el dueño. Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
 
 ## Guía de lectura
 
@@ -60,7 +60,7 @@ Actualizar aquí incidentes, soporte, pasos de panel, publicación y evidencia o
 
 **Qué cambia:** `src/app/game/[id]/GameClient.tsx` compara la hora del dispositivo con la del servidor al abrir la mesa (`serverNow`, que ya llegaba para el reloj de turno). Si la diferencia pasa los 10 minutos, muestra arriba de la mesa el aviso flotante de siempre: «La hora de tu dispositivo está adelantada/atrasada. Activá la hora automática para que la partida no se trabe.» Se cierra tocándolo. No cambia reglas, servidor ni base; la app Android pasa su propio `serverNow`, así que no necesita versión nueva. La solución de fondo para el jugador es poner la hora en automático; la librería no tiene una opción para tolerar relojes corridos.
 
-**Pendiente:** revisar y publicar la rama. El dueño envía el correo de disculpas al jugador.
+**Publicado:** [PR #178](https://github.com/santibpapa/trucazo/pull/178), incorporado a `master` el 10/11 con todas las comprobaciones automáticas en verde. Falta ver el aviso en una pantalla real con la hora corrida. El dueño envía el correo de disculpas al jugador.
 
 <a id="lentitud-2026-11-03"></a>
 
