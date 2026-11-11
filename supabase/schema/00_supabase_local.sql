@@ -173,6 +173,40 @@ begin
   end if;
 end $$;
 
+-- Avisos privados por canal (realtime.send), de mentira: guardan el aviso en
+-- realtime.messages, igual que Supabase, para que las pruebas puedan leerlo.
+-- En Supabase el servicio de Realtime lo levanta de ahí y lo reparte.
+create schema if not exists realtime;
+create table if not exists realtime.messages (
+  id uuid primary key default gen_random_uuid(),
+  topic text not null,
+  extension text not null,
+  payload jsonb,
+  event text,
+  private boolean default false,
+  inserted_at timestamptz not null default now()
+);
+alter table realtime.messages enable row level security;
+
+create or replace function realtime.topic()
+returns text
+language sql
+stable
+as $$ select nullif(current_setting('realtime.topic', true), '')::text; $$;
+
+create or replace function realtime.send(payload jsonb, event text, topic text, private boolean default true)
+returns void
+language plpgsql
+as $$
+begin
+  insert into realtime.messages(payload, event, topic, private, extension)
+  values (payload, event, topic, private, 'broadcast');
+end;
+$$;
+
+grant usage on schema realtime to authenticated;
+grant select, insert on realtime.messages to authenticated;
+
 -- ------------------------------------------------------------
 -- 6. Los permisos de tabla que Supabase da por defecto  ← CRÍTICO
 -- ------------------------------------------------------------

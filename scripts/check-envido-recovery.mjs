@@ -119,8 +119,8 @@ test('el botón de declaración sigue declare_turn, incluso si current_turn es d
 test('reconectar o volver a la pestaña relee el estado; salir elimina los listeners', async () => {
   const start = source.indexOf('  // Tiempo real: suscripción')
   const effect = source.slice(start, source.indexOf('  // Respaldo por polling', start))
-  const body = effect.slice(effect.indexOf('useEffect(() => {') + 'useEffect(() => {'.length, effect.lastIndexOf('}, [game.id, game.status])'))
-    .replace(/\bas Game\b/g, '')
+  const body = effect.slice(effect.indexOf('useEffect(() => {') + 'useEffect(() => {'.length, effect.lastIndexOf('}, [game.id])'))
+    .replace(/\bas GameDiff\b/g, '')
   let subscribed
   let reads = 0
   let removed = 0

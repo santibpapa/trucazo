@@ -194,6 +194,9 @@ jobs:
       - name: Rival inactivo, tres vencimientos y recuperación de reparto
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/game_inactivity.sql
 
+      - name: Aviso de partida reducido y canal privado de los jugadores
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/aviso_partida.sql
+
       - name: Reseñas, recuperación, deduplicación y permisos del agente
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/feedback_review.sql
 
