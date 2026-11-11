@@ -1,13 +1,13 @@
 # Operación — soporte, cuentas, correos, publicación e incidentes
 
-[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **10/11/2026**.
+[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **11/11/2026**.
 
 ## Estado actual
 
-Foto al **10/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
+Foto al **11/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
 
 - **Producción web = `master`.** Del 27 al 30/10 Vercel publicó desde la rama Android; el [PR #147](https://github.com/santibpapa/trucazo/pull/147) lo corrigió. No repetirlo.
-- **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual ([cuotas](#cuotas-2026-11-04)). Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
+- **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual. **El 11/11 Supabase avisó que se pasó la cuota y dio gracia hasta el 11/12/2026; desde ahí, con más de 5,5 GB de egress por ciclo pueden restringir el proyecto** ([cuotas](#cuotas-2026-11-04)). Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
 - **AdSense rechazado** por «contenido de poco valor» (04/11). Guías nuevas publicadas para volver a pedir la revisión; detalle en [Juego](juego.md#adsense-rechazo-poco-valor).
 - **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)).
 - **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)).
@@ -149,6 +149,8 @@ Si alguna gráfica toca el techo en ese rango, la base chica se quedó sin recur
 **Aplicado — 04/11/2026, ~16:03 UTC:** dos intentos desde la herramienta de Supabase vencieron sin confirmación; el dueño la corrió a mano en el SQL Editor (misma SQL, con los dos borrados directos). Resultado: `games` en `d` (DEFAULT), historial de cron 27.906 filas (eran ~467.000), `bot_decisions` 62.956 (eran ~174.000). Comprobado después: las dos tareas `trucazo-cron-history-cleanup` (04:50 UTC) y `trucazo-bot-decisions-cleanup` (04:55 UTC) activas; cero errores en pedidos y Postgres. Realtime registró un único `query_canceled` en `list_changes` a las 16:03:44, el instante del `ALTER TABLE`, y siguió sano. No había partidas en juego al verificar: falta ver una partida real con el cambio. El espacio borrado se reutiliza, por lo que el tamaño del panel deja de crecer pero no baja enseguida (no se corrió `VACUUM FULL`). **Pendiente:** comparar el egress diario en el panel durante los próximos días contra ~0,4 GB/día.
 
 **Decisión del dueño, 04/11:** no pasar a Pro ni pagar nada hasta que Trucazo genere ingresos. Se asume el exceso de egress de este ciclo. Según la [política de uso justo](https://supabase.com/docs/guides/platform/billing-faq#fair-use-policy), en el plan gratuito llega un aviso y un período de gracia; si se sigue excedido puede haber restricciones (proyecto pausado o 402 en todos los pedidos) hasta que la cuota se renueve el 21. Ese período de gracia se usa una sola vez: si se vuelve a exceder en los ciclos siguientes, la restricción es inmediata. Por eso el objetivo es que el ciclo que empieza el 21/11 entre en 5 GB (≈0,16 GB/día).
+
+**Aviso de Supabase — 11/11/2026 (correo al dueño):** la organización Trucazo superó la cuota del plan. Como gesto por única vez, deja seguir con el consumo actual en este período; **desde el 11/12/2026 se aplica la política de uso justo**. Para evitar restricciones pide pasar a Pro o bajar el egress a **menos de 5,5 GB** por ciclo. Advierte que si el consumo sigue muy por encima durante la gracia pueden acortarla o restringir enseguida. El correo sólo nombra el egress (no los registros). Con eso, el objetivo pasa a ser ≤ 0,18 GB/día en el ciclo que empieza el 21/11; la decisión de no pagar sigue en pie.
 
 **Medido después del cambio:** ~1 `UPDATE` de `games` por acción de juego (1.329 contra 1.353 acciones entre 13:53 y 16:05 UTC); juntar actualizaciones no ahorraría nada. ~25.000 acciones/día ≈ 40.000 mensajes de Realtime/día (las partidas contra bots tienen un solo oyente), por debajo de la cuota de 2 millones/mes.
 
