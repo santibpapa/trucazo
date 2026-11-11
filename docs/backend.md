@@ -14,11 +14,11 @@ Foto al **11/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa al
 - **Chat global, 07/11:** ya no se borra al azar; quedan los últimos 500 (tarea diaria `trucazo-chat-keep-500`, activa en producción el 07/11) y se tapan las groserías fuertes de `chat_banned_words`. Migraciones aplicadas el 07/11 ([detalle](#chat-global-2026-11-07)).
 - **Cuotas de Supabase:** limpieza de Realtime e historial aplicada por el dueño el 04/11 ([detalle en Operación](operacion.md#cuotas-2026-11-04)).
 - **Ranking y presencia (PR #120):** cerrado; aceptación con partidas reales confirmada por el dueño el 08/11 ([Operación](operacion.md#correccion-cierres-presencia)).
-- **Invitado que se registra conserva lo jugado (11/11):** migración `20261111235000_convertir_invitado.sql` aplicada y *Manual linking* activado por el dueño; registro con email probado en la preview. Falta integrar el [PR #183](https://github.com/santibpapa/trucazo/pull/183) y probar Google ([detalle](#convertir-invitado)).
+- **Invitado que se registra conserva lo jugado (11/11):** migración `20261111235000_convertir_invitado.sql` aplicada y *Manual linking* activado por el dueño; registro con email probado en la preview y publicado el 11/11 ([PR #183](https://github.com/santibpapa/trucazo/pull/183)). Falta probar Google ([detalle](#convertir-invitado)).
 
 ## Próximo paso y cómo retomar
 
-Pendiente del dueño: integrar el PR de [convertir invitado](#convertir-invitado) (SQL ya aplicado) y, cuando pueda, probar el registro con Google. Antes de aplicar SQL, comprobar qué está aplicado de verdad: el [historial de migraciones](../supabase/migrations/) y una consulta de sólo lectura a producción dicen más que una nota vieja.
+Pendiente del dueño: cuando pueda, probar el registro de un invitado con Google ([convertir invitado](#convertir-invitado)). Antes de aplicar SQL, comprobar qué está aplicado de verdad: el [historial de migraciones](../supabase/migrations/) y una consulta de sólo lectura a producción dicen más que una nota vieja.
 
 ## Guía de lectura
 
@@ -249,7 +249,7 @@ dueño: pasar el middleware a `runtime: 'nodejs'` o el plan Pro (US$20 por mes).
 - Probó el registro con email en la preview y anduvo. Consulta de sólo lectura a producción: el invitado convertido («cweawsda») conserva su partida (`games_played` 1), tiene 1.000 monedas, eligió su nombre, `guest_name_pending` quedó en false y `username_changed_at` sigue en null.
 - La primera prueba se hizo por error en `www.trucazo.com.ar`, todavía con el código viejo, y creó una cuenta nueva aparte («asdasd»).
 - **Google, sin probar todavía.**
-- Falta integrar el [PR #183](https://github.com/santibpapa/trucazo/pull/183).
+- **Integrado el 11/11 a las 17:05 UTC** ([PR #183](https://github.com/santibpapa/trucazo/pull/183)), con todas las comprobaciones en verde. Antes fallaron tres veces porque las máquinas de GitHub no resolvían `archive.ubuntu.com`. Comprobado en producción: un invitado que abre `/register` ve «Guardá lo que jugaste».
 
 **Pedido del dueño (11/11):** que el invitado que se registra no pierda lo que jugó. Decidió completar las monedas hasta 1.000 si tiene menos y dejarle elegir el nombre, porque el invitado se llama `Invitado####`.
 

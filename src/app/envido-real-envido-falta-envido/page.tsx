@@ -4,7 +4,7 @@ import JsonLd from '@/components/JsonLd'
 import { createArticleJsonLd, createBreadcrumbJsonLd, createPublicMetadata } from '@/lib/seo'
 
 const path = '/envido-real-envido-falta-envido'
-const title = 'Envido, real envido y falta envido: puntos y respuestas'
+const title = 'Envido, real envido y falta envido: cuánto vale'
 const description =
   'Qué vale el envido, el real envido y la falta envido; cómo se suman, qué pasa al no querer y ejemplos de puntaje.'
 

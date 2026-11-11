@@ -8,7 +8,7 @@ import { createBreadcrumbJsonLd, createPublicMetadata } from '@/lib/seo'
 const path = '/truco-contra-computadora'
 const title = 'Jugar al truco contra la computadora online'
 const description =
-  'Practicá truco argentino frente a bots: partidas rápidas 1 contra 1, mesas en parejas 2 vs 2 con los lugares completados por la máquina o rivales progresivos en el Modo Historia.'
+  'Practicá truco argentino contra bots: partidas rápidas 1 contra 1, mesas 2 vs 2 completadas por la máquina y 66 rivales en el Modo Historia.'
 
 export const metadata = createPublicMetadata({ title, description, path, type: 'website' })
 

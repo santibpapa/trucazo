@@ -89,6 +89,12 @@ const organizationJsonLd = {
     '@type': 'Country',
     name: 'Argentina',
   },
+  founder: {
+    '@type': 'Person',
+    name: 'Santiago Barbeira',
+    url: `${SITE_URL}/acerca-de-trucazo`,
+    homeLocation: { '@type': 'City', name: 'Buenos Aires' },
+  },
   contactPoint: {
     '@type': 'ContactPoint',
     url: `${SITE_URL}/contacto`,

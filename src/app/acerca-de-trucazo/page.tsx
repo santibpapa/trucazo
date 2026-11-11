@@ -7,7 +7,7 @@ import { createBreadcrumbJsonLd, createPublicMetadata } from '@/lib/seo'
 const path = '/acerca-de-trucazo'
 const title = 'Acerca de: cómo nació y cómo funciona'
 const description =
-  'Qué es Trucazo, cómo creció desde mayo de 2026, cómo se cuida que el juego sea limpio y cómo se prueban sus reglas de truco argentino.'
+  'Quién hace Trucazo, cómo creció desde mayo de 2026, cómo se cuida que el juego sea limpio y cómo se prueban sus reglas de truco argentino.'
 
 export const metadata = createPublicMetadata({ title, description, path, type: 'website' })
 
@@ -21,8 +21,23 @@ export default function AcercaPage() {
       showPlayCta={false}
       showByline={false}
     >
-      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'AboutPage', name: title, description, url: SITE_URL + path, inLanguage: 'es-AR', about: { '@type': 'VideoGame', name: 'Trucazo', url: SITE_URL } }} />
+      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'AboutPage', name: title, description, url: SITE_URL + path, inLanguage: 'es-AR', about: { '@type': 'VideoGame', name: 'Trucazo', url: SITE_URL }, author: { '@type': 'Person', name: 'Santiago Barbeira' } }} />
       <JsonLd data={createBreadcrumbJsonLd('Acerca de Trucazo', path)} />
+
+      <Section title="Quién hace Trucazo">
+        <p>
+          Soy Santiago Barbeira, de Buenos Aires. Aprendí a jugar al truco de chico, en
+          las sobremesas familiares, y desde entonces no hubo reunión sin un mazo arriba
+          de la mesa. Cuando quise seguir jugando con amigos que viven lejos, no encontré
+          un sitio que me convenciera: había que descargar algo, estaba lleno de
+          publicidad o las reglas no eran las que jugamos acá.
+        </p>
+        <p>
+          Por eso en 2026 empecé a armar Trucazo: truco argentino como se juega en casa,
+          gratis y desde el navegador. Lo sigo mejorando todas las semanas con lo que me
+          escriben los jugadores.
+        </p>
+      </Section>
 
       <Section title="Qué ofrece">
         <p>
