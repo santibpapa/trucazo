@@ -9,7 +9,7 @@ Foto al **11/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 - **Producción web = `master`.** Del 27 al 30/10 Vercel publicó desde la rama Android; el [PR #147](https://github.com/santibpapa/trucazo/pull/147) lo corrigió. No repetirlo.
 - **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual. **El 11/11 Supabase avisó que se pasó la cuota y dio gracia hasta el 11/12/2026; desde ahí, con más de 5,5 GB de egress por ciclo pueden restringir el proyecto** ([cuotas](#cuotas-2026-11-04)). El emulador de pruebas explica la mitad del exceso. Para entrar en el límite se publicó el [aviso de partida reducido](#aviso-partida-reducido) el 11/11; falta medir el egress de los próximos días. Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
 - **AdSense rechazado** por «contenido de poco valor» (04/11). Guías nuevas publicadas para volver a pedir la revisión; detalle en [Juego](juego.md#adsense-rechazo-poco-valor).
-- **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)). Auditoría del 11/11 con el método claude-seo: la parte técnica está bien; faltan contenido en las páginas cortas y una firma con nombre ([auditoría](#seo-auditoria-2026-11-11)). Portada nueva publicada el 11/11 ([PR #182](https://github.com/santibpapa/trucazo/pull/182), [detalle](#portada-2026-11-11)); el dueño pidió su indexación el mismo día. Las cuatro páginas cortas, ampliadas en el [PR #183](https://github.com/santibpapa/trucazo/pull/183) junto con la [conversión de invitado en cuenta](backend.md#convertir-invitado), fueron probadas en la preview el 11/11 y falta integrarlas ([detalle](#paginas-cortas-2026-11-11)). La firma espera la decisión del dueño.
+- **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)). Auditoría del 11/11 con el método claude-seo: la parte técnica está bien; faltan contenido en las páginas cortas y una firma con nombre ([auditoría](#seo-auditoria-2026-11-11)). Portada nueva publicada el 11/11 ([PR #182](https://github.com/santibpapa/trucazo/pull/182), [detalle](#portada-2026-11-11)); el dueño pidió su indexación el mismo día. Las cuatro páginas cortas, ampliadas en el [PR #183](https://github.com/santibpapa/trucazo/pull/183) junto con la [conversión de invitado en cuenta](backend.md#convertir-invitado), fueron probadas en la preview el 11/11 y falta integrarlas ([detalle](#paginas-cortas-2026-11-11)). Títulos más cortos y firma con el nombre del dueño, en un PR aparte ([detalle](#titulos-firma-2026-11-11)).
 - **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)).
 - **Ranking y presencia (PR #120, 13/10):** cerrado. SQL aplicado, presencia comprobada y aceptación con partidas reales confirmada por el dueño el 08/11 ([detalle](#correccion-cierres-presencia)).
 - **Node en Vercel:** el repo pide 24.22.1 (PR #141), pero el 21/10 el servidor público seguía en 24.21.0. Sin volver a comprobar desde entonces ([detalle](#node-seguridad-2026-10-21)).
@@ -763,6 +763,30 @@ Informe: [issue #153](https://github.com/santibpapa/trucazo/issues/153), del 02/
 - `.github/workflows/seo.yml`: el aviso de falla decía "esta quincena"; ahora dice "este mes".
 - `scripts/seo-report.mjs`: la lista de marca ahora incluye `trucoz` (que cubre trucozando, trucozado, trucozano y trucozolano), `trucanzo`, `truconazo` y `trucocho`. Se probó contra las búsquedas de los dos últimos informes: todas las variantes del nombre cuentan como marca y ninguna búsqueda genérica cambió de grupo. Rige desde el primer informe que corra con el cambio ya en `master`.
 - El informe del 01/12 recalcula también el período anterior con la lista nueva, así que su comparación es pareja. El del 01/11 queda como se publicó.
+
+<a id="titulos-firma-2026-11-11"></a>
+
+#### Títulos más cortos y firma con nombre (11/11/2026)
+
+Tercer y cuarto punto de la auditoría, en un PR aparte del #183, como pidió el dueño.
+
+**Títulos.** Medidos con el sufijo « · Trucazo» que agrega `src/app/layout.tsx`; el revisor toma 60 caracteres como tope.
+
+| Página | Antes | Después |
+| --- | --- | --- |
+| Portada | «Trucazo — Jugar al truco argentino online gratis, 1 vs 1 y 2 vs 2» (65) | «Trucazo: jugar al truco argentino online gratis» (47) |
+| `/como-se-juega-al-truco` | «Cómo se juega al truco argentino: reglas y ejemplos» (61) | «Cómo se juega al truco: reglas paso a paso» (52) |
+| `/envido-real-envido-falta-envido` | «Envido, real envido y falta envido: puntos y respuestas» (65) | «Envido, real envido y falta envido: cuánto vale» (57) |
+| `/truco-en-parejas` | «Truco en parejas: cómo jugar 2 vs 2 con cuatro jugadores» (66) | «Truco en parejas: cómo jugar 2 vs 2 de a cuatro» (57) |
+
+- La portada conserva la marca primero y «jugar al truco argentino online», que son las búsquedas que la traen; «1 vs 1 y 2 vs 2» ya está en la descripción.
+- La descripción de `/truco-contra-computadora` baja de 178 a 140 caracteres.
+- **Cómo medir el efecto:** comparar los clics de «Cómo se juega» en el informe del 01/12 contra el del 01/11 (1.436 apariciones, 1 clic, posición 8).
+
+**Firma.** El dueño decidió firmar con su nombre, **Santiago Barbeira**, de Buenos Aires. Aprobó el texto de «Quién hace Trucazo» en `/acerca-de-trucazo` el 11/11.
+- Las guías dicen «Revisado por Santiago Barbeira» (`EDITOR_NAME` en `src/lib/seo.ts`).
+- El autor de los `Article` pasa de `Organization` a `Person`.
+- El `Organization` de `src/app/layout.tsx` suma `founder`.
 
 <a id="seguimiento-seo"></a>
 
