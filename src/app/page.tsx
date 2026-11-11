@@ -16,9 +16,11 @@ const description =
 // El título arranca con la marca porque la mayoría de las visitas llegan
 // buscando "trucazo", pero sigue con "Jugar al truco...": de las diez búsquedas
 // que más nos muestran, cinco empiezan con "jugar". La portada es la única
-// página que compite por esas, así que el verbo tiene que estar acá.
+// página que compite por esas, así que el verbo tiene que estar acá. "1 vs 1 y
+// 2 vs 2" pasó a la descripción el 11/11: con eso el título llegaba a 65
+// caracteres y Google lo mostraba cortado.
 export const metadata = createPublicMetadata({
-  title: 'Trucazo — Jugar al truco argentino online gratis, 1 vs 1 y 2 vs 2',
+  title: 'Trucazo: jugar al truco argentino online gratis',
   description,
   path: '/',
   type: 'website',
