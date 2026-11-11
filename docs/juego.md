@@ -1694,3 +1694,5 @@ seguir con una guía por semana. Candidatas: glosario del truco, manos de ejempl
 explicadas, historia y variantes regionales. Recién con
 varias semanas de contenido nuevo, tildar «Confirmo que corregí los problemas» y
 **Solicitar revisión** en AdSense.
+
+**Auditoría del 11/11:** qué páginas siguen cortas y qué sumar en cada una, en [Operación](operacion.md#seo-auditoria-2026-11-11).
