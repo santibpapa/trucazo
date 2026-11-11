@@ -21,6 +21,11 @@ export async function GET(request: NextRequest) {
   const loginPath = requestedDestination === '/android' ? '/login?android=1' : invitationAuthLink('/login', requestedDestination)
 
   if (!code) {
+    // Invitado que quiso guardar lo jugado con una cuenta de Google que ya
+    // tiene usuario en Trucazo: vuelve al registro con el aviso.
+    if (searchParams.get('error_code') === 'identity_already_exists') {
+      return NextResponse.redirect(`${origin}/register?google=ocupada`)
+    }
     return NextResponse.redirect(`${origin}${loginPath}`)
   }
 

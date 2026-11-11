@@ -715,7 +715,7 @@ Cómo se comprobó cada respuesta:
 - Volver a la partida: el lobby muestra «Volver a la partida» cuando hay una en curso (`src/app/lobby/LobbyClient.tsx`).
 - Torneos con cuenta, sin perder lo jugado como invitado: aviso de `src/app/torneos/TournamentsHub.tsx`.
 - Duración: consulta de sólo lectura a `games` del 11/11, partidas terminadas de los últimos 30 días. A 15 puntos: 2.629 partidas, mediana 3,7 minutos. A 30 puntos: 3.256, mediana 6,8. Si se actualiza la respuesta, repetir la consulta y cambiar las fechas del texto. La misma cifra está en `/jugar-truco-con-amigos`.
-- **Corrección del 11/11:** la respuesta «¿Necesito una cuenta?» decía que al registrarse no se perdía lo jugado como invitado. Es falso: `/register` llama a `signUp`, que crea un usuario nuevo, y `handle_new_user` sólo inserta el perfil. Ahora dice que la cuenta arranca de cero. **El mismo error sigue en el aviso de torneos para invitados** (`src/app/torneos/TournamentsHub.tsx`, «Tu progreso de invitado no se pierde al registrarte»); no se tocó porque es una pantalla del juego, fuera de este cambio.
+- **Corrección del 11/11:** la respuesta «¿Necesito una cuenta?» decía que al registrarse no se perdía lo jugado como invitado, y era falso: `/register` creaba un usuario nuevo. El dueño pidió que fuera cierto: desde el [cambio de convertir invitado](backend.md#convertir-invitado) el invitado que se registra en la misma visita lo conserva. La portada, `/jugar-truco-sin-registrarse` y el aviso de torneos para invitados lo dicen así. Esos textos dependen de que la migración esté aplicada y *Manual linking* activado antes de publicar.
 
 <a id="paginas-cortas-2026-11-11"></a>
 

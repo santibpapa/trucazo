@@ -22,6 +22,7 @@ import { tournamentModeEnabled } from '@/lib/tournaments'
 import TeamTables from '@/components/game/TeamTables'
 import ShareTableInvite from '@/components/ShareTableInvite'
 import WaitingForPlayers from '@/components/WaitingForPlayers'
+import GuestNamePrompt from './GuestNamePrompt'
 
 const FriendsPanel = dynamic(() => import('@/components/FriendsPanel'))
 const GameInvites = dynamic(() => import('@/components/FriendsPanel').then(module => module.GameInvites))
@@ -395,6 +396,7 @@ export default function LobbyClient({
 
   return (
     <div className="min-h-[100dvh] lg:flex">
+      {!isGuest && profile.guest_name_pending && <GuestNamePrompt username={profile.username} />}
       {/* Menú lateral (solo compu) */}
       <aside className="hidden lg:flex lg:flex-col w-56 shrink-0 border-r border-line bg-surface/40 p-4 gap-1 sticky top-0 h-screen">
         <div className="px-2 py-3">

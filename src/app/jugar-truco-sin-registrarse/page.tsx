@@ -88,15 +88,17 @@ export default function SinRegistroPage() {
 
       <Section title="Si después querés una cuenta">
         <p>
-          La cuenta nueva arranca de cero, con sus propias 1.000 monedas. Lo que jugaste
-          como invitado (monedas, historial y avance del Modo Historia) no pasa a la
-          cuenta. Si probaste y te gustó, conviene registrarte antes de avanzar mucho
-          en el Modo Historia.
+          Si te registrás durante la misma visita, lo que jugaste como invitado pasa a
+          tu cuenta: monedas, historial y avance del Modo Historia. Si tenés menos de
+          1.000 monedas, te completamos hasta 1.000, lo mismo que recibe cualquier
+          cuenta nueva. Ahí también elegís tu nombre de usuario, en lugar del Invitado
+          con número.
         </p>
         <p>
-          Podés crearla con email y contraseña o entrar con Google. Con email, te pide un
-          nombre de usuario de al menos tres caracteres y aceptar las normas de
-          convivencia.
+          Podés crearla con email y contraseña o con tu cuenta de Google. Si ese email o
+          esa cuenta de Google ya tenían un usuario en Trucazo, no se pueden juntar: al
+          entrar con la cuenta vieja, lo jugado como invitado no se suma. Y si la visita
+          de invitado ya se cerró, la cuenta arranca de cero con sus 1.000 monedas.
         </p>
       </Section>
 
