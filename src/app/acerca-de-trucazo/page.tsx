@@ -5,9 +5,9 @@ import { SITE_URL } from '@/lib/site'
 import { createBreadcrumbJsonLd, createPublicMetadata } from '@/lib/seo'
 
 const path = '/acerca-de-trucazo'
-const title = 'Acerca de Trucazo'
+const title = 'Acerca de: cómo nació y cómo funciona'
 const description =
-  'Conocé qué es Trucazo, qué modalidades de truco implementa —mano a mano y en parejas—, cómo se desarrolla y cuáles son sus principios editoriales.'
+  'Qué es Trucazo, cómo creció desde mayo de 2026, cómo se cuida que el juego sea limpio y cómo se prueban sus reglas de truco argentino.'
 
 export const metadata = createPublicMetadata({ title, description, path, type: 'website' })
 
@@ -42,6 +42,47 @@ export default function AcercaPage() {
           Trucazo usa monedas ficticias para organizar partidas y recompensas. No se
           convierten en dinero, no pueden retirarse y no representan una apuesta con
           valor económico real.
+        </p>
+      </Section>
+
+      <Section title="Cómo empezó y cómo creció">
+        <p>
+          Trucazo empezó a construirse en mayo de 2026 como un mano a mano en el
+          navegador. Desde entonces creció de a una pieza por vez:
+        </p>
+        <ul className="flex flex-col gap-2 list-disc pl-5">
+          <li><strong>Junio de 2026:</strong> las reglas pasan a decidirse en el servidor, no en el teléfono de cada jugador.</li>
+          <li><strong>Julio:</strong> llegan la comunidad, el chat y el Modo Historia por provincias.</li>
+          <li><strong>Agosto:</strong> el Modo Historia suma la ruta de la Patagonia.</li>
+          <li><strong>Septiembre:</strong> se suman el truco en parejas, 2 vs 2, los torneos y la ruta del noroeste, con la que el Modo Historia llega a 15 provincias y 66 rivales.</li>
+          <li><strong>Octubre:</strong> las mesas se pueden compartir con un enlace.</li>
+        </ul>
+      </Section>
+
+      <Section title="Un juego limpio">
+        <p>
+          El servidor es el árbitro. Cada carta jugada, cada canto y cada punto se
+          deciden ahí, no en tu dispositivo. Por eso las cartas de tu rival no viajan a
+          tu celular hasta que las juega o las muestra por el envido, y nadie puede
+          cambiar el marcador desde su navegador.
+        </p>
+        <p>
+          Las monedas son ficticias y no se pueden pasar de una cuenta a otra, así que no
+          hay nada que ganar haciendo trampa. Para el trato entre jugadores rigen las{' '}
+          <Link href="/convivencia" className="text-gold underline underline-offset-2">normas de convivencia</Link>,
+          y quien tiene cuenta puede denunciar o bloquear a otra persona. La denuncia
+          es privada: no se informa quién la hizo.
+        </p>
+      </Section>
+
+      <Section title="Cómo se prueban las reglas">
+        <p>
+          Más de 30 pruebas automáticas arman una copia vacía de la base de datos y
+          juegan sobre ella. Revisan, por ejemplo, que el
+          envido nunca pase de 33, cómo se resuelve una tercera baza parda, que una
+          partida en parejas se juegue de punta a punta y que los torneos armen bien sus
+          cruces. Las pruebas corren en cada cambio propuesto, antes de que llegue al
+          sitio.
         </p>
       </Section>
 

@@ -56,7 +56,59 @@ export default function CalculadoraEnvidoPage() {
             <h3 className="font-semibold text-cream">Tres figuras distintas</h3>
             <p className="mt-1 text-sm text-muted">Todas valen cero: el tanto es 0.</p>
           </a>
+          <a href="?c1=copa-12&c2=copa-10&c3=espada-4" className="rounded-2xl border border-line bg-surface p-4 hover:border-gold/50">
+            <h3 className="font-semibold text-cream">12 y 10 de copa</h3>
+            <p className="mt-1 text-sm text-muted">0 + 0 + 20 = 20.</p>
+          </a>
+          <a href="?c1=oro-7&c2=oro-6&c3=oro-5" className="rounded-2xl border border-line bg-surface p-4 hover:border-gold/50">
+            <h3 className="font-semibold text-cream">Tres de oro: 7, 6 y 5</h3>
+            <p className="mt-1 text-sm text-muted">Se toman las dos mayores: 33.</p>
+          </a>
         </div>
+      </Section>
+
+      <Section title="Todos los tantos posibles">
+        <p>
+          El envido sólo puede valer de 0 a 7 o de 20 a 33. Del 8 al 19 no existe: si no
+          tenés dos cartas del mismo palo, vale tu carta más alta, que como mucho es un
+          7; y si las tenés, ya arrancás en 20.
+        </p>
+        <p>
+          Contamos las 9.880 manos posibles de tres cartas con el mazo de 40. El tanto
+          más común es el 7, que sale en 1.084 manos (una de cada nueve). El 33, el
+          máximo, sale en 152: una de cada 65. Entre los tantos de dos
+          cartas del mismo palo, el más común es el 27, con 780 manos.
+        </p>
+        <p>
+          Debajo del resultado, la calculadora muestra qué tan seguido gana tu tanto
+          contra una mano cualquiera del rival. Siendo mano ganás los empates; siendo
+          pie, los perdés. Para decidir con cuánto querer, la guía{' '}
+          <Link href="/como-ganar-al-truco" className="text-gold underline underline-offset-2">
+            cómo ganar al truco
+          </Link>{' '}
+          tiene la tabla completa y la cuenta del «quiero».
+        </p>
+      </Section>
+
+      <Section title="Errores comunes al contar">
+        <ul className="flex flex-col gap-2 list-disc pl-5">
+          <li>
+            <strong>Mezclar palos.</strong> El 7 de espada y el 6 de oro no suman 33: son
+            de palos distintos, así que el tanto es 7.
+          </li>
+          <li>
+            <strong>Olvidar el 20 con figuras.</strong> El 12 y el 10 de copa valen cero
+            cada uno, pero son del mismo palo: el tanto es 20, no 0.
+          </li>
+          <li>
+            <strong>Sumar las tres cartas.</strong> Con tres del mismo palo se toman sólo
+            las dos que más suman. Con 7, 6 y 5 de oro, el tanto es 33, no 38.
+          </li>
+          <li>
+            <strong>Contar la carta más alta del truco.</strong> En el envido no importa
+            el orden del truco: el 1 de espada vale 1, y el 7 de copa vale 7.
+          </li>
+        </ul>
       </Section>
 
       <Section title="Después de calcular el tanto">
