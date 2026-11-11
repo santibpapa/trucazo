@@ -35,15 +35,19 @@ await build({
       const query=(table,result)=>{const q={then:(yes,no)=>{if(table in window.__counts)window.__counts[table]++;return Promise.resolve(result()).then(yes,no)}};
         for(const k of ['select','eq','in','order','limit','single','maybeSingle','abortSignal'])q[k]=()=>q;
         return q;};
-      window.__emit=next=>{window.__game=next;
+      // Igual que el servidor: un aviso privado con sólo lo que cambió.
+      window.__emit=next=>{const prev=window.__game,d={};window.__game=next;
+        for(const k of Object.keys(next))if(JSON.stringify(next[k])!==JSON.stringify(prev[k]))d[k]=next[k];
         for(const c of channels)for(const [type,filter,callback]of c.handlers)
-          if(type==='postgres_changes'&&filter.table==='games')callback({new:next});};
+          if(c.private&&type==='broadcast'&&filter.event==='partida')callback({payload:{from:prev.updated_at,d}});};
+      window.__raw=payload=>{for(const c of channels)for(const [type,filter,callback]of c.handlers)
+          if(c.private&&type==='broadcast'&&filter.event==='partida')callback({payload});};
       window.__status=status=>{for(const c of channels)c.status?.(status)};
       const client={
         from:table=>query(table,()=>({data:table==='games'?window.__game:table==='game_hands'?{cards:window.__hand}:[],error:null})),
         rpc:()=>query('rpc',()=>({data:null,error:null})),
         auth:{getSession:async()=>({data:{session:{user:{id:window.__user}}}})},
-        channel(){const c={handlers:[],on(type,filter,callback){this.handlers.push([type,filter,callback]);return this;},
+        channel(topic,options){const c={private:topic.startsWith('game:')&&options?.config?.private===true,handlers:[],on(type,filter,callback){this.handlers.push([type,filter,callback]);return this;},
           subscribe(callback){this.status=callback;channels.add(this);queueMicrotask(()=>callback?.('SUBSCRIBED'));return this;},send(){return Promise.resolve('ok');}};return c;},
         removeChannel(c){channels.delete(c);return Promise.resolve('ok');},
       }; export const createClient=()=>client;
@@ -87,6 +91,15 @@ try {
     await next({ hand_number: fixture.before.hand_number + 1, played_cards: [], round_number: 1 })
     await page.clock.runFor(100)
   })
+  // Un aviso que ya teníamos se ignora; uno al que le falta algo del medio relee la partida.
+  report.staleNotice = await delta(async () => {
+    await page.evaluate(([from, at]) => window.__raw({ from, d: { updated_at: at, player1_score: 99 } }), [fixture.before.updated_at, fixture.before.updated_at])
+    await page.clock.runFor(100)
+  })
+  report.gapNotice = await delta(async () => {
+    await page.evaluate(at => window.__raw({ from: '2000-01-01T00:00:00+00:00', d: { updated_at: at } }), new Date(stamp + 60_000).toISOString())
+    await page.clock.runFor(100)
+  })
   report.disconnected10s = await delta(async () => { await page.evaluate(() => window.__status('CHANNEL_ERROR')); await page.clock.runFor(10_000) })
   report.hidden20s = await delta(async () => {
     await page.evaluate(() => Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }))
@@ -97,8 +110,12 @@ try {
     assert.ok(report.connected30s.games >= 1 && report.connected30s.games <= 3, 'Con Realtime conectado el respaldo pregunta cada ~15 s')
     assert.equal(report.connected30s.game_hands, 0, 'Sin cambios de mano no se relee la mano')
     assert.equal(report.rivalMove.game_hands, 0, 'Una jugada del rival no cambia mis cartas')
+    assert.equal(report.rivalMove.games, 0, 'El aviso con sólo lo que cambió alcanza: no relee la partida')
     assert.equal(report.ownCard.game_hands, 0, 'Jugar una carta propia no relee la mano')
     assert.equal(report.newDeal.game_hands, 1, 'Un reparto nuevo relee la mano una vez')
+    assert.deepEqual(report.staleNotice, { games: 0, game_hands: 0 }, 'Un aviso viejo no relee nada')
+    assert.equal(await page.getByText('99', { exact: true }).count(), 0, 'Un aviso viejo no pisa el marcador')
+    assert.equal(report.gapNotice.games, 1, 'Un aviso que no encaja relee la partida una vez')
     assert.ok(report.disconnected10s.games >= 3, 'Sin Realtime el respaldo vuelve a 2,5 s')
     assert.deepEqual(report.hidden20s, { games: 0, game_hands: 0 }, 'Con la pantalla oculta no se pregunta nada')
     for (const card of ['1B', '2B', '3B']) assert.ok(await page.getByAltText(card, { exact: true }).count() >= 1, `La mano nueva muestra ${card}`)

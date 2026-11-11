@@ -34,9 +34,10 @@ await build({
       const query=result=>{const q={then:(yes,no)=>Promise.resolve(result()).then(yes,no)};
         for(const k of ['select','eq','in','order','limit','single','maybeSingle','abortSignal'])q[k]=()=>q;
         return q;};
-      window.__close=()=>{window.__game=window.__fixture.after;
+      window.__close=()=>{const prev=window.__game,d={};window.__game=window.__fixture.after;
+        for(const k of Object.keys(window.__game))if(JSON.stringify(window.__game[k])!==JSON.stringify(prev[k]))d[k]=window.__game[k];
         for(const c of channels)for(const [type,filter,callback]of c.handlers)
-          if(type==='postgres_changes'&&filter.table==='games')callback({new:window.__game});};
+          if(type==='broadcast'&&filter.event==='partida')callback({payload:{from:prev.updated_at,d}});};
       const client={
         from:table=>query(()=>({data:table==='games'?window.__game:table==='game_hands'?{cards:window.__fixture.hand}:[],error:null})),
         rpc:name=>query(()=>{if(name==='respond_truco'){window.__close();return {data:window.__game,error:null};}return {data:null,error:null};}),

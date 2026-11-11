@@ -8,6 +8,9 @@ begin if ok is distinct from true then raise exception 'Inactividad: %', detail;
 -- Simular tiempo transcurrido sin esperar ni reiniciar el reloj con el trigger.
 create function pg_temp.expire_turn(gid uuid) returns void language plpgsql as $$
 begin
+  -- El aviso de partida espera al final de la transacción y no deja cambiar la
+  -- tabla mientras tanto: se manda ahora.
+  set constraints public.trg_broadcast_game_diff immediate;
   alter table public.games disable trigger trg_touch_turn_start;
   update public.games set turn_started_at=now()-make_interval(secs=>time_limit+1) where id=gid;
   alter table public.games enable trigger trg_touch_turn_start;

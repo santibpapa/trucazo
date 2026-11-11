@@ -52,6 +52,7 @@ interface Props {
 }
 
 type EnvidoType = 'envido' | 'real_envido' | 'falta_envido'
+type GameDiff = { from?: string; d?: Partial<Game> }
 
 function ResultObjectives({ gameId, isGuest }: { gameId: string; isGuest: boolean }) {
   const [open, setOpen] = useState(false)
@@ -280,18 +281,13 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     }
   }, [])
 
-  // Tiempo real: suscripción a cambios de la partida
-  // (Requiere que la tabla `games` tenga la replicación realtime habilitada en Supabase)
+  // Tiempo real: suscripción al aviso de la partida. En cada cambio el servidor
+  // manda por el canal privado sólo los campos que cambiaron (migración
+  // 20261111230000). Sigue con la partida terminada: la revancha llega igual.
   useEffect(() => {
-    if (game.status === 'finished') return
-
     const channel = supabase
-      .channel(`game-${game.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${game.id}` },
-        (payload) => { applyServerGame(payload.new as Game); void syncMyHand(payload.new as Game) }
-      )
+      .channel(`game:${game.id}`, { config: { private: true } })
+      .on('broadcast', { event: 'partida' }, ({ payload }) => applyGameDiff(payload as GameDiff))
       .subscribe(status => {
         realtimeOkRef.current = status === 'SUBSCRIBED'
         if (status === 'SUBSCRIBED') void refreshGame()
@@ -307,7 +303,8 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
       window.removeEventListener('online', recover)
       document.removeEventListener('visibilitychange', recover)
     }
-  }, [game.id, game.status])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.id])
 
   // Al volver a la pantalla o recuperar conexión, leer el estado confirmado y
   // sólo la mano propia. Nunca repetir la última acción para "recuperarla".
@@ -587,23 +584,19 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.status])
 
-  // Partida terminada: seguimos escuchando para la revancha (votos y nueva partida).
+  // Partida terminada: los votos de revancha y la partida nueva llegan por el
+  // aviso de la partida. Respaldo por polling como en la mesa: cada ~15 s con
+  // Realtime conectado, cada 2,5 s sin él.
   useEffect(() => {
     if (game.status !== 'finished') return
-    const channel = supabase
-      .channel(`rematch-${game.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${game.id}` },
-        (payload) => applyServerGame(payload.new as Game),
-      )
-      .subscribe()
     const iv = setInterval(async () => {
       if (document.visibilityState === 'hidden') return
+      if (realtimeOkRef.current && Date.now() - lastSyncRef.current < 14500) return
+      lastSyncRef.current = Date.now()
       const { data } = await supabase.from('games').select('*').eq('id', game.id).single()
       if (data) applyServerGame(data as Game)
     }, 2500)
-    return () => { supabase.removeChannel(channel); clearInterval(iv) }
+    return () => clearInterval(iv)
   }, [game.id, game.status])
 
   // Cuando se concreta la revancha, ambos van a la nueva partida.
@@ -727,6 +720,24 @@ export default function GameClient({ game: initialGame, serverNow, currentUserId
     } catch (error) {
       console.error('refresh game:', error)
     }
+  }
+
+  // Aviso de partida: `d` trae sólo lo que cambió y `from`, la versión
+  // (updated_at) sobre la que se aplica. Si encaja con lo que tenemos se suma;
+  // si ya lo teníamos (llegó antes por la respuesta de la acción) se ignora;
+  // si nos falta algo del medio, se relee la partida entera.
+  function applyGameDiff({ from, d }: GameDiff) {
+    if (!d) return
+    const current = latestGame.current
+    if (from && Date.parse(from) === Date.parse(current.updated_at)) {
+      const next = { ...current, ...d }
+      latestGame.current = next // por si llega otro aviso antes de volver a dibujar
+      applyServerGame(next)
+      void syncMyHand(next)
+      return
+    }
+    if (d.updated_at && Date.parse(d.updated_at) <= Date.parse(current.updated_at)) return
+    void refreshGame()
   }
 
   // Realtime, polling y reintentos pueden llegar fuera de orden. Un snapshot
