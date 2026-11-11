@@ -9,7 +9,7 @@ Foto al **11/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 - **Producción web = `master`.** Del 27 al 30/10 Vercel publicó desde la rama Android; el [PR #147](https://github.com/santibpapa/trucazo/pull/147) lo corrigió. No repetirlo.
 - **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual. **El 11/11 Supabase avisó que se pasó la cuota y dio gracia hasta el 11/12/2026; desde ahí, con más de 5,5 GB de egress por ciclo pueden restringir el proyecto** ([cuotas](#cuotas-2026-11-04)). El emulador de pruebas explica la mitad del exceso. Para entrar en el límite se preparó el [aviso de partida reducido](#aviso-partida-reducido) (11/11), que falta aplicar y publicar. Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
 - **AdSense rechazado** por «contenido de poco valor» (04/11). Guías nuevas publicadas para volver a pedir la revisión; detalle en [Juego](juego.md#adsense-rechazo-poco-valor).
-- **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)). Auditoría del 11/11 con el método claude-seo: la parte técnica está bien; faltan contenido en las páginas cortas y una firma con nombre. Nada aplicado; el dueño elige por dónde empezar ([auditoría](#seo-auditoria-2026-11-11)).
+- **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)). Auditoría del 11/11 con el método claude-seo: la parte técnica está bien; faltan contenido en las páginas cortas y una firma con nombre ([auditoría](#seo-auditoria-2026-11-11)). Portada nueva con preguntas plegadas en PR, para revisar en la preview ([detalle](#portada-2026-11-11)); la firma espera la decisión del dueño.
 - **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)).
 - **Ranking y presencia (PR #120, 13/10):** cerrado. SQL aplicado, presencia comprobada y aceptación con partidas reales confirmada por el dueño el 08/11 ([detalle](#correccion-cierres-presencia)).
 - **Node en Vercel:** el repo pide 24.22.1 (PR #141), pero el 21/10 el servidor público seguía en 24.21.0. Sin volver a comprobar desde entonces ([detalle](#node-seguridad-2026-10-21)).
@@ -696,6 +696,24 @@ Pedido del dueño: revisar el sitio con el método del repositorio público [Agr
 4. **Detalle de velocidad:** en `/orden-cartas-truco` las cuatro cartas bravas, que se ven al abrir, cargan en diferido (`src/app/orden-cartas-truco/page.tsx`, componente `Image` sin `priority`). Contradice la regla de AGENTS.md. Arreglo de una línea.
 
 **Seguimiento:** las búsquedas «ancho de basto» y «cuántas cartas tiene un mazo» ya tienen respuesta en `/orden-cartas-truco`, que estaba sin indexar; se pidió la indexación el 03/11. Revisar en el informe del 01/12 antes de tocar esa página.
+
+<a id="portada-2026-11-11"></a>
+
+#### Portada más completa sin más texto a la vista (11/11/2026)
+
+Primer punto de la auditoría. El dueño pidió que, si se sumaba contenido, quedara prolijo y escondido, porque la portada ya tenía mucho texto. Cambios en `src/app/page.tsx`:
+
+- **«Qué es Trucazo»:** los tres recuadros de texto pasan a una tarjeta del Modo Historia con el dibujo del lobby (`public/lobby/banner-historia.webp`) y tres tarjetas de una línea: mano a mano o parejas, amigos o computadora, y torneos. En pantallas de 640 px o más, el texto del Modo Historia va sobre la mitad derecha del dibujo, que está vacía.
+- **Guías:** sólo el título, en dos columnas en el celular y tres en la computadora.
+- **Preguntas frecuentes plegadas** (`<details>`): ocho preguntas, una línea cada una. Google lee las respuestas aunque estén cerradas. No se agregó `FAQPage`: Google ya no lo muestra como resultado enriquecido.
+- **Resultado medido en local el 11/11:** texto que lee Google de 279 a 551 palabras (`page_checks.py`). Alto a 360 px: 3.388 px antes (producción) y 3.628 después; a 1280 px, 2.191 y 2.902. Sin desborde horizontal. El revisor marca que la imagen del Modo Historia carga en diferido: es correcto, porque queda debajo de los botones, fuera de la primera pantalla.
+
+Cómo se comprobó cada respuesta:
+- Monedas sin valor real, sin compras ni suscripciones: términos de uso, cláusula de monedas.
+- 15 o 30 segundos por jugada, mazo automático al vencer y derrota al tercer vencimiento: `create_table` sólo admite 15 o 30 y `timeout_mazo` cuenta los vencimientos (`supabase/schema/functions.sql`).
+- Volver a la partida: el lobby muestra «Volver a la partida» cuando hay una en curso (`src/app/lobby/LobbyClient.tsx`).
+- Torneos con cuenta, sin perder lo jugado como invitado: aviso de `src/app/torneos/TournamentsHub.tsx`.
+- Duración: consulta de sólo lectura a `games` del 11/11, partidas terminadas de los últimos 30 días. A 15 puntos: 2.629 partidas, mediana 3,7 minutos. A 30 puntos: 3.256, mediana 6,8. Si se actualiza la respuesta, repetir la consulta y cambiar las fechas del texto.
 
 <a id="seo-2026-11-03"></a>
 
