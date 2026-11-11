@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -10,23 +10,82 @@ import { trackFirstParty } from '@/lib/analytics/client'
 import { loginDestination } from '@/lib/android-entry'
 import { invitationAuthLink, invitationPath } from '@/lib/table-invites'
 import { COMMUNITY_RULES, RULES_VERSION } from '@/lib/community-safety'
+import GoogleButton from '@/components/GoogleButton'
 
 export default function RegisterPage() {
   return <Suspense><RegisterForm /></Suspense>
 }
 
 function RegisterForm() {
-  const next = invitationPath(useSearchParams().get('next'))
+  const searchParams = useSearchParams()
+  const next = invitationPath(searchParams.get('next'))
+  const googleTaken = searchParams.get('google') === 'ocupada'
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState(googleTaken
+    ? 'Esa cuenta de Google ya tiene un usuario en Trucazo. Para guardar lo que jugaste, usá un email. Si preferís entrar con esa cuenta, andá a Iniciar sesión (lo jugado como invitado no se suma).'
+    : '')
   const [loading, setLoading] = useState(false)
   const [rules, setRules] = useState(false)
   // Cuando el proyecto pide confirmar el email, signUp no devuelve sesión: en
   // vez de mandarlo al lobby (donde no podría entrar), le avisamos.
   const [confirmarEmail, setConfirmarEmail] = useState(false)
+  // Si quien se registra es un invitado, no se crea un usuario nuevo: se le
+  // agrega email y contraseña al mismo usuario y conserva lo que jugó
+  // (ver docs/backend.md → convertir-invitado).
+  const [guestId, setGuestId] = useState<string | null>(null)
+
+  useEffect(() => {
+    void createClient().auth.getSession().then(({ data }) => {
+      const user = data.session?.user
+      if (user?.is_anonymous) setGuestId(user.id)
+    })
+  }, [])
+
+  async function convertGuest(supabase: ReturnType<typeof createClient>) {
+    const { data: updated, error: emailError } = await supabase.auth.updateUser({
+      email,
+      data: { username, community_rules_version: RULES_VERSION },
+    })
+    if (emailError) {
+      setError(emailError.code === 'email_exists' || /already/i.test(emailError.message)
+        ? 'Ese email ya tiene una cuenta. Usá otro para guardar lo que jugaste, o iniciá sesión con esa cuenta (lo jugado como invitado no se suma).'
+        : emailError.message)
+      setLoading(false)
+      return
+    }
+
+    // Si el proyecto pidiera confirmar el email, el usuario sigue siendo
+    // invitado hasta que toque el link. Hoy Trucazo confirma al instante.
+    if (updated.user?.is_anonymous) {
+      setConfirmarEmail(true)
+      setLoading(false)
+      return
+    }
+
+    const { error: passwordError } = await supabase.auth.updateUser({ password })
+    if (passwordError) {
+      setError('Guardamos tu cuenta con ese email, pero no la contraseña. Entrá a Recuperar cuenta para elegir una.')
+      setLoading(false)
+      return
+    }
+
+    // Token nuevo: el viejo todavía dice "invitado" y las normas y el nombre
+    // lo exigen registrado.
+    await supabase.auth.refreshSession()
+    await supabase.rpc('accept_community_rules', { p_version: RULES_VERSION })
+    // Si el nombre falla (lo ganó otro justo ahora, o la base todavía no tiene
+    // esta función), el lobby se lo vuelve a pedir.
+    await supabase.rpc('choose_guest_account_name', { p_username: username })
+    try { localStorage.removeItem('trucazo:guest-alive') } catch {}
+
+    track('register_completed', { method: 'email', from_guest: true, confirmation_required: false })
+    trackFirstParty('register_completed', { method: 'email', from_guest: true, confirmation_required: false })
+    router.push(loginDestination())
+    router.refresh()
+  }
 
   async function handleRegister() {
     if (!rules) { setError('Aceptá las normas de convivencia para crear tu cuenta.'); return }
@@ -50,15 +109,21 @@ function RegisterForm() {
 
     // Chequeo case-insensitive (ilike sin comodines matchea la cadena completa).
     // El índice único sobre lower(username) es la garantía real ante carreras.
-    const { data: existing } = await supabase
+    let nameQuery = supabase
       .from('profiles')
       .select('username')
       .ilike('username', username)
-      .maybeSingle()
+    if (guestId) nameQuery = nameQuery.neq('id', guestId)
+    const { data: existing } = await nameQuery.maybeSingle()
 
     if (existing) {
       setError('Ese nombre de usuario ya está en uso')
       setLoading(false)
+      return
+    }
+
+    if (guestId) {
+      await convertGuest(supabase)
       return
     }
 
@@ -142,8 +207,15 @@ function RegisterForm() {
       <Panel className="w-full max-w-sm p-8 flex flex-col gap-6">
         <div className="flex flex-col items-center gap-2 text-center">
           <Logo size="md" />
-          <p className="text-sm text-muted">Creá tu cuenta</p>
+          <p className="text-sm text-muted">{guestId ? 'Guardá lo que jugaste' : 'Creá tu cuenta'}</p>
         </div>
+
+        {guestId && (
+          <p className="rounded-xl border border-gold/30 bg-gold-soft/30 p-3 text-sm text-cream/90">
+            Tus monedas, tu historial y tu avance del Modo Historia pasan a la cuenta.
+            Si tenés menos de 1.000 monedas, te completamos hasta 1.000.
+          </p>
+        )}
 
         {error && <Alert>{error}</Alert>}
 
@@ -178,12 +250,16 @@ function RegisterForm() {
         <Button fullWidth size="lg" onClick={handleRegister} disabled={loading || !rules}>
           {loading ? (
             'Creando cuenta…'
+          ) : guestId ? (
+            'Crear cuenta y guardar lo jugado'
           ) : (
             <span className="inline-flex items-center gap-2">
               Registrarse y ganar <CoinIcon size={16} /> 1.000
             </span>
           )}
         </Button>
+
+        {guestId && <GoogleButton variant="secondary" size="lg" linkGuest />}
 
         <p className="text-center text-xs leading-relaxed text-subtle">
           Al registrarte podemos enviarte novedades e invitaciones para volver a jugar.

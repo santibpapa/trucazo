@@ -19,6 +19,9 @@ export interface Profile {
   avatar_url?: string | null
   // Cuándo usó su único cambio de nombre; null si nunca lo cambió.
   username_changed_at?: string | null
+  // Invitado que se hizo cuenta y todavía se llama Invitado####: el lobby le
+  // pide elegir nombre (choose_guest_account_name, no gasta el cambio gratis).
+  guest_name_pending?: boolean
 }
 
 // Tienda: un salón del catálogo (fondo de la mesa de juego).

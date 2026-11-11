@@ -124,7 +124,7 @@ const faqs: { q: string; a: ReactNode }[] = [
   },
   {
     q: '¿Necesito una cuenta?',
-    a: 'Para probar, no: entrás como invitado. Con una cuenta guardás perfil, monedas, historial, amistades y progreso del Modo Historia, y podés anotarte en torneos. Al registrarte no perdés lo que jugaste como invitado.',
+    a: 'Para probar, no: entrás como invitado. Con una cuenta guardás perfil, monedas, historial, amistades y progreso del Modo Historia, y podés anotarte en torneos. Si te registrás durante la visita de invitado, lo que jugaste pasa a tu cuenta.',
   },
 ]
 

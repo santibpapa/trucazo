@@ -9,7 +9,7 @@ Foto al **11/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 - **Producción web = `master`.** Del 27 al 30/10 Vercel publicó desde la rama Android; el [PR #147](https://github.com/santibpapa/trucazo/pull/147) lo corrigió. No repetirlo.
 - **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual. **El 11/11 Supabase avisó que se pasó la cuota y dio gracia hasta el 11/12/2026; desde ahí, con más de 5,5 GB de egress por ciclo pueden restringir el proyecto** ([cuotas](#cuotas-2026-11-04)). El emulador de pruebas explica la mitad del exceso. Para entrar en el límite se publicó el [aviso de partida reducido](#aviso-partida-reducido) el 11/11; falta medir el egress de los próximos días. Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
 - **AdSense rechazado** por «contenido de poco valor» (04/11). Guías nuevas publicadas para volver a pedir la revisión; detalle en [Juego](juego.md#adsense-rechazo-poco-valor).
-- **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)). Auditoría del 11/11 con el método claude-seo: la parte técnica está bien; faltan contenido en las páginas cortas y una firma con nombre ([auditoría](#seo-auditoria-2026-11-11)). Portada nueva con preguntas plegadas en PR, para revisar en la preview ([detalle](#portada-2026-11-11)); la firma espera la decisión del dueño.
+- **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)). Auditoría del 11/11 con el método claude-seo: la parte técnica está bien; faltan contenido en las páginas cortas y una firma con nombre ([auditoría](#seo-auditoria-2026-11-11)). Portada nueva publicada el 11/11 ([PR #182](https://github.com/santibpapa/trucazo/pull/182), [detalle](#portada-2026-11-11)); el dueño pidió su indexación el mismo día. Las cuatro páginas cortas, ampliadas en el [PR #183](https://github.com/santibpapa/trucazo/pull/183) junto con la [conversión de invitado en cuenta](backend.md#convertir-invitado), fueron probadas en la preview el 11/11 y falta integrarlas ([detalle](#paginas-cortas-2026-11-11)). La firma espera la decisión del dueño.
 - **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)).
 - **Ranking y presencia (PR #120, 13/10):** cerrado. SQL aplicado, presencia comprobada y aceptación con partidas reales confirmada por el dueño el 08/11 ([detalle](#correccion-cierres-presencia)).
 - **Node en Vercel:** el repo pide 24.22.1 (PR #141), pero el 21/10 el servidor público seguía en 24.21.0. Sin volver a comprobar desde entonces ([detalle](#node-seguridad-2026-10-21)).
@@ -706,6 +706,7 @@ Primer punto de la auditoría. El dueño pidió que, si se sumaba contenido, que
 - **«Qué es Trucazo»:** los tres recuadros de texto pasan a una tarjeta del Modo Historia con el dibujo del lobby (`public/lobby/banner-historia.webp`) y tres tarjetas de una línea: mano a mano o parejas, amigos o computadora, y torneos. En pantallas de 640 px o más, el texto del Modo Historia va sobre la mitad derecha del dibujo, que está vacía.
 - **Guías:** sólo el título, en dos columnas en el celular y tres en la computadora.
 - **Preguntas frecuentes plegadas** (`<details>`): ocho preguntas, una línea cada una. Google lee las respuestas aunque estén cerradas. No se agregó `FAQPage`: Google ya no lo muestra como resultado enriquecido.
+- **Publicada el 11/11** con el [PR #182](https://github.com/santibpapa/trucazo/pull/182). Comprobado en producción después del despliegue: 8 preguntas, imagen del Modo Historia y mismo alto que en local, sin desborde a 360 ni 1280 px.
 - **Resultado medido en local el 11/11:** texto que lee Google de 279 a 551 palabras (`page_checks.py`). Alto a 360 px: 3.388 px antes (producción) y 3.628 después; a 1280 px, 2.191 y 2.902. Sin desborde horizontal. El revisor marca que la imagen del Modo Historia carga en diferido: es correcto, porque queda debajo de los botones, fuera de la primera pantalla.
 
 Cómo se comprobó cada respuesta:
@@ -713,7 +714,27 @@ Cómo se comprobó cada respuesta:
 - 15 o 30 segundos por jugada, mazo automático al vencer y derrota al tercer vencimiento: `create_table` sólo admite 15 o 30 y `timeout_mazo` cuenta los vencimientos (`supabase/schema/functions.sql`).
 - Volver a la partida: el lobby muestra «Volver a la partida» cuando hay una en curso (`src/app/lobby/LobbyClient.tsx`).
 - Torneos con cuenta, sin perder lo jugado como invitado: aviso de `src/app/torneos/TournamentsHub.tsx`.
-- Duración: consulta de sólo lectura a `games` del 11/11, partidas terminadas de los últimos 30 días. A 15 puntos: 2.629 partidas, mediana 3,7 minutos. A 30 puntos: 3.256, mediana 6,8. Si se actualiza la respuesta, repetir la consulta y cambiar las fechas del texto.
+- Duración: consulta de sólo lectura a `games` del 11/11, partidas terminadas de los últimos 30 días. A 15 puntos: 2.629 partidas, mediana 3,7 minutos. A 30 puntos: 3.256, mediana 6,8. Si se actualiza la respuesta, repetir la consulta y cambiar las fechas del texto. La misma cifra está en `/jugar-truco-con-amigos`.
+- **Corrección del 11/11:** la respuesta «¿Necesito una cuenta?» decía que al registrarse no se perdía lo jugado como invitado, y era falso: `/register` creaba un usuario nuevo. El dueño pidió que fuera cierto: desde el [cambio de convertir invitado](backend.md#convertir-invitado) el invitado que se registra en la misma visita lo conserva. La portada, `/jugar-truco-sin-registrarse` y el aviso de torneos para invitados lo dicen así. Esos textos dependen de que la migración esté aplicada y *Manual linking* activado antes de publicar.
+
+<a id="paginas-cortas-2026-11-11"></a>
+
+#### Páginas cortas ampliadas (11/11/2026)
+
+Segundo punto de la auditoría. El texto que lee Google se midió con `page_checks.py` sobre el build local; ninguna página quedó con avisos del revisor. Las fechas de actualización de esas páginas, y la de la portada, pasaron al 11/11 en `src/lib/routes.ts`.
+
+| Página | Antes | Después | Qué se sumó |
+| --- | --- | --- | --- |
+| `/acerca-de-trucazo` | 229 | 519 | Cómo creció, juego limpio, cómo se prueban las reglas. Título nuevo: «Acerca de: cómo nació y cómo funciona». |
+| `/calculadora-envido` | 322 | 642 | Debajo del resultado, cuántas veces gana ese tanto de mano y de pie; tantos posibles, errores comunes y dos ejemplos más. |
+| `/jugar-truco-sin-registrarse` | 267 | 558 | Qué queda para las cuentas, cuánto dura la visita, qué pasa al registrarse y el bono de 100 monedas. |
+| `/jugar-truco-con-amigos` | 298 | 806 | Enlace, código y lista de amigos; cuándo empieza la partida; monedas y revancha; preguntas frecuentes. |
+
+Cómo se comprobó lo nuevo:
+- **Probabilidades del envido:** se recalcularon las 9.880 manos contra las 7.770 manos posibles del rival con las 37 cartas restantes. Los tantos que ya estaban en la tabla de `/como-ganar-al-truco` coinciden exactos; se agregaron 0, 1, 2 y 3. Frecuencias: el 7 sale en 1.084 manos, el 33 en 152 y el 27 en 780.
+- **Invitado:** la sesión se cierra si el navegador vuelve después de 90 segundos sin latido (`src/components/GuestSessionGuard.tsx`). Chat sólo para registrados (`MatchChat.tsx`). Torneos sin inscripción para invitados (`TournamentsHub.tsx`). Misiones bloqueadas (`ObjectivesFloatingButton.tsx`). Bono: `claim_bonus` deja 100 monedas si quedan menos de 10, y la apuesta mínima es 10 (`create_table`).
+- **Amigos:** enlace con Compartir y Copiar (`ShareTableInvite.tsx` y el [capítulo de invitación por enlace](juego.md#invitacion-por-enlace)); «Unirse con código» y el botón Invitar de la lista de amigos (`LobbyClient.tsx`, `FriendsPanel.tsx`). El mano a mano arranca solo al entrar el rival (`join_table`); en parejas el creador toca «Empezar partida» y puede añadir o quitar bots (`TeamWaitingRoom.tsx`). Revancha con la misma apuesta (`request_rematch`). «Volver a la partida» sólo aparece para el mano a mano (`src/app/lobby/page.tsx` lee `games`).
+- **Acerca de:** fechas de las migraciones (reglas en el servidor desde el 20/06, provincias el 05/07, Patagonia el 17/08, parejas el 09/09, torneos el 21/09, noroeste el 23/09, invitación por enlace el 16/10) y creación del proyecto Supabase el 21/05/2026. Pruebas: 33 pasos de `supabase/tests` en `.github/workflows/ci.yml`, que corre en cada PR a `master`. No se agregó a nadie con nombre propio: la firma sigue esperando la decisión del dueño.
 
 <a id="seo-2026-11-03"></a>
 

@@ -285,6 +285,9 @@ jobs:
       - name: Invitaciones públicas y privadas, permisos y cobro único
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/table_invites.sql
 
+      - name: Invitado que se registra conserva lo jugado, monedas hasta 1.000 y nombre a elegir
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/convertir_invitado.sql
+
       - name: Bots del lobby que se sientan en mesas de la gente
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/lobby_bots_cuidamesas.sql
 
