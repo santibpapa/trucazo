@@ -1,16 +1,16 @@
 # Operación — soporte, cuentas, correos, publicación e incidentes
 
-[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **11/11/2026**.
+[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **12/11/2026**.
 
 ## Estado actual
 
-Foto al **11/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
+Foto al **12/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
 
 - **Producción web = `master`.** Del 27 al 30/10 Vercel publicó desde la rama Android; el [PR #147](https://github.com/santibpapa/trucazo/pull/147) lo corrigió. No repetirlo.
 - **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual. **El 11/11 Supabase avisó que se pasó la cuota y dio gracia hasta el 11/12/2026; desde ahí, con más de 5,5 GB de egress por ciclo pueden restringir el proyecto** ([cuotas](#cuotas-2026-11-04)). El emulador de pruebas explica la mitad del exceso. Para entrar en el límite se publicó el [aviso de partida reducido](#aviso-partida-reducido) el 11/11; falta medir el egress de los próximos días. Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
 - **AdSense rechazado** por «contenido de poco valor» (04/11). Guías nuevas publicadas para volver a pedir la revisión; detalle en [Juego](juego.md#adsense-rechazo-poco-valor).
 - **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)). Auditoría del 11/11 con el método claude-seo: la parte técnica está bien; faltan contenido en las páginas cortas y una firma con nombre ([auditoría](#seo-auditoria-2026-11-11)). Portada nueva publicada el 11/11 ([PR #182](https://github.com/santibpapa/trucazo/pull/182), [detalle](#portada-2026-11-11)); el dueño pidió su indexación el mismo día. Las cuatro páginas cortas, ampliadas en el [PR #183](https://github.com/santibpapa/trucazo/pull/183) junto con la [conversión de invitado en cuenta](backend.md#convertir-invitado), se publicaron el 11/11 ([detalle](#paginas-cortas-2026-11-11)); indexación pedida el mismo día. Títulos más cortos y firma con el nombre del dueño publicados el 11/11 ([PR #185](https://github.com/santibpapa/trucazo/pull/185), [detalle](#titulos-firma-2026-11-11)). El dueño pidió la indexación de las nueve páginas cambiadas el 11/11; el informe del 01/12 dirá si «Cómo se juega» consigue más clics.
-- **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)).
+- **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)). Desde el 12/11 el dueño las ve todas en el panel, **Admin → Reseñas** (`/admin/resenas`), con nombre, email y datos de quien la dejó ([detalle](#panel-resenas)).
 - **Ranking y presencia (PR #120, 13/10):** cerrado. SQL aplicado, presencia comprobada y aceptación con partidas reales confirmada por el dueño el 08/11 ([detalle](#correccion-cierres-presencia)).
 - **Node en Vercel:** el repo pide 24.22.1 (PR #141), pero el 21/10 el servidor público seguía en 24.21.0. Sin volver a comprobar desde entonces ([detalle](#node-seguridad-2026-10-21)).
 - **Eliminación de cuenta** integrada (PR #101). El buzón de soporte `hola@trucazo.com.ar` recibe correos ([comprobado el 08/11](#buzon-soporte)). **Correos de novedades:** sin autorización nueva para enviar.
@@ -936,6 +936,10 @@ del juego se trabajan por separado. No envía correos ni contacta jugadores.
   no hay un segundo agente permanente. Accesos de GitHub/Supabase deben seguir
   conectados. La tarea puede terminar parcial por límites de ejecución y retomar
   pendientes en el próximo horario.
+
+<a id="panel-resenas"></a>
+
+**Panel de reseñas (`/admin/resenas`), 12/11/2026, pedido del dueño.** Lista las 300 reseñas más nuevas con fecha, puntajes, respuestas, comentario y capturas (enlaces privados que vencen en una hora), y de quien la dejó: nombre, email, tipo de cuenta, antigüedad, partidas, monedas, última sesión, cuántas reseñas dejó y enlace a su ficha. Arriba, promedios y porcentajes de lo listado. No usa SQL nuevo: la página comprueba que quien entra es admin y lee `feedback`, `profiles`, las cuentas de Auth y las capturas con la llave del servidor, igual que la página de emails. No muestra la clasificación del agente porque `feedback_internal` no está expuesto a la Data API.
 
 Contrato operativo del agente: [`scripts/feedback-review-agent.txt`](../scripts/feedback-review-agent.txt).
 La tarea carga este contrato y puede seguir una versión actualizada sin rehacerla.
