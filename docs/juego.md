@@ -1656,6 +1656,15 @@ No es un diagnóstico de Google: el aviso no detalla qué páginas evaluó.
 4. Con el contenido publicado e indexado, volver a pedir la revisión en AdSense →
    Sitios → `trucazo.com.ar`.
 
+**Reseñas públicas: descartado por el dueño, 12/11/2026.** Se evaluó mostrar las
+reseñas de los jugadores en el sitio. Consulta de sólo lectura a `feedback` ese día:
+40 reseñas y 29 con comentario, pero sólo 3 o 4 eran publicables. El resto eran
+reportes de errores ya corregidos, insultos, pruebas internas o menciones a otros
+jugadores. Además, nadie dio permiso para publicarlas y la página de privacidad dice
+que son para soporte. No ayudan con el rechazo por poco valor, y Google casi no muestra
+estrellas de reseñas que un sitio publica sobre sí mismo. No volver a proponerlo salvo
+pedido del dueño.
+
 **Contexto de tráfico (análisis propio, 05/10 al 03/11):** 92 visitantes y 706
 páginas vistas por día en promedio; última semana 117 y 1.023. Más del 95% de
 Argentina. Estimación con AdSense aprobado y anuncios fuera de la partida: USD 5
