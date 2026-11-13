@@ -281,6 +281,14 @@ export default function ComoSeJuegaPage() {
           </Link>
           : con cuánto querer el envido, cuándo cantar truco y cómo mentir.
         </p>
+        <p>
+          Si en una mesa escuchás una palabra que no conocés —empardar, son buenas,
+          tener el quiero—, buscala en el{' '}
+          <Link href="/glosario-truco" className="text-gold underline underline-offset-2">
+            glosario del truco
+          </Link>
+          .
+        </p>
       </Section>
     </SeoPageLayout>
   )

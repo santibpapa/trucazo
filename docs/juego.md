@@ -4,11 +4,11 @@
 
 ## Estado actual
 
-Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
+Foto al **13/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
 
 - Truco argentino a 15 o 30 puntos, sin flor y con monedas ficticias. Las reglas online y los premios oficiales los decide el servidor; las manos rivales nunca se envían al cliente.
 - **Historia:** 15 provincias y 66 rivales. **Vidas de Historia programadas y apagadas** desde el 19/10: los jugadores no ven nada ni pierden vidas ([reglas y cómo activarlas](#vidas-de-historia)).
-- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (capturas del 04/11). Hay que esperar la respuesta de AdSense (dueño, 08/11). Para los anuncios con premio de las vidas hace falta además una cuenta de Google Ad Manager. Diagnóstico y avances en [Rechazo de AdSense](#adsense-rechazo-poco-valor).
+- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (capturas del 04/11). El dueño decidió sumar **una guía nueva por semana**; la del 13/11 es el [glosario del truco](#guia-semanal-glosario). Para los anuncios con premio de las vidas hace falta además una cuenta de Google Ad Manager. Diagnóstico y avances en [Rechazo de AdSense](#adsense-rechazo-poco-valor).
 - **Parejas** lanzadas el 14/09/2026 y **torneos** el 27/09/2026 (contrato al 07/10/2026).
 - **Chat escrito** en mesas normales y torneos; Historia tiene frases rápidas. Los bots no escriben en el chat libre.
 - **Bots en mesas de la gente** desde el 04/11 ([detalle](#bots-lobby-cuidamesas)).
@@ -16,7 +16,7 @@ Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 
 ## Próximo paso y cómo retomar
 
-Con AdSense hay que esperar su respuesta; no hay trabajo abierto en esta área ([Rechazo de AdSense](#adsense-rechazo-poco-valor)). Antes de tocar una modalidad existente, leer su entrega final y comprobar el código y el SQL actuales antes de cambiar reglas o repetir migraciones.
+AdSense: una guía nueva por semana. Hecha: glosario (13/11). Quedan como candidatas manos de ejemplo explicadas e historia y variantes regionales ([Rechazo de AdSense](#adsense-rechazo-poco-valor)). Antes de tocar una modalidad existente, leer su entrega final y comprobar el código y el SQL actuales antes de cambiar reglas o repetir migraciones.
 
 ## Guía de lectura
 
@@ -1696,3 +1696,12 @@ varias semanas de contenido nuevo, tildar «Confirmo que corregí los problemas�
 **Solicitar revisión** en AdSense.
 
 **Auditoría del 11/11:** qué páginas siguen cortas y qué sumar en cada una, en [Operación](operacion.md#seo-auditoria-2026-11-11).
+
+<a id="guia-semanal-glosario"></a>
+
+**Guía semanal del 13/11 — glosario del truco** (`/glosario-truco`, rama `claude/optimistic-planck-e2167m`, sin publicar hasta que el dueño integre el PR). Unas 2.200 palabras: 50 términos en siete grupos (cartas, bazas, cantar y responder, envido, truco, tanteador, parejas) y un grupo de variantes que Trucazo no usa (flor, contraflor, falta envido a la partida, «irse en primera son dos»). Cada término tiene su propio ancla (`/glosario-truco#tener-el-quiero`) para enlazarlo desde otras guías.
+
+- **Reglas comprobadas en el código, 13/11:** «tener el quiero» (sólo sube el que aceptó: `sing_truco` en 1v1 y las acciones de `20260909211038_team_2vs2.sql` en parejas); «son buenas» sólo lo dice el pie y «Tengo» declara el tanto real, calculado por el servidor (`envido_say`); irse al mazo da 1 punto o el truco aceptado, más el envido si ya estaba querido (`irse_al_mazo` y la opción `mazo` de `envido_say`); «33 en mesa» muestra sólo las cartas del tanto (`useGameAnnouncements.ts`).
+- **Lo que no sale del código** (costumbres de mesa, marcadas como «en muchas mesas» o «en algunas»): pie de la pareja, señas, chico, fósforos, y las dos variantes de falta envido y de irse en primera.
+- **Conectada:** sitemap, `llms.txt` y versión markdown (por `PUBLIC_ROUTES`), pie de todas las guías y un enlace desde «Cómo se juega». **No** se sumó a la grilla de guías de la portada: con siete tarjetas queda una sola en la última fila; con la guía de la semana que viene (ocho) se puede reordenar.
+- Verificado: `npm run build`, `npm run check:agentes`, TypeScript y ESLint sin errores; vista a 360 y 1280 px sin desborde ni errores de página. No requiere SQL.
