@@ -119,6 +119,9 @@ export default function SeoPageLayout({
           <Link href="/como-ganar-al-truco" className="hover:text-gold transition-colors">
             Cómo ganar al truco
           </Link>
+          <Link href="/glosario-truco" className="hover:text-gold transition-colors">
+            Glosario
+          </Link>
           <Link href="/acerca-de-trucazo" className="hover:text-gold transition-colors">
             Acerca de
           </Link>

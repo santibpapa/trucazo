@@ -96,6 +96,15 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     frequency: 'monthly',
   },
   {
+    path: '/glosario-truco',
+    updated: '2026-11-13',
+    label: 'Glosario del truco',
+    blurb: 'qué significa cada palabra: mano, pie, parda, son buenas, tener el quiero y más.',
+    group: 'guia',
+    priority: 0.8,
+    frequency: 'monthly',
+  },
+  {
     path: '/truco-dos-jugadores',
     updated: '2026-09-14',
     label: 'Truco para dos jugadores',
