@@ -12,6 +12,20 @@ const suits: { value: Suit; label: string }[] = [
 ]
 const values = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
 
+// Calculado sobre las 9.880 manos posibles de 3 cartas (mazo de 40), contra
+// todas las manos que puede tener el rival con las 37 cartas restantes. Es la
+// misma cuenta de la tabla de /como-ganar-al-truco, extendida a todos los tantos.
+// tanto → [% de manos con ese tanto o más, % que gana siendo pie (pierde los
+// empates), % que gana siendo mano (gana los empates)]
+const odds: Record<number, [number, number, number]> = {
+  33: [2, 99, 100], 32: [3, 97, 99], 31: [6, 95, 97], 30: [9, 92, 95],
+  29: [13, 87, 92], 28: [17, 83, 87], 27: [25, 75, 83], 26: [32, 68, 75],
+  25: [38, 62, 68], 24: [43, 56, 61], 23: [48, 51, 56], 22: [52, 48, 51],
+  21: [56, 44, 47], 20: [60, 40, 43], 7: [70, 32, 41], 6: [79, 22, 29],
+  5: [86, 14, 20], 4: [91, 9, 13], 3: [95, 5, 7], 2: [97, 2, 4],
+  1: [99, 1, 2], 0: [100, 0, 1],
+}
+
 const defaults: Card[] = [
   { suit: 'espada', value: 1, rank: getRank(1, 'espada') },
   { suit: 'oro', value: 6, rank: getRank(6, 'oro') },
@@ -139,6 +153,24 @@ export default function EnvidoCalculator() {
           <p className="text-sm uppercase tracking-[0.15em] text-muted">Tu tanto es</p>
           <p className="mt-1 font-display text-5xl font-extrabold text-gold">{result}</p>
           <p className="mt-2 text-sm text-cream/90">{explanation(cards, result ?? 0)}</p>
+          {result != null && odds[result] && (
+            <div className="mt-4 border-t border-gold/20 pt-4 text-sm">
+              <p className="text-muted">Cuántas veces gana tu tanto</p>
+              <dl className="mt-2 grid grid-cols-2 gap-2">
+                <div>
+                  <dt className="text-subtle">Siendo mano</dt>
+                  <dd className="font-display text-2xl font-bold text-cream">{odds[result][2]}%</dd>
+                </div>
+                <div>
+                  <dt className="text-subtle">Siendo pie</dt>
+                  <dd className="font-display text-2xl font-bold text-cream">{odds[result][1]}%</dd>
+                </div>
+              </dl>
+              <p className="mt-2 text-xs text-subtle">
+                Contra una mano cualquiera. El {odds[result][0]}% de las manos tiene este tanto o más.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

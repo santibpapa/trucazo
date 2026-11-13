@@ -1,12 +1,12 @@
 # Backend — configuración, base de datos, seguridad y pruebas
 
-[Volver al README](../README.md) · Documento principal del backend. Estado revisado el **07/11/2026**.
+[Volver al README](../README.md) · Documento principal del backend. Estado revisado el **11/11/2026**.
 
 ## Estado actual
 
-Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa al historial de abajo.
+Foto al **11/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa al historial de abajo.
 
-- **Stack:** Next.js 15.5.28, React, TypeScript y Tailwind; Node 24.22.1 o posterior de la rama 24. Supabase aporta cuentas, Postgres y Realtime. La lógica online y las monedas oficiales viven en funciones SQL del servidor; las cartas de cada jugador, en tablas privadas fuera de Realtime.
+- **Stack:** Next.js 15.5.29, React, TypeScript y Tailwind; Node 24.22.1 o posterior de la rama 24. Supabase aporta cuentas, Postgres y Realtime. La lógica online y las monedas oficiales viven en funciones SQL del servidor; las cartas de cada jugador, en tablas privadas fuera de Realtime.
 - **El backend no se despliega solo.** Para corregir una función se crea una migración nueva y el dueño la ejecuta en el SQL Editor con instrucciones concretas. La reconstrucción y las pruebas SQL usan una base aislada ([receta](#reconstruir-base)).
 - **Compatibilidad con la app:** `app_compatibility.policy` con versión mínima **17** y sin reemplazo publicado (leído en producción el 07/11 y el 08/11); `native_push.settings` con `dispatch_enabled=false` (08/11). La app está en pausa, pero las reglas de [Cómo llegan los cambios](android.md#como-llegan-los-cambios) siguen valiendo.
 - **Tareas programadas (leídas en producción el 07/11 y otra vez el 08/11, sin diferencias):** limpieza de partidas 1v1 cada 5 min (`sweep_stale_games(10)`), mesas y parejas cada 5 min, torneos, correos y limpiezas diarias. El despachador de push (`trucazo-native-push`, cada 15 segundos) está desactivado mientras Android está en pausa: [migración del 07/11](../supabase/migrations/20261107220000_pausar_push_android.sql), aplicada por el dueño ese día y verificada en producción.
@@ -14,10 +14,11 @@ Foto al **07/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa al
 - **Chat global, 07/11:** ya no se borra al azar; quedan los últimos 500 (tarea diaria `trucazo-chat-keep-500`, activa en producción el 07/11) y se tapan las groserías fuertes de `chat_banned_words`. Migraciones aplicadas el 07/11 ([detalle](#chat-global-2026-11-07)).
 - **Cuotas de Supabase:** limpieza de Realtime e historial aplicada por el dueño el 04/11 ([detalle en Operación](operacion.md#cuotas-2026-11-04)).
 - **Ranking y presencia (PR #120):** cerrado; aceptación con partidas reales confirmada por el dueño el 08/11 ([Operación](operacion.md#correccion-cierres-presencia)).
+- **Invitado que se registra conserva lo jugado (11/11):** migración `20261111235000_convertir_invitado.sql` aplicada y *Manual linking* activado por el dueño; registro con email probado en la preview y publicado el 11/11 ([PR #183](https://github.com/santibpapa/trucazo/pull/183)). Google dado por cerrado por el dueño, sin rastro en los registros ([detalle](#convertir-invitado)).
 
 ## Próximo paso y cómo retomar
 
-No hay trabajo de backend pendiente. Antes de aplicar SQL, comprobar qué está aplicado de verdad: el [historial de migraciones](../supabase/migrations/) y una consulta de sólo lectura a producción dicen más que una nota vieja.
+No hay trabajo de backend pendiente. Si aparecen quejas al guardar lo jugado con Google, ver [convertir invitado](#convertir-invitado). Antes de aplicar SQL, comprobar qué está aplicado de verdad: el [historial de migraciones](../supabase/migrations/) y una consulta de sólo lectura a producción dicen más que una nota vieja.
 
 ## Guía de lectura
 
@@ -239,6 +240,46 @@ contra 30 direcciones, con y sin prefetch.
 CPU) que el gasto diario baje. Si no alcanza, quedan dos opciones a decidir por el
 dueño: pasar el middleware a `runtime: 'nodejs'` o el plan Pro (US$20 por mes).
 
+<a id="convertir-invitado"></a>
+
+### Invitado que se registra: conserva lo jugado (11/11/2026)
+
+**Estado (11/11):**
+- El dueño aplicó `supabase/migrations/20261111235000_convertir_invitado.sql` y activó *Manual linking*.
+- Probó el registro con email en la preview y anduvo. Consulta de sólo lectura a producción: el invitado convertido («cweawsda») conserva su partida (`games_played` 1), tiene 1.000 monedas, eligió su nombre, `guest_name_pending` quedó en false y `username_changed_at` sigue en null.
+- La primera prueba se hizo por error en `www.trucazo.com.ar`, todavía con el código viejo, y creó una cuenta nueva aparte («asdasd»).
+- **Google:** el dueño informó el 11/11 que lo probó y lo dio por cerrado. Sin embargo, en una consulta de sólo lectura de las 17:50 UTC no apareció ninguna cuenta convertida con Google ni ningún pedido a `/user/identities/authorize` en los registros de Auth desde las 16:00. Si un jugador reporta problemas al guardar lo jugado con Google, empezar por acá: *Manual linking*, el botón de `/register` y el callback.
+- **Integrado el 11/11 a las 17:05 UTC** ([PR #183](https://github.com/santibpapa/trucazo/pull/183)), con todas las comprobaciones en verde. Antes fallaron tres veces porque las máquinas de GitHub no resolvían `archive.ubuntu.com`. Comprobado en producción: un invitado que abre `/register` ve «Guardá lo que jugaste».
+
+**Pedido del dueño (11/11):** que el invitado que se registra no pierda lo que jugó. Decidió completar las monedas hasta 1.000 si tiene menos y dejarle elegir el nombre, porque el invitado se llama `Invitado####`.
+
+**Cómo era:** `/register` llamaba a `signUp`, que crea un usuario nuevo. El invitado quedaba abandonado con sus monedas, historial y Modo Historia.
+
+**Cómo queda:** si la sesión es de invitado, la web convierte al mismo usuario en cuenta. Todo lo que cuelga de su id se conserva solo.
+- **Email:** `/register` llama a `updateUser({ email, data })` y después a `updateUser({ password })`, refresca la sesión para que el token deje de decir invitado, acepta las normas y llama a `choose_guest_account_name`.
+  - Hoy Supabase confirma el email al instante: las 77 cuentas con email del último mes quedaron confirmadas en el acto (consulta de sólo lectura a `auth.users`, 11/11). Si algún día se pide confirmación, la pantalla muestra «Revisá tu email» y el invitado sigue siéndolo hasta tocar el enlace.
+  - Si el email ya tiene cuenta (`email_exists`), se avisa y no se toca nada.
+- **Google:** en `/register`, el botón usa `linkIdentity` cuando la sesión es de invitado (`GoogleButton` con `linkGuest`).
+  - Necesita *Manual linking* activado. Si está apagado, el botón avisa y no entra con otro usuario.
+  - Si esa cuenta de Google ya tiene usuario, Supabase vuelve con `error_code=identity_already_exists` y el callback lleva a `/register?google=ocupada` con el aviso.
+  - En `/login` y en la portada, Google sigue entrando con la cuenta que corresponda, como antes.
+- **Base:** columna `profiles.guest_name_pending` y trigger `on_guest_converted` en `auth.users`. El trigger sólo actúa cuando `is_anonymous` pasa de true a false:
+  - completa las monedas hasta 1.000;
+  - marca el nombre pendiente si sigue siendo `Invitado` con número. Quien eligió nombre al entrar por un enlace lo conserva.
+
+  Si algo falla, el trigger sólo deja un aviso: la conversión de la cuenta nunca se cae por el perfil.
+- **Nombre:** `choose_guest_account_name` se usa una sola vez, con las reglas de `change_username` (3 a 20 caracteres, filtro, nombre libre, sin partida en juego), y copia el nombre en las mismas tablas. No gasta el cambio gratis.
+  - Mira `auth.users` y no el token. Igual el trigger `safety_profiles` exige el token nuevo, por eso la web refresca la sesión antes.
+  - En el lobby, `GuestNamePrompt` se lo pide a quien tenga `guest_name_pending`, sobre todo a quien entró con Google. Puede quedarse con el nombre de invitado.
+- **Límite:** sólo funciona durante la visita. `GuestSessionGuard` cierra la sesión de invitado si el navegador vuelve después de 90 segundos sin latido.
+- **Compatibilidad:** sólo agrega una columna, un trigger y una función.
+
+**Pruebas:**
+- `supabase/tests/convertir_invitado.sql`, sumada al CI: monedas con 80, 3.000 y 40, quién queda pendiente, que otros cambios de `auth.users` no regalan monedas, una sola vez, rechazos, copia del nombre y permisos.
+- `seguridad_privilegios_funciones.sql` suma la función nueva a la lista de RPC públicas.
+- Base local reconstruida desde cero el 11/11: todas las pruebas SQL del CI pasan, salvo `game_completion_presence.sql`, que necesita la extensión `safeupdate`. Esa extensión sólo la instala el CI.
+- El flujo de Supabase Auth (`updateUser` y `linkIdentity`) no se puede probar en una base local: queda para la preview.
+
 <a id="chat-global-2026-11-07"></a>
 
 ### Chat global: últimos 500 mensajes y filtro de groserías
@@ -361,6 +402,8 @@ No son SQL "normal" y no entran en ningún archivo:
 - El **cron** que limpia partidas y mesas abandonadas (`sweep_stale_games` y
   `sweep_stale_tables`, cada 5 minutos). En una base local ni hace falta: el
   andamiaje deja una imitación de `cron` que no hace nada.
+- **Manual linking** en Authentication (desde el 11/11/2026): permite que un
+  invitado sume su cuenta de Google al mismo usuario ([convertir invitado](#convertir-invitado)).
 
 Para el 2vs2, la migración sí incorpora `team_tables` a la publicación de Realtime
 y programa `sweep_team_tables` cada 5 minutos. Hay que verificar ambos al aplicar

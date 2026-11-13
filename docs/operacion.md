@@ -1,30 +1,33 @@
 # Operación — soporte, cuentas, correos, publicación e incidentes
 
-[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **08/11/2026**.
+[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **12/11/2026**.
 
 ## Estado actual
 
-Foto al **08/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
+Foto al **12/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
 
 - **Producción web = `master`.** Del 27 al 30/10 Vercel publicó desde la rama Android; el [PR #147](https://github.com/santibpapa/trucazo/pull/147) lo corrigió. No repetirlo.
-- **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual ([cuotas](#cuotas-2026-11-04)). Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
+- **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual. **El 11/11 Supabase avisó que se pasó la cuota y dio gracia hasta el 11/12/2026; desde ahí, con más de 5,5 GB de egress por ciclo pueden restringir el proyecto** ([cuotas](#cuotas-2026-11-04)). El emulador de pruebas explica la mitad del exceso. Para entrar en el límite se publicó el [aviso de partida reducido](#aviso-partida-reducido) el 11/11; falta medir el egress de los próximos días. Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
 - **AdSense rechazado** por «contenido de poco valor» (04/11). Guías nuevas publicadas para volver a pedir la revisión; detalle en [Juego](juego.md#adsense-rechazo-poco-valor).
-- **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)).
-- **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)).
+- **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)). Auditoría del 11/11 con el método claude-seo: la parte técnica está bien; faltan contenido en las páginas cortas y una firma con nombre ([auditoría](#seo-auditoria-2026-11-11)). Portada nueva publicada el 11/11 ([PR #182](https://github.com/santibpapa/trucazo/pull/182), [detalle](#portada-2026-11-11)); el dueño pidió su indexación el mismo día. Las cuatro páginas cortas, ampliadas en el [PR #183](https://github.com/santibpapa/trucazo/pull/183) junto con la [conversión de invitado en cuenta](backend.md#convertir-invitado), se publicaron el 11/11 ([detalle](#paginas-cortas-2026-11-11)); indexación pedida el mismo día. Títulos más cortos y firma con el nombre del dueño publicados el 11/11 ([PR #185](https://github.com/santibpapa/trucazo/pull/185), [detalle](#titulos-firma-2026-11-11)). El dueño pidió la indexación de las nueve páginas cambiadas el 11/11; el informe del 01/12 dirá si «Cómo se juega» consigue más clics.
+- **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)). Desde el 12/11 el dueño las ve todas en el panel, **Admin → Reseñas** (`/admin/resenas`), con nombre, email y datos de quien la dejó ([detalle](#panel-resenas)).
 - **Ranking y presencia (PR #120, 13/10):** cerrado. SQL aplicado, presencia comprobada y aceptación con partidas reales confirmada por el dueño el 08/11 ([detalle](#correccion-cierres-presencia)).
 - **Node en Vercel:** el repo pide 24.22.1 (PR #141), pero el 21/10 el servidor público seguía en 24.21.0. Sin volver a comprobar desde entonces ([detalle](#node-seguridad-2026-10-21)).
 - **Eliminación de cuenta** integrada (PR #101). El buzón de soporte `hola@trucazo.com.ar` recibe correos ([comprobado el 08/11](#buzon-soporte)). **Correos de novedades:** sin autorización nueva para enviar.
 - **Cambio de nombre de usuario:** en el perfil (una sola vez, gratis), publicado el 08/11 ([PR #171](https://github.com/santibpapa/trucazo/pull/171), [detalle](#cambio-nombre-usuario)). El 08/11 se renombró a mano `alcalayaalvaro` → `Almafuerte` por pedido a `hola@`.
 - **Ciclo de retorno:** sus funciones SQL están en producción (comprobado el 07/11). Registro en [Publicación del ciclo de retorno](#ciclo-despliegue).
 
+**Reseña del 10/11 «tengo que reiniciar la página»:** no es una falla del servidor. La computadora del jugador tiene la hora adelantada una hora o más y eso rompe la sesión cada pocos minutos. Desde el [PR #178](https://github.com/santibpapa/trucazo/pull/178) (publicado el 10/11) la mesa avisa cuando la hora del dispositivo está corrida ([diagnóstico](#reloj-adelantado-2026-11-10)).
+
 **Congelamiento de la base del 02/11:** cerrado. El dueño confirmó el 08/11 que fue por el plan gratuito de Supabase, que usa una máquina chica y compartida ([diagnóstico](#lentitud-2026-11-03)). El emulador Android que hacía pedidos contra producción ya no aparece: las tres cuentas de prueba no tienen actividad desde el 03/11 (consulta de sólo lectura a `user_presence`, 08/11).
 
 ## Próximo paso y cómo retomar
 
-Ninguno en curso al 08/11/2026. Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
+Ninguno en curso al 10/11/2026. Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
 
 ## Guía de lectura
 
+- [Reseña «tengo que reiniciar la página»: hora del dispositivo adelantada, 10/11](#reloj-adelantado-2026-11-10).
 - [Lentitud al entrar: diagnóstico y arreglos, 03/11](#lentitud-2026-11-03).
 - [Revisión del aviso de seguridad de Node, 21/10](#node-seguridad-2026-10-21).
 - [Revisión de PR de Dependabot y orden de incorporación, 19/10](#dependabot-2026-10-19).
@@ -33,10 +36,31 @@ Ninguno en curso al 08/11/2026. Ante un incidente nuevo, empezar con consultas d
 - [Eliminación de cuenta, reintentos y soporte](#eliminacion-cuenta).
 - [Correos de novedades](#correos-novedades); avisos propios de torneos en [su contrato](juego.md#contrato-torneos).
 - [Publicación del ciclo de retorno](#ciclo-despliegue).
-- [SEO y páginas públicas](#seguimiento-seo); última revisión: [informe del 01/11](#seo-2026-11-03).
+- [SEO y páginas públicas](#seguimiento-seo); última revisión: [auditoría del 11/11](#seo-auditoria-2026-11-11).
 - Para las recetas SQL y pruebas, leer [Backend](backend.md); para publicar la app, [Android](android.md).
 
 Actualizar aquí incidentes, soporte, pasos de panel, publicación y evidencia operativa. Las rutas de código/SQL parten de la raíz del repositorio. Registrar por separado lo preparado y lo aplicado; conservar fechas y no convertir notas históricas en autorización para actuar sobre cuentas o contactar personas.
+
+<a id="reloj-adelantado-2026-11-10"></a>
+
+## Reseña «tengo que reiniciar la página»: hora del dispositivo adelantada — 10/11/2026
+
+**Reseña:** 10/11 11:58 (hora de Argentina), con «tuve un problema»: «cada cierto tiempo tengo que reiniciar la página porque se me buguea y no me deja jugar o no me aparecen las cartas». Cuenta creada ese día; cinco partidas contra bots del lobby, de 11:06 a 11:56, desde Firefox 159 en Windows.
+
+**Qué se vio (consultas de sólo lectura a `games`, `game_history`, `analytics_events` y los registros de Supabase):**
+
+- Todas las jugadas que llegaron con su sesión se respondieron bien (código 200). La base y las funciones no fallaron.
+- Desde ese navegador hubo **1.205 renovaciones de sesión** (`/auth/v1/token`) en una hora, de 20 a 46 por minuto; ninguna otra conexión pasó de 15 en todo el día. El pase de cada pedido había sido emitido en ese mismo segundo: se renovaba antes de casi cada pedido.
+- **17 renovaciones** fueron rechazadas por exceso (código 429). Justo después, la página siguió mandando las jugadas **sin sesión**: 405 `timeout_mazo`, 88 `touch_presence`, 9 `bot_step`, 4 `play_card` y otras, todas rechazadas (401 y 406). Para el jugador, la mesa se congela: el bot no juega, sus cartas no se recargan y nada responde, hasta que recarga la página. Hubo cortes de 40 segundos a más de 3 minutos, casi siempre justo después de una jugada.
+- Mientras tanto corría el reloj de 30 segundos. Por eso perdió dos partidas por tres «sin tiempo» (`4cddb645…` ganando 9 a 7 y `a05b6c4a…` 0 a 4, −50 monedas cada una) y ganó otras dos porque el bot «se quedó sin tiempo» (`12c8b55f…` y `f78b0a07…`, +50 cada una). Las cuatro las decidió la falla; el saldo neto es cero. La quinta (26 a 30) se perdió por puntos. No se tocaron partidas ni monedas.
+
+**Causa:** la librería de sesión de Supabase decide si el pase venció con la hora de la computadora. El pase dura una hora: si la computadora está adelantada una hora o más, cada pase nuevo parece vencido, se renueva en cada pedido y se supera el límite de renovaciones del servidor (los rechazos aparecieron con 20 a 46 por minuto). Cuando una renovación se rechaza, la librería espera 60 segundos antes de reintentar y, como el pase guardado también parece vencido, manda los pedidos como visitante anónimo. Que la hora esté adelantada sale de la regla de la librería (renueva cuando faltan menos de 90 segundos), no se midió la diferencia exacta. Lo más común es una zona horaria mal puesta en Windows.
+
+**Comprobación:** con `@supabase/auth-js` 2.118.0 (la versión instalada) y la hora adelantada 61 minutos, cinco `getSession()` hicieron cinco renovaciones, y tras un 429 devolvió sesión vacía. Con la hora bien: cero renovaciones y la sesión sigue tras el 429. Es un script de un solo uso que no quedó en el repositorio.
+
+**Qué cambia:** `src/app/game/[id]/GameClient.tsx` compara la hora del dispositivo con la del servidor al abrir la mesa (`serverNow`, que ya llegaba para el reloj de turno). Si la diferencia pasa los 10 minutos, muestra arriba de la mesa el aviso flotante de siempre: «La hora de tu dispositivo está adelantada/atrasada. Activá la hora automática para que la partida no se trabe.» Se cierra tocándolo. No cambia reglas, servidor ni base; la app Android pasa su propio `serverNow`, así que no necesita versión nueva. La solución de fondo para el jugador es poner la hora en automático; la librería no tiene una opción para tolerar relojes corridos.
+
+**Publicado:** [PR #178](https://github.com/santibpapa/trucazo/pull/178), incorporado a `master` el 10/11 con todas las comprobaciones automáticas en verde. Falta ver el aviso en una pantalla real con la hora corrida. El dueño le mandó al jugador el correo de disculpas con los pasos para poner la hora en automático (10/11).
 
 <a id="lentitud-2026-11-03"></a>
 
@@ -126,6 +150,10 @@ Si alguna gráfica toca el techo en ese rango, la base chica se quedó sin recur
 
 **Decisión del dueño, 04/11:** no pasar a Pro ni pagar nada hasta que Trucazo genere ingresos. Se asume el exceso de egress de este ciclo. Según la [política de uso justo](https://supabase.com/docs/guides/platform/billing-faq#fair-use-policy), en el plan gratuito llega un aviso y un período de gracia; si se sigue excedido puede haber restricciones (proyecto pausado o 402 en todos los pedidos) hasta que la cuota se renueve el 21. Ese período de gracia se usa una sola vez: si se vuelve a exceder en los ciclos siguientes, la restricción es inmediata. Por eso el objetivo es que el ciclo que empieza el 21/11 entre en 5 GB (≈0,16 GB/día).
 
+**Aviso de Supabase — 11/11/2026 (correo al dueño):** la organización Trucazo superó la cuota del plan. Como gesto por única vez, deja seguir con el consumo actual en este período; **desde el 11/12/2026 se aplica la política de uso justo**. Para evitar restricciones pide pasar a Pro o bajar el egress a **menos de 5,5 GB** por ciclo. Advierte que si el consumo sigue muy por encima durante la gracia pueden acortarla o restringir enseguida. El correo sólo nombra el egress (no los registros). Con eso, el objetivo pasa a ser ≤ 0,18 GB/día en el ciclo que empieza el 21/11; la decisión de no pagar sigue en pie.
+
+**Captura de Usage → Egress del 11/11 y cruce con la base (sólo lectura, 11/11):** 6,02 GB usados en el ciclo (1,02 GB de exceso). Egress diario leído del gráfico (aproximado): 21 al 26/10 entre 200 y 290 MB; 27, 28, 29 y 31/10 y 02/11 entre 380 y 455 MB; 05 al 09/11 entre 160 y 230 MB; 10/11 ~300 MB. Las cuentas de prueba `androidqa1` a `androidqa3` renovaron sesión (`auth.refresh_tokens`, horas distintas por día UTC) 21 h el 27/10, 24 h el 28/10, 17 h el 29/10, 6 h el 02/11 y 3 h el 03/11, y ningún otro día. Es decir, el emulador estuvo abierto unas 70 horas y coincide con casi todos los picos. Estimado: ~170 MB por día completo, ~500 MB en total, la mitad del exceso. El pico del 31/10 no coincide con el emulador y el del 10/11 tampoco; ninguno de los dos está explicado. Partidas creadas por día: ~165 del 21 al 26/10 y ~250 del 05 al 10/11 (jugadores distintos por día de ~75 a ~100). Egress por partida: ~1,4 MB antes de los recortes y ~0,85 MB después (estimado). Al ritmo del 05 al 10/11 (~210 MB por día) el ciclo cerraría en ~6,4 GB: sin emulador igual se supera el 5,5, y crece con los jugadores.
+
 **Medido después del cambio:** ~1 `UPDATE` de `games` por acción de juego (1.329 contra 1.353 acciones entre 13:53 y 16:05 UTC); juntar actualizaciones no ahorraría nada. ~25.000 acciones/día ≈ 40.000 mensajes de Realtime/día (las partidas contra bots tienen un solo oyente), por debajo de la cuota de 2 millones/mes.
 
 **Recortes de pedidos aplicados en código, 04/11 (aprobados por el dueño):**
@@ -138,7 +166,19 @@ Costo aceptado: si un aviso de Realtime se pierde, la jugada puede tardar hasta 
 
 **Desglose del panel (Usage → Egress, captura del dueño 04/11 14:28):** 4,53 GB usados del 21/10 al 21/11. 03/11, primer día con el [PR #157](https://github.com/santibpapa/trucazo/pull/157): ~295 MB = PostgREST 171 MB (58 %), Realtime 118 MB (40 %), Auth 6 MB (2 %). Los días anteriores fueron más altos (02/11 cerca de 445 MB, con el emulador encendido). Tamaños medidos: partida en JSON ~1,6 KB (es lo que devuelven `bot_step`, `play_card` y las demás acciones, y lo que trae cada lectura de `games`), lista del lobby ~0,8 KB, perfil ~0,4 KB; a eso se suman ~0,7 KB de cabeceras por pedido. Proyección con los cambios de hoy (estimada, sin medir): Realtime ~70 MB y PostgREST ~130 MB, ≈ 0,2 GB/día. Para entrar en 5 GB por ciclo hacen falta ≤ 0,16 GB/día: probablemente falte el aviso de partida reducido.
 
-**Otras propuestas:** cada pedido HTTP cuesta ~1 KB de cabeceras aunque la respuesta sea chica, así que bajar pedidos también baja egress. Juntar las tareas cron por minuto en una (registros). Más grande: mandar por Realtime sólo los campos que usa la mesa (requiere versión nueva de la app). Pedido al dueño: captura de Usage → Egress para ver qué servicio consume más.
+**Otras propuestas:** cada pedido HTTP cuesta ~1 KB de cabeceras aunque la respuesta sea chica, así que bajar pedidos también baja egress. Juntar las tareas cron por minuto en una (registros).
+
+<a id="aviso-partida-reducido"></a>
+
+**Aviso de partida reducido — preparado el 11/11/2026 (aprobado por el dueño):** con `postgres_changes`, cada cambio de `games` viajaba a cada jugador como la fila entera (~1,7 KB, medido sobre 300 partidas del día) más la lista de sus 34 columnas con el tipo, ~3 KB en total. Ahora un trigger que corre al confirmar cada transacción manda por el canal privado `game:<id>` sólo los campos que cambiaron y la versión de partida (`from`, el `updated_at` anterior). En una jugada común son ~0,7 KB (estimado). La mesa suma el cambio si encaja; si ya lo tenía, lo ignora; si le falta algo del medio, relee la partida. Los votos de revancha llegan por el mismo aviso, y su respaldo por polling pasa de cada 2,5 s a cada 15 s con Realtime conectado. Sólo los dos jugadores pueden escuchar el canal (política sobre `realtime.messages`), y una tarea de cron borra cada hora los avisos ya entregados: Supabase los guarda 3 días, y serían unos 60 MB. `games` sigue en la publicación de Realtime, así que las apps instaladas siguen recibiendo la fila entera. Archivos: [`20261111230000_aviso_partida_reducido.sql`](../supabase/migrations/20261111230000_aviso_partida_reducido.sql) y `GameClient.tsx`.
+
+- **Ahorro esperado (estimado):** Realtime era ~40 % del egress (~85 MB por día del 05 al 10/11). Bajando ~75 % los avisos de partida, el total pasaría de ~210 a ~150 MB por día, debajo de los ~180 necesarios.
+- **Comprobado el 11/11 en una base local reconstruida desde cero:** `supabase/tests/aviso_partida.sql` cubre un aviso por transacción con el estado final, nada sin cambios, sólo lo que cambió, `from` correcto, que escuchen los dos jugadores y no un tercero ni alguien sin sesión, un canal con nombre raro, que no se pueda mandar un aviso falso y la función cerrada a la API. Pasan además las demás pruebas SQL del CI. `game_completion_presence.sql` corrió sin el tramo que necesita `safeupdate` (no se pudo instalar acá). En la mesa: `check-game-polling-browser.mjs` (falla con la mesa anterior; agrega aviso viejo ignorado y aviso que no encaja → una relectura), `check-envido-reveal-browser.mjs`, `check-envido-recovery.mjs`, recuperación (13) y presencia (4).
+- **Trampa:** el trigger es diferido. Una transacción que modifica `games` y después hace `ALTER TABLE games` falla con «pending trigger events». Ninguna función del juego lo hace; `game_inactivity.sql` ahora manda el aviso antes (`set constraints … immediate`).
+- **SQL aplicado por el dueño — 11/11/2026, 02:39 UTC** (cron `trucazo-aviso-partida-cleanup` = tarea 18). Comprobado enseguida: trigger diferido y política creados, función cerrada a `authenticated`, avisos generándose con sólo los campos cambiados (de 360 a 860 bytes de contenido, promedio 421, contra ~3 KB del aviso anterior), cero advertencias o errores en Postgres. Política simulada con la sesión del jugador 1 de una partida en curso: ve sus 44 avisos; un usuario ajeno y un canal con nombre inventado ven 0. No se pudo probar desde acá la conexión real con invitados de prueba (el entorno no permite crear cuentas en producción).
+- **Probado en la preview por el dueño — 11/11/2026, 02:42 a 02:44 UTC** (duelo de Historia, registros de Supabase filtrados por el `referer` de la preview): la mesa se conectó al canal privado. Leyó la partida 4 veces en ~80 s, a los ~15 s del respaldo con Realtime conectado; sin conexión habrían sido ~35. Las lecturas de la mano (~0,85 por acción) son iguales en las dos versiones: no las cambia este PR. *Corrección del 11/11, 03:40 UTC:* comparar lecturas de la partida por acción (0,18 en la preview contra 0,36 en producción) no mide este cambio. Las dos versiones releen cada ~15 s con Realtime conectado, y la cifra depende de cuánto juega cada uno. El ahorro está en el peso de cada aviso, que sólo se ve en Usage → Egress.
+- **Próximo recorte posible:** `game_hands` se lee ~21.600 veces por día (2.705 en 3 horas), casi una por acción. `playCard` y el paso del bot releen la mano siempre, aunque la clave de reparto no cambie. Son ~20 MB por día entre respuesta y cabeceras (estimado). Sin hacer.
+- **Orden para publicar:** (1) el dueño aplica la migración en el SQL Editor; sola no cambia nada visible: los avisos se generan aunque nadie los escuche todavía. (2) Comprobar en producción que se generan y cuánto pesan. (3) Integrar el PR; la web lo recibe al publicarse `master`. **Integrado — [PR #181](https://github.com/santibpapa/trucazo/pull/181), 11/11/2026, 02:52 UTC.** Comprobado de 02:55 a 03:39 UTC con registros de Supabase: ningún jugador cayó al respaldo de 2,5 s (los cinco con más acciones releen cada ~15 s, también los dos de un mano a mano entre personas de las 03:20); cero advertencias «aviso de partida» y cero errores de Postgres o Realtime; 750 avisos en 30 minutos; la limpieza horaria (tarea 18) corrió bien a las 03:17. Las pestañas abiertas antes de la publicación siguen con la versión anterior hasta recargar. El aviso `Warp server error: Thread killed by timeout manager` de PostgREST ya aparecía todo el 10/11 con la misma frecuencia: no lo causa este cambio. **Pendiente:** comparar en Usage → Egress la barra naranja (Realtime) del 12/11 en adelante contra los ~85 MB por día del 05 al 10/11.
 
 <a id="node-seguridad-2026-10-21"></a>
 
@@ -632,7 +672,69 @@ distintas y no repite una misión exacta en dos días consecutivos.
 
 ## SEO y páginas públicas
 
-Se reúnen las implementaciones y las tareas externas registradas hasta el 24/08/2026, y la revisión del informe del 01/11/2026. Las versiones Markdown públicas que produce el build son archivos generados desde las páginas del sitio; no son notas manuales del proyecto.
+Se reúnen las implementaciones y las tareas externas registradas hasta el 24/08/2026, la revisión del informe del 01/11/2026 y la auditoría del 11/11/2026. Las versiones Markdown públicas que produce el build son archivos generados desde las páginas del sitio; no son notas manuales del proyecto.
+
+<a id="seo-auditoria-2026-11-11"></a>
+
+### Auditoría con el método claude-seo (11/11/2026)
+
+Pedido del dueño: revisar el sitio con el método del repositorio público [AgriciDaniel/claude-seo](https://github.com/AgriciDaniel/claude-seo) (licencia MIT), con dos focos: qué falta para que AdSense apruebe y qué títulos conviene mejorar. **No se cambió nada del sitio**; esto es la lista para decidir.
+
+**Cómo se hizo.** El complemento **no se instaló** en el proyecto: trae un gancho que corre en cada edición y programas de un tercero. Se clonó aparte, en un directorio temporal de la sesión, y se corrió su revisor `scripts/page_checks.py` (47 comprobaciones por página) sobre el HTML de las 18 direcciones del sitemap, bajado de producción el 11/11 con agente de Googlebot. Su modo `--url` no funciona en la nube de Claude porque rechaza el proxy local; se usó `--file` con el HTML y las cabeceras guardadas. Su detector de relleno y frases de IA (`content_quality.py`) no sirve para castellano: sus listas son sólo en inglés. El contenido se juzgó con su guía (`skills/seo-content`: las preguntas de Google «quién, cómo y por qué», y los mínimos de palabras por tipo de página, que el propio método aclara que son orientativos y no un factor de Google). Los datos de búsquedas salen del [informe del 01/11](https://github.com/santibpapa/trucazo/issues/153). No se midió la velocidad real: el método la toma de las API de Google, que no están conectadas.
+
+**Lo que está bien (no tocar):** las 18 páginas responden, tienen canónica propia, `index, follow`, un solo H1, idioma, Open Graph y datos estructurados válidos. `robots.txt`, sitemap, `llms.txt` y la versión Markdown responden. Las páginas **no se copian entre sí**: comparando frases de cinco palabras, el par más parecido comparte el 6 %, casi todo el bloque «¿Listo para la mesa?» del pie. El problema no es contenido duplicado sino contenido corto.
+
+**Prioridades, de mayor a menor:**
+
+1. **Páginas cortas que Google ve primero (AdSense).** Texto propio de cada página, sin menú ni pie: portada unas 180 a 280 palabras (el método pide al menos 500 para una portada), «Acerca de» 226, calculadora de envido 215, «Jugar sin registrarse» 255 y «Jugar con amigos» 287. Contacto, privacidad, términos y eliminar cuenta pueden quedar cortas: son páginas de trámite. Qué sumar en cada una:
+   - **Portada:** mostrar lo que hoy está detrás del inicio de sesión: Modo Historia (15 provincias, 66 rivales), torneos, mesas privadas, ranking. Es lo único propio que no tiene ningún otro sitio de truco.
+   - **Acerca de:** por qué existe Trucazo, desde cuándo, quién lo hace, cómo se prueban las reglas. Aparece mucho cuando buscan «trucazo» (1.334 veces en el informe del 01/11, posición 5).
+   - **Calculadora de envido:** sumar la tabla de cuánto vale cada tanto contra la mano del rival, que ya está calculada en [`/como-ganar-al-truco`](https://www.trucazo.com.ar/como-ganar-al-truco), y ejemplos resueltos.
+   - **Sin registrarse y con amigos:** ampliar con preguntas reales (qué pasa si se corta, cuánto dura una partida, si hay que estar los cuatro a la vez). «jugar al truco sin registrarse» ya aparece en la posición 9,9 (76 veces).
+2. **«¿Quién lo hace?» no tiene respuesta.** Ninguna página nombra a una persona: las guías firman «Equipo de Trucazo» y los datos estructurados dicen lo mismo. Es la primera pregunta de la guía de Google sobre contenido útil y pesa en la confianza. **Decisión del dueño:** firmar con nombre propio, con un seudónimo y una breve historia, o dejarlo como está. No se cambia sin su respuesta.
+3. **Títulos y descripciones que pueden salir cortados.** El método toma 60 caracteres para el título y 160 para la descripción; Google no publica un límite, es una estimación. «Cómo se juega» (61 caracteres, 1.436 apariciones y 1 clic, posición 8), portada (65), «Truco en parejas» (66) y «Envido, real envido y falta envido» (65). La descripción de «Truco contra la computadora» tiene 178. «Acerca de» repite la marca: «Acerca de Trucazo · Trucazo». Conviene probar títulos más cortos y que prometan algo concreto, sobre todo en «Cómo se juega».
+4. **Detalle de velocidad:** en `/orden-cartas-truco` las cuatro cartas bravas, que se ven al abrir, cargan en diferido (`src/app/orden-cartas-truco/page.tsx`, componente `Image` sin `priority`). Contradice la regla de AGENTS.md. Arreglo de una línea.
+
+**Seguimiento:** las búsquedas «ancho de basto» y «cuántas cartas tiene un mazo» ya tienen respuesta en `/orden-cartas-truco`, que estaba sin indexar; se pidió la indexación el 03/11. Revisar en el informe del 01/12 antes de tocar esa página.
+
+<a id="portada-2026-11-11"></a>
+
+#### Portada más completa sin más texto a la vista (11/11/2026)
+
+Primer punto de la auditoría. El dueño pidió que, si se sumaba contenido, quedara prolijo y escondido, porque la portada ya tenía mucho texto. Cambios en `src/app/page.tsx`:
+
+- **«Qué es Trucazo»:** los tres recuadros de texto pasan a una tarjeta del Modo Historia con el dibujo del lobby (`public/lobby/banner-historia.webp`) y tres tarjetas de una línea: mano a mano o parejas, amigos o computadora, y torneos. En pantallas de 640 px o más, el texto del Modo Historia va sobre la mitad derecha del dibujo, que está vacía.
+- **Guías:** sólo el título, en dos columnas en el celular y tres en la computadora.
+- **Preguntas frecuentes plegadas** (`<details>`): ocho preguntas, una línea cada una. Google lee las respuestas aunque estén cerradas. No se agregó `FAQPage`: Google ya no lo muestra como resultado enriquecido.
+- **Publicada el 11/11** con el [PR #182](https://github.com/santibpapa/trucazo/pull/182). Comprobado en producción después del despliegue: 8 preguntas, imagen del Modo Historia y mismo alto que en local, sin desborde a 360 ni 1280 px.
+- **Resultado medido en local el 11/11:** texto que lee Google de 279 a 551 palabras (`page_checks.py`). Alto a 360 px: 3.388 px antes (producción) y 3.628 después; a 1280 px, 2.191 y 2.902. Sin desborde horizontal. El revisor marca que la imagen del Modo Historia carga en diferido: es correcto, porque queda debajo de los botones, fuera de la primera pantalla.
+
+Cómo se comprobó cada respuesta:
+- Monedas sin valor real, sin compras ni suscripciones: términos de uso, cláusula de monedas.
+- 15 o 30 segundos por jugada, mazo automático al vencer y derrota al tercer vencimiento: `create_table` sólo admite 15 o 30 y `timeout_mazo` cuenta los vencimientos (`supabase/schema/functions.sql`).
+- Volver a la partida: el lobby muestra «Volver a la partida» cuando hay una en curso (`src/app/lobby/LobbyClient.tsx`).
+- Torneos con cuenta, sin perder lo jugado como invitado: aviso de `src/app/torneos/TournamentsHub.tsx`.
+- Duración: consulta de sólo lectura a `games` del 11/11, partidas terminadas de los últimos 30 días. A 15 puntos: 2.629 partidas, mediana 3,7 minutos. A 30 puntos: 3.256, mediana 6,8. Si se actualiza la respuesta, repetir la consulta y cambiar las fechas del texto. La misma cifra está en `/jugar-truco-con-amigos`.
+- **Corrección del 11/11:** la respuesta «¿Necesito una cuenta?» decía que al registrarse no se perdía lo jugado como invitado, y era falso: `/register` creaba un usuario nuevo. El dueño pidió que fuera cierto: desde el [cambio de convertir invitado](backend.md#convertir-invitado) el invitado que se registra en la misma visita lo conserva. La portada, `/jugar-truco-sin-registrarse` y el aviso de torneos para invitados lo dicen así. Esos textos dependen de que la migración esté aplicada y *Manual linking* activado antes de publicar.
+
+<a id="paginas-cortas-2026-11-11"></a>
+
+#### Páginas cortas ampliadas (11/11/2026)
+
+Segundo punto de la auditoría. El texto que lee Google se midió con `page_checks.py` sobre el build local; ninguna página quedó con avisos del revisor. Las fechas de actualización de esas páginas, y la de la portada, pasaron al 11/11 en `src/lib/routes.ts`.
+
+| Página | Antes | Después | Qué se sumó |
+| --- | --- | --- | --- |
+| `/acerca-de-trucazo` | 229 | 519 | Cómo creció, juego limpio, cómo se prueban las reglas. Título nuevo: «Acerca de: cómo nació y cómo funciona». |
+| `/calculadora-envido` | 322 | 642 | Debajo del resultado, cuántas veces gana ese tanto de mano y de pie; tantos posibles, errores comunes y dos ejemplos más. |
+| `/jugar-truco-sin-registrarse` | 267 | 558 | Qué queda para las cuentas, cuánto dura la visita, qué pasa al registrarse y el bono de 100 monedas. |
+| `/jugar-truco-con-amigos` | 298 | 806 | Enlace, código y lista de amigos; cuándo empieza la partida; monedas y revancha; preguntas frecuentes. |
+
+Cómo se comprobó lo nuevo:
+- **Probabilidades del envido:** se recalcularon las 9.880 manos contra las 7.770 manos posibles del rival con las 37 cartas restantes. Los tantos que ya estaban en la tabla de `/como-ganar-al-truco` coinciden exactos; se agregaron 0, 1, 2 y 3. Frecuencias: el 7 sale en 1.084 manos, el 33 en 152 y el 27 en 780.
+- **Invitado:** la sesión se cierra si el navegador vuelve después de 90 segundos sin latido (`src/components/GuestSessionGuard.tsx`). Chat sólo para registrados (`MatchChat.tsx`). Torneos sin inscripción para invitados (`TournamentsHub.tsx`). Misiones bloqueadas (`ObjectivesFloatingButton.tsx`). Bono: `claim_bonus` deja 100 monedas si quedan menos de 10, y la apuesta mínima es 10 (`create_table`).
+- **Amigos:** enlace con Compartir y Copiar (`ShareTableInvite.tsx` y el [capítulo de invitación por enlace](juego.md#invitacion-por-enlace)); «Unirse con código» y el botón Invitar de la lista de amigos (`LobbyClient.tsx`, `FriendsPanel.tsx`). El mano a mano arranca solo al entrar el rival (`join_table`); en parejas el creador toca «Empezar partida» y puede añadir o quitar bots (`TeamWaitingRoom.tsx`). Revancha con la misma apuesta (`request_rematch`). «Volver a la partida» sólo aparece para el mano a mano (`src/app/lobby/page.tsx` lee `games`).
+- **Acerca de:** fechas de las migraciones (reglas en el servidor desde el 20/06, provincias el 05/07, Patagonia el 17/08, parejas el 09/09, torneos el 21/09, noroeste el 23/09, invitación por enlace el 16/10) y creación del proyecto Supabase el 21/05/2026. Pruebas: 33 pasos de `supabase/tests` en `.github/workflows/ci.yml`, que corre en cada PR a `master`. No se agregó a nadie con nombre propio: la firma sigue esperando la decisión del dueño.
 
 <a id="seo-2026-11-03"></a>
 
@@ -661,6 +763,32 @@ Informe: [issue #153](https://github.com/santibpapa/trucazo/issues/153), del 02/
 - `.github/workflows/seo.yml`: el aviso de falla decía "esta quincena"; ahora dice "este mes".
 - `scripts/seo-report.mjs`: la lista de marca ahora incluye `trucoz` (que cubre trucozando, trucozado, trucozano y trucozolano), `trucanzo`, `truconazo` y `trucocho`. Se probó contra las búsquedas de los dos últimos informes: todas las variantes del nombre cuentan como marca y ninguna búsqueda genérica cambió de grupo. Rige desde el primer informe que corra con el cambio ya en `master`.
 - El informe del 01/12 recalcula también el período anterior con la lista nueva, así que su comparación es pareja. El del 01/11 queda como se publicó.
+
+<a id="titulos-firma-2026-11-11"></a>
+
+#### Títulos más cortos y firma con nombre (11/11/2026)
+
+Tercer y cuarto punto de la auditoría, en un PR aparte del #183, como pidió el dueño.
+
+**Títulos.** Medidos con el sufijo « · Trucazo» que agrega `src/app/layout.tsx`; el revisor toma 60 caracteres como tope.
+
+| Página | Antes | Después |
+| --- | --- | --- |
+| Portada | «Trucazo — Jugar al truco argentino online gratis, 1 vs 1 y 2 vs 2» (65) | «Trucazo: jugar al truco argentino online gratis» (47) |
+| `/como-se-juega-al-truco` | «Cómo se juega al truco argentino: reglas y ejemplos» (61) | «Cómo se juega al truco: reglas paso a paso» (52) |
+| `/envido-real-envido-falta-envido` | «Envido, real envido y falta envido: puntos y respuestas» (65) | «Envido, real envido y falta envido: cuánto vale» (57) |
+| `/truco-en-parejas` | «Truco en parejas: cómo jugar 2 vs 2 con cuatro jugadores» (66) | «Truco en parejas: cómo jugar 2 vs 2 de a cuatro» (57) |
+
+- La portada conserva la marca primero y «jugar al truco argentino online», que son las búsquedas que la traen; «1 vs 1 y 2 vs 2» ya está en la descripción.
+- La descripción de `/truco-contra-computadora` baja de 178 a 140 caracteres.
+- **Cómo medir el efecto:** comparar los clics de «Cómo se juega» en el informe del 01/12 contra el del 01/11 (1.436 apariciones, 1 clic, posición 8).
+
+**Publicado el 11/11** ([PR #185](https://github.com/santibpapa/trucazo/pull/185)) y comprobado en producción después del despliegue: título nuevo de la portada y de «Cómo se juega», y «Revisado por Santiago Barbeira» en las guías. Lo integró la sesión de Claude por pedido del dueño, con todas las comprobaciones en verde.
+
+**Firma.** El dueño decidió firmar con su nombre, **Santiago Barbeira**, de Buenos Aires. Aprobó el texto de «Quién hace Trucazo» en `/acerca-de-trucazo` el 11/11.
+- Las guías dicen «Revisado por Santiago Barbeira» (`EDITOR_NAME` en `src/lib/seo.ts`).
+- El autor de los `Article` pasa de `Organization` a `Person`.
+- El `Organization` de `src/app/layout.tsx` suma `founder`.
 
 <a id="seguimiento-seo"></a>
 
@@ -744,7 +872,7 @@ Estas tareas requieren acceso a producción o datos que no están en el reposito
 5. Revisar Core Web Vitals de campo cuando exista muestra suficiente.
 6. Fijar metas porcentuales recién después de contar con esa línea base.
 7. Agregar las redes sociales del juego al `sameAs` del schema `Organization`
-   (hoy sólo apunta al GitHub personal del autor). Requiere que existan esas
+   (el 11/11 ya incluía Instagram además del GitHub del autor; sumar otras redes si se crean). Requiere que existan esas
    cuentas. Es la señal más débil hoy para que Google distinga la marca
    "Trucazo" de la palabra común y de la app homónima en Google Play.
 
@@ -808,6 +936,10 @@ del juego se trabajan por separado. No envía correos ni contacta jugadores.
   no hay un segundo agente permanente. Accesos de GitHub/Supabase deben seguir
   conectados. La tarea puede terminar parcial por límites de ejecución y retomar
   pendientes en el próximo horario.
+
+<a id="panel-resenas"></a>
+
+**Panel de reseñas (`/admin/resenas`), 12/11/2026, pedido del dueño.** Lista las 300 reseñas más nuevas con fecha, puntajes, respuestas, comentario y capturas (enlaces privados que vencen en una hora), y de quien la dejó: nombre, email, tipo de cuenta, antigüedad, partidas, monedas, última sesión, cuántas reseñas dejó y enlace a su ficha. Arriba, promedios y porcentajes de lo listado. No usa SQL nuevo: la página comprueba que quien entra es admin y lee `feedback`, `profiles`, las cuentas de Auth y las capturas con la llave del servidor, igual que la página de emails. No muestra la clasificación del agente porque `feedback_internal` no está expuesto a la Data API.
 
 Contrato operativo del agente: [`scripts/feedback-review-agent.txt`](../scripts/feedback-review-agent.txt).
 La tarea carga este contrato y puede seguir una versión actualizada sin rehacerla.

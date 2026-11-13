@@ -42,16 +42,71 @@ export default function SinRegistroPage() {
           <li>Entrar al lobby y jugar partidas 1 contra 1 o en parejas 2 vs 2.</li>
           <li>Elegir mesas a 15 o 30 puntos.</li>
           <li>Usar envido, real envido, falta envido y toda la cadena del truco.</li>
-          <li>Conocer la experiencia antes de entregar datos de registro.</li>
+          <li>
+            Crear una mesa privada y pasarle el enlace a tus amigos, que también pueden
+            entrar sin cuenta. Está explicado en{' '}
+            <Link href="/jugar-truco-con-amigos" className="text-gold underline underline-offset-2">jugar con amigos</Link>.
+          </li>
+          <li>
+            Practicar contra la computadora y probar el{' '}
+            <Link href="/modo-historia-truco" className="text-gold underline underline-offset-2">Modo Historia</Link>.
+          </li>
+          <li>Leer el chat de la mesa y mandar frases rápidas.</li>
         </ul>
       </Section>
 
-      <Section title="Qué diferencia tiene una cuenta">
+      <Section title="Qué queda para las cuentas">
         <p>
-          Una cuenta registrada conserva entre visitas tu nombre, monedas, historial,
-          amistades, grupos, personalización, medallas y progreso del Modo Historia. La
-          sesión invitada está pensada para una visita y puede cerrarse al abandonar el
-          sitio o después de quedar inactiva.
+          Algunas funciones necesitan saber quién sos de una visita a la otra, o que
+          alguien responda por lo que se escribe. Por eso piden una cuenta registrada:
+        </p>
+        <ul className="flex flex-col gap-2 list-disc pl-5">
+          <li>Escribir mensajes en el chat de la mesa. El invitado los lee, pero no escribe.</li>
+          <li>Anotarse en torneos. Como invitado podés verlos, pero no inscribirte.</li>
+          <li>Sumar progreso en las misiones del día y cobrar sus premios.</li>
+          <li>
+            Guardar entre visitas tu nombre, monedas, historial, amistades, grupos,
+            personalización, medallas y avance del Modo Historia.
+          </li>
+        </ul>
+      </Section>
+
+      <Section title="Cuánto dura una visita de invitado">
+        <p>
+          La sesión de invitado sigue abierta mientras uses Trucazo. Si cerrás el
+          navegador y volvés más de un minuto y medio después, esa visita se da por
+          terminada: entrás como un invitado nuevo, con otras 1.000 monedas y sin el
+          historial anterior. Si recargás la página enseguida, seguís siendo el mismo
+          invitado.
+        </p>
+        <p>
+          Si estabas en una partida y se te cortó, volvé a entrar cuanto antes: cada
+          jugada tiene 15 o 30 segundos, según la mesa. En el mano a mano, el lobby te
+          ofrece volver a la partida en curso.
+        </p>
+      </Section>
+
+      <Section title="Si después querés una cuenta">
+        <p>
+          Si te registrás durante la misma visita, lo que jugaste como invitado pasa a
+          tu cuenta: monedas, historial y avance del Modo Historia. Si tenés menos de
+          1.000 monedas, te completamos hasta 1.000, lo mismo que recibe cualquier
+          cuenta nueva. Ahí también elegís tu nombre de usuario, en lugar del Invitado
+          con número.
+        </p>
+        <p>
+          Podés crearla con email y contraseña o con tu cuenta de Google. Si ese email o
+          esa cuenta de Google ya tenían un usuario en Trucazo, no se pueden juntar: al
+          entrar con la cuenta vieja, lo jugado como invitado no se suma. Y si la visita
+          de invitado ya se cerró, la cuenta arranca de cero con sus 1.000 monedas.
+        </p>
+      </Section>
+
+      <Section title="Si te quedás sin monedas">
+        <p>
+          La apuesta mínima de una mesa es de 10 monedas. Si te quedan menos, el lobby
+          muestra el botón <strong>Reclamar 100</strong> para que sigas jugando. Las
+          monedas son ficticias: no se compran ni se cambian por dinero.
         </p>
       </Section>
 

@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import Image from 'next/image'
+import type { ReactNode } from 'react'
 import { Logo, CoinIcon, buttonClass } from '@/components/ui'
 import GuestButton from '@/components/GuestButton'
 import GoogleButton from '@/components/GoogleButton'
@@ -14,9 +16,11 @@ const description =
 // El título arranca con la marca porque la mayoría de las visitas llegan
 // buscando "trucazo", pero sigue con "Jugar al truco...": de las diez búsquedas
 // que más nos muestran, cinco empiezan con "jugar". La portada es la única
-// página que compite por esas, así que el verbo tiene que estar acá.
+// página que compite por esas, así que el verbo tiene que estar acá. "1 vs 1 y
+// 2 vs 2" pasó a la descripción el 11/11: con eso el título llegaba a 65
+// caracteres y Google lo mostraba cortado.
 export const metadata = createPublicMetadata({
-  title: 'Trucazo — Jugar al truco argentino online gratis, 1 vs 1 y 2 vs 2',
+  title: 'Trucazo: jugar al truco argentino online gratis',
   description,
   path: '/',
   type: 'website',
@@ -53,12 +57,77 @@ const productJsonLd = {
 }
 
 const learningLinks = [
-  { href: '/como-se-juega-al-truco', label: 'Reglas completas', text: 'Empezá desde cero y entendé cada etapa de una mano.' },
-  { href: '/orden-cartas-truco', label: 'Orden de las cartas', text: 'Consultá qué carta mata a cuál con una tabla clara.' },
-  { href: '/calculadora-envido', label: 'Calculadora de envido', text: 'Elegí tus tres cartas y calculá el tanto al instante.' },
-  { href: '/pardas-truco-reglas', label: 'Pardas', text: 'Resolvé quién gana cuando una o más bazas empatan.' },
-  { href: '/envido-real-envido-falta-envido', label: 'Envido y sus cantos', text: 'Cuánto vale cada canto del envido, aceptado o rechazado.' },
-  { href: '/como-ganar-al-truco', label: 'Cómo ganar al truco', text: 'Con cuánto querer, qué carta tirar y cuándo mentir.' },
+  { href: '/como-se-juega-al-truco', label: 'Reglas completas' },
+  { href: '/orden-cartas-truco', label: 'Orden de las cartas' },
+  { href: '/calculadora-envido', label: 'Calculadora de envido' },
+  { href: '/pardas-truco-reglas', label: 'Pardas' },
+  { href: '/envido-real-envido-falta-envido', label: 'Envido y sus cantos' },
+  { href: '/como-ganar-al-truco', label: 'Cómo ganar al truco' },
+]
+
+const features = [
+  { href: '/truco-en-parejas', title: 'Mano a mano o en parejas', text: '1 contra 1 o 2 vs 2, a 15 o 30 puntos, sin flor.' },
+  { href: '/jugar-truco-con-amigos', title: 'Con amigos o contra la computadora', text: 'Mesa privada con código, o un rival de la casa si no hay nadie.' },
+  { href: null, title: 'Torneos', text: 'Llave, cruces en vivo y podio. Para anotarte necesitás cuenta.' },
+]
+
+// Preguntas plegadas: ocupan una línea cada una y Google lee la respuesta
+// igual, porque es un <details> real. Cada respuesta se comprobó contra el
+// juego (detalle en docs/operacion.md#portada-2026-11-11).
+const faqs: { q: string; a: ReactNode }[] = [
+  {
+    q: '¿Trucazo es gratis? ¿Las monedas valen plata?',
+    a: 'Es gratis: no hay cobros ni suscripciones. Las monedas son ficticias. Se ganan jugando, no se compran con dinero real, no se pasan a otras personas ni se cambian por nada de valor. En la tienda sirven para personalizar tu perfil y tu mesa.',
+  },
+  {
+    q: '¿Hay que descargar algo?',
+    a: 'No. Se juega desde el navegador del celular o de la computadora. Si querés, podés instalarlo desde el mismo navegador para abrirlo con un toque, como una aplicación.',
+  },
+  {
+    q: '¿Se juega con flor?',
+    a: (
+      <>
+        No. Trucazo usa la variante sin flor, a 15 o 30 puntos, con envido, real envido,
+        falta envido, truco, retruco y vale cuatro. Las{' '}
+        <Link href="/como-se-juega-al-truco" className="text-gold underline underline-offset-2">reglas completas</Link>{' '}
+        explican cada canto.
+      </>
+    ),
+  },
+  {
+    q: '¿Cómo juego con mis amigos?',
+    a: (
+      <>
+        En el lobby creás una mesa privada, elegís mano a mano o en parejas, el puntaje y
+        el tiempo por jugada, y compartís el código. En parejas, los lugares que falten se
+        pueden completar con bots.{' '}
+        <Link href="/jugar-truco-con-amigos" className="text-gold underline underline-offset-2">Paso a paso</Link>.
+      </>
+    ),
+  },
+  {
+    q: '¿Qué pasa si se me corta internet?',
+    a: 'La partida sigue. Cada jugada tiene 15 o 30 segundos, según la mesa: si se te vence, vas al mazo en esa mano, y al tercer vencimiento perdés la partida. Si volvés a entrar antes, seguís desde donde estabas.',
+  },
+  {
+    q: '¿Cuánto dura una partida?',
+    a: 'Depende del puntaje. En los mano a mano jugados entre octubre y noviembre de 2026, la mitad de las partidas a 15 puntos terminó en menos de 4 minutos, y la mitad de las de 30 puntos, en menos de 7.',
+  },
+  {
+    q: '¿Qué es el Modo Historia?',
+    a: (
+      <>
+        Una campaña mano a mano por 15 provincias, de Buenos Aires a Jujuy, contra 66
+        rivales con nombre, cara y forma de jugar propias. Al ganar sumás monedas y puntos
+        que abren provincias nuevas.{' '}
+        <Link href="/modo-historia-truco" className="text-gold underline underline-offset-2">Ver el recorrido</Link>.
+      </>
+    ),
+  },
+  {
+    q: '¿Necesito una cuenta?',
+    a: 'Para probar, no: entrás como invitado. Con una cuenta guardás perfil, monedas, historial, amistades y progreso del Modo Historia, y podés anotarte en torneos. Si te registrás durante la visita de invitado, lo que jugaste pasa a tu cuenta.',
+  },
 ]
 
 export default function Home() {
@@ -122,31 +191,54 @@ export default function Home() {
         <section className="border-t border-line py-14">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-gold">Qué es Trucazo</p>
           <h2 className="mt-3 max-w-3xl font-display text-3xl font-bold tracking-tight text-cream sm:text-4xl">
-            El truco que conocés, disponible en el celular o la computadora
+            El truco que conocés, en el celular o la computadora
           </h2>
-          <div className="mt-6 grid gap-5 text-cream/90 md:grid-cols-3">
-            <div className="rounded-2xl border border-line bg-surface p-5">
-              <h3 className="font-display text-lg font-bold text-gold">1 contra 1 o en parejas</h3>
-              <p className="mt-2 leading-relaxed">
-                Jugá mano a mano o armá una mesa 2 vs 2 de a cuatro, a 15 o 30 puntos, con
-                envido, real envido, falta envido, truco, retruco y vale cuatro. La
-                variante de Trucazo se juega sin flor.
+
+          <Link
+            href="/modo-historia-truco"
+            className="group relative mt-7 block overflow-hidden rounded-2xl border border-line bg-surface transition-colors hover:border-gold/50"
+          >
+            <Image
+              src="/lobby/banner-historia.webp"
+              alt="Mapa del Modo Historia con un camino entre rivales que juegan al truco"
+              width={2172}
+              height={724}
+              sizes="(min-width: 1024px) 976px, 100vw"
+              className="aspect-[2/1] w-full object-cover object-left sm:aspect-[3/1]"
+            />
+            {/* En pantallas anchas el texto va sobre la mitad derecha del
+                dibujo, que está vacía a propósito. */}
+            <div className="p-5 sm:absolute sm:inset-y-0 sm:right-0 sm:flex sm:w-[44%] sm:flex-col sm:justify-center sm:p-8">
+              <h3 className="font-display text-lg font-bold text-gold">Modo Historia</h3>
+              <p className="mt-1 text-cream/90">
+                Una campaña por 15 provincias y 66 rivales, cada uno con su forma de jugar.
               </p>
+              <p data-md="skip" className="mt-2 text-sm font-semibold text-gold group-hover:underline">Ver el recorrido →</p>
             </div>
-            <div className="rounded-2xl border border-line bg-surface p-5">
-              <h3 className="font-display text-lg font-bold text-gold">Personas, amigos o CPU</h3>
-              <p className="mt-2 leading-relaxed">
-                Buscá mesa, creá una partida privada para compartir o practicá contra
-                rivales controlados por computadora.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-line bg-surface p-5">
-              <h3 className="font-display text-lg font-bold text-gold">Gratis y sin apuestas</h3>
-              <p className="mt-2 leading-relaxed">
-                Las monedas forman parte del juego: son ficticias, no se compran ni se
-                convierten en dinero real.
-              </p>
-            </div>
+          </Link>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            {features.map(item => {
+              const body = (
+                <>
+                  <h3 className="font-display text-base font-bold text-cream">{item.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted">{item.text}</p>
+                </>
+              )
+              return item.href ? (
+                <Link
+                  key={item.title}
+                  href={item.href}
+                  className="rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-gold/50"
+                >
+                  {body}
+                </Link>
+              ) : (
+                <div key={item.title} className="rounded-2xl border border-line bg-surface p-4">
+                  {body}
+                </div>
+              )
+            })}
           </div>
         </section>
 
@@ -162,16 +254,31 @@ export default function Home() {
               Ver la guía completa →
             </Link>
           </div>
-          <div className="mt-7 grid gap-4 sm:grid-cols-2">
+          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {learningLinks.map(item => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-gold/50"
+                className="flex min-h-16 items-center rounded-2xl border border-line bg-surface px-4 py-3 transition-colors hover:border-gold/50"
               >
-                <h3 className="font-display text-lg font-bold text-cream">{item.label}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{item.text}</p>
+                <h3 className="font-display text-base font-bold leading-snug text-cream">{item.label}</h3>
               </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="border-t border-line py-14">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-gold">Dudas</p>
+          <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-cream">Preguntas frecuentes</h2>
+          <div className="mt-7 divide-y divide-line rounded-2xl border border-line bg-surface">
+            {faqs.map(({ q, a }) => (
+              <details key={q} className="group">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-semibold text-cream [&::-webkit-details-marker]:hidden">
+                  <h3>{q}</h3>
+                  <span aria-hidden="true" data-md="skip" className="shrink-0 text-xl leading-none text-gold transition-transform group-open:rotate-45">+</span>
+                </summary>
+                <p className="px-5 pb-5 leading-relaxed text-cream/90">{a}</p>
+              </details>
             ))}
           </div>
         </section>

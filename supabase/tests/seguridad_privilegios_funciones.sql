@@ -20,7 +20,7 @@ declare
     'native_push_state', 'native_push_preferences', 'native_push_register', 'native_push_unregister',
     'bot_join_table',
     'bot_step', 'buy_accessory', 'buy_frame', 'buy_salon',
-    'cancel_game_invite', 'cancel_table', 'change_username', 'claim_bonus', 'claim_objective_reward', 'claim_table_notification',
+    'cancel_game_invite', 'cancel_table', 'change_username', 'choose_guest_account_name', 'claim_bonus', 'claim_objective_reward', 'claim_table_notification',
     'clear_chat',
     'create_group', 'create_table', 'delete_chat_message', 'delete_group',
     'delete_news', 'ensure_lobby_tables', 'envido_say', 'forfeit',

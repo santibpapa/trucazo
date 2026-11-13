@@ -194,6 +194,9 @@ jobs:
       - name: Rival inactivo, tres vencimientos y recuperación de reparto
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/game_inactivity.sql
 
+      - name: Aviso de partida reducido y canal privado de los jugadores
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/aviso_partida.sql
+
       - name: Reseñas, recuperación, deduplicación y permisos del agente
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/feedback_review.sql
 
@@ -281,6 +284,9 @@ jobs:
 
       - name: Invitaciones públicas y privadas, permisos y cobro único
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/table_invites.sql
+
+      - name: Invitado que se registra conserva lo jugado, monedas hasta 1.000 y nombre a elegir
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/convertir_invitado.sql
 
       - name: Bots del lobby que se sientan en mesas de la gente
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/lobby_bots_cuidamesas.sql

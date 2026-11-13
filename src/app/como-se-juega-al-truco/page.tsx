@@ -8,7 +8,7 @@ import {
 } from '@/lib/seo'
 
 const path = '/como-se-juega-al-truco'
-const title = 'Cómo se juega al truco argentino: reglas y ejemplos'
+const title = 'Cómo se juega al truco: reglas paso a paso'
 const description =
   'Aprendé las reglas del truco argentino: orden de cartas, envido, real envido, falta envido, pardas, mano, truco y puntajes.'
 

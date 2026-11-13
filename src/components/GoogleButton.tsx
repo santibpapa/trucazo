@@ -10,6 +10,9 @@ interface Props {
   variant?: 'primary' | 'secondary' | 'ghost'
   size?: 'sm' | 'md' | 'lg'
   returnTo?: '/eliminar-cuenta' | '/android'
+  /** En /register: si la sesión es de invitado, le suma Google al mismo
+   *  usuario (conserva lo jugado) en vez de entrar con otro. */
+  linkGuest?: boolean
 }
 
 /** Logo oficial de Google (multicolor). */
@@ -25,7 +28,7 @@ export function GoogleLogo() {
 }
 
 /** Entrar con la cuenta de Google (OAuth de Supabase). */
-export default function GoogleButton({ variant = 'secondary', size = 'lg', returnTo }: Props) {
+export default function GoogleButton({ variant = 'secondary', size = 'lg', returnTo, linkGuest = false }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -41,6 +44,25 @@ export default function GoogleButton({ variant = 'secondary', size = 'lg', retur
     const next = invitationPath(new URLSearchParams(window.location.search).get('next'))
     const destination = returnTo ?? next ?? remembered ?? (isAndroidEntry() ? '/android' : undefined)
     document.cookie = `trucazo_auth_next=${destination ?? ''}; Path=/; Max-Age=600; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`
+
+    if (linkGuest) {
+      const { data } = await supabase.auth.getSession()
+      if (data.session?.user?.is_anonymous) {
+        // Necesita "Manual linking" activado en Supabase (Authentication →
+        // Sign In / Providers). Sin eso falla acá y avisamos, en vez de entrar
+        // con otro usuario y perder lo jugado.
+        const { error: linkErr } = await supabase.auth.linkIdentity({
+          provider: 'google',
+          options: { redirectTo: `${window.location.origin}/auth/callback` },
+        })
+        if (linkErr) {
+          setError('Por ahora no se puede guardar con Google. Usá email y contraseña.')
+          setLoading(false)
+        }
+        return
+      }
+    }
+
     const { error: authErr } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback`,

@@ -4,7 +4,7 @@ import JsonLd from '@/components/JsonLd'
 import { createArticleJsonLd, createBreadcrumbJsonLd, createPublicMetadata } from '@/lib/seo'
 
 const path = '/truco-en-parejas'
-const title = 'Truco en parejas: cómo jugar 2 vs 2 con cuatro jugadores'
+const title = 'Truco en parejas: cómo jugar 2 vs 2 de a cuatro'
 const description =
   'Cómo se juega al truco argentino de a cuatro: quién es compañero de quién, orden de la mesa, envido declarado por turno, truco por equipo y puntaje compartido.'
 

@@ -3,7 +3,8 @@ import { SITE_URL } from '@/lib/site'
 import { updatedFor } from '@/lib/routes'
 
 export const SITE_NAME = 'Trucazo'
-export const EDITOR_NAME = 'Equipo de Trucazo'
+// Firma de las guías (decisión del dueño, 11/11/2026: con su nombre).
+export const EDITOR_NAME = 'Santiago Barbeira'
 
 /**
  * Fecha de la página que se está armando. Cada página tiene la suya en
@@ -129,7 +130,7 @@ export function createArticleJsonLd({
     inLanguage: 'es-AR',
     ...(updated ? { datePublished: updated, dateModified: updated } : {}),
     author: {
-      '@type': 'Organization',
+      '@type': 'Person',
       name: EDITOR_NAME,
       url: `${SITE_URL}/acerca-de-trucazo`,
     },

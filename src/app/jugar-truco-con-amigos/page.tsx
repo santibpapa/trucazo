@@ -30,9 +30,57 @@ export default function ConAmigosPage() {
           <li>En el lobby, abrí la opción para crear una mesa.</li>
           <li>Elegí la modalidad: mano a mano o 2 vs 2 en parejas.</li>
           <li>Elegí partida privada, puntaje objetivo y tiempo por jugada.</li>
-          <li>Compartí el código que aparece en la sala de espera.</li>
-          <li>Tus amigos usan ese código para unirse y comenzar.</li>
+          <li>En la sala de espera, compartí el enlace o el código de la mesa.</li>
+          <li>Tus amigos entran con el enlace o con el código y la partida empieza.</li>
         </ol>
+      </Section>
+
+      <Section title="Tres formas de sumar a tus amigos">
+        <div className="flex flex-col gap-4">
+          <div>
+            <h3 className="font-semibold text-cream">Por enlace</h3>
+            <p className="mt-1">
+              En la sala de espera tocá <strong>Invitar por enlace</strong>. Con{' '}
+              <strong>Compartir</strong> se abre el menú de tu celular para mandarlo por
+              el chat que uses; con <strong>Copiar enlace</strong> lo pegás donde
+              quieras. Quien lo abre ve quién creó la mesa, la apuesta, los puntos y el
+              tiempo por jugada antes de aceptar. Puede entrar con su cuenta o como
+              invitado, eligiendo un nombre.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-semibold text-cream">Por código</h3>
+            <p className="mt-1">
+              La sala de espera muestra el código de la mesa. Tu amigo lo escribe en el
+              lobby, en <strong>Unirse con código</strong>. Sirve para pasarlo de palabra
+              o por mensaje.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-semibold text-cream">Desde tu lista de amigos</h3>
+            <p className="mt-1">
+              Con cuenta podés agregar amigos por su nombre de usuario. La lista muestra
+              quién está conectado o jugando, y el botón <strong>Invitar</strong> le
+              manda la invitación sin salir del juego.
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Cuándo empieza la partida">
+        <p>
+          En el mano a mano, la partida arranca sola cuando entra tu rival. En parejas,
+          cada persona elige su lugar en la mesa: el de enfrente es su compañero. Cuando
+          los cuatro lugares están ocupados, quien creó la mesa toca{' '}
+          <strong>Empezar partida</strong>. Si son menos de cuatro, el creador puede
+          poner bots en los lugares libres con <strong>Añadir bot</strong>, y sacarlos
+          con <strong>Quitar bot</strong> si después llega alguien.
+        </p>
+        <p>
+          El enlace y el código sirven mientras la mesa espera. Una mesa llena, ya
+          empezada o cancelada no deja entrar a nadie más. Quien ya estaba sentado puede
+          volver a su lugar sin pagar de nuevo.
+        </p>
       </Section>
 
       <Section title="Qué puede configurarse">
@@ -51,6 +99,57 @@ export default function ConAmigosPage() {
           El registro no es necesario para probar el flujo. En una mesa en parejas, los
           lugares que falten se completan con bots.
         </p>
+        <p>
+          Una diferencia en la mesa: todos leen el chat, pero sólo quienes tienen cuenta
+          pueden escribir. Los invitados se comunican con las frases rápidas.
+        </p>
+      </Section>
+
+      <Section title="Monedas y revancha">
+        <p>
+          Cada persona pone la apuesta de la mesa, como mínimo 10 monedas, y el que gana
+          se lleva el pozo. Son monedas ficticias: no valen plata ni se pueden pasar de
+          una cuenta a otra. En el mano a mano, al terminar pueden pedir{' '}
+          <strong>revancha</strong>: si los dos aceptan, arranca otra partida con la
+          misma apuesta.
+        </p>
+      </Section>
+
+      <Section title="Preguntas frecuentes">
+        <div className="flex flex-col gap-5">
+          <div>
+            <h3 className="font-semibold text-cream">¿Mis amigos tienen que crear una cuenta?</h3>
+            <p className="mt-1">
+              No. Pueden entrar como invitados desde el enlace, eligiendo un nombre. La
+              cuenta sólo hace falta para escribir en el chat y para guardar monedas e
+              historial entre visitas.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-semibold text-cream">¿Cuánto dura una partida?</h3>
+            <p className="mt-1">
+              En los mano a mano jugados entre octubre y noviembre de 2026, la mitad de
+              las partidas a 15 puntos terminó en menos de 4 minutos, y la mitad de las
+              de 30 puntos, en menos de 7.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-semibold text-cream">¿Qué pasa si alguno se corta?</h3>
+            <p className="mt-1">
+              La partida sigue. Si a alguien se le vence el tiempo de su jugada, va al
+              mazo en esa mano; al tercer vencimiento pierde la partida, y en parejas
+              pierde su equipo. En el mano a mano, al volver a entrar, el lobby le ofrece{' '}
+              <strong>Volver a la partida</strong>.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-semibold text-cream">¿Pueden ver la mesa personas desconocidas?</h3>
+            <p className="mt-1">
+              Una mesa privada no aparece en la lista del lobby. Sólo entra quien tenga
+              el enlace o el código, mientras queden lugares libres.
+            </p>
+          </div>
+        </div>
       </Section>
 
       <Section title="Repasar antes de jugar">
