@@ -4,12 +4,12 @@
 
 ## Estado actual
 
-Foto al **15/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
+Foto al **15/11/2026** (tareas programadas y migraciones comprobadas en producción ese día; ver [Backend](backend.md#estado-actual)). Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
 
 - **Producción web = `master`.** Del 27 al 30/10 Vercel publicó desde la rama Android; el [PR #147](https://github.com/santibpapa/trucazo/pull/147) lo corrigió. No repetirlo.
 - **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual. **El 11/11 Supabase avisó que se pasó la cuota y dio gracia hasta el 11/12/2026; desde ahí, con más de 5,5 GB de egress por ciclo pueden restringir el proyecto** ([cuotas](#cuotas-2026-11-04)). El emulador de pruebas explica la mitad del exceso. Para entrar en el límite se publicó el [aviso de partida reducido](#aviso-partida-reducido) el 11/11; falta medir el egress de los próximos días. Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
 - **AdSense rechazado** por «contenido de poco valor» (04/11). Guías nuevas publicadas para volver a pedir la revisión; detalle en [Juego](juego.md#adsense-rechazo-poco-valor).
-- **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)). Auditoría del 11/11 con el método claude-seo: la parte técnica está bien; faltan contenido en las páginas cortas y una firma con nombre ([auditoría](#seo-auditoria-2026-11-11)). Portada nueva publicada el 11/11 ([PR #182](https://github.com/santibpapa/trucazo/pull/182), [detalle](#portada-2026-11-11)); el dueño pidió su indexación el mismo día. Las cuatro páginas cortas, ampliadas en el [PR #183](https://github.com/santibpapa/trucazo/pull/183) junto con la [conversión de invitado en cuenta](backend.md#convertir-invitado), se publicaron el 11/11 ([detalle](#paginas-cortas-2026-11-11)); indexación pedida el mismo día. Títulos más cortos y firma con el nombre del dueño publicados el 11/11 ([PR #185](https://github.com/santibpapa/trucazo/pull/185), [detalle](#titulos-firma-2026-11-11)). El dueño pidió la indexación de las nueve páginas cambiadas el 11/11; el informe del 01/12 dirá si «Cómo se juega» consigue más clics.
+- **SEO:** auditoría del 11/11 con el método claude-seo: la parte técnica está bien; faltaban contenido en las páginas cortas y una firma con nombre ([auditoría](#seo-auditoria-2026-11-11)). Todo publicado el 11/11: [portada nueva](#portada-2026-11-11) (PR #182), [páginas cortas ampliadas](#paginas-cortas-2026-11-11) (PR #183) y [títulos más cortos y firma](#titulos-firma-2026-11-11) (PR #185). El dueño pidió la indexación de las nueve páginas cambiadas ese día; el informe del 01/12 dirá si «Cómo se juega» consigue más clics. Revisión anterior: [03/11](#seo-2026-11-03).
 - **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)). Desde el 12/11 el dueño las ve todas en el panel, **Admin → Reseñas** (`/admin/resenas`), con nombre, email y datos de quien la dejó ([detalle](#panel-resenas)).
 - **Panel de admin lento (15/11):** la lista de personas venía entera (4.109, 2 MB) en cada apertura y el panel tardaba 2 a 3 s. Ahora llega de a 50 y el buscador pregunta al servidor; SQL aplicado en producción el 15/11 ([detalle](#panel-admin-lento-2026-11-15)).
 - **Ranking y presencia (PR #120, 13/10):** cerrado. SQL aplicado, presencia comprobada y aceptación con partidas reales confirmada por el dueño el 08/11 ([detalle](#correccion-cierres-presencia)).
@@ -24,7 +24,7 @@ Foto al **15/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 
 ## Próximo paso y cómo retomar
 
-Ninguno en curso al 10/11/2026. Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
+Al 15/11/2026: (1) medir el egress del 12/11 en adelante en Supabase → Usage → Egress y compararlo con los ~85 MB por día de Realtime del 05 al 10/11 ([aviso de partida](#aviso-partida-reducido)); hay gracia hasta el 11/12. (2) Que el dueño confirme el panel de admin en el navegador ([detalle](#panel-admin-lento-2026-11-15)). Ante un incidente nuevo, empezar con consultas de sólo lectura a producción y registrar lo encontrado en un capítulo fechado.
 
 ## Guía de lectura
 

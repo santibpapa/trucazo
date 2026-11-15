@@ -6,18 +6,18 @@ Truco argentino online a **15 o 30 puntos, sin flor y con monedas ficticias**. I
 
 <a id="estado-actual"></a>
 
-## En qué estamos — 08/11/2026
+## En qué estamos — 15/11/2026
 
 Una línea por tema. Cada sesión reemplaza **sólo la línea de su tema**, con fecha; el detalle va en el documento del tema.
 
 - **Web:** [www.trucazo.com.ar](https://www.trucazo.com.ar). Lo publicado es siempre `master`: Vercel publica solo cada merge. — 07/11
 - **Juego:** Historia (15 provincias, 66 rivales), 1v1, parejas y torneos funcionando. Vidas de Historia programadas y apagadas. [Juego](docs/juego.md#estado-actual) — 07/11
-- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (04/11). Se suma una guía nueva por semana; la del 13/11 es el glosario del truco. [Diagnóstico y guías](docs/juego.md#adsense-rechazo-poco-valor) — 13/11
+- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (04/11). Se suma una guía nueva por semana; la del 13/11, el glosario del truco, está publicada (PR #188). [Diagnóstico y guías](docs/juego.md#adsense-rechazo-poco-valor) — 15/11
 - **App Android:** **en pausa** hasta que AdSense dé el okey (anuncios aprobados) y Trucazo genere ingresos. Etapas 1 a 17 cerradas, 18 empezada, nada publicado en Play. [Android](docs/android.md#android-estado-actual) — 08/11
 - **Servidor:** un solo servidor para la web y la app: todo cambio en Supabase o en los servicios web tiene que seguir funcionando para las apps ya instaladas. [Cómo llegan los cambios](docs/android.md#como-llegan-los-cambios) — 07/11
-- **Operación:** plan gratuito de Supabase y Vercel, con recortes de consumo del 03 al 06/11. Supabase avisó el 11/11 que se pasó la cuota: gracia hasta el 11/12, después el egress tiene que quedar debajo de 5,5 GB por ciclo. Aviso de partida reducido publicado el 11/11 (PR #181), sin errores; falta medir el egress de los próximos días. Reseñas revisadas por un agente lunes, miércoles y viernes ([tablero #118](https://github.com/santibpapa/trucazo/issues/118)); el dueño las ve con nombre y email en Admin → Reseñas desde el 12/11 ([detalle](docs/operacion.md#panel-resenas)). Cambio de nombre de usuario publicado (PR #171). Reseña del 10/11 «tengo que reiniciar la página»: hora de la computadora adelantada; aviso en la mesa publicado (PR #178). Panel de admin lento por traer las 4.109 personas juntas: lista de a 50 buscada en el servidor, SQL aplicado el 15/11 ([detalle](docs/operacion.md#panel-admin-lento-2026-11-15)). SEO: portada nueva publicada e indexación pedida el 11/11 (PR #182); páginas cortas ampliadas y conversión de invitado en cuenta publicadas el 11/11 (PR #183); títulos más cortos y firma con el nombre del dueño publicados el 11/11 (PR #185); el dueño pidió la indexación de las nueve páginas cambiadas el mismo día ([detalle](docs/operacion.md#titulos-firma-2026-11-11)). [Operación](docs/operacion.md#aviso-partida-reducido) — 15/11
+- **Operación:** plan gratuito de Supabase y Vercel. Supabase avisó el 11/11 que se pasó la cuota: gracia hasta el 11/12, después el egress tiene que quedar debajo de 5,5 GB por ciclo; el aviso de partida reducido (PR #181, 11/11) busca entrar en ese límite y falta medir el resultado. Panel de admin más rápido (personas de a 50) publicado el 15/11. SEO: portada, páginas cortas, títulos y firma publicados el 11/11, indexación pedida. Reseñas: tablero #118 y Admin → Reseñas. [Operación](docs/operacion.md#estado-actual) — 15/11
 
-**Pendientes del dueño, fuera del código:** ninguno al 08/11. La firma de la app ya tiene copia en un pendrive y el emulador de pruebas no se conecta a producción desde el 03/11.
+**Pendientes del dueño, fuera del código (15/11):** (1) mirar en Supabase → Usage → Egress si la barra de Realtime bajó del 12/11 en adelante (antes, unos 85 MB por día); (2) abrir el panel de admin y confirmar que la lista de personas carga, busca y muestra «Ver más».
 
 <a id="indice"></a>
 
@@ -36,7 +36,7 @@ Una línea por tema. Cada sesión reemplaza **sólo la línea de su tema**, con 
 
 ## Ejecutar la web localmente
 
-Estos pasos son para preparar el proyecto en una computadora. Node.js **24.22.1 o posterior de la rama24** y un proyecto Supabase configurado; las herramientas adicionales de Android se explican en su documento.
+Estos pasos son para preparar el proyecto en una computadora. Node.js **24.22.1 o posterior de la rama 24** y un proyecto Supabase configurado; las herramientas adicionales de Android se explican en su documento.
 
 1. Abrí una terminal dentro de la carpeta del proyecto e instalá las dependencias:
 
