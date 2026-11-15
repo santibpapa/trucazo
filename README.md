@@ -17,7 +17,7 @@ Una línea por tema. Cada sesión reemplaza **sólo la línea de su tema**, con 
 - **Servidor:** un solo servidor para la web y la app: todo cambio en Supabase o en los servicios web tiene que seguir funcionando para las apps ya instaladas. [Cómo llegan los cambios](docs/android.md#como-llegan-los-cambios) — 07/11
 - **Operación:** plan gratuito de Supabase y Vercel. Supabase avisó el 11/11 que se pasó la cuota: gracia hasta el 11/12, después el egress tiene que quedar debajo de 5,5 GB por ciclo; con el aviso de partida reducido (PR #181, 11/11) Realtime bajó unos 70 % y el total quedó en ~115 a 180 MB por día, justo en el límite (medido el 15/11). Panel de admin más rápido (personas de a 50) publicado y confirmado por el dueño el 15/11. SEO: portada, páginas cortas, títulos y firma publicados el 11/11, indexación pedida. Reseñas: tablero #118 y Admin → Reseñas. [Operación](docs/operacion.md#estado-actual) — 15/11
 
-**Pendientes del dueño, fuera del código (15/11):** opcional, confirmar la versión de Node en Vercel → Logs, buscando `[runtime] Node.js` (tiene que decir 24.22.1 o más; [detalle](docs/operacion.md#estado-actual)).
+**Pendientes del dueño, fuera del código:** ninguno al 15/11.
 
 <a id="indice"></a>
 
