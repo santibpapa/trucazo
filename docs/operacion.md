@@ -1,16 +1,17 @@
 # Operación — soporte, cuentas, correos, publicación e incidentes
 
-[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **12/11/2026**.
+[Volver al README](../README.md) · Documento principal de operación. Estado revisado el **15/11/2026**.
 
 ## Estado actual
 
-Foto al **12/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
+Foto al **15/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
 
 - **Producción web = `master`.** Del 27 al 30/10 Vercel publicó desde la rama Android; el [PR #147](https://github.com/santibpapa/trucazo/pull/147) lo corrigió. No repetirlo.
 - **Plan gratuito de Supabase y Vercel:** el dueño decidió seguir en el plan gratuito. Lentitud corregida y publicada el 03/11 ([PR #157](https://github.com/santibpapa/trucazo/pull/157), [diagnóstico](#lentitud-2026-11-03)). Limpieza de Realtime e historial aplicada el 04/11; ese ciclo de datos (21/10 al 21/11) se excede igual. **El 11/11 Supabase avisó que se pasó la cuota y dio gracia hasta el 11/12/2026; desde ahí, con más de 5,5 GB de egress por ciclo pueden restringir el proyecto** ([cuotas](#cuotas-2026-11-04)). El emulador de pruebas explica la mitad del exceso. Para entrar en el límite se publicó el [aviso de partida reducido](#aviso-partida-reducido) el 11/11; falta medir el egress de los próximos días. Middleware angostado el 06/11 por el cupo de CPU de Vercel ([Backend](backend.md#cpu-vercel)).
 - **AdSense rechazado** por «contenido de poco valor» (04/11). Guías nuevas publicadas para volver a pedir la revisión; detalle en [Juego](juego.md#adsense-rechazo-poco-valor).
 - **SEO:** informe del 01/11 revisado el 03/11. El dueño pidió indexar las páginas cambiadas el 03/11 y el 04/11 ([revisión](#seo-2026-11-03)). Auditoría del 11/11 con el método claude-seo: la parte técnica está bien; faltan contenido en las páginas cortas y una firma con nombre ([auditoría](#seo-auditoria-2026-11-11)). Portada nueva publicada el 11/11 ([PR #182](https://github.com/santibpapa/trucazo/pull/182), [detalle](#portada-2026-11-11)); el dueño pidió su indexación el mismo día. Las cuatro páginas cortas, ampliadas en el [PR #183](https://github.com/santibpapa/trucazo/pull/183) junto con la [conversión de invitado en cuenta](backend.md#convertir-invitado), se publicaron el 11/11 ([detalle](#paginas-cortas-2026-11-11)); indexación pedida el mismo día. Títulos más cortos y firma con el nombre del dueño publicados el 11/11 ([PR #185](https://github.com/santibpapa/trucazo/pull/185), [detalle](#titulos-firma-2026-11-11)). El dueño pidió la indexación de las nueve páginas cambiadas el 11/11; el informe del 01/12 dirá si «Cómo se juega» consigue más clics.
 - **Reseñas:** un agente programado las revisa lunes, miércoles y viernes; el estado está en el [tablero #118](https://github.com/santibpapa/trucazo/issues/118) ([cómo funciona](#seguimiento-resenas)). Desde el 12/11 el dueño las ve todas en el panel, **Admin → Reseñas** (`/admin/resenas`), con nombre, email y datos de quien la dejó ([detalle](#panel-resenas)).
+- **Panel de admin lento (15/11):** la lista de personas venía entera (4.109, 2 MB) en cada apertura y el panel tardaba 2 a 3 s. Ahora llega de a 50 y el buscador pregunta al servidor; SQL aplicado en producción el 15/11 ([detalle](#panel-admin-lento-2026-11-15)).
 - **Ranking y presencia (PR #120, 13/10):** cerrado. SQL aplicado, presencia comprobada y aceptación con partidas reales confirmada por el dueño el 08/11 ([detalle](#correccion-cierres-presencia)).
 - **Node en Vercel:** el repo pide 24.22.1 (PR #141), pero el 21/10 el servidor público seguía en 24.21.0. Sin volver a comprobar desde entonces ([detalle](#node-seguridad-2026-10-21)).
 - **Eliminación de cuenta** integrada (PR #101). El buzón de soporte `hola@trucazo.com.ar` recibe correos ([comprobado el 08/11](#buzon-soporte)). **Correos de novedades:** sin autorización nueva para enviar.
@@ -27,6 +28,7 @@ Ninguno en curso al 10/11/2026. Ante un incidente nuevo, empezar con consultas d
 
 ## Guía de lectura
 
+- [Panel de admin lento por la lista entera de personas, 15/11](#panel-admin-lento-2026-11-15).
 - [Reseña «tengo que reiniciar la página»: hora del dispositivo adelantada, 10/11](#reloj-adelantado-2026-11-10).
 - [Lentitud al entrar: diagnóstico y arreglos, 03/11](#lentitud-2026-11-03).
 - [Revisión del aviso de seguridad de Node, 21/10](#node-seguridad-2026-10-21).
@@ -61,6 +63,21 @@ Actualizar aquí incidentes, soporte, pasos de panel, publicación y evidencia o
 **Qué cambia:** `src/app/game/[id]/GameClient.tsx` compara la hora del dispositivo con la del servidor al abrir la mesa (`serverNow`, que ya llegaba para el reloj de turno). Si la diferencia pasa los 10 minutos, muestra arriba de la mesa el aviso flotante de siempre: «La hora de tu dispositivo está adelantada/atrasada. Activá la hora automática para que la partida no se trabe.» Se cierra tocándolo. No cambia reglas, servidor ni base; la app Android pasa su propio `serverNow`, así que no necesita versión nueva. La solución de fondo para el jugador es poner la hora en automático; la librería no tiene una opción para tolerar relojes corridos.
 
 **Publicado:** [PR #178](https://github.com/santibpapa/trucazo/pull/178), incorporado a `master` el 10/11 con todas las comprobaciones automáticas en verde. Falta ver el aviso en una pantalla real con la hora corrida. El dueño le mandó al jugador el correo de disculpas con los pasos para poner la hora en automático (10/11).
+
+<a id="panel-admin-lento-2026-11-15"></a>
+
+## Panel de admin lento por la lista entera de personas — 15/11/2026
+
+**Pedido del dueño:** «siento que `/admin` está cargando muy lento últimamente». Después autorizó el arreglo, aplicar el SQL e integrar.
+
+**Qué se midió (sólo lectura, 15/11):** el resto de Supabase normal (la mitad de los pedidos ≤ 50 ms en 24 h). `admin_stats` tardaba 0,8 a 3,3 s vista desde la API (el 03/11 promediaba 263 ms) y una vez falló a los 14,7 s, durante un pico general de la base. Medida dentro de la base: 533 a 747 ms y una respuesta de **2 MB**, porque desde el [cambio del 24/09](../supabase/migrations/20260924170620_admin_stats_all_people.sql) mandaba la ficha de todas las personas (4.109; 1.051 nuevas en 12 días) para que la lista buscara en el navegador. Esos 2 MB también iban al HTML de la página y al cupo de egress.
+
+**Qué cambió:** migración `20261115210000_admin_personas_paginadas.sql`.
+- `admin_stats(p_days, p_personas)`: con `p_personas = false` no manda la lista. Por defecto vale `true`, así la app instalada (que llama sólo con `p_days`) recibe lo mismo de siempre.
+- `admin_people(p_query, p_filter, p_order, p_limit, p_offset)`: una página (50 por defecto, tope 200) ya buscada por nombre o email, filtrada y ordenada en la base, con el total, cuántas jugaron y, por persona, cuántas de las que coinciden se anotaron ese día (`dia_cantidad`, para el renglón de día).
+- `src/app/admin/page.tsx` pide las dos a la vez; `Personas.tsx` vuelve a preguntar al servidor al buscar (espera 300 ms sin teclear), filtrar u ordenar, y tiene «Ver más».
+
+**Comprobado:** prueba nueva `supabase/tests/admin_personas.sql` (en el CI): con datos de prueba, las 25 combinaciones de filtro y orden, recorridas de a 7, dan las mismas personas en el mismo orden que la lista vieja ordenada como lo hacía el navegador; mismos datos por persona; búsqueda, límites y permisos (no admin y anónimo rechazados). Base reconstruida desde cero y prueba de permisos de funciones aprobadas; tipos, ESLint y `npm run build` aprobados. **En producción, 15/11, tras aplicar el SQL:** misma comparación sobre las 4.114 personas reales (primeras 200 de cada combinación) sin diferencias; números del panel 114 ms y 5 KB (antes 533 ms y 2 MB); primera página 74 ms y 26 KB; una búsqueda 46 ms. **No comprobado:** la pantalla en un navegador con sesión de admin; lo verifica el dueño al abrir el panel.
 
 <a id="lentitud-2026-11-03"></a>
 
