@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { cn } from '@/components/ui/cn'
 import { Columnas, Embudo, Horarios } from './Graficos'
 import Personas from './Personas'
-import { diaCorto, diaLargo, fechaYHora, numero, VIZ, type Stats } from './lib'
+import { diaCorto, diaLargo, fechaYHora, numero, VIZ, type PaginaPersonas, type Stats } from './lib'
 
 export const RANGOS = [7, 14, 30, 90]
 
@@ -10,7 +10,16 @@ export const RANGOS = [7, 14, 30, 90]
 // El tablero entero. No sabe de sesiones ni de Supabase: recibe las cuentas ya
 // hechas y las dibuja. (Los datos los trae page.tsx.)
 // ============================================================
-export default function Tablero({ stats, dias }: { stats: Stats; dias: number }) {
+export default function Tablero({
+  stats,
+  dias,
+  personas,
+}: {
+  stats: Stats
+  dias: number
+  /** Primera página de la lista; si falta, la lista la pide sola al abrir. */
+  personas?: PaginaPersonas
+}) {
   const { totales: t, serie, embudo, horarios, generado_at: ahora } = stats
 
   // Los gráficos de arriba usan los mismos datos, pero cuentan cosas distintas:
@@ -247,10 +256,10 @@ export default function Tablero({ stats, dias }: { stats: Stats; dias: number })
       {/* ---------------------------------------------------------- */}
       {/* Quién y cuándo                                              */}
       {/* ---------------------------------------------------------- */}
-      <Personas personas={stats.personas} ahora={ahora} />
+      <Personas inicial={personas} ahora={ahora} />
 
       <p className="mt-4 text-center text-xs text-subtle">
-        La lista muestra las últimas 500 personas registradas. Los bots de la campaña y
+        La lista trae de a 50 personas; el buscador y los filtros buscan entre todas. Los bots de la campaña y
         del lobby no cuentan como personas, pero sus partidas sí aparecen como
         &laquo;contra la máquina&raquo;.
       </p>

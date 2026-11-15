@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import Tablero, { RANGOS } from './Tablero'
-import type { Stats } from './lib'
+import type { PaginaPersonas, Stats } from './lib'
 
 // Página privada del admin: nunca la indexa Google.
 export const metadata: Metadata = {
@@ -23,9 +23,20 @@ export default async function AdminPage({
   const pedido = Number(searchParams?.dias)
   const dias = RANGOS.includes(pedido) ? pedido : 30
 
-  // La función se defiende sola: si no sos admin, tira error y te vas al lobby.
-  const { data, error } = await supabase.rpc('admin_stats', { p_days: dias })
-  if (error || !data) redirect('/lobby')
+  // Las dos funciones se defienden solas: si no sos admin, tiran error y te vas
+  // al lobby. Los números y la primera página de personas se piden a la vez; el
+  // resto de la lista la pide el buscador cuando hace falta.
+  const [stats, personas] = await Promise.all([
+    supabase.rpc('admin_stats', { p_days: dias, p_personas: false }),
+    supabase.rpc('admin_people'),
+  ])
+  if (stats.error || !stats.data) redirect('/lobby')
 
-  return <Tablero stats={data as Stats} dias={dias} />
+  return (
+    <Tablero
+      stats={stats.data as Stats}
+      dias={dias}
+      personas={personas.error ? undefined : (personas.data as PaginaPersonas)}
+    />
+  )
 }
