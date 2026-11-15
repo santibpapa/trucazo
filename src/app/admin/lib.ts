@@ -62,6 +62,16 @@ export type Persona = {
   visto_at: string | null
 }
 
+/** Una página de la lista de personas (RPC admin_people). */
+export type PaginaPersonas = {
+  /** Cuántas personas coinciden con la búsqueda y el filtro, en total. */
+  total: number
+  /** De esas, cuántas jugaron alguna partida. */
+  jugaron: number
+  /** Cada persona trae cuántas de las que coinciden se anotaron ese mismo día. */
+  personas: (Persona & { dia_cantidad: number })[]
+}
+
 export type Embudo = {
   registrados: number
   jugaron_una: number
@@ -76,7 +86,8 @@ export type Stats = {
   hasta: string
   totales: Totales
   serie: DiaSerie[]
-  personas: Persona[]
+  /** Sólo si se pide con p_personas = true (la app instalada); la web usa admin_people. */
+  personas?: Persona[] | null
   embudo: Embudo
   horarios: { hora: number; partidas: number }[]
 }

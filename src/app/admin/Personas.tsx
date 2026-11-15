@@ -1,21 +1,25 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Avatar } from '@/components/ui'
 import { cn } from '@/components/ui/cn'
+import { createClient } from '@/lib/supabase/client'
 import {
   diaDe, diaLargo, ETIQUETA_TIPO, fechaYHora, haceCuanto, numero,
-  type Persona, type TipoCuenta,
+  type PaginaPersonas, type Persona, type TipoCuenta,
 } from './lib'
 
 // ============================================================
 // "Quién y cuándo": la lista de personas, la más nueva arriba y agrupada por
 // día de registro. Se puede buscar por nombre o email, filtrar (los que
 // jugaron, los que no, los invitados) y ordenar por cualquier columna.
-// Todo pasa en el navegador: los datos ya vinieron enteros del servidor.
+// La búsqueda, el filtro y el orden los hace el servidor (RPC admin_people),
+// que manda de a 50: traer a todas juntas llegó a pesar 2 MB y a tardar 3 s.
 // ============================================================
+
+const POR_PAGINA = 50
 
 type Filtro = 'todos' | 'jugaron' | 'no_jugaron' | 'con_cuenta' | 'invitados'
 type Orden = 'creado_at' | 'partidas' | 'ganadas' | 'dias_jugados' | 'ultima_partida'
@@ -35,41 +39,70 @@ const COLOR_TIPO: Record<TipoCuenta, string> = {
 }
 
 export default function Personas({
-  personas,
+  inicial,
   ahora,
 }: {
-  personas: Persona[]
+  inicial?: PaginaPersonas
   ahora: string
 }) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
+  const [consulta, setConsulta] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [orden, setOrden] = useState<Orden>('creado_at')
+  const [pagina, setPagina] = useState<PaginaPersonas | null>(inicial ?? null)
+  const [cargando, setCargando] = useState(!inicial)
+  const [fallo, setFallo] = useState(false)
+  // Sólo vale la última respuesta: si se escribe rápido, las viejas se tiran.
+  const pedido = useRef(0)
+  // La primera página ya vino con la pantalla: no se pide de nuevo al abrir.
+  const yaTiene = useRef(Boolean(inicial))
 
-  const lista = useMemo(() => {
-    const q = busqueda.trim().toLowerCase()
-    const filtradas = personas.filter(p => {
-      if (q && !p.nombre.toLowerCase().includes(q) &&
-          !(p.email ?? '').toLowerCase().includes(q)) return false
-      if (filtro === 'jugaron') return p.partidas > 0
-      if (filtro === 'no_jugaron') return p.partidas === 0
-      if (filtro === 'con_cuenta') return p.tipo !== 'invitado'
-      if (filtro === 'invitados') return p.tipo === 'invitado'
-      return true
+  // Esperar a que se deje de escribir antes de preguntarle al servidor.
+  useEffect(() => {
+    const espera = setTimeout(() => setConsulta(busqueda.trim()), 300)
+    return () => clearTimeout(espera)
+  }, [busqueda])
+
+  async function traer(desde: number) {
+    const id = ++pedido.current
+    setCargando(true)
+    setFallo(false)
+    const { data, error } = await createClient().rpc('admin_people', {
+      p_query: consulta || null,
+      p_filter: filtro,
+      p_order: orden,
+      p_limit: POR_PAGINA,
+      p_offset: desde,
     })
-    const valor = (p: Persona) =>
-      orden === 'creado_at' ? new Date(p.creado_at).getTime()
-      : orden === 'partidas' ? p.partidas
-      : orden === 'ganadas' ? p.ganadas
-      : orden === 'dias_jugados' ? p.dias_jugados
-      : p.ultima_partida ? new Date(p.ultima_partida).getTime() : 0
-    return [...filtradas].sort((a, b) => valor(b) - valor(a))
-  }, [personas, busqueda, filtro, orden])
+    if (id !== pedido.current) return
+    setCargando(false)
+    if (error || !data) {
+      setFallo(true)
+      return
+    }
+    const nueva = data as PaginaPersonas
+    setPagina(previa =>
+      desde === 0 || !previa ? nueva : { ...nueva, personas: [...previa.personas, ...nueva.personas] },
+    )
+  }
+
+  useEffect(() => {
+    if (yaTiene.current) {
+      yaTiene.current = false
+      return
+    }
+    void traer(0)
+    // traer usa justo estos tres valores; no hace falta repetirla por otra cosa.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consulta, filtro, orden])
+
+  const lista = pagina?.personas ?? []
+  const quedan = pagina ? pagina.total - lista.length : 0
 
   // Los renglones de día solo tienen sentido con la lista ordenada por fecha
   // de registro; en cualquier otro orden serían un estorbo.
   const agrupar = orden === 'creado_at'
-  const jugaron = lista.filter(p => p.partidas > 0).length
 
   return (
     <section className="rounded-2xl border border-line bg-surface shadow-card">
@@ -77,8 +110,8 @@ export default function Personas({
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="font-display text-lg font-bold text-cream">Quién se anotó y cuándo</h2>
           <p className="text-xs text-muted">
-            <b className="tabular-nums text-cream">{numero(lista.length)}</b> personas ·{' '}
-            <b className="tabular-nums text-cream">{numero(jugaron)}</b> jugaron alguna partida
+            <b className="tabular-nums text-cream">{numero(pagina?.total ?? 0)}</b> personas ·{' '}
+            <b className="tabular-nums text-cream">{numero(pagina?.jugaron ?? 0)}</b> jugaron alguna partida
           </p>
         </div>
 
@@ -113,8 +146,12 @@ export default function Personas({
       </header>
 
       {lista.length === 0 ? (
-        <p className="p-10 text-center text-sm text-subtle">
-          No hay nadie que cumpla con eso.
+        <p className="p-10 text-center text-sm text-subtle" role="status">
+          {fallo
+            ? 'No se pudo cargar la lista. Probá de nuevo en un rato.'
+            : cargando
+              ? 'Buscando…'
+              : 'No hay nadie que cumpla con eso.'}
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -137,9 +174,7 @@ export default function Personas({
               {lista.map((p, i) => {
                 const dia = diaDe(p.creado_at)
                 const nuevoDia = agrupar && (i === 0 || diaDe(lista[i - 1].creado_at) !== dia)
-                const delDia = nuevoDia
-                  ? lista.filter(x => diaDe(x.creado_at) === dia).length
-                  : 0
+                const delDia = nuevoDia ? p.dia_cantidad : 0
                 return (
                   <RenglonPersona
                     key={p.id}
@@ -152,6 +187,22 @@ export default function Personas({
               })}
             </tbody>
           </table>
+          {(quedan > 0 || fallo) && (
+            <div className="flex justify-center border-t border-line p-3">
+              <button
+                type="button"
+                onClick={() => void traer(lista.length)}
+                disabled={cargando}
+                className="rounded-full border border-line bg-surface2 px-4 py-1.5 text-sm font-medium text-cream hover:border-gold-700 disabled:opacity-60"
+              >
+                {cargando
+                  ? 'Cargando…'
+                  : fallo
+                    ? 'No se pudo cargar. Probar de nuevo'
+                    : `Ver ${numero(Math.min(quedan, POR_PAGINA))} más (quedan ${numero(quedan)})`}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </section>

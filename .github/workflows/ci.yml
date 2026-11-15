@@ -239,6 +239,9 @@ jobs:
       - name: Permisos de las funciones
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/seguridad_privilegios_funciones.sql
 
+      - name: Lista de personas del admin, de a páginas
+        run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/admin_personas.sql
+
       - name: Chat de partida, permisos y límites
         run: psql -v ON_ERROR_STOP=1 --quiet -f supabase/tests/match_chat.sql
 
