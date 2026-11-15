@@ -8,7 +8,7 @@ Foto al **15/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 
 - Truco argentino a 15 o 30 puntos, sin flor y con monedas ficticias. Las reglas online y los premios oficiales los decide el servidor; las manos rivales nunca se envían al cliente.
 - **Historia:** 15 provincias y 66 rivales. **Vidas de Historia programadas y apagadas** desde el 19/10: los jugadores no ven nada ni pierden vidas ([reglas y cómo activarlas](#vidas-de-historia)).
-- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (capturas del 04/11). El dueño decidió sumar **una guía nueva por semana**; la del 13/11, el [glosario del truco](#guia-semanal-glosario), se publicó ese día ([PR #188](https://github.com/santibpapa/trucazo/pull/188); `/glosario-truco` responde en producción, comprobado el 15/11). Para los anuncios con premio de las vidas hace falta además una cuenta de Google Ad Manager. Diagnóstico y avances en [Rechazo de AdSense](#adsense-rechazo-poco-valor).
+- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (capturas del 04/11). El dueño decidió sumar **una guía nueva por semana**; la del 13/11, el [glosario del truco](#guia-semanal-glosario), se publicó ese día ([PR #188](https://github.com/santibpapa/trucazo/pull/188); `/glosario-truco` responde en producción, comprobado el 15/11). **Google Ad Manager también rechazó la cuenta** (aviso del dueño, 15/11): todo lo de anuncios en la página queda **en pausa** hasta sumarle más valor al sitio; las guías semanales siguen. Diagnóstico y avances en [Rechazo de AdSense](#adsense-rechazo-poco-valor).
 - **Parejas** lanzadas el 14/09/2026 y **torneos** el 27/09/2026 (contrato al 07/10/2026).
 - **Chat escrito** en mesas normales y torneos; Historia tiene frases rápidas. Los bots no escriben en el chat libre.
 - **Bots en mesas de la gente** desde el 04/11 ([detalle](#bots-lobby-cuidamesas)).
@@ -1423,7 +1423,7 @@ presentación: no requiere SQL ni altera el ingreso, los cobros o los asientos.
 jugadores no ven vidas ni las pierden. No hay que reprogramarlo: sólo prenderlo cuando
 haya anuncios con premio. **Actualización 04/11/2026:** AdSense rechazó el sitio por
 «contenido de poco valor» (ver [Rechazo de AdSense](#adsense-rechazo-poco-valor)). Aun aprobado, AdSense no alcanza: falta una cuenta de Google Ad Manager con un bloque
-rewarded real (ver «Para retomar más adelante», al final de esta sección).
+rewarded real (ver «Para retomar más adelante», al final de esta sección). **Actualización 15/11/2026:** Google Ad Manager también rechazó la cuenta; el dueño pausó todo lo de anuncios hasta sumarle más valor a la página.
 
 **Estado vigente — 19/10/2026:** la implementación del
 [PR #130](https://github.com/santibpapa/trucazo/pull/130) y la pausa del
