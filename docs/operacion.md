@@ -745,6 +745,16 @@ El dueño sintió que la primera pantalla tenía mucho texto y ruido visual, y m
 - **De cinco botones apilados a una tarjeta:** «Jugar ahora sin registrarme» y «Continuar con Google» como botones; «Crear cuenta» y «Ya tengo cuenta» como enlaces chicos al pie de la tarjeta, con el mismo registro de clics (`register_cta_click`, `home_hero`). Las 1.000 monedas quedan adentro de la tarjeta.
 - **«Instalar app»** pasa al cierre de la página («Elegí cómo querés jugar»). Sigue apareciendo sólo en los navegadores que permiten instalar.
 - **Comprobado en local el 16/11:** a 360, 390 y 1280 px la tarjeta entra completa en la primera pantalla y no hay desborde horizontal; `tsc` y `eslint` sin errores en la página.
+- **Publicado el 16/11** con el [PR #191](https://github.com/santibpapa/trucazo/pull/191), mergeado por Claude a pedido del dueño. Comprobado en producción después del despliegue (captura a 390 px igual a la local).
+
+**Segunda parte, el resto de la portada (16/11).** El dueño pidió seguir con la misma idea abajo de la primera pantalla:
+
+- Una sola columna de 768 px para toda la página, con el mismo borde izquierdo que la primera pantalla (medido: título, secciones y pie arrancan en x = 280 a 1280 px).
+- Sin las etiquetas en mayúscula («Qué es Trucazo», «Aprender», «Dudas») ni las líneas entre secciones.
+- Sólo el Modo Historia va enmarcado. Las tres funciones pasan a texto sin recuadro; las guías y las preguntas, a listas con una línea fina entre filas.
+- Se quitó «Ver la guía completa →», que repetía el enlace de «Reglas completas».
+- El recuadro final pasa a «¿Jugamos una mano?», una línea y el botón «Jugar ahora» (`source: home_footer`), con «Instalar app» abajo. Sus cinco enlaces a los modos de juego pasan al pie, en una fila que la versión para agentes sí lee.
+- **SEO, comparado con Playwright contra producción el 16/11:** mismos títulos `h1` y `h3` y los mismos 17 destinos de enlaces internos. Único título cambiado: el `h2` final («Elegí cómo querés jugar» → «¿Jugamos una mano?»), sin palabras de búsqueda. Texto visible de 254 a 235 palabras; las respuestas plegadas, que Google también lee, no cambiaron.
 
 <a id="paginas-cortas-2026-11-11"></a>
 
