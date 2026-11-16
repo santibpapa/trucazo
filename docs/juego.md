@@ -1,14 +1,14 @@
 # Juego — Historia, mano a mano, parejas, bots y torneos
 
-[Volver al README](../README.md) · Documento principal de reglas y modalidades. Estado revisado el **07/11/2026**. Ese día se achicó a la mitad: quedan reglas, decisiones y trampas; las pruebas, auditorías y registros de entrega están en el [historial completo hasta el 07/11/2026](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md), con un aviso en cada lugar de donde salieron.
+[Volver al README](../README.md) · Documento principal de reglas y modalidades. Estado revisado el **15/11/2026**. El 07/11 se achicó a la mitad: quedan reglas, decisiones y trampas; las pruebas, auditorías y registros de entrega están en el [historial completo hasta el 07/11/2026](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md), con un aviso en cada lugar de donde salieron.
 
 ## Estado actual
 
-Foto al **13/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
+Foto al **15/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
 
 - Truco argentino a 15 o 30 puntos, sin flor y con monedas ficticias. Las reglas online y los premios oficiales los decide el servidor; las manos rivales nunca se envían al cliente.
 - **Historia:** 15 provincias y 66 rivales. **Vidas de Historia programadas y apagadas** desde el 19/10: los jugadores no ven nada ni pierden vidas ([reglas y cómo activarlas](#vidas-de-historia)).
-- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (capturas del 04/11). El dueño decidió sumar **una guía nueva por semana**; la del 13/11 es el [glosario del truco](#guia-semanal-glosario). Para los anuncios con premio de las vidas hace falta además una cuenta de Google Ad Manager. Diagnóstico y avances en [Rechazo de AdSense](#adsense-rechazo-poco-valor).
+- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (capturas del 04/11). El dueño decidió sumar **una guía nueva por semana**; la del 13/11, el [glosario del truco](#guia-semanal-glosario), se publicó ese día ([PR #188](https://github.com/santibpapa/trucazo/pull/188); `/glosario-truco` responde en producción, comprobado el 15/11). **Google Ad Manager también rechazó la cuenta** (aviso del dueño, 15/11): todo lo de anuncios en la página queda **en pausa** hasta sumarle más valor al sitio; las guías semanales siguen. Diagnóstico y avances en [Rechazo de AdSense](#adsense-rechazo-poco-valor).
 - **Parejas** lanzadas el 14/09/2026 y **torneos** el 27/09/2026 (contrato al 07/10/2026).
 - **Chat escrito** en mesas normales y torneos; Historia tiene frases rápidas. Los bots no escriben en el chat libre.
 - **Bots en mesas de la gente** desde el 04/11 ([detalle](#bots-lobby-cuidamesas)).
@@ -16,7 +16,7 @@ Foto al **13/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 
 ## Próximo paso y cómo retomar
 
-AdSense: una guía nueva por semana. Hecha: glosario (13/11). Quedan como candidatas manos de ejemplo explicadas e historia y variantes regionales ([Rechazo de AdSense](#adsense-rechazo-poco-valor)). Antes de tocar una modalidad existente, leer su entrega final y comprobar el código y el SQL actuales antes de cambiar reglas o repetir migraciones.
+AdSense: una guía nueva por semana. Hechas: estrategia (04/11) y glosario (13/11). Con la octava guía se puede reordenar la grilla de la portada (el glosario todavía no está en ella). Quedan como candidatas manos de ejemplo explicadas e historia y variantes regionales ([Rechazo de AdSense](#adsense-rechazo-poco-valor)). Antes de tocar una modalidad existente, leer su entrega final y comprobar el código y el SQL actuales antes de cambiar reglas o repetir migraciones.
 
 ## Guía de lectura
 
@@ -1423,7 +1423,7 @@ presentación: no requiere SQL ni altera el ingreso, los cobros o los asientos.
 jugadores no ven vidas ni las pierden. No hay que reprogramarlo: sólo prenderlo cuando
 haya anuncios con premio. **Actualización 04/11/2026:** AdSense rechazó el sitio por
 «contenido de poco valor» (ver [Rechazo de AdSense](#adsense-rechazo-poco-valor)). Aun aprobado, AdSense no alcanza: falta una cuenta de Google Ad Manager con un bloque
-rewarded real (ver «Para retomar más adelante», al final de esta sección).
+rewarded real (ver «Para retomar más adelante», al final de esta sección). **Actualización 15/11/2026:** Google Ad Manager también rechazó la cuenta; el dueño pausó todo lo de anuncios hasta sumarle más valor a la página.
 
 **Estado vigente — 19/10/2026:** la implementación del
 [PR #130](https://github.com/santibpapa/trucazo/pull/130) y la pausa del
@@ -1663,8 +1663,8 @@ a 25 por mes. Se revisaron otras redes: Ezoic, Raptive y Mediavine no admiten el
 tamaño o el país del público actual; Adsterra y Monetag aceptan pero se
 desaconsejan por formatos invasivos que pueden afectar el posicionamiento.
 
-**Primer avance — 04/11/2026 (rama `claude/adsense-rechazo-poco-valor`, sin
-publicar todavía):**
+**Primer avance — 04/11/2026 (publicado con el
+[PR #161](https://github.com/santibpapa/trucazo/pull/161)):**
 - Nueva guía `/como-ganar-al-truco` (unas 2.000 palabras): cómo medir la mano,
   tabla de probabilidades del envido calculada sobre las 9.880 manos posibles
   contra todas las del rival, la cuenta del «quiero», primera baza, truco,
@@ -1699,7 +1699,7 @@ varias semanas de contenido nuevo, tildar «Confirmo que corregí los problemas�
 
 <a id="guia-semanal-glosario"></a>
 
-**Guía semanal del 13/11 — glosario del truco** (`/glosario-truco`, rama `claude/optimistic-planck-e2167m`, sin publicar hasta que el dueño integre el PR). Unas 2.200 palabras: 50 términos en siete grupos (cartas, bazas, cantar y responder, envido, truco, tanteador, parejas) y un grupo de variantes que Trucazo no usa (flor, contraflor, falta envido a la partida, «irse en primera son dos»). Cada término tiene su propio ancla (`/glosario-truco#tener-el-quiero`) para enlazarlo desde otras guías.
+**Guía semanal del 13/11 — glosario del truco** (`/glosario-truco`, publicado el 13/11 con el [PR #188](https://github.com/santibpapa/trucazo/pull/188)). Unas 2.200 palabras: 50 términos en siete grupos (cartas, bazas, cantar y responder, envido, truco, tanteador, parejas) y un grupo de variantes que Trucazo no usa (flor, contraflor, falta envido a la partida, «irse en primera son dos»). Cada término tiene su propio ancla (`/glosario-truco#tener-el-quiero`) para enlazarlo desde otras guías.
 
 - **Reglas comprobadas en el código, 13/11:** «tener el quiero» (sólo sube el que aceptó: `sing_truco` en 1v1 y las acciones de `20260909211038_team_2vs2.sql` en parejas); «son buenas» sólo lo dice el pie y «Tengo» declara el tanto real, calculado por el servidor (`envido_say`); irse al mazo da 1 punto o el truco aceptado, más el envido si ya estaba querido (`irse_al_mazo` y la opción `mazo` de `envido_say`); «33 en mesa» muestra sólo las cartas del tanto (`useGameAnnouncements.ts`).
 - **Lo que no sale del código** (costumbres de mesa, marcadas como «en muchas mesas» o «en algunas»): pie de la pareja, señas, chico, fósforos, y las dos variantes de falta envido y de irse en primera.
