@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
-import { Logo, CoinIcon, buttonClass } from '@/components/ui'
+import { Logo, CoinIcon } from '@/components/ui'
 import GuestButton from '@/components/GuestButton'
 import GoogleButton from '@/components/GoogleButton'
 import InstallButton from '@/components/InstallButton'
@@ -135,56 +135,56 @@ export default function Home() {
     <main className="min-h-screen">
       <JsonLd data={productJsonLd} />
 
-      <section className="min-h-[92vh] flex flex-col items-center justify-center gap-8 px-6 py-12 text-center">
-        <div className="flex flex-col items-center gap-5">
-          <Logo size="lg" />
-          <div className="max-w-xl">
-            <h1 className="font-display text-3xl font-extrabold tracking-tight text-cream sm:text-5xl text-balance">
-              Jugá al truco argentino online, mano a mano o en parejas
-            </h1>
-            <p className="mx-auto mt-4 max-w-lg text-balance text-muted">
-              Jugá 1 contra 1 o 2 vs 2 desde el navegador, sin descargar nada, contra otras
-              personas o la computadora. Entrá como invitado, creá una mesa con amigos o
-              avanzá por el Modo Historia.
+      {/* Primera pantalla al estilo de una app: marca, título en dos tonos, una
+          línea de bajada y una sola tarjeta con los accesos. El título no cambió
+          (es lo que más pesa para Google); el detalle que salió de la bajada
+          sigue más abajo, en «Qué es Trucazo» y las preguntas. */}
+      <section className="flex min-h-[92vh] items-center px-6 py-10">
+        <div className="mx-auto w-full max-w-md">
+          <Logo size="md" />
+          <h1 className="mt-6 font-display text-4xl font-extrabold leading-[1.1] tracking-tight text-cream sm:text-5xl">
+            Jugá al truco argentino online,{' '}
+            <span className="text-gold">mano a mano o en parejas.</span>
+          </h1>
+          <p className="mt-4 text-lg leading-relaxed text-muted">
+            Gratis, desde el navegador y sin descargar nada. Contra otras personas o la
+            computadora.
+          </p>
+
+          <div className="mt-8 rounded-3xl border border-line bg-surface p-5 shadow-card">
+            {/* data-md="skip": botones de acceso. No son contenido legible, así que
+                la versión markdown para agentes los descarta. */}
+            <div data-md="skip" className="flex flex-col gap-3">
+              <GuestButton
+                variant="primary"
+                size="lg"
+                label="Jugar ahora sin registrarme"
+                source="home_hero"
+              />
+              <GoogleButton variant="secondary" size="lg" />
+            </div>
+
+            <p className="mt-4 flex items-center justify-center gap-1.5 text-sm text-subtle">
+              <CoinIcon size={14} />
+              Arrancás con <span className="font-semibold text-gold">1.000 monedas ficticias</span>
             </p>
+
+            <div data-md="skip" className="mt-4 flex justify-center gap-3 border-t border-line pt-4 text-sm font-semibold">
+              <TrackedLink
+                href="/register"
+                event="register_cta_click"
+                source="home_hero"
+                className="text-cream hover:text-gold"
+              >
+                Crear cuenta
+              </TrackedLink>
+              <span aria-hidden="true" className="text-subtle">·</span>
+              <Link href="/login" className="text-cream hover:text-gold">
+                Ya tengo cuenta
+              </Link>
+            </div>
           </div>
         </div>
-
-        {/* data-md="skip": botones de acceso. No son contenido legible, así que
-            la versión markdown para agentes los descarta. */}
-        <div data-md="skip" className="flex w-full max-w-xs flex-col gap-3">
-          <GuestButton
-            variant="primary"
-            size="lg"
-            label="Jugar ahora sin registrarme"
-            source="home_hero"
-          />
-          <TrackedLink
-            href="/register"
-            event="register_cta_click"
-            source="home_hero"
-            className={buttonClass('ghost', 'lg', true)}
-          >
-            Crear cuenta
-          </TrackedLink>
-
-          <div className="flex items-center gap-3 py-1 text-xs text-subtle">
-            <span className="h-px flex-1 bg-line" />o<span className="h-px flex-1 bg-line" />
-          </div>
-
-          <GoogleButton variant="secondary" size="lg" />
-          <Link href="/login" className={buttonClass('ghost', 'lg', true)}>
-            Ya tengo cuenta
-          </Link>
-          <InstallButton />
-        </div>
-
-        <p className="inline-flex items-center gap-2 text-sm text-subtle">
-          Cada jugador nuevo arranca con
-          <span className="inline-flex items-center gap-1.5 font-semibold text-gold">
-            <CoinIcon size={14} /> 1.000 monedas ficticias
-          </span>
-        </p>
       </section>
 
       <div className="mx-auto w-full max-w-5xl px-5 pb-20 sm:px-8">
@@ -296,6 +296,11 @@ export default function Home() {
             <Link href="/truco-contra-computadora" className="text-gold hover:underline">Contra la computadora</Link>
             <Link href="/modo-historia-truco" className="text-gold hover:underline">Modo Historia</Link>
           </nav>
+          {/* Sólo aparece en navegadores que permiten instalar; salió de la
+              primera pantalla para dejarla con un solo grupo de accesos. */}
+          <div data-md="skip" className="mx-auto mt-7 max-w-xs">
+            <InstallButton />
+          </div>
         </section>
       </div>
 

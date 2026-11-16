@@ -734,6 +734,18 @@ Cómo se comprobó cada respuesta:
 - Duración: consulta de sólo lectura a `games` del 11/11, partidas terminadas de los últimos 30 días. A 15 puntos: 2.629 partidas, mediana 3,7 minutos. A 30 puntos: 3.256, mediana 6,8. Si se actualiza la respuesta, repetir la consulta y cambiar las fechas del texto. La misma cifra está en `/jugar-truco-con-amigos`.
 - **Corrección del 11/11:** la respuesta «¿Necesito una cuenta?» decía que al registrarse no se perdía lo jugado como invitado, y era falso: `/register` creaba un usuario nuevo. El dueño pidió que fuera cierto: desde el [cambio de convertir invitado](backend.md#convertir-invitado) el invitado que se registra en la misma visita lo conserva. La portada, `/jugar-truco-sin-registrarse` y el aviso de torneos para invitados lo dicen así. Esos textos dependen de que la migración esté aplicada y *Manual linking* activado antes de publicar.
 
+<a id="portada-limpia-2026-11-16"></a>
+
+#### Primera pantalla de la portada más limpia (16/11/2026)
+
+El dueño sintió que la primera pantalla tenía mucho texto y ruido visual, y mandó como referencia una pantalla de inicio estilo app: marca arriba a la izquierda, título grande en dos tonos, una línea de bajada y una sola tarjeta con los accesos. Cambios en `src/app/page.tsx`, sólo en la primera pantalla:
+
+- **Título igual palabra por palabra** («Jugá al truco argentino online, mano a mano o en parejas»), alineado a la izquierda y con la segunda mitad en dorado. Es lo que más pesa para Google, por eso no se tocó.
+- **Bajada de 30 a 15 palabras.** Lo que salió (1 contra 1 o 2 vs 2, invitado, amigos, Modo Historia) ya está más abajo, en «Qué es Trucazo» y las preguntas frecuentes, así que Google lo sigue leyendo en la misma página.
+- **De cinco botones apilados a una tarjeta:** «Jugar ahora sin registrarme» y «Continuar con Google» como botones; «Crear cuenta» y «Ya tengo cuenta» como enlaces chicos al pie de la tarjeta, con el mismo registro de clics (`register_cta_click`, `home_hero`). Las 1.000 monedas quedan adentro de la tarjeta.
+- **«Instalar app»** pasa al cierre de la página («Elegí cómo querés jugar»). Sigue apareciendo sólo en los navegadores que permiten instalar.
+- **Comprobado en local el 16/11:** a 360, 390 y 1280 px la tarjeta entra completa en la primera pantalla y no hay desborde horizontal; `tsc` y `eslint` sin errores en la página.
+
 <a id="paginas-cortas-2026-11-11"></a>
 
 #### Páginas cortas ampliadas (11/11/2026)
