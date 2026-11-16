@@ -747,14 +747,7 @@ El dueño sintió que la primera pantalla tenía mucho texto y ruido visual, y m
 - **Comprobado en local el 16/11:** a 360, 390 y 1280 px la tarjeta entra completa en la primera pantalla y no hay desborde horizontal; `tsc` y `eslint` sin errores en la página.
 - **Publicado el 16/11** con el [PR #191](https://github.com/santibpapa/trucazo/pull/191), mergeado por Claude a pedido del dueño. Comprobado en producción después del despliegue (captura a 390 px igual a la local).
 
-**Segunda parte, el resto de la portada (16/11).** El dueño pidió seguir con la misma idea abajo de la primera pantalla:
-
-- Una sola columna de 768 px para toda la página, con el mismo borde izquierdo que la primera pantalla (medido: título, secciones y pie arrancan en x = 280 a 1280 px).
-- Sin las etiquetas en mayúscula («Qué es Trucazo», «Aprender», «Dudas») ni las líneas entre secciones.
-- Sólo el Modo Historia va enmarcado. Las tres funciones pasan a texto sin recuadro; las guías y las preguntas, a listas con una línea fina entre filas.
-- Se quitó «Ver la guía completa →», que repetía el enlace de «Reglas completas».
-- El recuadro final pasa a «¿Jugamos una mano?», una línea y el botón «Jugar ahora» (`source: home_footer`), con «Instalar app» abajo. Sus cinco enlaces a los modos de juego pasan al pie, en una fila que la versión para agentes sí lee.
-- **SEO, comparado con Playwright contra producción el 16/11:** mismos títulos `h1` y `h3` y los mismos 17 destinos de enlaces internos. Único título cambiado: el `h2` final («Elegí cómo querés jugar» → «¿Jugamos una mano?»), sin palabras de búsqueda. Texto visible de 254 a 235 palabras; las respuestas plegadas, que Google también lee, no cambiaron.
+**Resto de la portada: se queda como está (decisión del dueño, 16/11).** Se probó llevar la misma idea abajo de la primera pantalla: sin etiquetas en mayúscula ni líneas entre secciones, guías y preguntas como listas sin recuadro, cierre con un solo botón y los modos de juego en el pie. El dueño vio las capturas antes y después y prefirió dejarlo como estaba; no se publicó. No volver a proponerlo salvo que él lo pida.
 
 <a id="paginas-cortas-2026-11-11"></a>
 
