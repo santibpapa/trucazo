@@ -1,0 +1,85 @@
+# ============================================================
+# Dificultad de Irene en la Ruta del Noroeste
+#
+# Juega 400 partidas completas contra el motor real de la base, dos veces con
+# repartos distintos. Era lo más lento de la revisión (más de 3 minutos de los
+# 4 y medio), por eso vive aparte:
+#   - Sólo corre si el cambio toca la base o la simulación: un cambio de
+#     pantallas o de textos no puede cambiar cómo juega Irene.
+#   - Las dos tandas de repartos corren a la vez, cada una en su máquina.
+# ============================================================
+name: Simulación Noroeste
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - 'scripts/rebuild-db.sh'
+      - 'scripts/sim-noroeste.mjs'
+      - '.github/workflows/simulacion-noroeste.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'supabase/**'
+      - 'scripts/rebuild-db.sh'
+      - 'scripts/sim-noroeste.mjs'
+      - '.github/workflows/simulacion-noroeste.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: simulacion-noroeste-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulacion:
+    name: Irene (repartos desde ${{ matrix.semilla }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      # Si una tanda falla, la otra igual termina: se ve cuál de las dos fue.
+      fail-fast: false
+      matrix:
+        semilla: ['1', '251']
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: trucazo
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: trucazo
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '>=24.22.1 <25'
+          check-latest: true
+
+      - name: Instalar psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Reconstruir la base entera desde cero
+        run: scripts/rebuild-db.sh
+
+      - name: Regresiones tácticas y dificultad Noroeste contra Irene (motor real)
+        env:
+          NOROESTE_SEED_START: ${{ matrix.semilla }}
+        run: node scripts/sim-noroeste.mjs --local-test-db
