@@ -3,6 +3,11 @@
 -- Todo (cuentas, partidas, premios y funciones de prueba) termina en ROLLBACK.
 begin;
 set local statement_timeout='15min';
+-- Tras cada jugada se busca si hubo una decisión ilegal. Sin este índice esa
+-- búsqueda recorría bot_decisions entera, que crece con cada partida revertida
+-- dentro de esta misma transacción: era un tercio del tiempo total (medido
+-- el 17/11/2026). Sólo existe en esta prueba; el ROLLBACK final lo borra.
+create index on bot_decisions(game_id) where not ok;
 create temporary table northwest_benchmark_results(slug text,seed int,seat int,won boolean,margin int,actions int) on commit drop;
 
 create function pg_temp.northwest_benchmark_game(p_rival uuid,p_seed int,p_seat int)

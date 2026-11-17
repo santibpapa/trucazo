@@ -154,6 +154,15 @@ ganó 65,25 % y la desde 251, 69 % (el mínimo exigido es 55 %). Si algún día 
 esta revisión como obligatoria en GitHub, los PRs que no tocan la base quedarían
 esperándola para siempre, porque en esos casos no corre.
 
+En una base recién armada cada tanda tardaba unos 3 minutos (2 min 41 s y 3 min 18 s
+en el PR #193). Medido el 17/11 con `pg_stat_statements`: un tercio del tiempo se iba
+en la consulta de `noroeste_benchmark.sql` que, después de cada jugada, busca en
+`bot_decisions` una decisión ilegal. Esa tabla no tiene índice por partida, y todas
+las partidas viven en una sola transacción. La prueba ahora crea un índice propio que
+se borra con el `ROLLBACK` final: en local pasó de 195 a 122 segundos, con los mismos
+resultados. Ojo: tomar estadísticas (`vacuum analyze`) con la base vacía, antes de la
+simulación, la vuelve mucho más lenta (pasó los 10 minutos y se cortó).
+
 <a id="configuracion-base-estructura"></a>
 
 #### Estructura
