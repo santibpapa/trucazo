@@ -143,6 +143,17 @@ Abrí [http://localhost:3000](http://localhost:3000).
 Todo esto lo corre solo GitHub en cada Pull Request (ver `.github/workflows/ci.yml`),
 más las pruebas de seguridad de `supabase/tests/`.
 
+La simulación contra Irene (`scripts/sim-noroeste.mjs`, dos tandas de 400 partidas)
+vive aparte, en `.github/workflows/simulacion-noroeste.yml` (desde el 17/11/2026):
+sólo corre si el cambio toca `supabase/`, `scripts/rebuild-db.sh` o la simulación, y
+las dos tandas corren a la vez, cada una con su base nueva. Antes iban una detrás de
+la otra dentro de «Base de datos» y ocupaban 3 min 12 s de los 4 min 30 s de la
+revisión (medido en la corrida del 16/11). Comprobado el 17/11 en una base local
+recién reconstruida, sin correr antes las otras pruebas: la tanda desde la semilla 1
+ganó 65,25 % y la desde 251, 69 % (el mínimo exigido es 55 %). Si algún día se marca
+esta revisión como obligatoria en GitHub, los PRs que no tocan la base quedarían
+esperándola para siempre, porque en esos casos no corre.
+
 <a id="configuracion-base-estructura"></a>
 
 #### Estructura
