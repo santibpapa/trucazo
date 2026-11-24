@@ -6,7 +6,7 @@ Truco argentino online a **15 o 30 puntos, sin flor y con monedas ficticias**. I
 
 <a id="estado-actual"></a>
 
-## En qué estamos — 15/11/2026
+## En qué estamos — 22/11/2026
 
 Una línea por tema. Cada sesión reemplaza **sólo la línea de su tema**, con fecha; el detalle va en el documento del tema.
 
@@ -15,9 +15,9 @@ Una línea por tema. Cada sesión reemplaza **sólo la línea de su tema**, con 
 - **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (04/11). Se suma una guía nueva por semana; la del 13/11, el glosario del truco, está publicada (PR #188). Google Ad Manager también rechazó la cuenta: todo lo de anuncios en pausa hasta sumarle valor al sitio. [Diagnóstico y guías](docs/juego.md#adsense-rechazo-poco-valor) — 15/11
 - **App Android:** **en pausa** hasta que AdSense dé el okey (anuncios aprobados) y Trucazo genere ingresos. Etapas 1 a 17 cerradas, 18 empezada, nada publicado en Play. [Android](docs/android.md#android-estado-actual) — 08/11
 - **Servidor:** un solo servidor para la web y la app: todo cambio en Supabase o en los servicios web tiene que seguir funcionando para las apps ya instaladas. [Cómo llegan los cambios](docs/android.md#como-llegan-los-cambios) — 07/11
-- **Operación:** plan gratuito de Supabase y Vercel. Supabase avisó el 11/11 que se pasó la cuota: gracia hasta el 11/12, después el egress tiene que quedar debajo de 5,5 GB por ciclo; con el aviso de partida reducido (PR #181, 11/11) Realtime bajó unos 70 % y el total quedó en ~115 a 180 MB por día, justo en el límite (medido el 15/11). Panel de admin más rápido (personas de a 50) publicado y confirmado por el dueño el 15/11. SEO: portada, páginas cortas, títulos y firma publicados el 11/11, indexación pedida. Reseñas: tablero #118 y Admin → Reseñas. [Operación](docs/operacion.md#estado-actual) — 15/11
+- **Operación:** plan gratuito de Supabase y Vercel. Supabase avisó el 11/11 que se pasó la cuota: gracia hasta el 11/12, después el egress tiene que quedar debajo de 5,5 GB por ciclo; con el aviso de partida reducido (PR #181, 11/11) Realtime bajó unos 70 % y el total quedó en ~115 a 180 MB por día, justo en el límite (medido el 15/11); el ciclo nuevo empezó el 21/11. Panel de admin más rápido (personas de a 50) publicado y confirmado por el dueño el 15/11. SEO: portada, páginas cortas, títulos y firma publicados el 11/11, indexación pedida; primera pantalla de la portada más limpia el 16/11 (PR #191). Reseñas: tablero #118 y Admin → Reseñas. [Operación](docs/operacion.md#estado-actual) — 22/11
 
-**Pendientes del dueño, fuera del código:** ninguno al 15/11.
+**Pendientes del dueño, fuera del código:** ninguno al 22/11.
 
 <a id="indice"></a>
 

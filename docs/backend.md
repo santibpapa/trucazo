@@ -1,17 +1,18 @@
 # Backend — configuración, base de datos, seguridad y pruebas
 
-[Volver al README](../README.md) · Documento principal del backend. Estado revisado el **15/11/2026**.
+[Volver al README](../README.md) · Documento principal del backend. Estado revisado el **22/11/2026**.
 
 ## Estado actual
 
-Foto al **15/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa al historial de abajo.
+Foto al **22/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa al historial de abajo.
 
 - **Stack:** Next.js 15.5.29, React, TypeScript y Tailwind; Node 24.22.1 o posterior de la rama 24. Supabase aporta cuentas, Postgres y Realtime. La lógica online y las monedas oficiales viven en funciones SQL del servidor; las cartas de cada jugador, en tablas privadas fuera de Realtime.
 - **El backend no se despliega solo.** Para corregir una función se crea una migración nueva y el dueño la ejecuta en el SQL Editor con instrucciones concretas. La reconstrucción y las pruebas SQL usan una base aislada ([receta](#reconstruir-base)).
-- **Migraciones:** todas las de `supabase/migrations/` del 01 al 15/11 se ven aplicadas en producción (funciones, columnas, tablas y tareas que crean; consulta de sólo lectura del 15/11). La última es `20261115210000_admin_personas_paginadas.sql` (panel de admin de a 50, [Operación](operacion.md#panel-admin-lento-2026-11-15)).
-- **Compatibilidad con la app:** `app_compatibility.policy` con versión mínima **17** y sin reemplazo publicado; `native_push.settings` con `dispatch_enabled=false` (leídos en producción el 15/11). La app está en pausa, pero las reglas de [Cómo llegan los cambios](android.md#como-llegan-los-cambios) siguen valiendo.
-- **Tareas programadas (leídas en producción el 15/11, coinciden con las migraciones):** limpieza de partidas 1v1 cada 5 min (`sweep_stale_games(10)`), mesas y parejas cada 5 min; torneos, reintentos de correos y bots de torneo cada minuto; reintentos de borrado de cuenta cada 10 min; limpieza del chat de mesa y de los avisos de partida cada hora; limpiezas diarias (analítica, decisiones de bots, historial de cron, convivencia y chat global). El despachador de push (`trucazo-native-push`, cada 15 segundos) está desactivado mientras Android está en pausa: [migración del 07/11](../supabase/migrations/20261107220000_pausar_push_android.sql).
+- **Migraciones:** todas las de `supabase/migrations/` del 01 al 15/11 se ven aplicadas en producción (funciones, columnas, tablas, disparadores y tareas que crean; consulta de sólo lectura del 22/11). Del 15 al 22/11 no hubo migraciones nuevas. La última es `20261115210000_admin_personas_paginadas.sql` (panel de admin de a 50, [Operación](operacion.md#panel-admin-lento-2026-11-15)).
+- **Compatibilidad con la app:** `app_compatibility.policy` con versión mínima **17** y sin reemplazo publicado; `native_push.settings` con `dispatch_enabled=false` (leídos en producción el 22/11). La app está en pausa, pero las reglas de [Cómo llegan los cambios](android.md#como-llegan-los-cambios) siguen valiendo.
+- **Tareas programadas (leídas en producción el 22/11: 17 tareas, coinciden con las migraciones):** limpieza de partidas 1v1 cada 5 min (`sweep_stale_games(10)`), mesas y parejas cada 5 min; torneos, reintentos de correos y bots de torneo cada minuto; reintentos de borrado de cuenta cada 10 min; limpieza del chat de mesa y de los avisos de partida cada hora; limpiezas diarias (analítica, decisiones de bots, historial de cron, convivencia y chat global). El despachador de push (`trucazo-native-push`, cada 15 segundos) está desactivado mientras Android está en pausa: [migración del 07/11](../supabase/migrations/20261107220000_pausar_push_android.sql).
 - **Aviso de partida reducido (11/11):** cada cambio de partida viaja por un canal privado con sólo los campos que cambiaron; `games` sigue en Realtime para las apps instaladas. Aplicado y publicado el 11/11 ([Operación](operacion.md#aviso-partida-reducido)).
+- **Simulación contra Irene aparte (17/11):** las dos tandas de 400 partidas corren en su propia revisión de GitHub, en paralelo y sólo si el cambio toca la base ([PR #193](https://github.com/santibpapa/trucazo/pull/193) y [#194](https://github.com/santibpapa/trucazo/pull/194), [detalle](#configuracion-base-scripts)).
 - **Middleware angostado el 06/11** para no agotar el cupo gratis de CPU de Vercel ([detalle](#cpu-vercel)).
 - **Chat global (07/11):** quedan los últimos 500 (tarea diaria `trucazo-chat-keep-500`) y se tapan las groserías fuertes de `chat_banned_words` ([detalle](#chat-global-2026-11-07)).
 - **Cuotas de Supabase:** limpieza de Realtime e historial aplicada por el dueño el 04/11 ([detalle en Operación](operacion.md#cuotas-2026-11-04)).

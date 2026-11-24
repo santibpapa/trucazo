@@ -1,10 +1,10 @@
 # Juego — Historia, mano a mano, parejas, bots y torneos
 
-[Volver al README](../README.md) · Documento principal de reglas y modalidades. Estado revisado el **15/11/2026**. El 07/11 se achicó a la mitad: quedan reglas, decisiones y trampas; las pruebas, auditorías y registros de entrega están en el [historial completo hasta el 07/11/2026](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md), con un aviso en cada lugar de donde salieron.
+[Volver al README](../README.md) · Documento principal de reglas y modalidades. Estado revisado el **22/11/2026**. El 07/11 se achicó a la mitad: quedan reglas, decisiones y trampas; las pruebas, auditorías y registros de entrega están en el [historial completo hasta el 07/11/2026](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md), con un aviso en cada lugar de donde salieron.
 
 ## Estado actual
 
-Foto al **15/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
+Foto al **22/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
 
 - Truco argentino a 15 o 30 puntos, sin flor y con monedas ficticias. Las reglas online y los premios oficiales los decide el servidor; las manos rivales nunca se envían al cliente.
 - **Historia:** 15 provincias y 66 rivales. **Vidas de Historia programadas y apagadas** desde el 19/10: los jugadores no ven nada ni pierden vidas ([reglas y cómo activarlas](#vidas-de-historia)).
@@ -16,7 +16,7 @@ Foto al **15/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 
 ## Próximo paso y cómo retomar
 
-AdSense: una guía nueva por semana. Hechas: estrategia (04/11) y glosario (13/11). Con la octava guía se puede reordenar la grilla de la portada (el glosario todavía no está en ella). Quedan como candidatas manos de ejemplo explicadas e historia y variantes regionales ([Rechazo de AdSense](#adsense-rechazo-poco-valor)). Antes de tocar una modalidad existente, leer su entrega final y comprobar el código y el SQL actuales antes de cambiar reglas o repetir migraciones.
+AdSense: una guía nueva por semana. Hechas: estrategia (04/11) y glosario (13/11); al 22/11 no hay en `master` ni en un PR abierto una guía de la semana del 20/11. Con la octava guía se puede reordenar la grilla de la portada (el glosario todavía no está en ella). Quedan como candidatas manos de ejemplo explicadas e historia y variantes regionales ([Rechazo de AdSense](#adsense-rechazo-poco-valor)). Antes de tocar una modalidad existente, leer su entrega final y comprobar el código y el SQL actuales antes de cambiar reglas o repetir migraciones.
 
 ## Guía de lectura
 
