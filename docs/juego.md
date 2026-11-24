@@ -1,14 +1,14 @@
 # Juego — Historia, mano a mano, parejas, bots y torneos
 
-[Volver al README](../README.md) · Documento principal de reglas y modalidades. Estado revisado el **22/11/2026**. El 07/11 se achicó a la mitad: quedan reglas, decisiones y trampas; las pruebas, auditorías y registros de entrega están en el [historial completo hasta el 07/11/2026](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md), con un aviso en cada lugar de donde salieron.
+[Volver al README](../README.md) · Documento principal de reglas y modalidades. Estado revisado el **24/11/2026**. El 07/11 se achicó a la mitad: quedan reglas, decisiones y trampas; las pruebas, auditorías y registros de entrega están en el [historial completo hasta el 07/11/2026](https://github.com/santibpapa/trucazo/blob/c13848edda0fc9f5078d257515f5021a8340da5f/docs/juego.md), con un aviso en cada lugar de donde salieron.
 
 ## Estado actual
 
-Foto al **22/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
+Foto al **24/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a su capítulo fechado.
 
 - Truco argentino a 15 o 30 puntos, sin flor y con monedas ficticias. Las reglas online y los premios oficiales los decide el servidor; las manos rivales nunca se envían al cliente.
-- **Historia:** 15 provincias y 66 rivales. **Vidas de Historia programadas y apagadas** desde el 19/10: los jugadores no ven nada ni pierden vidas ([reglas y cómo activarlas](#vidas-de-historia)).
-- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (capturas del 04/11). El dueño decidió sumar **una guía nueva por semana**; la del 13/11, el [glosario del truco](#guia-semanal-glosario), se publicó ese día ([PR #188](https://github.com/santibpapa/trucazo/pull/188); `/glosario-truco` responde en producción, comprobado el 15/11). **Google Ad Manager también rechazó la cuenta** (aviso del dueño, 15/11): todo lo de anuncios en la página queda **en pausa** hasta sumarle más valor al sitio; las guías semanales siguen. Diagnóstico y avances en [Rechazo de AdSense](#adsense-rechazo-poco-valor).
+- **Historia:** 15 provincias y 66 rivales. **Vidas de Historia programadas y apagadas** desde el 19/10: los jugadores no ven nada ni pierden vidas. **Decisión del dueño (24/11): quedan detenidas a propósito hasta conseguir una forma de cambiarlas por anuncios** ([reglas y cómo activarlas](#vidas-de-historia)).
+- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (capturas del 04/11). El dueño decidió sumar **una guía nueva por semana** (lo confirmó el 24/11); la del 13/11, el [glosario del truco](#guia-semanal-glosario), se publicó ese día ([PR #188](https://github.com/santibpapa/trucazo/pull/188); `/glosario-truco` responde en producción, comprobado el 15/11). La del 24/11, [manos de truco explicadas](#guia-semanal-manos), está lista en la rama `claude/lucid-hopper-mqtw8c` y se publica cuando el dueño integre su PR. **Google Ad Manager también rechazó la cuenta** (aviso del dueño, 15/11): todo lo de anuncios en la página queda **en pausa** hasta sumarle más valor al sitio; las guías semanales siguen. Diagnóstico y avances en [Rechazo de AdSense](#adsense-rechazo-poco-valor).
 - **Parejas** lanzadas el 14/09/2026 y **torneos** el 27/09/2026 (contrato al 07/10/2026).
 - **Chat escrito** en mesas normales y torneos; Historia tiene frases rápidas. Los bots no escriben en el chat libre.
 - **Bots en mesas de la gente** desde el 04/11 ([detalle](#bots-lobby-cuidamesas)).
@@ -16,7 +16,7 @@ Foto al **22/11/2026**. Se reescribe entera cuando algo cambia; lo viejo pasa a 
 
 ## Próximo paso y cómo retomar
 
-AdSense: una guía nueva por semana. Hechas: estrategia (04/11) y glosario (13/11); al 22/11 no hay en `master` ni en un PR abierto una guía de la semana del 20/11. Con la octava guía se puede reordenar la grilla de la portada (el glosario todavía no está en ella). Quedan como candidatas manos de ejemplo explicadas e historia y variantes regionales ([Rechazo de AdSense](#adsense-rechazo-poco-valor)). Antes de tocar una modalidad existente, leer su entrega final y comprobar el código y el SQL actuales antes de cambiar reglas o repetir migraciones.
+AdSense: una guía nueva por semana (confirmado por el dueño el 24/11). Hechas: estrategia (04/11), glosario (13/11) y manos explicadas (24/11, falta integrar el PR). La grilla de la portada ya tiene las ocho guías. La próxima candidata es historia y variantes regionales; esa necesita fuentes citadas, porque no sale del código ([Rechazo de AdSense](#adsense-rechazo-poco-valor)). Antes de tocar una modalidad existente, leer su entrega final y comprobar el código y el SQL actuales antes de cambiar reglas o repetir migraciones.
 
 ## Guía de lectura
 
@@ -1423,7 +1423,7 @@ presentación: no requiere SQL ni altera el ingreso, los cobros o los asientos.
 jugadores no ven vidas ni las pierden. No hay que reprogramarlo: sólo prenderlo cuando
 haya anuncios con premio. **Actualización 04/11/2026:** AdSense rechazó el sitio por
 «contenido de poco valor» (ver [Rechazo de AdSense](#adsense-rechazo-poco-valor)). Aun aprobado, AdSense no alcanza: falta una cuenta de Google Ad Manager con un bloque
-rewarded real (ver «Para retomar más adelante», al final de esta sección). **Actualización 15/11/2026:** Google Ad Manager también rechazó la cuenta; el dueño pausó todo lo de anuncios hasta sumarle más valor a la página.
+rewarded real (ver «Para retomar más adelante», al final de esta sección). **Actualización 15/11/2026:** Google Ad Manager también rechazó la cuenta; el dueño pausó todo lo de anuncios hasta sumarle más valor a la página. **Decisión del dueño, 24/11/2026:** las vidas quedan detenidas a propósito hasta conseguir una forma de cambiarlas por anuncios (que mirar un anuncio dé una vida). No prenderlas antes ni buscarles otro uso sin que él lo pida.
 
 **Estado vigente — 19/10/2026:** la implementación del
 [PR #130](https://github.com/santibpapa/trucazo/pull/130) y la pausa del
@@ -1705,3 +1705,12 @@ varias semanas de contenido nuevo, tildar «Confirmo que corregí los problemas�
 - **Lo que no sale del código** (costumbres de mesa, marcadas como «en muchas mesas» o «en algunas»): pie de la pareja, señas, chico, fósforos, y las dos variantes de falta envido y de irse en primera.
 - **Conectada:** sitemap, `llms.txt` y versión markdown (por `PUBLIC_ROUTES`), pie de todas las guías y un enlace desde «Cómo se juega». **No** se sumó a la grilla de guías de la portada: con siete tarjetas queda una sola en la última fila; con la guía de la semana que viene (ocho) se puede reordenar.
 - Verificado: `npm run build`, `npm run check:agentes`, TypeScript y ESLint sin errores; vista a 360 y 1280 px sin desborde ni errores de página. No requiere SQL.
+
+<a id="guia-semanal-manos"></a>
+
+**Guía semanal del 24/11 — manos de truco explicadas** (`/manos-de-truco-explicadas`, rama `claude/lucid-hopper-mqtw8c`, sin publicar hasta que el dueño integre el PR). Unas 2.300 palabras: ocho manos mano a mano, jugadas de punta a punta con las cartas de los dos lados (imágenes de `public/cartas/`) y una conclusión por mano: matar con lo justo y cantar truco con la primera ganada; parda en primera; una baza cada uno y tercera parda; 33 siendo pie (real envido o falta); cuánto vale la falta envido (la cuenta el puntero); tener el quiero; el envido va primero; irse al mazo sin regalar el envido querido. Cada mano tiene su ancla (`/manos-de-truco-explicadas#tener-el-quiero`).
+
+- **Reglas comprobadas en producción, 24/11** (`pg_get_functiondef`, sólo lectura): bazas y pardas en `play_card` (con la primera parda gana quien gane la segunda; una cada uno y tercera parda, gana la primera; tres pardas, la mano); `_envido_quiero_value` (la falta vale el objetivo menos los puntos del puntero) y `_envido_reject_value` (rechazar una subida da lo ya aceptado); `envido_say` (empate para la mano; irse al mazo al declarar da envido más mano; si el envido llega al objetivo, termina la partida); `sing_envido` (se puede cantar con un truco pendiente en la primera baza, no con el truco querido); `sing_truco` (sube sólo quien aceptó, y un canto se puede contestar subiendo); `irse_al_mazo` (con un canto pendiente hay que responderlo primero).
+- **Porcentajes:** el 99 % del 33 siendo pie y el casi 9 de cada 10 del 28 siendo mano salen de la tabla de `/como-ganar-al-truco`; el 2 en 36 de la mano 1 es la cuenta de cartas no vistas.
+- **Conectada:** sitemap, `llms.txt` y markdown (por `PUBLIC_ROUTES`), pie de todas las guías y la grilla de la portada, que pasó a ocho tarjetas (glosario y manos incluidas): dos columnas en el teléfono y cuatro desde tablet, sin tarjetas sueltas.
+- Verificado: `npm run build` (con las variables de mentira del CI), `npm run check:agentes`, TypeScript y ESLint sin errores nuevos; vista a 360 y 1280 px sin desborde ni errores de página. No requiere SQL.

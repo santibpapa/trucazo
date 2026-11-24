@@ -122,6 +122,9 @@ export default function SeoPageLayout({
           <Link href="/glosario-truco" className="hover:text-gold transition-colors">
             Glosario
           </Link>
+          <Link href="/manos-de-truco-explicadas" className="hover:text-gold transition-colors">
+            Manos explicadas
+          </Link>
           <Link href="/acerca-de-trucazo" className="hover:text-gold transition-colors">
             Acerca de
           </Link>

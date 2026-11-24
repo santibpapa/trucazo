@@ -6,18 +6,18 @@ Truco argentino online a **15 o 30 puntos, sin flor y con monedas ficticias**. I
 
 <a id="estado-actual"></a>
 
-## En qué estamos — 22/11/2026
+## En qué estamos — 24/11/2026
 
 Una línea por tema. Cada sesión reemplaza **sólo la línea de su tema**, con fecha; el detalle va en el documento del tema.
 
 - **Web:** [www.trucazo.com.ar](https://www.trucazo.com.ar). Lo publicado es siempre `master`: Vercel publica solo cada merge. — 07/11
-- **Juego:** Historia (15 provincias, 66 rivales), 1v1, parejas y torneos funcionando. Vidas de Historia programadas y apagadas. [Juego](docs/juego.md#estado-actual) — 07/11
-- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (04/11). Se suma una guía nueva por semana; la del 13/11, el glosario del truco, está publicada (PR #188). Google Ad Manager también rechazó la cuenta: todo lo de anuncios en pausa hasta sumarle valor al sitio. [Diagnóstico y guías](docs/juego.md#adsense-rechazo-poco-valor) — 15/11
+- **Juego:** Historia (15 provincias, 66 rivales), 1v1, parejas y torneos funcionando. Vidas de Historia apagadas a propósito hasta poder cambiarlas por anuncios (decisión del dueño, 24/11). [Juego](docs/juego.md#estado-actual) — 24/11
+- **Anuncios:** AdSense rechazó el sitio por «contenido de poco valor» (04/11). Se suma una guía nueva por semana (confirmado el 24/11); el glosario (13/11) está publicado y la de manos explicadas (24/11) espera que se integre su PR. Google Ad Manager también rechazó la cuenta: todo lo de anuncios en pausa hasta sumarle valor al sitio. [Diagnóstico y guías](docs/juego.md#adsense-rechazo-poco-valor) — 24/11
 - **App Android:** **en pausa** hasta que AdSense dé el okey (anuncios aprobados) y Trucazo genere ingresos. Etapas 1 a 17 cerradas, 18 empezada, nada publicado en Play. [Android](docs/android.md#android-estado-actual) — 08/11
 - **Servidor:** un solo servidor para la web y la app: todo cambio en Supabase o en los servicios web tiene que seguir funcionando para las apps ya instaladas. [Cómo llegan los cambios](docs/android.md#como-llegan-los-cambios) — 07/11
-- **Operación:** plan gratuito de Supabase y Vercel. Supabase avisó el 11/11 que se pasó la cuota: gracia hasta el 11/12, después el egress tiene que quedar debajo de 5,5 GB por ciclo; con el aviso de partida reducido (PR #181, 11/11) Realtime bajó unos 70 % y el total quedó en ~115 a 180 MB por día, justo en el límite (medido el 15/11); el ciclo nuevo empezó el 21/11. Panel de admin más rápido (personas de a 50) publicado y confirmado por el dueño el 15/11. SEO: portada, páginas cortas, títulos y firma publicados el 11/11, indexación pedida; primera pantalla de la portada más limpia el 16/11 (PR #191). Reseñas: tablero #118 y Admin → Reseñas. [Operación](docs/operacion.md#estado-actual) — 22/11
+- **Operación:** plan gratuito de Supabase y Vercel. Supabase avisó el 11/11 que se pasó la cuota: el panel dice que restringe desde el 10/12 si el egress pasa de 5,5 GB por ciclo; el ciclo nuevo (desde el 21/11) va entre ~106 y ~173 MB por día, debajo del tope de ~180 (medido el 24/11). Panel de admin más rápido (personas de a 50) publicado y confirmado por el dueño el 15/11. SEO: portada, páginas cortas, títulos y firma publicados el 11/11, indexación pedida; primera pantalla de la portada más limpia el 16/11 (PR #191). Reseñas: tablero #118 y Admin → Reseñas. Correos de novedades sin autorización para enviar (confirmado el 24/11). [Operación](docs/operacion.md#estado-actual) — 24/11
 
-**Pendientes del dueño, fuera del código:** ninguno al 22/11.
+**Pendientes del dueño, fuera del código:** al 24/11, mirar Usage → Egress una vez por semana hasta el 10/12.
 
 <a id="indice"></a>
 
