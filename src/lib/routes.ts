@@ -105,6 +105,15 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     frequency: 'monthly',
   },
   {
+    path: '/manos-de-truco-explicadas',
+    updated: '2026-11-24',
+    label: 'Manos de truco explicadas',
+    blurb: 'ocho manos jugadas paso a paso: pardas, envido de 33, falta envido, tener el quiero e irse al mazo.',
+    group: 'guia',
+    priority: 0.8,
+    frequency: 'monthly',
+  },
+  {
     path: '/truco-dos-jugadores',
     updated: '2026-09-14',
     label: 'Truco para dos jugadores',

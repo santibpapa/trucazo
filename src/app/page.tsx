@@ -63,6 +63,8 @@ const learningLinks = [
   { href: '/pardas-truco-reglas', label: 'Pardas' },
   { href: '/envido-real-envido-falta-envido', label: 'Envido y sus cantos' },
   { href: '/como-ganar-al-truco', label: 'Cómo ganar al truco' },
+  { href: '/glosario-truco', label: 'Glosario del truco' },
+  { href: '/manos-de-truco-explicadas', label: 'Manos explicadas' },
 ]
 
 const features = [
@@ -254,7 +256,7 @@ export default function Home() {
               Ver la guía completa →
             </Link>
           </div>
-          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {learningLinks.map(item => (
               <Link
                 key={item.href}
